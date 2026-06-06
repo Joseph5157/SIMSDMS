@@ -1,5 +1,4 @@
-// Phase D — full implementation
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
 
 export function useCurrentUser() {
@@ -11,5 +10,28 @@ export function useCurrentUser() {
     },
     retry: false,
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useRequestOtp() {
+  return useMutation({
+    mutationFn: (email) => api.post('/auth/request-otp', { email }),
+  });
+}
+
+export function useVerifyOtp() {
+  return useMutation({
+    mutationFn: ({ email, otp }) => api.post('/auth/verify-otp', { email, otp }),
+  });
+}
+
+export function useLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post('/auth/logout'),
+    onSuccess: () => {
+      qc.clear();
+      window.location.href = '/login';
+    },
   });
 }

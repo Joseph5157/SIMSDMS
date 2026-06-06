@@ -1,20 +1,28 @@
 const { Router } = require('express');
+const rateLimit = require('express-rate-limit');
+const validate = require('../middleware/validate');
+const authenticate = require('../middleware/authenticate');
+const { requestOtpSchema, verifyOtpSchema } = require('../schemas/auth.schema');
+const ctrl = require('../controllers/auth.controller');
 
 const router = Router();
 
-// POST /auth/request-otp — Public
-router.post('/request-otp', (req, res) => {
-  res.status(501).json({ error: true, code: 'NOT_IMPLEMENTED', message: 'Coming in Phase B' });
+// Stricter rate limit for OTP endpoints — 5 requests per 15 minutes per IP
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: true, code: 'RATE_LIMITED', message: 'Too many OTP requests. Please try again later.' },
 });
+
+// POST /auth/request-otp — Public
+router.post('/request-otp', otpLimiter, validate(requestOtpSchema), ctrl.requestOtp);
 
 // POST /auth/verify-otp — Public
-router.post('/verify-otp', (req, res) => {
-  res.status(501).json({ error: true, code: 'NOT_IMPLEMENTED', message: 'Coming in Phase B' });
-});
+router.post('/verify-otp', otpLimiter, validate(verifyOtpSchema), ctrl.verifyOtp);
 
 // POST /auth/logout — All Auth
-router.post('/logout', (req, res) => {
-  res.status(501).json({ error: true, code: 'NOT_IMPLEMENTED', message: 'Coming in Phase B' });
-});
+router.post('/logout', authenticate, ctrl.logout);
 
 module.exports = router;

@@ -11,6 +11,16 @@ const logger = require('./lib/logger');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const adminRoutes = require('./routes/admin.routes');
+const studentsRoutes = require('./routes/students.routes');
+const calendarRoutes = require('./routes/calendar.routes');
+const dutySlotsRoutes = require('./routes/duty-slots.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
+const violationsRoutes = require('./routes/violations.routes');
+const violationTypesRoutes  = require('./routes/violation-types.routes');
+const coverRequestsRoutes   = require('./routes/cover-requests.routes');
+const messagesRoutes        = require('./routes/messages.routes');
+const reportsRoutes         = require('./routes/reports.routes');
+const { startCronJobs } = require('./lib/cron');
 
 const app = express();
 
@@ -49,6 +59,15 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
 app.use('/admin', adminRoutes);
+app.use('/students', studentsRoutes);
+app.use('/calendar', calendarRoutes);
+app.use('/duty-slots', dutySlotsRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/violations', violationsRoutes);
+app.use('/violation-types', violationTypesRoutes);
+app.use('/cover-requests',  coverRequestsRoutes);
+app.use('/messages',        messagesRoutes);
+app.use('/reports',         reportsRoutes);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -69,4 +88,5 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`SIMS DMS server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  startCronJobs();
 });
