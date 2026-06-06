@@ -1,50 +1,44 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# SIMS DMS — Project Constitution
+<!-- Synced from CONSTITUTION.md — Single source of truth is CONSTITUTION.md at project root -->
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Tech Stack is Locked
+**Frontend**: React.js, Vite, TanStack Query, Tailwind CSS, Workbox (PWA).
+**Backend**: Node.js + Express, Prisma ORM, Zod validation, Helmet.js, express-rate-limit, Morgan + Winston.
+**Infra**: PostgreSQL + Railway, REST API, monolithic, 30-second polling (no WebSockets). Do not suggest alternatives.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Auth is Telegram OTP Only
+No passwords, no email OTP, no SMS. JWT in httpOnly cookie only — never localStorage. OTP expires in 5 minutes, max 5 attempts before lockout.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Data Safety (NON-NEGOTIABLE)
+All deletes are soft deletes (`deleted_at`) — Super Admin hard-delete is the only exception. UUID primary keys only. DECIMAL(8,2) for all monetary values. Every table has `created_at` and `updated_at`.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Roles are Fixed
+Exactly 4 roles: Super Admin, Admin, Coordinator, Faculty. Do not add, merge, or rename roles.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Phased Development
+Phase 1 (MVP, Weeks 1–4) must be complete and bug-free before starting Phase 2. Do not work across phases simultaneously.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Additional Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- No raw SQL except complex reports — all DB access via Prisma
+- No `console.log` in production — use Winston logger
+- No sequential integer IDs — UUID only
+- No floats for money — DECIMAL(8,2) only
+- Never expose JWT secret, Telegram bot token, or DATABASE_URL in code or comments
+- Never bypass Zod validation on any API input
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Database
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+14 tables: `users`, `otp_sessions`, `students`, `duty_slots`, `duty_attendance`, `violation_types`, `violations`, `violation_audit_log`, `correction_requests`, `reschedule_requests`, `calendar_config`, `messages`, `photo_access_log`, `student_upload_log`
+
+## API
+
+55 endpoints across 11 modules. All errors: `{ "error": true, "code": "ERROR_CODE", "message": "..." }`
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+CONSTITUTION.md supersedes all other documents. Read it before any action on the codebase. Do not modify without project owner approval.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 2.0 | **Ratified**: June 2026 | **Last Amended**: June 2026
