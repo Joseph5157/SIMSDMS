@@ -113,6 +113,21 @@ async function getMessage(req, res) {
   res.json(message);
 }
 
+// ─── PATCH /messages/:id/read — Receiver only ────────────────────────────────
+
+async function markAsRead(req, res) {
+  const message = await prisma.message.findUnique({ where: { id: req.params.id } });
+  if (!message || message.to_user_id !== req.user.id) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Message not found.' });
+  }
+  if (message.is_read) return res.json(message);
+  const updated = await prisma.message.update({
+    where: { id: message.id },
+    data: { is_read: true, read_at: new Date() },
+  });
+  res.json(updated);
+}
+
 // ─── DELETE /messages/:id — All Auth ─────────────────────────────────────────
 
 async function deleteMessage(req, res) {
@@ -143,4 +158,4 @@ async function deleteMessage(req, res) {
   res.json({ message: 'Message removed from your view.' });
 }
 
-module.exports = { sendMessage, getInbox, getSent, getMessage, deleteMessage };
+module.exports = { sendMessage, getInbox, getSent, getMessage, markAsRead, deleteMessage };
