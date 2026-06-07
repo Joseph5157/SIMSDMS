@@ -174,6 +174,31 @@ async function updateBlockedDates(req, res) {
   res.json(updated);
 }
 
+// ─── PATCH /calendar/:year/:month/working-days ───────────────────────────────
+
+async function updateWorkingDays(req, res) {
+  const params = parseParams(req, res);
+  if (!params) return;
+  const { year, month } = params;
+
+  const config = await getOrCreateConfig(year, month);
+
+  const updated = await prisma.calendarConfig.update({
+    where: { id: config.id },
+    data: { working_days: req.body.working_days },
+  });
+
+  await logAction({
+    actorId: req.user.id,
+    action: 'CALENDAR_WORKING_DAYS_UPDATE',
+    targetId: config.id,
+    targetType: 'calendar_config',
+    metadata: { year, month, working_days: req.body.working_days },
+  });
+
+  res.json(updated);
+}
+
 // ─── PATCH /calendar/:year/:month/sessions-per-faculty ────────────────────────
 
 async function updateSessionsPerFaculty(req, res) {
@@ -322,6 +347,7 @@ module.exports = {
   openWindow,
   closeWindow,
   updateBlockedDates,
+  updateWorkingDays,
   updateSessionsPerFaculty,
   getUnassignedFaculty,
   assignSlots,

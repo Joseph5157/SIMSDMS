@@ -27,6 +27,14 @@ export function useDeactivateUser() {
   });
 }
 
+export function useReactivateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.patch(`/users/${id}/reactivate`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
 export function useResetUserLogin() {
   return useMutation({
     mutationFn: (id) => api.post(`/admin/users/${id}/reset-login`),

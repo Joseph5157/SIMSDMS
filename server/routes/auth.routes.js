@@ -7,10 +7,10 @@ const ctrl = require('../controllers/auth.controller');
 
 const router = Router();
 
-// Stricter rate limit for OTP endpoints — 5 requests per 15 minutes per IP
+// Stricter rate limit for OTP endpoints — 5 requests per 15 minutes per IP (relaxed in dev)
 const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: true, code: 'RATE_LIMITED', message: 'Too many OTP requests. Please try again later.' },

@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const prisma = require('./prisma');
 const logger = require('./logger');
+const settingsService = require('../services/settings.service');
 
 // All schedules use IST (Asia/Kolkata). Set TZ=Asia/Kolkata in Railway env vars.
 
@@ -23,7 +24,8 @@ async function autoClockOut() {
 
   if (openAttendance.length === 0) return;
 
-  const autoOutTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 30);
+  const cfg = await settingsService.getSettings();
+  const autoOutTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), cfg.auto_checkout_hour, cfg.auto_checkout_min);
 
   await prisma.dutyAttendance.updateMany({
     where: { id: { in: openAttendance.map((a) => a.id) } },

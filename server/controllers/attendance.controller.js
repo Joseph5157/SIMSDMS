@@ -1,10 +1,5 @@
 const prisma = require('../lib/prisma');
-
-// Session late thresholds — server must have TZ=Asia/Kolkata set (Railway env var)
-const LATE_THRESHOLD = {
-  morning:   { hour: 8,  minute: 15 },
-  afternoon: { hour: 13, minute: 15 },
-};
+const settingsService = require('../services/settings.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -17,11 +12,13 @@ function isToday(date) {
   );
 }
 
-function resolveInStatus(sessionType) {
+async function resolveInStatus(sessionType) {
   const now = new Date();
-  const threshold = LATE_THRESHOLD[sessionType];
+  const cfg = await settingsService.getSettings();
+  const hour   = sessionType === 'morning' ? cfg.late_threshold_morning_hour   : cfg.late_threshold_afternoon_hour;
+  const minute = sessionType === 'morning' ? cfg.late_threshold_morning_min    : cfg.late_threshold_afternoon_min;
   const thresholdMs =
-    new Date(now.getFullYear(), now.getMonth(), now.getDate(), threshold.hour, threshold.minute).getTime();
+    new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute).getTime();
   return now.getTime() > thresholdMs ? 'late' : 'normal';
 }
 
@@ -62,7 +59,7 @@ async function checkIn(req, res) {
     });
   }
 
-  const in_status = resolveInStatus(slot.session_type);
+  const in_status = await resolveInStatus(slot.session_type);
 
   let attendance;
   if (existing) {
@@ -155,8 +152,11 @@ async function getLive(req, res) {
     auto_out:   s.attendance?.auto_out   ?? false,
   }));
 
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
   res.json({
-    date: todayStart.toISOString().slice(0, 10),
+    date: dateStr,
     total: result.length,
     data: result,
   });

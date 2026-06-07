@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useCurrentUser } from './hooks/useAuth';
 
 import LoginPage          from './pages/auth/LoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage          from './pages/admin/UsersPage';
 import StudentsPage       from './pages/admin/StudentsPage';
 import CalendarPage       from './pages/admin/CalendarPage';
@@ -23,6 +24,7 @@ import ViolationRecorderPage  from './pages/faculty/ViolationRecorderPage';
 import FacultyCoverRequestsPage from './pages/faculty/CoverRequestsPage';
 
 import MessagesPage     from './pages/shared/MessagesPage';
+import SuperAdminDashboardPage from './pages/super-admin/SuperAdminDashboardPage';
 import SessionResetPage from './pages/super-admin/SessionResetPage';
 import AuditLogsPage    from './pages/super-admin/AuditLogsPage';
 
@@ -44,11 +46,12 @@ function AppRoutes() {
         isLoading ? null :
         !user ? <Navigate to="/login" replace /> :
         isFaculty ? <Navigate to="/faculty/dashboard" replace /> :
-        <Navigate to="/admin/users" replace />
+        <Navigate to="/admin/dashboard" replace />
       } />
 
       {/* Admin routes — Admin and Super Admin only */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['admin', 'super_admin']} />}>
+        <Route path="/admin/dashboard"        element={<AdminDashboardPage user={user} />} />
         <Route path="/admin/users"            element={<UsersPage user={user} />} />
         <Route path="/admin/students"         element={<StudentsPage user={user} />} />
         <Route path="/admin/calendar"         element={<CalendarPage user={user} />} />
@@ -73,6 +76,7 @@ function AppRoutes() {
 
       {/* Super Admin routes — Super Admin only */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['super_admin']} />}>
+        <Route path="/super-admin/dashboard"  element={<SuperAdminDashboardPage user={user} />} />
         <Route path="/super-admin/sessions"   element={<SessionResetPage user={user} />} />
         <Route path="/super-admin/audit"      element={<AuditLogsPage user={user} />} />
       </Route>

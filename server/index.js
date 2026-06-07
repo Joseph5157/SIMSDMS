@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // reloaded: 20260607b
 
 // Prevent unhandled async rejections from crashing the server
 process.on('unhandledRejection', (err) => {

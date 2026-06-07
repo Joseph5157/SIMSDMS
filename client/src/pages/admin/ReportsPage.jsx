@@ -11,49 +11,55 @@ import {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-const REPORT_LIST = [
-  { id: 'monthly-attendance',   label: '1. Monthly Attendance Summary',    group: 'Attendance' },
-  { id: 'late-arrivals',        label: '2. Late Arrival Report',           group: 'Attendance' },
-  { id: 'absent-faculty',       label: '3. Absent Faculty Report',         group: 'Attendance' },
-  { id: 'auto-clockout',        label: '4. Auto Clock-out Report',         group: 'Attendance' },
-  { id: 'attendance-overrides', label: '5. Attendance Override Log',       group: 'Attendance' },
-  { id: 'faculty-activity',     label: '6. Faculty Violation Activity',    group: 'Violations' },
-  { id: 'violation-types',      label: '7. Violation Type Breakdown',      group: 'Violations' },
-  { id: 'pending-fines',        label: '8. Pending Fines Summary',         group: 'Violations' },
-  { id: 'flagged-violations',   label: '9. Flagged Violations',            group: 'Violations' },
-  { id: 'duty-coverage',        label: '10. Monthly Duty Coverage',        group: 'Duty' },
-  { id: 'unassigned-faculty',   label: '11. Unassigned Faculty',           group: 'Duty' },
-  { id: 'cover-requests',       label: '12. Cover Request Summary',        group: 'Duty' },
-  { id: 'completion-rate',      label: '13. Session Completion Rate',      group: 'Duty' },
-  { id: 'upload-history',       label: '14. Student Upload History',       group: 'Students' },
-  { id: 'active-students',      label: '15. Active Student Roster',        group: 'Students' },
-  { id: 'student-violations',   label: '16. Student Violation History',    group: 'Students' },
+// ── Report card definitions ────────────────────────────────────────────────────
+const REPORTS = [
+  // Attendance group
+  { id: 'monthly-attendance',   emoji: '📊', color: 'bg-blue-100',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
+  { id: 'late-arrivals',        emoji: '⏰', color: 'bg-amber-100',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
+  { id: 'absent-faculty',       emoji: '❌', color: 'bg-red-100',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
+  { id: 'auto-clockout',        emoji: '🕓', color: 'bg-orange-100', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
+  // Violations group
+  { id: 'faculty-activity',     emoji: '👤', color: 'bg-purple-100', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
+  { id: 'violation-types',      emoji: '🏷', color: 'bg-indigo-100', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
+  { id: 'pending-fines',        emoji: '💰', color: 'bg-yellow-100', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
+  { id: 'flagged-violations',   emoji: '⚑',  color: 'bg-amber-100',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
+  // Duty & Coverage group
+  { id: 'duty-coverage',        emoji: '📅', color: 'bg-green-100',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
+  { id: 'unassigned-faculty',   emoji: '👥', color: 'bg-slate-100',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
+  { id: 'cover-requests',       emoji: '🔄', color: 'bg-cyan-100',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
+  { id: 'completion-rate',      emoji: '📈', color: 'bg-teal-100',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
+  // Students group
+  { id: 'attendance-overrides', emoji: '✏️', color: 'bg-pink-100',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
+  { id: 'upload-history',       emoji: '📤', color: 'bg-blue-100',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
+  { id: 'active-students',      emoji: '🎓', color: 'bg-green-100',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
+  { id: 'student-violations',   emoji: '⚠️', color: 'bg-red-100',   label: 'Student Violations',    desc: 'All violations by student' },
 ];
 
+// ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
   const now = new Date();
+  const cls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-white';
   return (
-    <div className="flex gap-2 mb-4">
-      <select value={year} onChange={(e) => setYear(+e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
-        {[now.getFullYear()-1, now.getFullYear()].map(y => <option key={y}>{y}</option>)}
+    <div className="flex gap-2 mb-5">
+      <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls}>
+        {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y}>{y}</option>)}
       </select>
-      <select value={month} onChange={(e) => setMonth(+e.target.value)}
-        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
-        {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={cls}>
+        {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
       </select>
     </div>
   );
 }
 
-function ReportSection({ id, data, isLoading, year, month }) {
-  if (isLoading) return <p className="text-sm text-gray-400">Loading…</p>;
+// ── Report result content ──────────────────────────────────────────────────────
+function ReportSection({ id, data, isLoading }) {
+  if (isLoading) return <p className="text-[13px] text-slate-400">Loading…</p>;
   if (!data)     return null;
 
   switch (id) {
     case 'monthly-attendance': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept.</Th><Th>Total</Th><Th>Completed</Th><Th>Absent</Th><Th>Late</Th><Th>Auto-out</Th></tr></thead>
+        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Total</Th><Th>Completed</Th><Th>Absent</Th><Th>Late</Th><Th>Auto-out</Th></tr></thead>
         <tbody className="divide-y divide-gray-100">
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((r, i) => (
@@ -110,7 +116,7 @@ function ReportSection({ id, data, isLoading, year, month }) {
               <Td>{r.faculty?.name}</Td>
               <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
               <Td>{r.overriddenBy?.name}</Td>
-              <Td className="text-xs text-gray-500 max-w-xs truncate">{r.override_reason}</Td>
+              <Td className="text-[12px] text-slate-500 max-w-xs truncate">{r.override_reason}</Td>
             </tr>
           ))}
         </tbody>
@@ -119,7 +125,7 @@ function ReportSection({ id, data, isLoading, year, month }) {
 
     case 'faculty-activity': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept.</Th><Th>Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
+        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
         <tbody className="divide-y divide-gray-100">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r, i) => (
@@ -152,14 +158,16 @@ function ReportSection({ id, data, isLoading, year, month }) {
 
     case 'pending-fines': return (
       <>
-        <p className="text-sm font-semibold text-gray-700 mb-3">Total outstanding: ₹{data.total_fine_amount} across {data.total} violations</p>
+        <p className="text-[13px] font-semibold text-slate-700 mb-3">
+          Total outstanding: ₹{data.total_fine_amount} across {data.total} violations
+        </p>
         <Table>
           <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
           <tbody className="divide-y divide-gray-100">
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td className="font-medium">{v.student?.student_name}</Td>
-                <Td className="font-mono text-xs">{v.student?.registration_number}</Td>
+                <Td className="font-mono text-[12px]">{v.student?.registration_number}</Td>
                 <Td>{v.student?.course}</Td>
                 <Td>{v.violationType?.name}</Td>
                 <Td className="font-semibold">₹{v.fine_amount}</Td>
@@ -172,7 +180,7 @@ function ReportSection({ id, data, isLoading, year, month }) {
 
     case 'flagged-violations': return (
       <>
-        <div className="flex gap-4 mb-3 text-sm">
+        <div className="flex gap-4 mb-3 text-[13px]">
           <span className="text-orange-600 font-medium">Pending: {data.pending_count}</span>
           <span className="text-green-600 font-medium">Resolved: {data.resolved_count}</span>
         </div>
@@ -184,7 +192,7 @@ function ReportSection({ id, data, isLoading, year, month }) {
                 <Td>{v.student?.student_name}</Td>
                 <Td>{v.faculty?.name}</Td>
                 <Td>{v.violationType?.name}</Td>
-                <Td className="text-xs text-gray-500 max-w-xs truncate">{v.flag_note}</Td>
+                <Td className="text-[12px] text-slate-500 max-w-xs truncate">{v.flag_note}</Td>
                 <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
               </tr>
             ))}
@@ -194,13 +202,14 @@ function ReportSection({ id, data, isLoading, year, month }) {
     );
 
     case 'duty-coverage': return (
-      <div className="grid grid-cols-2 gap-4">
-        {[['Total slots', data.total], ['Completed', data.completed], ['Absent', data.absent], ['Cover pending', data.cover_pending],
-          ['Covered', data.covered], ['Scheduled', data.scheduled], ['Morning', data.morning], ['Afternoon', data.afternoon],
-          ['Completion rate', `${data.completion_rate}%`]].map(([label, value]) => (
-          <div key={label} className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className="text-lg font-bold text-gray-900">{value}</p>
+      <div className="grid grid-cols-3 gap-3">
+        {[['Total slots', data.total], ['Completed', data.completed], ['Absent', data.absent],
+          ['Cover pending', data.cover_pending], ['Covered', data.covered], ['Scheduled', data.scheduled],
+          ['Morning', data.morning], ['Afternoon', data.afternoon], ['Completion rate', `${data.completion_rate}%`],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-slate-50 rounded-xl p-4">
+            <p className="text-[11px] text-slate-500">{label}</p>
+            <p className="text-[20px] font-bold text-slate-900 mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -208,7 +217,7 @@ function ReportSection({ id, data, isLoading, year, month }) {
 
     case 'unassigned-faculty': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept.</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
+        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
         <tbody className="divide-y divide-gray-100">
           {!data.data?.length && <EmptyRow cols={4} message="All faculty have picked their slots." />}
           {data.data?.map((f) => (
@@ -224,12 +233,13 @@ function ReportSection({ id, data, isLoading, year, month }) {
     );
 
     case 'cover-requests': return (
-      <div className="grid grid-cols-2 gap-4">
-        {[['Total', data.total], ['Open', data.open], ['Covered', data.covered], ['Expired', data.expired],
-          ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`]].map(([label, value]) => (
-          <div key={label} className="bg-gray-50 rounded-lg p-3">
-            <p className="text-xs text-gray-500">{label}</p>
-            <p className="text-lg font-bold text-gray-900">{value}</p>
+      <div className="grid grid-cols-3 gap-3">
+        {[['Total', data.total], ['Open', data.open], ['Covered', data.covered],
+          ['Expired', data.expired], ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`],
+        ].map(([label, value]) => (
+          <div key={label} className="bg-slate-50 rounded-xl p-4">
+            <p className="text-[11px] text-slate-500">{label}</p>
+            <p className="text-[20px] font-bold text-slate-900 mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -241,10 +251,14 @@ function ReportSection({ id, data, isLoading, year, month }) {
         <tbody className="divide-y divide-gray-100">
           {data.data?.map((r) => (
             <tr key={`${r.year}-${r.month}`}>
-              <Td className="font-medium">{MONTHS[r.month-1]} {r.year}</Td>
+              <Td className="font-medium">{MONTHS[r.month - 1]} {r.year}</Td>
               <Td>{r.total}</Td>
               <Td>{r.completed}</Td>
-              <Td><span className={`font-semibold ${parseFloat(r.rate) >= 80 ? 'text-green-600' : 'text-red-600'}`}>{r.rate}%</span></Td>
+              <Td>
+                <span className={`font-semibold ${parseFloat(r.rate) >= 80 ? 'text-green-600' : 'text-red-600'}`}>
+                  {r.rate}%
+                </span>
+              </Td>
             </tr>
           ))}
         </tbody>
@@ -258,11 +272,11 @@ function ReportSection({ id, data, isLoading, year, month }) {
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((log) => (
             <tr key={log.id}>
-              <Td className="text-xs font-mono">{log.filename}</Td>
+              <Td className="font-mono text-[12px]">{log.filename}</Td>
               <Td>{log.uploader?.name}</Td>
               <Td>{log.added_count}</Td><Td>{log.updated_count}</Td><Td>{log.deactivated_count}</Td>
               <Td>{Array.isArray(log.errors) ? log.errors.length : 0}</Td>
-              <Td className="text-xs">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
+              <Td className="text-[12px]">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
             </tr>
           ))}
         </tbody>
@@ -271,12 +285,14 @@ function ReportSection({ id, data, isLoading, year, month }) {
 
     case 'active-students': return (
       <>
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(data.breakdown ?? {}).map(([key, count]) => (
-            <span key={key} className="bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-full">{key}: {count}</span>
+            <span key={key} className="bg-blue-50 text-blue-700 text-[12px] px-3 py-1 rounded-full">
+              {key}: {count}
+            </span>
           ))}
         </div>
-        <p className="text-sm text-gray-500 mb-3">Total: {data.total} active students</p>
+        <p className="text-[13px] text-slate-500">Total: <strong>{data.total}</strong> active students</p>
       </>
     );
 
@@ -288,30 +304,32 @@ function ReportSection({ id, data, isLoading, year, month }) {
           {data.data?.map((v) => (
             <tr key={v.id}>
               <Td className="font-medium">{v.student?.student_name}</Td>
-              <Td className="font-mono text-xs">{v.student?.registration_number}</Td>
+              <Td className="font-mono text-[12px]">{v.student?.registration_number}</Td>
               <Td>{v.violationType?.name}</Td>
               <Td>{v.is_warning_only ? 'Warning' : `₹${v.fine_amount}`}</Td>
               <Td>{v.faculty?.name}</Td>
-              <Td className="text-xs">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
+              <Td className="text-[12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
             </tr>
           ))}
         </tbody>
       </Table>
     );
 
-    default: return <pre className="text-xs text-gray-500 overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
+    default: return <pre className="text-[12px] text-slate-500 overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
   }
 }
 
+// ── Report view (runs the hook for selected report) ────────────────────────────
+const NO_MONTH = ['pending-fines','flagged-violations','upload-history','active-students','completion-rate','student-violations'];
+
 function ReportView({ id }) {
-  const now   = new Date();
+  const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const params = { year, month };
+  const needsMonth = !NO_MONTH.includes(id);
+  const params = needsMonth ? { year, month } : {};
 
-  const needs_month = !['pending-fines','flagged-violations','upload-history','active-students','completion-rate','student-violations'].includes(id);
-
-  const hooks = {
+  const hookMap = {
     'monthly-attendance':   useMonthlyAttendance,
     'late-arrivals':        useLateArrivals,
     'absent-faculty':       useAbsentFaculty,
@@ -328,49 +346,65 @@ function ReportView({ id }) {
     'upload-history':       useUploadHistory,
     'active-students':      useActiveStudents,
   };
-
-  // student-violations uses same hook as flagged
-  const useHook = hooks[id] ?? useFlaggedViolations;
-  const { data, isLoading } = useHook(needs_month ? params : {});
+  const useHook = hookMap[id] ?? useFlaggedViolations;
+  const { data, isLoading } = useHook(params);
 
   return (
     <div>
-      {needs_month && <MonthFilter year={year} month={month} setYear={setYear} setMonth={setMonth} />}
-      <ReportSection id={id} data={data} isLoading={isLoading} year={year} month={month} />
+      {needsMonth && <MonthFilter year={year} month={month} setYear={setYear} setMonth={setMonth} />}
+      <ReportSection id={id} data={data} isLoading={isLoading} />
     </div>
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function ReportsPage({ user }) {
-  const [activeReport, setActiveReport] = useState(REPORT_LIST[0].id);
-  const groups = [...new Set(REPORT_LIST.map(r => r.group))];
-  const activeLabel = REPORT_LIST.find(r => r.id === activeReport)?.label ?? '';
+  const [active, setActive] = useState(null);
+
+  const activeReport = REPORTS.find((r) => r.id === active);
 
   return (
     <Layout user={user}>
       <PageHeader title="Reports" subtitle="16 system reports" />
-      <div className="flex gap-6">
-        {/* Sidebar */}
-        <aside className="w-56 shrink-0">
-          {groups.map((group) => (
-            <div key={group} className="mb-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mb-1">{group}</p>
-              {REPORT_LIST.filter(r => r.group === group).map((r) => (
-                <button key={r.id} onClick={() => setActiveReport(r.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-0.5 transition-colors ${activeReport === r.id ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </aside>
 
-        {/* Report content */}
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">{activeLabel}</h2>
-          <ReportView key={activeReport} id={activeReport} />
-        </div>
+      {/* 4-column card grid */}
+      <div className="grid grid-cols-4 gap-3 mb-6">
+        {REPORTS.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setActive(active === r.id ? null : r.id)}
+            className={`text-left rounded-xl border p-4 transition-all ${
+              active === r.id
+                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[18px] mb-3`}>
+              {r.emoji}
+            </div>
+            <p className="text-[13px] font-semibold text-slate-900 leading-snug">{r.label}</p>
+            <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{r.desc}</p>
+          </button>
+        ))}
       </div>
+
+      {/* Result panel */}
+      {active && (
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[14px] font-semibold text-slate-900">
+              {activeReport?.emoji} {activeReport?.label}
+            </h2>
+            <button
+              onClick={() => setActive(null)}
+              className="text-slate-400 hover:text-slate-600 text-[18px] leading-none"
+            >
+              ✕
+            </button>
+          </div>
+          <ReportView key={active} id={active} />
+        </div>
+      )}
     </Layout>
   );
 }

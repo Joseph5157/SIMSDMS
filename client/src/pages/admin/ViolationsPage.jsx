@@ -104,7 +104,7 @@ export default function ViolationsPage({ user }) {
           {isLoading && <EmptyRow cols={7} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
           {data?.data?.map((v) => (
-            <tr key={v.id}>
+            <tr key={v.id} className={v.is_flagged ? 'bg-amber-50' : v.record_status === 'hidden' ? 'opacity-50' : ''}>
               <Td>
                 <p className="font-medium text-gray-900">{v.student?.student_name}</p>
                 <p className="text-xs text-gray-400">{v.student?.registration_number}</p>

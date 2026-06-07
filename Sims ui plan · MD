@@ -1,0 +1,530 @@
+# SIMS DMS — UI Design Plan
+**Version**: 1.0 | **Date**: 2026-06-07
+**Stack**: React 19 · Vite 8 · Tailwind v4 · TanStack Query v5 · React Router v7
+**Approach**: Mobile-first PWA · Sidebar navigation · Clean professional aesthetic
+
+---
+
+## Design System
+
+### Colour Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| `slate-900` | `#0f172a` | Sidebar background, primary text |
+| `slate-700` | `#334155` | Secondary text, table headers |
+| `slate-500` | `#64748b` | Muted text, placeholders |
+| `slate-200` | `#e2e8f0` | Borders, dividers |
+| `slate-50` | `#f8fafc` | Page background |
+| `blue-600` | `#2563eb` | Primary action, active nav, CTA buttons |
+| `blue-100` | `#dbeafe` | Info badges, highlights |
+| `green-600` | `#16a34a` | Success states, checked-in, active |
+| `amber-500` | `#f59e0b` | Warnings, late arrivals, flagged |
+| `red-600` | `#dc2626` | Errors, blocked dates, absent, danger |
+| `orange-500` | `#f97316` | Cover pending status |
+
+### Typography
+
+| Element | Size | Weight | Notes |
+|---|---|---|---|
+| Page title | 16px | 600 | Topbar heading |
+| Page subtitle | 12px | 400 | Muted, below title |
+| Card title | 13px | 600 | Section headings |
+| Body / table | 13px | 400 | Default text |
+| Small / meta | 11px | 400 | Sub-labels, timestamps |
+| Monospace | 12px | 400 | Reg numbers, timestamps, IDs |
+| Font family | DM Sans | — | Import from Google Fonts |
+| Mono family | DM Mono | — | For codes and times |
+
+### Spacing
+
+| Token | Value | Usage |
+|---|---|---|
+| Sidebar width | 220px | Fixed, sticky |
+| Page padding | 24px | Content area horizontal |
+| Card padding | 16px | Default card inner |
+| Card radius | 10px | All cards and modals |
+| Button radius | 8px | All buttons |
+| Row gap | 12px | Between cards in a grid |
+
+### Status Badge Map
+
+| Status | Colour | Label |
+|---|---|---|
+| `active` | Green | Active |
+| `inactive` | Gray | Inactive |
+| `pending` | Amber | Pending |
+| `open` | Blue | Open |
+| `covered` | Green | Covered |
+| `expired` | Red | Expired |
+| `cover_pending` | Orange | Cover needed |
+| `scheduled` | Blue | Scheduled |
+| `completed` | Green | Completed |
+| `absent` | Red | Absent |
+| `late` | Amber | Late |
+| `hidden` | Gray | Hidden |
+| `flagged` | Amber | ⚑ Flagged |
+
+---
+
+## Layout Shell
+
+### Sidebar (all authenticated screens)
+
+```
+┌─────────────────────┐
+│ SIMS DMS            │  ← Brand name + role subtitle
+│ Admin Panel         │
+├─────────────────────┤
+│ 🏠 Dashboard        │  ← nav-item (active = blue-600 bg)
+│ 👥 Users            │
+│ 🎓 Students         │
+│ 📅 Calendar         │
+│ 🗓 Duty Slots       │
+│ ✅ Attendance       │
+│ ⚠️  Violations      │
+│ 🏷 Violation Types  │
+│ 🔄 Cover Requests   │
+│ ✉️  Messages        │
+│ 📊 Reports          │
+├─────────────────────┤
+│ [Avatar] Name       │  ← user avatar (initials) + name + role
+│           Faculty   │
+│ [Log out]           │
+└─────────────────────┘
+```
+
+Faculty sidebar shows only their 6 links. Super Admin shows admin links + Session Reset + Audit Logs.
+
+### Main Area
+
+```
+┌──────────────────────────────────────────────────────┐
+│ Page Title             [Action Button]               │  ← topbar (white, border-bottom)
+│ Page subtitle                                        │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│  [content area — scrollable, bg slate-50, p-24px]   │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## Screen-by-Screen Specifications
+
+---
+
+### SCREEN 1 — Login (`/login`)
+
+**Two-step layout — split screen**
+
+**Left panel (dark, flex: 1)**
+- `slate-900` background with subtle blue radial gradient
+- SIMS DMS name, full institution name, tagline
+- No interactive elements
+
+**Right panel (white, 380px fixed)**
+
+*Step 1 — Request OTP:*
+- Title: "Sign in"
+- Subtitle: "Enter your Telegram ID to receive your OTP"
+- Input: "Telegram ID" — `@username or numeric ID`
+- Info box (blue-50): explains OTP will arrive in Telegram Bot
+- Button: "Send OTP" — full-width blue-600
+
+*Step 2 — Enter OTP (replaces step 1 after send):*
+- 6-digit OTP input — split into 6 individual boxes (monospace, 48px height)
+- Countdown timer: "Expires in MM:SS" with Resend link
+- Button: "Verify & Sign in" — full-width blue-600
+- Error states: wrong OTP (red border on boxes), expired (amber message + new OTP prompt), locked (red alert, contact admin)
+
+**Redirects after success:**
+- `super_admin` → `/admin/dashboard` (full admin view)
+- `admin` → `/admin/dashboard`
+- `faculty` → `/faculty/dashboard`
+
+---
+
+### SCREEN 2 — Admin Dashboard (`/admin/dashboard`)
+
+**Stat grid (4 columns):**
+1. Faculty on duty today (blue accent) — count + breakdown (checked in / pending)
+2. Violations this month (green accent) — count + weekly delta
+3. Pending flags (amber accent) — count + CTA label
+4. Open cover requests (red accent) — count
+
+**Two-column grid below:**
+
+*Left — Today's duty roster (table):*
+- Columns: Faculty · Session · Status badge
+- Shows only today's scheduled duty slots
+- Status badges: Checked in (green), Late (amber), Pending (gray), Cover needed (orange)
+
+*Right — Recent violations (table):*
+- Columns: Student name + reg. number · Violation type · Fine
+- "Flagged" amber badge where `is_flagged = true`
+- Last 5 violations across all faculty
+
+---
+
+### SCREEN 3 — Users (`/admin/users`)
+
+**Topbar action:** `+ Add User` (blue primary)
+
+**Filter bar:**
+- Search input (full name or Telegram ID)
+- Role dropdown: All roles / Admin / Faculty
+- Status dropdown: All / Active / Inactive
+
+**Table columns:** Name + added date · Role badge · Department · Telegram ID (mono) · Status badge · ··· menu
+
+**Row actions (··· menu):**
+- Deactivate (if active)
+- Reactivate (if inactive)
+
+**Add User modal (slide-over or centered):**
+Fields: Name · Email · Phone · Department · Designation · Telegram ID · Role (select)
+Submit: POST `/users`
+
+**Role badge colours:**
+- `super_admin` → purple
+- `admin` → amber
+- `faculty` → blue
+
+---
+
+### SCREEN 4 — Students (`/admin/students`)
+
+**Topbar action:** `📤 Upload Excel` (primary)
+
+**Filter bar:**
+- Search (name or reg. number)
+- Course dropdown: All / B.Pharm / Pharm.D
+- Year/Semester dropdown
+
+**Table columns:** Reg. Number (mono) · Name · Course · Semester · Status · ··· menu
+
+**Row actions:** Promote · Deactivate
+
+**Upload Excel flow:**
+- File picker (`.xlsx` only)
+- On upload: show progress then result card
+- Result card: Added X · Updated X · Deactivated X · Errors X
+- Errors: expandable list of failed rows with reason
+
+---
+
+### SCREEN 5 — Duty Calendar (`/admin/calendar`)
+
+**Header controls:** Month/Year picker · Open Window button (or Close Window if open)
+
+**Status bar (pill row):**
+- Window status: Open (green dot) / Closed (gray dot)
+- Sessions per faculty: number with "Set" button
+- Blocked days: count
+
+**Calendar grid (7-column day grid):**
+- Day labels: Su Mo Tu We Th Fr Sa
+- Day states:
+  - `normal` — gray-50 bg, clickable
+  - `blocked` — red-100 bg, red text (holidays)
+  - `has-duty` — blue-100 bg with blue dot below number
+  - `today` — blue-600 bg, white text
+  - `past` — muted gray text, not clickable
+- Click toggles blocked/unblocked state → calls `PATCH /calendar/:y/:m/blocked-dates`
+
+**Legend row:** Blocked / Has duty slots / Today
+
+**Unassigned faculty table** (appears after window closes):
+- Columns: Faculty · Dept · Slots picked · Required · Assign Slots button
+- "Assign Slots" opens a modal with date + session selectors (add multiple)
+
+---
+
+### SCREEN 6 — Duty Slots (`/admin/duty-slots`)
+
+**Table columns:** Faculty · Date (mono) · Session · Status badge · Covered by · Actions
+
+**Actions:**
+- Admin can assign a slot via "Admin Assign" modal
+- Override if needed
+
+---
+
+### SCREEN 7 — Live Attendance (`/admin/attendance`)
+
+**Auto-refreshes every 30 seconds via TanStack Query `refetchInterval: 30000`**
+
+**Stat row (4 pills):**
+- Checked in (green) · Late arrivals (amber) · Not checked in (red) · Auto clocked-out (blue)
+
+**Faculty card grid (3 columns):**
+Each card shows:
+- Left border colour: green (IN) · amber (LATE) · gray (PENDING) · red (ABSENT)
+- Faculty name + department
+- Session badge (Morning / Afternoon)
+- Status badge (IN / LATE / PENDING / ABSENT)
+- Time: "In: HH:MM AM" or "Duty starts H:MM PM"
+
+**Override action:** Admin can click a card → modal to set in_time / out_time manually with reason field
+
+---
+
+### SCREEN 8 — Violations Admin (`/admin/violations`)
+
+**Filter bar:** Search student · Violation type · Status (All / Flagged only / Hidden)
+
+**Table columns:** Student name + reg. · Violation type · Fine / Warning · Recorded by · Date · Status · Action
+
+**Row highlighting:**
+- Flagged rows: amber-50 background
+- Hidden rows: 50% opacity
+
+**Flagged row actions:** "Review" primary button → opens resolve modal
+- Resolve modal: shows original violation details + flag note → text area for resolution note → "Resolve Flag" button → calls `PATCH /violations/:id/resolve-flag`
+
+**Standard row actions (··· menu):**
+- Hide violation (Admin)
+- View audit log
+
+---
+
+### SCREEN 9 — Violation Types (`/admin/violation-types`)
+
+**Table columns:** Name · Default Fine · System locked? · Active · Actions
+
+**Actions:** Edit name/fine · Deactivate · Delete (disabled if `is_system = true` with tooltip)
+
+**Add type modal:** Name + Default Fine (₹) fields
+
+---
+
+### SCREEN 10 — Cover Requests Admin (`/admin/cover-requests`)
+
+**Filter bar:** Status · Faculty · Month
+
+**Table columns:** Requested by · Duty slot date + session · Reason · Volunteer · Status · Action
+
+**Confirm action:** "Confirm" button → `PATCH /cover-requests/:id/confirm`
+
+---
+
+### SCREEN 11 — Reports (`/admin/reports`)
+
+**Grid of 16 report cards (4 columns, 4 rows):**
+
+Each card: icon (emoji in coloured square) · Name · Short description · Click to run
+
+**Report groups:**
+1. Attendance (4): Monthly Attendance · Late Arrivals · Absent Faculty · Auto Clock-outs
+2. Violations (4): Student Violations · Faculty Activity · Type Breakdown · Pending Fines · Flagged Violations
+3. Duty & Coverage (4): Duty Coverage · Unassigned Faculty · Cover Request Summary · Session Completion Rate
+4. Students (2): Upload History · Active Student Roster
+5. Override (1): Attendance Override Log
+
+**Report result panel** (appears below on click):
+- Date range / month filter
+- Export CSV button
+- Table of results
+
+---
+
+### SCREEN 12 — Faculty Dashboard (`/faculty/dashboard`)
+
+**Alert banner** (blue-50, appears if duty today):
+- "You have duty today — [Session] session"
+- "Check In →" button links to Attendance page
+
+**Stat row (3 cards):**
+- Slots this month · Violations recorded · Unread messages
+
+**Two-column grid:**
+- Upcoming duties (slot cards with date tile + session + status badge)
+- Recent violations you recorded (mini table)
+
+---
+
+### SCREEN 13 — Slot Picker (`/faculty/slots`)
+
+**Banner:** Green if window open · Amber if closing soon · Gray if closed
+
+**Two-column grid:**
+
+*Left — My picks:*
+- Slot card: date tile (day number + month abbr) + session title + time + Unpick button
+- Shows pick count: "2 of 3 picked"
+
+*Right — Available slots:*
+- Same card format + "Pick" primary button
+- Unavailable slots (already taken): muted, no button
+
+**Window closed state:** Full-width gray card "Scheduling window is closed. Contact Admin if you need slots assigned."
+
+---
+
+### SCREEN 14 — Faculty Attendance (`/faculty/attendance`)
+
+**Active duty card** (appears only on duty day):
+- Blue-50 card with session details
+- Large "Check In" button (green) or "Check Out" button (red) depending on state
+- Auto-out notice if already auto-clocked
+
+**History table:** Past duty slots with in/out times, status badges, auto-out indicator
+
+---
+
+### SCREEN 15 — Violation Recorder (`/faculty/violations`)
+
+**Two-column layout:**
+
+*Left — Record form:*
+- Student search with live autocomplete dropdown (name + reg. number + course)
+- Duty slot select (own slots only)
+- Violation type select (shows default fine in option label)
+- "Others" type → shows custom description input
+- Fine amount input (pre-filled with default, editable)
+- Warning only checkbox (hides fine amount)
+- Remarks input (optional)
+- Cancel + Record Violation buttons
+
+*Right — My violations table:*
+- Columns: Student · Type · Fine / Warning · Date · Status · Flag action
+- Flag button → opens Flag modal (reason input required)
+- Flagged rows: amber badge, no further actions
+
+---
+
+### SCREEN 16 — Cover Requests Faculty (`/faculty/cover-requests`)
+
+**"Need Cover" button** (topbar) → modal to select own duty slot + enter reason
+
+**Two sections:**
+
+*Open broadcasts (volunteer section):*
+- Cards: who needs cover · duty date/session · reason · time until expiry · "Volunteer to Cover" button
+- After volunteering: card updates to "Waiting for Admin confirmation"
+
+*My requests:*
+- Cards: your duty slot · volunteer name (if any) · status badge
+
+---
+
+### SCREEN 17 — Messages (`/shared/messages`)
+
+**Two-panel layout (220px list + flex thread):**
+
+*Left panel — Inbox list:*
+- Each item: sender name · subject preview · timestamp
+- Unread: bold sender name
+- Active item: blue-50 bg + blue left border
+- Compose button at top
+
+*Right panel — Thread view:*
+- Thread header: subject + sender + timestamp
+- Message bubbles: sent (blue-600 bg, right-aligned) / received (white with border, left-aligned)
+- Composer: text input + Send button
+
+**Compose modal:**
+- To (user select or search) · Subject · Body (textarea)
+
+---
+
+### SCREEN 18 — Session Reset (`/super-admin/sessions`)
+
+**Search input:** Find user by name or Telegram ID
+
+**User card result:**
+- Name · Role badge · Status badge
+- "Locked" indicator if attempt_count ≥ 5
+- "Reset Session" button (danger style) → confirmation dialog → `POST /admin/users/:id/reset-login`
+
+---
+
+### SCREEN 19 — Audit Logs (`/super-admin/audit`)
+
+**Filter bar:** Search actor/target · Action type dropdown · Date range
+
+**Table columns:** Timestamp (mono) · Actor · Action pill (colour-coded) · Target · Details
+
+**Action pill colours:**
+- `session_reset` → red-100
+- `approved` → green-100
+- `deactivated` → amber-100
+- `hard_delete` → slate-800 / dark
+
+---
+
+## Component Specifications
+
+### Button variants
+| Variant | Style |
+|---|---|
+| `primary` | blue-600 bg, white text |
+| `secondary` | slate-100 bg, slate-700 text, slate-200 border |
+| `danger` | red-100 bg, red-600 text |
+| `ghost` | transparent, slate-600 text, slate-100 on hover |
+
+All sizes: default (7px 14px), `sm` (4px 10px)
+
+### Modal
+- Centered overlay (black 40% backdrop)
+- White card, border-radius 12px, max-width 480px (sm) / 600px (lg)
+- Header: title + ✕ close button
+- Scrollable body
+- Footer: Cancel + primary action buttons (right-aligned)
+
+### Table
+- `thead th`: 11px, 600 weight, uppercase, slate-500, letter-spacing .04em
+- `tbody td`: 13px, slate-700, 10px 12px padding
+- Row hover: slate-50 bg
+- Divider: 1px slate-100 between rows
+
+### Input / Select
+- Border: slate-200, radius 8px, padding 9px 12px, 13px font
+- Focus ring: blue-500 border + 3px rgba(59,130,246,.12) shadow
+- Label: 12px, 600 weight, slate-600, 6px margin-bottom
+
+### Pagination
+- "Previous / Next" buttons
+- Current page indicator
+- Shown only when total > limit
+
+### Toast
+- Fixed bottom-right
+- Green (success) / Red (error) / Amber (warning)
+- Auto-dismiss after 3 seconds
+
+---
+
+## PWA Requirements
+
+- `manifest.json`: name "SIMS DMS", short_name "SIMS", theme_color #0f172a, background_color #f8fafc, display "standalone", icons at 192px and 512px
+- `vite-plugin-pwa` with Workbox `generateSW` strategy
+- Offline fallback page: "No internet connection — please reconnect to continue"
+- Cache: API responses NOT cached (always fresh) — only static assets cached
+
+---
+
+## Responsive Behaviour
+
+All screens are desktop-first with sidebar. On mobile (< 768px):
+- Sidebar collapses to bottom tab bar (icons only, 5 primary tabs)
+- Content area fills full width
+- Table → card list view (each row becomes a stacked card)
+- Modals → full-screen bottom sheet
+
+---
+
+## Accessibility
+
+- All interactive elements have visible focus rings (blue-500 outline)
+- Form labels always associated with inputs (htmlFor / id)
+- Error messages associated with fields (aria-describedby)
+- Loading states indicated by spinner or skeleton, not blank screens
+- Buttons never disabled without a visible reason tooltip
+
+---
+
+*UI Plan version: 1.0 — 2026-06-07*
+*Covers all 19 screens across 3 roles: Admin, Faculty, Super Admin*

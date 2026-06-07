@@ -1,6 +1,8 @@
 const { Router } = require('express');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const validate = require('../middleware/validate');
+const { updateSettingsSchema } = require('../schemas/settings.schema');
 const ctrl = require('../controllers/users.controller');
 
 const router = Router();
@@ -21,6 +23,6 @@ router.delete('/hard-delete/:resource/:id', ctrl.hardDelete);
 router.get('/settings', ctrl.getSettings);
 
 // PATCH /admin/settings
-router.patch('/settings', ctrl.updateSettings);
+router.patch('/settings', validate(updateSettingsSchema), ctrl.updateSettings);
 
 module.exports = router;

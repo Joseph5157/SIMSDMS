@@ -1,6 +1,5 @@
 const prisma = require('../lib/prisma');
-
-const COVER_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
+const settingsService = require('../services/settings.service');
 
 const COVER_INCLUDE = {
   dutySlot: {
@@ -49,12 +48,15 @@ async function createCoverRequest(req, res) {
     });
   }
 
+  const cfg = await settingsService.getSettings();
+  const coverTtlMs = cfg.cover_ttl_hours * 60 * 60 * 1000;
+
   const coverRequest = await prisma.coverRequest.create({
     data: {
       duty_slot_id,
       requested_by: req.user.id,
       reason:       reason ?? null,
-      expires_at:   new Date(Date.now() + COVER_TTL_MS),
+      expires_at:   new Date(Date.now() + coverTtlMs),
     },
     include: COVER_INCLUDE,
   });
@@ -187,15 +189,16 @@ async function confirmCover(req, res) {
     return res.status(409).json({ error: true, code: 'NO_VOLUNTEER', message: 'No volunteer has come forward yet.' });
   }
 
-  const [updated] = await prisma.$transaction([
+  // Slot update runs first so the include in coverRequest sees the updated status
+  const [, updated] = await prisma.$transaction([
+    prisma.dutySlot.update({
+      where: { id: coverRequest.duty_slot_id },
+      data:  { status: 'covered', covered_by: coverRequest.volunteer_id },
+    }),
     prisma.coverRequest.update({
       where:   { id: req.params.id },
       data:    { status: 'covered', confirmed_by: req.user.id, confirmed_at: new Date() },
       include: COVER_INCLUDE,
-    }),
-    prisma.dutySlot.update({
-      where: { id: coverRequest.duty_slot_id },
-      data:  { status: 'covered', covered_by: coverRequest.volunteer_id },
     }),
   ]);
 

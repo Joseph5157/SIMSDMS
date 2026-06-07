@@ -10,6 +10,10 @@ const sessionsPerFacultySchema = z.object({
   sessions_per_faculty: z.number().int().min(1).max(31),
 });
 
+const workingDaysSchema = z.object({
+  working_days: z.array(isoDate).min(0),
+});
+
 const assignSlotsSchema = z.object({
   slots: z
     .array(
@@ -21,4 +25,4 @@ const assignSlotsSchema = z.object({
     .min(1, 'At least one slot is required.'),
 });
 
-module.exports = { blockedDatesSchema, sessionsPerFacultySchema, assignSlotsSchema };
+module.exports = { blockedDatesSchema, workingDaysSchema, sessionsPerFacultySchema, assignSlotsSchema };

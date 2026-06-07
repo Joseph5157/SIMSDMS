@@ -17,14 +17,14 @@ export function useCurrentUser() {
 
 export function useRequestOtp() {
   return useMutation({
-    mutationFn: (email) => api.post('/auth/request-otp', { email }),
+    mutationFn: (telegram_id) => api.post('/auth/request-otp', { telegram_id }),
   });
 }
 
 export function useVerifyOtp() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ email, otp }) => api.post('/auth/verify-otp', { email, otp }),
+    mutationFn: ({ telegram_id, otp }) => api.post('/auth/verify-otp', { telegram_id, otp }),
     onSuccess: (res) => {
       qc.setQueryData(['currentUser'], res.data);
     },

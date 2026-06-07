@@ -76,9 +76,10 @@ model User {
   role               Role
   department         String?    @db.VarChar(100)
   designation        String?    @db.VarChar(100)
-  telegram_id        String?    @unique @db.VarChar(50)
-  telegram_verified  Boolean    @default(false)
-  status             UserStatus @default(pending)
+  telegram_id         String?    @unique @db.VarChar(50)
+  telegram_verified   Boolean    @default(false)
+  otp_failed_attempts Int        @default(0) @db.SmallInt
+  status              UserStatus @default(pending)
   approved_at        DateTime?
   approved_by        String?
   deleted_at         DateTime?
@@ -107,6 +108,7 @@ model User {
   photoAccessLogs    PhotoAccessLog[]
   studentUploadLogs  StudentUploadLog[]
   violationTypes     ViolationType[]
+  systemConfigUpdates SystemConfig[]
 
   @@map("users")
 }
@@ -369,6 +371,26 @@ model Message {
   receiver            User     @relation("MessageReceiver", fields: [to_user_id], references: [id])
 
   @@map("messages")
+}
+
+// ─── 15. System Config ───────────────────────────────────────────────────────
+// Single-row table. Always access via settings.service.js — never query directly.
+
+model SystemConfig {
+  id                           String   @id @default(uuid())
+  late_threshold_morning_hour  Int      @default(8)  @db.SmallInt
+  late_threshold_morning_min   Int      @default(15) @db.SmallInt
+  late_threshold_afternoon_hour Int     @default(13) @db.SmallInt
+  late_threshold_afternoon_min  Int     @default(15) @db.SmallInt
+  auto_checkout_hour           Int      @default(16) @db.SmallInt
+  auto_checkout_min            Int      @default(30) @db.SmallInt
+  cover_ttl_hours              Int      @default(48) @db.SmallInt
+  updated_by                   String?
+  updated_at                   DateTime @updatedAt
+
+  updatedBy                    User?    @relation(fields: [updated_by], references: [id])
+
+  @@map("system_config")
 }
 
 // ─── 14. Photo Access Log (Foundation — Phase 2) ─────────────────────────────

@@ -1,13 +1,43 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import Button from '../../components/ui/Button';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// ── Date tile card ────────────────────────────────────────────────────────────
+function SlotCard({ slot, action }) {
+  const d = new Date(slot.duty_date);
+  const day   = d.getDate();
+  const month = MONTHS[d.getMonth()];
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-4">
+      {/* Date tile */}
+      <div className="w-12 shrink-0 text-center">
+        <p className="text-[22px] font-bold text-slate-900 leading-none">{day}</p>
+        <p className="text-[11px] text-slate-400 mt-0.5 uppercase tracking-wide">{month}</p>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-slate-900 capitalize">{slot.session_type} session</p>
+        {slot.status && (
+          <div className="mt-1">
+            <Badge status={slot.status} />
+          </div>
+        )}
+      </div>
+
+      {/* Action */}
+      {action}
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function SlotPickerPage({ user }) {
   const toast = useToast();
   const now   = new Date();
@@ -39,72 +69,115 @@ export default function SlotPickerPage({ user }) {
     }
   }
 
-  const remainingSlots = available?.slots_remaining ?? 0;
-  const windowOpen = available !== undefined && !available?.error;
+  const windowOpen      = available && !available?.error;
+  const remainingSlots  = available?.slots_remaining ?? 0;
+  const pickedCount     = mySlots?.data?.length ?? 0;
+  // How many are required — infer from remaining + picked if available gives us slots_per_faculty
+  const requiredSlots   = available?.slots_per_faculty ?? (pickedCount + remainingSlots);
+
+  const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 bg-white';
 
   return (
     <Layout user={user}>
       <PageHeader title="My Duty Slots" subtitle="Pick your slots for the month" />
 
-      <div className="flex items-center gap-3 mb-6">
-        <select value={year} onChange={(e) => setYear(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-          {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y}>{y}</option>)}
+      {/* Month selector */}
+      <div className="flex items-center gap-3 mb-5">
+        <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
+          {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
+            <option key={y}>{y}</option>
+          ))}
         </select>
-        <select value={month} onChange={(e) => setMonth(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-          {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
+        <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
+          {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
         </select>
       </div>
 
-      {/* My picked slots */}
-      <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">My picked slots ({mySlots?.data?.length ?? 0})</h3>
-        <Table>
-          <thead><tr><Th>Date</Th><Th>Session</Th><Th>Status</Th><Th /></tr></thead>
-          <tbody className="divide-y divide-gray-100">
-            {loadingMine && <EmptyRow cols={4} message="Loading…" />}
-            {!loadingMine && !mySlots?.data?.length && <EmptyRow cols={4} message="No slots picked yet." />}
-            {mySlots?.data?.map((s) => (
-              <tr key={s.id}>
-                <Td className="font-medium">{new Date(s.duty_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</Td>
-                <Td className="capitalize">{s.session_type}</Td>
-                <Td><Badge status={s.status} /></Td>
-                <Td>
-                  {s.status === 'scheduled' && (
-                    <Button variant="ghost" size="sm" onClick={() => handleUnpick(s.id)}>Unpick</Button>
-                  )}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-
-      {/* Available slots */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-gray-700">Available slots</h3>
-          {available && <span className="text-xs text-gray-500">You can pick {remainingSlots} more slot(s)</span>}
+      {/* Window status banner */}
+      {loadingAvail ? null : windowOpen ? (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6">
+          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+          <p className="text-[13px] text-green-800">
+            Scheduling window is <strong>open</strong>.
+            {' '}{pickedCount} of {requiredSlots} slots picked · {remainingSlots} remaining.
+          </p>
         </div>
-        {loadingAvail ? <p className="text-sm text-gray-400">Loading…</p> :
-         !available ? <p className="text-sm text-gray-400 bg-yellow-50 border border-yellow-200 rounded-lg p-3">The scheduling window is not open for this month.</p> : (
-          <Table>
-            <thead><tr><Th>Date</Th><Th>Session</Th><Th /></tr></thead>
-            <tbody className="divide-y divide-gray-100">
-              {!available.data?.length && <EmptyRow cols={3} message="No available slots." />}
-              {available.data?.map((s, i) => (
-                <tr key={i}>
-                  <Td className="font-medium">{new Date(s.duty_date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</Td>
-                  <Td className="capitalize">{s.session_type}</Td>
-                  <Td>
-                    <Button size="sm" disabled={remainingSlots <= 0} onClick={() => handlePick(s)} loading={pick.isPending}>Pick</Button>
-                  </Td>
-                </tr>
+      ) : (
+        <div className="flex items-center gap-3 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 mb-6">
+          <span className="w-2 h-2 rounded-full bg-slate-400 shrink-0" />
+          <p className="text-[13px] text-slate-600">
+            Scheduling window is <strong>closed</strong>. Contact Admin if you need slots assigned.
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left — My picked slots */}
+        <div>
+          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            My picks ({pickedCount})
+          </p>
+          {loadingMine ? (
+            <p className="text-[13px] text-slate-400">Loading…</p>
+          ) : !mySlots?.data?.length ? (
+            <p className="text-[13px] text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-xl">
+              No slots picked yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {mySlots.data.map((s) => (
+                <SlotCard
+                  key={s.id}
+                  slot={s}
+                  action={
+                    s.status === 'scheduled' ? (
+                      <Button variant="ghost" size="sm" onClick={() => handleUnpick(s.id)}>
+                        Unpick
+                      </Button>
+                    ) : null
+                  }
+                />
               ))}
-            </tbody>
-          </Table>
-        )}
+            </div>
+          )}
+        </div>
+
+        {/* Right — Available slots */}
+        <div>
+          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+            Available slots
+          </p>
+          {loadingAvail ? (
+            <p className="text-[13px] text-slate-400">Loading…</p>
+          ) : !windowOpen ? (
+            <p className="text-[13px] text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-xl">
+              Window is closed.
+            </p>
+          ) : !available?.data?.length ? (
+            <p className="text-[13px] text-slate-400 py-6 text-center border border-dashed border-slate-200 rounded-xl">
+              No available slots.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {available.data.map((s, i) => (
+                <SlotCard
+                  key={i}
+                  slot={s}
+                  action={
+                    <Button
+                      size="sm"
+                      disabled={remainingSlots <= 0 || pick.isPending}
+                      loading={pick.isPending}
+                      onClick={() => handlePick(s)}
+                    >
+                      Pick
+                    </Button>
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );

@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
+const settingsService = require('../services/settings.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -200,10 +201,16 @@ async function resetUserLogin(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
-  // Delete all unexpired OTP sessions for this user so they must do a fresh OTP
-  await prisma.otpSession.deleteMany({
-    where: { user_id: req.params.id, verified: false },
-  });
+  // Clear account lock and delete all unexpired OTP sessions
+  await Promise.all([
+    prisma.user.update({
+      where: { id: req.params.id },
+      data: { otp_failed_attempts: 0 },
+    }),
+    prisma.otpSession.deleteMany({
+      where: { user_id: req.params.id, verified: false },
+    }),
+  ]);
 
   await logAction({
     actorId: req.user.id,
@@ -255,29 +262,26 @@ async function hardDelete(req, res) {
 }
 
 // ─── GET /admin/settings — Super Admin ───────────────────────────────────────
-// Settings are stored as CalendarConfig. This returns global system metadata.
-// For now, returns server info and super_admin details.
 
 async function getSettings(req, res) {
-  const superAdmin = await prisma.user.findFirst({
-    where: { role: 'super_admin', deleted_at: null },
-    select: { id: true, name: true, email: true, telegram_id: true, telegram_verified: true },
-  });
-
-  res.json({
-    system: {
-      node_env: process.env.NODE_ENV,
-      version: '1.0.0',
-    },
-    super_admin: superAdmin,
-  });
+  const settings = await settingsService.getSettings();
+  res.json(settings);
 }
 
 // ─── PATCH /admin/settings — Super Admin ─────────────────────────────────────
-// Placeholder — no global settings table yet; returns 200 for forward-compat.
 
 async function updateSettings(req, res) {
-  res.json({ success: true, message: 'No mutable global settings in this version.' });
+  const settings = await settingsService.updateSettings(req.body, req.user.id);
+
+  await logAction({
+    actorId:    req.user.id,
+    action:     'SETTINGS_UPDATE',
+    targetId:   settings.id,
+    targetType: 'system_config',
+    metadata:   req.body,
+  });
+
+  res.json(settings);
 }
 
 module.exports = {

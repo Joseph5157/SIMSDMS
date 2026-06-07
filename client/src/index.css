@@ -12,6 +12,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+* { font-family: 'DM Sans', sans-serif; }
+code, .mono { font-family: 'DM Mono', monospace; }
+
 #root {
   min-height: 100vh;
 }

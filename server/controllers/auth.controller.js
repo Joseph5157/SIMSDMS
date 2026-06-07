@@ -6,7 +6,7 @@ const telegram = require('../lib/telegram');
 const logger = require('../lib/logger');
 
 const OTP_TTL_MS = 5 * 60 * 1000;        // 5 minutes
-const MAX_ATTEMPTS = 5;
+const MAX_ATTEMPTS = 5;                   // Account-level lock threshold
 const OTP_COOLDOWN_MS = 60 * 1000;        // 60-second cooldown between requests
 
 // Parse JWT_EXPIRES_IN (e.g. "7d", "24h") into milliseconds for the cookie
@@ -30,70 +30,78 @@ function cookieOptions() {
 
 async function requestOtp(req, res) {
   try {
-  const { email } = req.body;
+    const { email } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-  // Always respond the same way to avoid user enumeration
-  if (!user || user.deleted_at || user.status !== 'active') {
-    return res.status(404).json({
-      error: true,
-      code: 'USER_NOT_FOUND',
-      message: 'No active account found for that email.',
+    if (!user || user.deleted_at || user.status !== 'active') {
+      return res.status(404).json({
+        error: true,
+        code: 'USER_NOT_FOUND',
+        message: 'No active account found for that email.',
+      });
+    }
+
+    // Account-level lock — too many failed OTP attempts across all sessions
+    if (user.otp_failed_attempts >= MAX_ATTEMPTS) {
+      return res.status(403).json({
+        error: true,
+        code: 'ACCOUNT_LOCKED',
+        message: 'Account locked due to too many failed OTP attempts. Contact your administrator to unlock.',
+      });
+    }
+
+    if (!user.telegram_id) {
+      return res.status(400).json({
+        error: true,
+        code: 'NO_TELEGRAM_ID',
+        message: 'Your account does not have a Telegram ID configured. Contact your administrator.',
+      });
+    }
+
+    // Cooldown — block if an unexpired session was created in the last 60 seconds
+    const recentSession = await prisma.otpSession.findFirst({
+      where: {
+        user_id: user.id,
+        verified: false,
+        expires_at: { gt: new Date() },
+        created_at: { gt: new Date(Date.now() - OTP_COOLDOWN_MS) },
+      },
     });
-  }
 
-  if (!user.telegram_id) {
-    return res.status(400).json({
-      error: true,
-      code: 'NO_TELEGRAM_ID',
-      message: 'Your account does not have a Telegram ID configured. Contact your administrator.',
+    if (recentSession) {
+      const secondsLeft = Math.ceil((recentSession.created_at.getTime() + OTP_COOLDOWN_MS - Date.now()) / 1000);
+      return res.status(429).json({
+        error: true,
+        code: 'OTP_COOLDOWN',
+        message: `Please wait ${secondsLeft} second(s) before requesting another OTP.`,
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = String(crypto.randomInt(100000, 999999));
+    const otp_hash = await bcrypt.hash(otp, 10);
+    const expires_at = new Date(Date.now() + OTP_TTL_MS);
+
+    await prisma.otpSession.create({
+      data: { user_id: user.id, otp_hash, expires_at },
     });
-  }
 
-  // Cooldown — block if an unexpired session was created in the last 60 seconds
-  const recentSession = await prisma.otpSession.findFirst({
-    where: {
-      user_id: user.id,
-      verified: false,
-      expires_at: { gt: new Date() },
-      created_at: { gt: new Date(Date.now() - OTP_COOLDOWN_MS) },
-    },
-  });
+    try {
+      await telegram.sendMessage(
+        user.telegram_id,
+        `<b>SIMS DMS Login OTP</b>\n\nYour one-time password is:\n<code>${otp}</code>\n\nExpires in 5 minutes. Do not share this with anyone.`,
+      );
+    } catch (err) {
+      logger.error(`Telegram OTP delivery failed for user ${user.id}: ${err.message}`);
+      return res.status(503).json({
+        error: true,
+        code: 'TELEGRAM_UNAVAILABLE',
+        message: 'Could not send OTP via Telegram. Please try again shortly.',
+      });
+    }
 
-  if (recentSession) {
-    const secondsLeft = Math.ceil((recentSession.created_at.getTime() + OTP_COOLDOWN_MS - Date.now()) / 1000);
-    return res.status(429).json({
-      error: true,
-      code: 'OTP_COOLDOWN',
-      message: `Please wait ${secondsLeft} second(s) before requesting another OTP.`,
-    });
-  }
-
-  // Generate 6-digit OTP
-  const otp = String(crypto.randomInt(100000, 999999));
-  const otp_hash = await bcrypt.hash(otp, 10);
-  const expires_at = new Date(Date.now() + OTP_TTL_MS);
-
-  await prisma.otpSession.create({
-    data: { user_id: user.id, otp_hash, expires_at },
-  });
-
-  try {
-    await telegram.sendMessage(
-      user.telegram_id,
-      `<b>SIMS DMS Login OTP</b>\n\nYour one-time password is:\n<code>${otp}</code>\n\nExpires in 5 minutes. Do not share this with anyone.`,
-    );
-  } catch (err) {
-    logger.error(`Telegram OTP delivery failed for user ${user.id}: ${err.message}`);
-    return res.status(503).json({
-      error: true,
-      code: 'TELEGRAM_UNAVAILABLE',
-      message: 'Could not send OTP via Telegram. Please try again shortly.',
-    });
-  }
-
-  res.json({ message: 'OTP sent to your registered Telegram account.' });
+    res.json({ message: 'OTP sent to your registered Telegram account.' });
   } catch (err) {
     logger.error(`requestOtp error: ${err.message}`);
     res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
@@ -104,93 +112,114 @@ async function requestOtp(req, res) {
 
 async function verifyOtp(req, res) {
   try {
-  const { email, otp } = req.body;
+    const { email, otp } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user || user.deleted_at || user.status !== 'active') {
-    return res.status(401).json({
-      error: true,
-      code: 'INVALID_CREDENTIALS',
-      message: 'Invalid email or OTP.',
-    });
-  }
+    if (!user || user.deleted_at || user.status !== 'active') {
+      return res.status(401).json({
+        error: true,
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or OTP.',
+      });
+    }
 
-  // Find latest unexpired, unverified session
-  const session = await prisma.otpSession.findFirst({
-    where: {
-      user_id: user.id,
-      verified: false,
-      expires_at: { gt: new Date() },
-    },
-    orderBy: { created_at: 'desc' },
-  });
+    // Account-level lock check
+    if (user.otp_failed_attempts >= MAX_ATTEMPTS) {
+      return res.status(401).json({
+        error: true,
+        code: 'ACCOUNT_LOCKED',
+        message: 'Account locked due to too many failed OTP attempts. Contact your administrator to unlock.',
+      });
+    }
 
-  if (!session) {
-    return res.status(401).json({
-      error: true,
-      code: 'OTP_EXPIRED',
-      message: 'No active OTP found. Please request a new one.',
-    });
-  }
-
-  if (session.attempt_count >= MAX_ATTEMPTS) {
-    return res.status(401).json({
-      error: true,
-      code: 'OTP_LOCKED',
-      message: 'Too many failed attempts. Please request a new OTP.',
-    });
-  }
-
-  const isValid = await bcrypt.compare(otp, session.otp_hash);
-
-  if (!isValid) {
-    const newCount = session.attempt_count + 1;
-    await prisma.otpSession.update({
-      where: { id: session.id },
-      data: { attempt_count: newCount },
+    // Find latest unexpired, unverified session
+    const session = await prisma.otpSession.findFirst({
+      where: {
+        user_id: user.id,
+        verified: false,
+        expires_at: { gt: new Date() },
+      },
+      orderBy: { created_at: 'desc' },
     });
 
-    const remaining = MAX_ATTEMPTS - newCount;
-    return res.status(401).json({
-      error: true,
-      code: 'INVALID_OTP',
-      message: remaining > 0
-        ? `Invalid OTP. ${remaining} attempt(s) remaining.`
-        : 'Invalid OTP. No attempts remaining. Please request a new OTP.',
+    if (!session) {
+      return res.status(401).json({
+        error: true,
+        code: 'OTP_EXPIRED',
+        message: 'No active OTP found. Please request a new one.',
+      });
+    }
+
+    const isValid = await bcrypt.compare(otp, session.otp_hash);
+
+    if (!isValid) {
+      // Increment both session-level and account-level counters atomically
+      const newAccountFailures = user.otp_failed_attempts + 1;
+
+      await Promise.all([
+        prisma.otpSession.update({
+          where: { id: session.id },
+          data: { attempt_count: { increment: 1 } },
+        }),
+        prisma.user.update({
+          where: { id: user.id },
+          data: { otp_failed_attempts: newAccountFailures },
+        }),
+      ]);
+
+      if (newAccountFailures >= MAX_ATTEMPTS) {
+        return res.status(401).json({
+          error: true,
+          code: 'ACCOUNT_LOCKED',
+          message: 'Account locked due to too many failed OTP attempts. Contact your administrator to unlock.',
+        });
+      }
+
+      const remaining = MAX_ATTEMPTS - newAccountFailures;
+      return res.status(401).json({
+        error: true,
+        code: 'INVALID_OTP',
+        message: `Invalid OTP. ${remaining} attempt(s) remaining before account lockout.`,
+      });
+    }
+
+    // OTP is valid — mark session verified and reset account failure counter
+    await Promise.all([
+      prisma.otpSession.update({
+        where: { id: session.id },
+        data: { verified: true },
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: { otp_failed_attempts: 0 },
+      }),
+    ]);
+
+    // Mark Telegram as verified on first successful login
+    if (!user.telegram_verified) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { telegram_verified: true },
+      });
+    }
+
+    const token = jwt.sign(
+      { sub: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    );
+
+    res.cookie('sims_token', token, cookieOptions());
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      designation: user.designation,
     });
-  }
-
-  // Mark session as verified
-  await prisma.otpSession.update({
-    where: { id: session.id },
-    data: { verified: true },
-  });
-
-  // Mark Telegram as verified on first successful login
-  if (!user.telegram_verified) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { telegram_verified: true },
-    });
-  }
-
-  const token = jwt.sign(
-    { sub: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
-  );
-
-  res.cookie('sims_token', token, cookieOptions());
-
-  res.json({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    department: user.department,
-    designation: user.designation,
-  });
   } catch (err) {
     logger.error(`verifyOtp error: ${err.message}`);
     res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
