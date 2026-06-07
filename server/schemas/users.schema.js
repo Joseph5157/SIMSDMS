@@ -7,6 +7,7 @@ const createUserSchema = z.object({
   department: z.string().max(100).optional(),
   designation: z.string().max(100).optional(),
   phone: z.string().max(20).optional(),
+  telegram_id: z.string().max(50).optional(),
 });
 
 const updateProfileSchema = z.object({

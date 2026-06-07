@@ -12,7 +12,7 @@ import { useUsers, useCreateUser, useDeactivateUser } from '../../hooks/useUsers
 function CreateUserModal({ open, onClose }) {
   const toast = useToast();
   const create = useCreateUser();
-  const [form, setForm] = useState({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '' });
+  const [form, setForm] = useState({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '', telegram_id: '' });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function handleSubmit(e) {
@@ -21,7 +21,7 @@ function CreateUserModal({ open, onClose }) {
       await create.mutateAsync(form);
       toast({ message: 'User created successfully.' });
       onClose();
-      setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '' });
+      setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '', telegram_id: '' });
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });
     }
@@ -32,6 +32,7 @@ function CreateUserModal({ open, onClose }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input label="Full name" value={form.name} onChange={set('name')} required />
         <Input label="Email" type="email" value={form.email} onChange={set('email')} required />
+        <Input label="Telegram ID" value={form.telegram_id} onChange={set('telegram_id')} placeholder="@username or numeric ID" />
         <Select label="Role" value={form.role} onChange={set('role')}>
           <option value="faculty">Faculty</option>
           <option value="admin">Admin</option>

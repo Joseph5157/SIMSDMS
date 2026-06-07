@@ -29,6 +29,7 @@ function cookieOptions() {
 // ─── POST /auth/request-otp ───────────────────────────────────────────────────
 
 async function requestOtp(req, res) {
+  try {
   const { email } = req.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -93,11 +94,16 @@ async function requestOtp(req, res) {
   }
 
   res.json({ message: 'OTP sent to your registered Telegram account.' });
+  } catch (err) {
+    logger.error(`requestOtp error: ${err.message}`);
+    res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
+  }
 }
 
 // ─── POST /auth/verify-otp ────────────────────────────────────────────────────
 
 async function verifyOtp(req, res) {
+  try {
   const { email, otp } = req.body;
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -185,6 +191,10 @@ async function verifyOtp(req, res) {
     department: user.department,
     designation: user.designation,
   });
+  } catch (err) {
+    logger.error(`verifyOtp error: ${err.message}`);
+    res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
+  }
 }
 
 // ─── POST /auth/logout ────────────────────────────────────────────────────────

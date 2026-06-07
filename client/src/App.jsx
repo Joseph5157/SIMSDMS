@@ -33,13 +33,7 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   const { data: user, isLoading } = useCurrentUser();
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isFaculty = user?.role === 'faculty';
-  const isSuperAdmin = user?.role === 'super_admin';
-
-  function adminRoute(element) {
-    return <ProtectedRoute user={user} isLoading={isLoading} requiredRole={isAdmin ? undefined : 'admin'}>{element}</ProtectedRoute>;
-  }
 
   return (
     <Routes>
@@ -53,8 +47,8 @@ function AppRoutes() {
         <Navigate to="/admin/users" replace />
       } />
 
-      {/* Admin routes */}
-      <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
+      {/* Admin routes — Admin and Super Admin only */}
+      <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['admin', 'super_admin']} />}>
         <Route path="/admin/users"            element={<UsersPage user={user} />} />
         <Route path="/admin/students"         element={<StudentsPage user={user} />} />
         <Route path="/admin/calendar"         element={<CalendarPage user={user} />} />
@@ -67,7 +61,7 @@ function AppRoutes() {
         <Route path="/admin/reports"          element={<ReportsPage user={user} />} />
       </Route>
 
-      {/* Faculty routes */}
+      {/* Faculty routes — any authenticated user */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
         <Route path="/faculty/dashboard"      element={<DashboardPage user={user} />} />
         <Route path="/faculty/slots"          element={<SlotPickerPage user={user} />} />
@@ -77,8 +71,8 @@ function AppRoutes() {
         <Route path="/faculty/messages"       element={<MessagesPage user={user} />} />
       </Route>
 
-      {/* Super Admin routes */}
-      <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
+      {/* Super Admin routes — Super Admin only */}
+      <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['super_admin']} />}>
         <Route path="/super-admin/sessions"   element={<SessionResetPage user={user} />} />
         <Route path="/super-admin/audit"      element={<AuditLogsPage user={user} />} />
       </Route>

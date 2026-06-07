@@ -1,7 +1,6 @@
-// Phase D — full implementation
 import { Navigate, Outlet } from 'react-router-dom';
 
-export default function ProtectedRoute({ user, isLoading, requiredRole }) {
+export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -10,8 +9,15 @@ export default function ProtectedRoute({ user, isLoading, requiredRole }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
-  if (requiredRole && user.role !== requiredRole) {
-    return <div className="p-6 text-red-600">Access denied.</div>;
+  if (requiredRoles && !requiredRoles.includes(user.role)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-2xl font-semibold text-red-600 mb-2">Access Denied</p>
+          <p className="text-gray-500 text-sm">Your role (<span className="font-medium">{user.role}</span>) does not have permission to view this page.</p>
+        </div>
+      </div>
+    );
   }
   return <Outlet />;
 }

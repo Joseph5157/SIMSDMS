@@ -31,7 +31,7 @@ async function getMe(req, res) {
 // ─── POST /users — Admin/Super Admin ──────────────────────────────────────────
 
 async function createUser(req, res) {
-  const { name, email, role, department, designation, phone } = req.body;
+  const { name, email, role, department, designation, phone, telegram_id } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -46,6 +46,7 @@ async function createUser(req, res) {
       department,
       designation,
       phone,
+      telegram_id,
       status: 'active',
       approved_at: new Date(),
       approved_by: req.user.id,

@@ -10,6 +10,8 @@ export function useCurrentUser() {
     },
     retry: false,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -20,8 +22,12 @@ export function useRequestOtp() {
 }
 
 export function useVerifyOtp() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ email, otp }) => api.post('/auth/verify-otp', { email, otp }),
+    onSuccess: (res) => {
+      qc.setQueryData(['currentUser'], res.data);
+    },
   });
 }
 

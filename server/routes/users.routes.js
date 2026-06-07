@@ -19,8 +19,8 @@ router.post('/', authorize('admin', 'super_admin'), validate(createUserSchema), 
 // GET /users — Admin, Super Admin
 router.get('/', authorize('admin', 'super_admin'), ctrl.listUsers);
 
-// GET /users/:id — Admin, Super Admin
-router.get('/:id', authorize('admin', 'super_admin'), ctrl.getUser);
+// GET /users/:id — All authenticated
+router.get('/:id', ctrl.getUser);
 
 // PATCH /users/:id/profile — All authenticated (faculty: own only; admin+ can patch anyone)
 router.patch('/:id/profile', validate(updateProfileSchema), ctrl.updateProfile);

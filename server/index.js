@@ -1,5 +1,11 @@
 require('dotenv').config();
 
+// Prevent unhandled async rejections from crashing the server
+process.on('unhandledRejection', (err) => {
+  const logger = require('./lib/logger');
+  logger.error(`Unhandled rejection: ${err?.message ?? err}`);
+});
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -34,7 +40,7 @@ app.use(cors({
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: true, code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },
