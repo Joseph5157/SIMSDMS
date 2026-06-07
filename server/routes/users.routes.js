@@ -28,4 +28,7 @@ router.patch('/:id/profile', validate(updateProfileSchema), ctrl.updateProfile);
 // PATCH /users/:id/deactivate — Admin, Super Admin
 router.patch('/:id/deactivate', authorize('admin', 'super_admin'), ctrl.deactivateUser);
 
+// PATCH /users/:id/reactivate — Admin, Super Admin
+router.patch('/:id/reactivate', authorize('admin', 'super_admin'), ctrl.reactivateUser);
+
 module.exports = router;

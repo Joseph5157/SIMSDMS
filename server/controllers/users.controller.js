@@ -162,6 +162,32 @@ async function deactivateUser(req, res) {
   res.json(safeUser(updated));
 }
 
+// ─── PATCH /users/:id/reactivate — Admin, Super Admin ────────────────────────
+
+async function reactivateUser(req, res) {
+  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!user || user.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
+  }
+  if (user.status === 'active') {
+    return res.status(400).json({ error: true, code: 'ALREADY_ACTIVE', message: 'User is already active.' });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { status: 'active' },
+  });
+
+  await logAction({
+    actorId: req.user.id,
+    action: 'REACTIVATE_USER',
+    targetId: user.id,
+    targetType: 'user',
+  });
+
+  res.json(safeUser(updated));
+}
+
 // ─── GET /admin/audit-logs — Super Admin ──────────────────────────────────────
 
 async function getAuditLogs(req, res) {
@@ -291,6 +317,7 @@ module.exports = {
   getUser,
   updateProfile,
   deactivateUser,
+  reactivateUser,
   getAuditLogs,
   resetUserLogin,
   hardDelete,

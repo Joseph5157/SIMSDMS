@@ -30,15 +30,15 @@ function cookieOptions() {
 
 async function requestOtp(req, res) {
   try {
-    const { email } = req.body;
+    const { telegram_id } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { telegram_id: String(telegram_id) } });
 
     if (!user || user.deleted_at || user.status !== 'active') {
       return res.status(404).json({
         error: true,
         code: 'USER_NOT_FOUND',
-        message: 'No active account found for that email.',
+        message: 'No active account found for that Telegram ID.',
       });
     }
 
@@ -112,15 +112,15 @@ async function requestOtp(req, res) {
 
 async function verifyOtp(req, res) {
   try {
-    const { email, otp } = req.body;
+    const { telegram_id, otp } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { telegram_id: String(telegram_id) } });
 
     if (!user || user.deleted_at || user.status !== 'active') {
       return res.status(401).json({
         error: true,
         code: 'INVALID_CREDENTIALS',
-        message: 'Invalid email or OTP.',
+        message: 'Invalid Telegram ID or OTP.',
       });
     }
 
