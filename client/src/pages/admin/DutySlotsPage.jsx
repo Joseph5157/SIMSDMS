@@ -34,6 +34,52 @@ export default function DutySlotsPage({ user }) {
         <span className="text-sm text-gray-500">{slots.length} slot(s) total</span>
       </div>
 
+      {/* Mobile card list */}
+      <div className="md:hidden">
+        {['morning', 'afternoon'].map((session) => {
+          const group = session === 'morning' ? morning : afternoon;
+          return (
+            <div key={session} style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase',
+                letterSpacing: '0.08em', marginBottom: 8 }}>
+                {session} slots ({group.length})
+              </p>
+              <div style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0',
+                overflow: 'hidden', marginBottom: 16 }}>
+                {!group.length ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                    No {session} slots
+                  </div>
+                ) : (
+                  group.map((s) => (
+                    <div key={s.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '14px 16px', backgroundColor: '#fff',
+                      borderBottom: '1px solid #f1f5f9', gap: 12,
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {s.faculty?.name}
+                        </p>
+                        <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                          {new Date(s.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <Badge status={s.status} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
       {['morning', 'afternoon'].map((session) => {
         const group = session === 'morning' ? morning : afternoon;
         return (
@@ -58,6 +104,7 @@ export default function DutySlotsPage({ user }) {
           </div>
         );
       })}
+      </div>
 
       <div style={{
         marginTop: 16, padding: '12px 16px',

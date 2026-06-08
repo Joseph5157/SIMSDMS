@@ -161,6 +161,33 @@ export default function UsersPage({ user }) {
         </select>
       </div>
 
+      {/* Mobile card list */}
+      <div className="md:hidden" style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 16 }}>
+        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No users found.</div>}
+        {data?.data?.map((u) => (
+          <div key={u.id} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px', backgroundColor: '#fff',
+            borderBottom: '1px solid #f1f5f9', gap: 12,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {u.name}
+              </p>
+              <p style={{ fontSize: 12, color: '#94a3b8' }}>{u.email}</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <Badge status={u.role} label={u.role.replace(/_/g, ' ')} />
+              <Badge status={u.status} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
       <Table>
         <thead>
           <tr>
@@ -200,6 +227,7 @@ export default function UsersPage({ user }) {
           ))}
         </tbody>
       </Table>
+      </div>
 
       <div style={{
         marginTop: 16, padding: '12px 16px',

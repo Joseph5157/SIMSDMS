@@ -98,6 +98,36 @@ export default function ViolationsPage({ user }) {
         </Select>
       </div>
 
+      {/* Mobile card list */}
+      <div className="md:hidden" style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 16 }}>
+        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No violations found.</div>}
+        {data?.data?.map((v) => (
+          <div key={v.id} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px', backgroundColor: '#fff',
+            borderBottom: '1px solid #f1f5f9', gap: 12,
+            opacity: v.record_status === 'hidden' ? 0.6 : 1,
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {v.student?.student_name}
+              </p>
+              <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                {v.student?.registration_number} • {v.violationType?.name}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              {v.is_flagged && <Badge status="pending" label="Flagged" />}
+              <Badge status={v.record_status} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
       <Table>
         <thead><tr><Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th><Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th /></tr></thead>
         <tbody className="divide-y divide-gray-100">
@@ -129,6 +159,7 @@ export default function ViolationsPage({ user }) {
           ))}
         </tbody>
       </Table>
+      </div>
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
       {resolving && <ResolveFlagModal violation={resolving} onClose={() => setResolving(null)} />}
       {auditing  && <AuditModal violationId={auditing} onClose={() => setAuditing(null)} />}
