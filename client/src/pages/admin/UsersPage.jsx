@@ -3,10 +3,8 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
+import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
 import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser } from '../../hooks/useUsers';
 
@@ -54,50 +52,6 @@ function RowMenu({ user: u, onDeactivate, onReactivate }) {
   );
 }
 
-// ── Create user modal ────────────────────────────────────────────────────────
-function CreateUserModal({ open, onClose }) {
-  const toast  = useToast();
-  const create = useCreateUser();
-  const [form, setForm] = useState({
-    name: '', email: '', role: 'faculty',
-    department: '', designation: '', phone: '', telegram_id: '',
-  });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      await create.mutateAsync(form);
-      toast({ message: 'User created successfully.' });
-      onClose();
-      setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '', telegram_id: '' });
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="Add User">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Full name"    value={form.name}        onChange={set('name')}        required />
-        <Input label="Email"        type="email" value={form.email} onChange={set('email')} required />
-        <Input label="Telegram ID"  value={form.telegram_id} onChange={set('telegram_id')} placeholder="@username or numeric ID" />
-        <Select label="Role" value={form.role} onChange={set('role')}>
-          <option value="faculty">Faculty</option>
-          <option value="admin">Admin</option>
-        </Select>
-        <Input label="Department"   value={form.department}  onChange={set('department')} />
-        <Input label="Designation"  value={form.designation} onChange={set('designation')} />
-        <Input label="Phone"        value={form.phone}       onChange={set('phone')} />
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={create.isPending}>Create</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function UsersPage({ user }) {
   const toast = useToast();
@@ -108,6 +62,7 @@ export default function UsersPage({ user }) {
   const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
+  const create     = useCreateUser();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
 
@@ -245,7 +200,20 @@ export default function UsersPage({ user }) {
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
-      <CreateUserModal open={showCreate} onClose={() => setShowCreate(false)} />
+      <CreateUserDrawer
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSubmit={async (form) => {
+          try {
+            await create.mutateAsync(form);
+            toast({ message: 'User created successfully.' });
+            setShowCreate(false);
+          } catch (err) {
+            toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });
+          }
+        }}
+        loading={create.isPending}
+      />
     </Layout>
   );
 }
