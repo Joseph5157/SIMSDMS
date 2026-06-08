@@ -33,7 +33,7 @@ export default function DashboardPage({ user }) {
     <Layout user={user}>
       <PageHeader title={`Welcome, ${user?.name?.split(' ')[0]}`} subtitle={`${now.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}`} />
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard label="Slots this month" value={slots.length} />
         <StatCard label="Violations recorded" value={violationsData?.meta?.total ?? 0} />
         <StatCard label="Unread messages" value={unread} />
@@ -46,7 +46,7 @@ export default function DashboardPage({ user }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm font-semibold text-gray-700 mb-3">Upcoming duties</p>
           {!upcoming.length && <p className="text-sm text-gray-400">No upcoming duties this month.</p>}

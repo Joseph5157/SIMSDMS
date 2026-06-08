@@ -78,7 +78,7 @@ export default function AdminDashboardPage({ user }) {
       </div>
 
       {/* Today's attendance + open covers */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
         {/* Live attendance summary */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm font-semibold text-gray-700 mb-3">

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRequestOtp, useVerifyOtp } from '../../hooks/useAuth';
-import simsLogo from '../../assets/sims-logo.png';
 
 // ── 6-box OTP input ─────────────────────────────────────────────────────────
 function OtpInput({ value, onChange, hasError }) {
@@ -147,7 +146,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-slate-50">
       {/* ================= LEFT SIDE (Branding) ================= */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 relative flex-col justify-center p-12 xl:p-20 overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/80 to-slate-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.18),_transparent_20%)] pointer-events-none" />
@@ -157,12 +156,9 @@ export default function LoginPage() {
         {/* Centered Content Container */}
         <div className="relative z-10 max-w-2xl mx-auto w-full space-y-12">
           {/* Logo - Top */}
-          <div className="flex justify-center">
-            <img
-              src={simsLogo}
-              alt="SIMS College Logo"
-              className="w-56 h-auto drop-shadow-2xl"
-            />
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#fff', fontSize: 28, fontWeight: 700, letterSpacing: '0.05em' }}>SIMS DMS</p>
+            <p style={{ color: '#93c5fd', fontSize: 13, marginTop: 4 }}>SIMS College of Pharmacy</p>
           </div>
 
           {/* Title & Description - Middle */}
@@ -183,8 +179,8 @@ export default function LoginPage() {
       </div>
 
       {/* ================= RIGHT SIDE (Login Form) ================= */}
-      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center min-h-screen p-6 sm:p-12 bg-gradient-to-br from-slate-50 to-blue-50/30">
-        <div className="w-full max-w-md">
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center min-h-screen lg:min-h-0 p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <div className="w-full max-w-sm lg:max-w-md">
           
           {/* Header */}
           <div className="mb-8 text-center lg:text-left">
