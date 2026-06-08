@@ -91,7 +91,7 @@ export default function ViolationTypesPage({ user }) {
               <Td><Badge status={t.is_active ? 'active' : 'inactive'} /></Td>
               <Td>{t.is_system && <Badge status="pending" label="System" />}</Td>
               <Td>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   <Button variant="ghost" size="sm" onClick={() => { setEditing(t); setShowModal(true); }}>Edit</Button>
                   {!t.is_system && t.is_active && (
                     <Button variant="ghost" size="sm" onClick={() => handleDeactivate(t)}>Deactivate</Button>

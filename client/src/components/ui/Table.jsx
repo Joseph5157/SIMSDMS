@@ -8,7 +8,7 @@ export function Table({ children, className = '' }) {
 
 export function Th({ children, className = '' }) {
   return (
-    <th className={`text-[11px] font-semibold text-slate-500 uppercase tracking-[.04em] bg-slate-50 px-3 py-2.5 text-left ${className}`}>
+    <th className={`text-[11px] font-semibold text-slate-500 uppercase tracking-[.04em] bg-slate-50 px-2 py-2 text-left whitespace-nowrap ${className}`}>
       {children}
     </th>
   );
@@ -16,7 +16,7 @@ export function Th({ children, className = '' }) {
 
 export function Td({ children, className = '' }) {
   return (
-    <td className={`text-[13px] text-slate-700 px-3 py-2.5 whitespace-nowrap ${className}`}>
+    <td className={`text-[13px] text-slate-700 px-2 py-2 ${className}`}>
       {children}
     </td>
   );

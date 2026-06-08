@@ -166,8 +166,8 @@ export default function UsersPage({ user }) {
           <tr>
             <Th>Name</Th>
             <Th>Role</Th>
-            <Th>Department</Th>
-            <Th>Telegram ID</Th>
+            <Th className="hidden sm:table-cell">Department</Th>
+            <Th className="hidden md:table-cell">Telegram ID</Th>
             <Th>Status</Th>
             <Th />
           </tr>
@@ -182,8 +182,8 @@ export default function UsersPage({ user }) {
                 <p className="text-[11px] text-slate-400">{u.email}</p>
               </Td>
               <Td><Badge status={u.role} label={u.role.replace(/_/g, ' ')} /></Td>
-              <Td>{u.department ?? '—'}</Td>
-              <Td>
+              <Td className="hidden sm:table-cell">{u.department ?? '—'}</Td>
+              <Td className="hidden md:table-cell">
                 <span className="font-mono text-[12px] text-slate-600">
                   {u.telegram_id ?? '—'}
                 </span>

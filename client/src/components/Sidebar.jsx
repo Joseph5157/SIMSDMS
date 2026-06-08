@@ -87,7 +87,7 @@ export default function Sidebar({ user }) {
         </button>
 
         {/* Brand */}
-        <div className="px-5 py-4 border-b border-slate-800 mt-8 md:mt-0">
+        <div className="px-5 py-4 border-b border-slate-800 mt-10 md:mt-0">
           <p className="text-white font-semibold text-[14px]">SIMS DMS</p>
           <p className="text-slate-400 text-[11px] mt-0.5">{getRoleSubtitle(user?.role)}</p>
         </div>

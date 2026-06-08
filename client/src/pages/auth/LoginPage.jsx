@@ -179,7 +179,7 @@ export default function LoginPage() {
       </div>
 
       {/* ================= RIGHT SIDE (Login Form) ================= */}
-      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center min-h-screen lg:min-h-0 p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-slate-50 to-blue-50/30">
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-start sm:items-center justify-center min-h-screen lg:min-h-0 pt-8 sm:pt-0 p-5 sm:p-8 lg:p-12 bg-gradient-to-br from-slate-50 to-blue-50/30">
         <div className="w-full max-w-sm lg:max-w-md">
           
           {/* Header */}

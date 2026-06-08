@@ -99,7 +99,7 @@ export default function ViolationsPage({ user }) {
       </div>
 
       <Table>
-        <thead><tr><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th /></tr></thead>
+        <thead><tr><Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th><Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th /></tr></thead>
         <tbody className="divide-y divide-gray-100">
           {isLoading && <EmptyRow cols={7} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
@@ -109,7 +109,7 @@ export default function ViolationsPage({ user }) {
                 <p className="font-medium text-gray-900">{v.student?.student_name}</p>
                 <p className="text-xs text-gray-400">{v.student?.registration_number}</p>
               </Td>
-              <Td>{v.faculty?.name}</Td>
+              <Td className="hidden md:table-cell">{v.faculty?.name}</Td>
               <Td>{v.violationType?.name}{v.custom_violation && <p className="text-xs text-gray-400">{v.custom_violation}</p>}</Td>
               <Td>{v.is_warning_only ? <span className="text-xs text-gray-500">Warning only</span> : `₹${v.fine_amount}`}</Td>
               <Td><Badge status={v.record_status} /></Td>

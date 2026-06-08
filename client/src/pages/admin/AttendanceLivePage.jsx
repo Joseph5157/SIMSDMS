@@ -156,7 +156,7 @@ export default function AttendanceLivePage({ user }) {
               <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Morning duty · {records.filter(r => r.session_type === 'morning').length} faculty
               </p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {records.filter(r => r.session_type === 'morning').map((r) => (
                   <FacultyCard key={r.slot_id} record={r} onOverride={setOverriding} />
                 ))}
@@ -170,7 +170,7 @@ export default function AttendanceLivePage({ user }) {
               <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Afternoon duty · {records.filter(r => r.session_type === 'afternoon').length} faculty
               </p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {records.filter(r => r.session_type === 'afternoon').map((r) => (
                   <FacultyCard key={r.slot_id} record={r} onOverride={setOverriding} />
                 ))}

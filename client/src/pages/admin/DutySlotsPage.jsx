@@ -40,7 +40,7 @@ export default function DutySlotsPage({ user }) {
           <div key={session} className="mb-6">
             <h3 className="text-sm font-semibold text-gray-700 mb-2 capitalize">{session} slots ({group.length})</h3>
             <Table>
-              <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th>Covered by</Th></tr></thead>
+              <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th className="hidden sm:table-cell">Covered by</Th></tr></thead>
               <tbody className="divide-y divide-gray-100">
                 {isLoading && <EmptyRow cols={5} message="Loading…" />}
                 {!isLoading && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
@@ -50,7 +50,7 @@ export default function DutySlotsPage({ user }) {
                     <Td>{s.faculty?.name}</Td>
                     <Td>{s.faculty?.department ?? '—'}</Td>
                     <Td><Badge status={s.status} /></Td>
-                    <Td>{s.covered_by ?? '—'}</Td>
+                    <Td className="hidden sm:table-cell">{s.coveredBy?.name ?? (s.covered_by ? s.covered_by.slice(0, 8) + '…' : '—')}</Td>
                   </tr>
                 ))}
               </tbody>

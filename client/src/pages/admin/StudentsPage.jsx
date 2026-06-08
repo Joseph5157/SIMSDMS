@@ -111,7 +111,7 @@ export default function StudentsPage({ user }) {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
       </div>
       <Table>
-        <thead><tr><Th>Reg. No.</Th><Th>Name</Th><Th>Course</Th><Th>Semester/Year</Th><Th>Acad. Year</Th><Th>Status</Th><Th /></tr></thead>
+        <thead><tr><Th>Reg. No.</Th><Th>Name</Th><Th className="hidden sm:table-cell">Course</Th><Th>Semester/Year</Th><Th className="hidden sm:table-cell">Acad. Year</Th><Th>Status</Th><Th /></tr></thead>
         <tbody className="divide-y divide-gray-100">
           {isLoading && <EmptyRow cols={7} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
@@ -119,9 +119,9 @@ export default function StudentsPage({ user }) {
             <tr key={s.id}>
               <Td className="font-mono text-xs">{s.registration_number}</Td>
               <Td className="font-medium text-gray-900">{s.student_name}</Td>
-              <Td>{s.course}</Td>
+              <Td className="hidden sm:table-cell">{s.course}</Td>
               <Td>{s.semester_or_year}</Td>
-              <Td>{s.academic_year}</Td>
+              <Td className="hidden sm:table-cell">{s.academic_year}</Td>
               <Td><Badge status={s.status} /></Td>
               <Td>
                 <div className="flex gap-2">
