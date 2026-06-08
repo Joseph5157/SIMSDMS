@@ -12,6 +12,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
 
 const logger = require('./lib/logger');
 const authRoutes = require('./routes/auth.routes');
@@ -75,10 +76,20 @@ app.use('/cover-requests',  coverRequestsRoutes);
 app.use('/messages',        messagesRoutes);
 app.use('/reports',         reportsRoutes);
 
-// ─── 404 ─────────────────────────────────────────────────────────────────────
-app.use((req, res) => {
-  res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Route not found.' });
-});
+// ─── Static frontend (production only) ───────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '..', 'client', 'dist');
+  app.use(express.static(clientDist));
+  // Catch-all: serve index.html for client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+} else {
+  // ─── 404 (dev only — in prod the catch-all above handles unknown paths) ────
+  app.use((req, res) => {
+    res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Route not found.' });
+  });
+}
 
 // ─── Error handler ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {

@@ -216,9 +216,15 @@ async function verifyOtp(req, res) {
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       department: user.department,
       designation: user.designation,
+      telegram_id: user.telegram_id,
+      telegram_verified: user.telegram_verified,
+      status: user.status,
+      approved_at: user.approved_at,
+      created_at: user.created_at,
     });
   } catch (err) {
     logger.error(`verifyOtp error: ${err.message}`);
