@@ -38,43 +38,20 @@ export default function AdminDashboardPage({ user }) {
 
       {/* KPI grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard
-          label="Active faculty"
-          value={activeFaculty}
-          accent="green"
-        />
-        <StatCard
-          label="Pending approvals"
-          value={pendingCount}
-          accent={pendingCount > 0 ? 'yellow' : undefined}
-          sub={pendingCount > 0 ? 'Needs action' : 'All clear'}
-        />
-        <StatCard
-          label="Open cover requests"
-          value={openCoverCount}
-          accent={openCoverCount > 0 ? 'yellow' : undefined}
-        />
-        <StatCard
-          label="Flagged violations"
-          value={flaggedCount}
-          accent={flaggedCount > 0 ? 'red' : undefined}
-          sub={flaggedCount > 0 ? 'Awaiting review' : 'None pending'}
-        />
+        <StatCard label="Active faculty" value={activeFaculty} accent="green" icon="👥" />
+        <StatCard label="Pending approvals" value={pendingCount} accent={pendingCount > 0 ? 'yellow' : 'default'} sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
+        <StatCard label="Open cover requests" value={openCoverCount} accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
+        <StatCard label="Flagged violations" value={flaggedCount} accent={flaggedCount > 0 ? 'red' : 'default'} sub={flaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
       </div>
 
       {/* Panels grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Live attendance panel */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-200">
-            <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wide">
-              Today's attendance
-              {liveData?.date && (
-                <span className="text-[11px] font-normal text-slate-400 ml-2">({liveData.date})</span>
-              )}
-            </p>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <p className="text-[13px] font-semibold text-slate-900">📋 Today's attendance</p>
           </div>
-          <div className="p-5">
+          <div>
             {!liveSlots.length ? (
               <p className="text-[13px] text-slate-500">No duty slots scheduled today.</p>
             ) : (
@@ -121,11 +98,11 @@ export default function AdminDashboardPage({ user }) {
         </div>
 
         {/* Open cover requests panel */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-200">
-            <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wide">Open cover requests</p>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <p className="text-[13px] font-semibold text-slate-900">🔄 Open cover requests</p>
           </div>
-          <div className="p-5">
+          <div>
             {!openCovers?.data?.length ? (
               <p className="text-[13px] text-slate-500">No open cover requests.</p>
             ) : (

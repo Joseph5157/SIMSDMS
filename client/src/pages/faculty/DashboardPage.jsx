@@ -1,18 +1,9 @@
 import Layout, { PageHeader } from '../../components/Layout';
+import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
-
-function StatCard({ label, value, sub }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
-}
 
 export default function DashboardPage({ user }) {
   const now = new Date();
@@ -34,9 +25,9 @@ export default function DashboardPage({ user }) {
       <PageHeader title={`Welcome, ${user?.name?.split(' ')[0]}`} subtitle={`${now.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Slots this month" value={slots.length} />
-        <StatCard label="Violations recorded" value={violationsData?.meta?.total ?? 0} />
-        <StatCard label="Unread messages" value={unread} />
+        <StatCard label="Slots this month" value={slots.length} accent="blue" icon="🗓" />
+        <StatCard label="Violations recorded" value={violationsData?.meta?.total ?? 0} accent="default" icon="⚠️" />
+        <StatCard label="Unread messages" value={unread} accent={unread > 0 ? 'yellow' : 'default'} icon="✉️" />
       </div>
 
       {todaySlot && (

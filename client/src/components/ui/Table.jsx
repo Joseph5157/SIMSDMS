@@ -1,6 +1,6 @@
 export function Table({ children, className = '' }) {
   return (
-    <div className={`overflow-x-auto rounded-[10px] border border-slate-200 ${className}`}>
+    <div className={`overflow-x-auto rounded-xl border border-slate-200 shadow-sm ${className}`}>
       <table className="min-w-full divide-y divide-slate-100">{children}</table>
     </div>
   );
@@ -8,7 +8,7 @@ export function Table({ children, className = '' }) {
 
 export function Th({ children, className = '' }) {
   return (
-    <th className={`text-[11px] font-semibold text-slate-500 uppercase tracking-[.04em] bg-[#fafafa] border-b border-slate-200 px-2 py-2 text-left whitespace-nowrap ${className}`}>
+    <th className={`text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 px-3 py-3 text-left whitespace-nowrap ${className}`}>
       {children}
     </th>
   );
@@ -16,15 +16,18 @@ export function Th({ children, className = '' }) {
 
 export function Td({ children, className = '' }) {
   return (
-    <td className={`text-[13px] text-slate-700 px-2 py-2 ${className}`}>
+    <td className={`text-[13px] text-slate-700 px-3 py-3 ${className}`}>
       {children}
     </td>
   );
 }
 
-export function Tr({ children, className = '' }) {
+export function Tr({ children, className = '', onClick }) {
   return (
-    <tr className={`hover:bg-slate-50/60 transition-colors ${className}`}>
+    <tr
+      onClick={onClick}
+      className={`border-b border-slate-50 hover:bg-blue-50/40 transition-colors ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    >
       {children}
     </tr>
   );
@@ -33,7 +36,12 @@ export function Tr({ children, className = '' }) {
 export function EmptyRow({ cols, message = 'No records found.' }) {
   return (
     <tr>
-      <td colSpan={cols} className="text-[13px] text-slate-400 text-center py-10">{message}</td>
+      <td colSpan={cols} className="text-[13px] text-slate-400 text-center py-12">
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-2xl">📭</span>
+          <span>{message}</span>
+        </div>
+      </td>
     </tr>
   );
 }
