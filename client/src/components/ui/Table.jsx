@@ -8,7 +8,7 @@ export function Table({ children, className = '' }) {
 
 export function Th({ children, className = '' }) {
   return (
-    <th className={`text-[11px] font-semibold text-slate-500 uppercase tracking-[.04em] bg-slate-50 px-2 py-2 text-left whitespace-nowrap ${className}`}>
+    <th className={`text-[11px] font-semibold text-slate-500 uppercase tracking-[.04em] bg-[#fafafa] border-b border-slate-200 px-2 py-2 text-left whitespace-nowrap ${className}`}>
       {children}
     </th>
   );
@@ -24,7 +24,7 @@ export function Td({ children, className = '' }) {
 
 export function Tr({ children, className = '' }) {
   return (
-    <tr className={`hover:bg-slate-50 ${className}`}>
+    <tr className={`hover:bg-slate-50/60 transition-colors ${className}`}>
       {children}
     </tr>
   );

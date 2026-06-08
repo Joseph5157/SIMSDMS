@@ -1,29 +1,10 @@
 import Layout, { PageHeader } from '../../components/Layout';
+import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useCoverRequests } from '../../hooks/useCoverRequests';
 import { useFlaggedViolations } from '../../hooks/useReports';
-
-function StatCard({ label, value, sub, accent }) {
-  const ring = accent === 'red'    ? 'border-red-200 bg-red-50'
-             : accent === 'yellow' ? 'border-yellow-200 bg-yellow-50'
-             : accent === 'green'  ? 'border-green-200 bg-green-50'
-             : 'border-gray-200 bg-white';
-
-  const text = accent === 'red'    ? 'text-red-700'
-             : accent === 'yellow' ? 'text-yellow-700'
-             : accent === 'green'  ? 'text-green-700'
-             : 'text-gray-900';
-
-  return (
-    <div className={`rounded-xl border p-5 ${ring}`}>
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${text}`}>{value ?? '—'}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
-    </div>
-  );
-}
 
 export default function AdminDashboardPage({ user }) {
   const now = new Date();
@@ -55,9 +36,13 @@ export default function AdminDashboardPage({ user }) {
         subtitle={dateStr}
       />
 
-      {/* KPI row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Active faculty" value={activeFaculty} accent="green" />
+      {/* KPI grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          label="Active faculty"
+          value={activeFaculty}
+          accent="green"
+        />
         <StatCard
           label="Pending approvals"
           value={pendingCount}
@@ -77,92 +62,104 @@ export default function AdminDashboardPage({ user }) {
         />
       </div>
 
-      {/* Today's attendance + open covers */}
+      {/* Panels grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        {/* Live attendance summary */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm font-semibold text-gray-700 mb-3">
-            Today's attendance
-            {liveData?.date && (
-              <span className="text-xs font-normal text-gray-400 ml-2">{liveData.date}</span>
-            )}
-          </p>
-          {!liveSlots.length ? (
-            <p className="text-sm text-gray-400">No duty slots scheduled today.</p>
-          ) : (
-            <>
-              <div className="flex gap-4 mb-4 text-sm">
-                <div>
-                  <span className="font-semibold text-green-700">{checkedOut}</span>
-                  <span className="text-gray-500 ml-1">Checked out</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-blue-700">{checkedIn}</span>
-                  <span className="text-gray-500 ml-1">Checked in</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-500">{notCheckedIn}</span>
-                  <span className="text-gray-500 ml-1">Not in</span>
-                </div>
-                {lateCount > 0 && (
+        {/* Live attendance panel */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200">
+            <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wide">
+              Today's attendance
+              {liveData?.date && (
+                <span className="text-[11px] font-normal text-slate-400 ml-2">({liveData.date})</span>
+              )}
+            </p>
+          </div>
+          <div className="p-5">
+            {!liveSlots.length ? (
+              <p className="text-[13px] text-slate-500">No duty slots scheduled today.</p>
+            ) : (
+              <>
+                <div className="flex gap-4 mb-5 text-[12px]">
                   <div>
-                    <span className="font-semibold text-yellow-700">{lateCount}</span>
-                    <span className="text-gray-500 ml-1">Late</span>
+                    <span className="font-semibold text-green-700 block">{checkedOut}</span>
+                    <span className="text-slate-500">Checked out</span>
                   </div>
-                )}
-              </div>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {liveSlots.map((s) => (
-                  <div key={s.slot_id} className="flex items-center justify-between text-xs">
-                    <span className="text-gray-700 truncate max-w-[140px]">{s.faculty?.name}</span>
-                    <span className="text-gray-400 capitalize">{s.session_type}</span>
-                    <Badge status={s.attendance_status === 'checked_out' ? 'completed'
-                                 : s.attendance_status === 'checked_in'  ? 'active'
-                                 : 'absent'}
-                           label={s.attendance_status === 'checked_out' ? 'Out'
-                                : s.attendance_status === 'checked_in'  ? 'In'
-                                : 'Not in'} />
+                  <div>
+                    <span className="font-semibold text-blue-700 block">{checkedIn}</span>
+                    <span className="text-slate-500">Checked in</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500 block">{notCheckedIn}</span>
+                    <span className="text-slate-500">Not in</span>
+                  </div>
+                  {lateCount > 0 && (
+                    <div>
+                      <span className="font-semibold text-amber-700 block">{lateCount}</span>
+                      <span className="text-slate-500">Late</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2.5 max-h-48 overflow-y-auto">
+                  {liveSlots.map((s) => (
+                    <div key={s.slot_id} className="flex items-center justify-between text-[12px]">
+                      <span className="text-slate-700 truncate flex-1">{s.faculty?.name}</span>
+                      <span className="text-slate-500 capitalize mx-3 text-[11px]">{s.session_type}</span>
+                      <Badge
+                        status={s.attendance_status === 'checked_out' ? 'completed'
+                               : s.attendance_status === 'checked_in'  ? 'active'
+                               : 'absent'}
+                        label={s.attendance_status === 'checked_out' ? 'Out'
+                             : s.attendance_status === 'checked_in'  ? 'In'
+                             : 'Not in'}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Open cover requests panel */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-200">
+            <p className="text-[13px] font-semibold text-slate-500 uppercase tracking-wide">Open cover requests</p>
+          </div>
+          <div className="p-5">
+            {!openCovers?.data?.length ? (
+              <p className="text-[13px] text-slate-500">No open cover requests.</p>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {openCovers.data.slice(0, 8).map((cr) => (
+                  <div key={cr.id} className="flex items-start justify-between text-[12px] gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-900 font-medium truncate">{cr.requester?.name}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 capitalize">
+                        {cr.dutySlot?.session_type} •{' '}
+                        {cr.dutySlot?.duty_date
+                          ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+                          : '—'}
+                      </p>
+                    </div>
+                    <Badge
+                      status={cr.volunteer_id ? 'pending' : 'open'}
+                      label={cr.volunteer_id ? 'Has volunteer' : 'Open'}
+                    />
                   </div>
                 ))}
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Open cover requests */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm font-semibold text-gray-700 mb-3">Open cover requests</p>
-          {!openCovers?.data?.length ? (
-            <p className="text-sm text-gray-400">No open cover requests.</p>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {openCovers.data.slice(0, 8).map((cr) => (
-                <div key={cr.id} className="flex items-start justify-between text-sm gap-2">
-                  <div className="min-w-0">
-                    <p className="text-gray-700 truncate">{cr.requester?.name}</p>
-                    <p className="text-xs text-gray-400 capitalize">
-                      {cr.dutySlot?.session_type} ·{' '}
-                      {cr.dutySlot?.duty_date
-                        ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
-                        : '—'}
-                    </p>
-                  </div>
-                  <Badge status={cr.volunteer_id ? 'pending' : 'open'}
-                         label={cr.volunteer_id ? 'Has volunteer' : 'Open'} />
-                </div>
-              ))}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Pending approvals */}
+      {/* Pending approvals alert */}
       {pendingCount > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-yellow-800 mb-1">
+        <div className="bg-amber-50 border-l-4 border-l-amber-500 border border-amber-200 rounded-lg p-4">
+          <p className="text-[13px] font-semibold text-amber-900 mb-1">
             {pendingCount} account{pendingCount !== 1 ? 's' : ''} awaiting approval
           </p>
-          <p className="text-sm text-yellow-700">
+          <p className="text-[12px] text-amber-800">
             Go to <span className="font-medium">Users</span> to review and activate pending accounts.
           </p>
         </div>
