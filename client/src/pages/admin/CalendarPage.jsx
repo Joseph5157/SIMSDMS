@@ -123,6 +123,40 @@ export default function CalendarPage({ user }) {
             <p className="text-xs text-gray-400 mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
           </div>
 
+          {/* Calendar legend */}
+          <div style={{
+            marginTop: 16, padding: '14px 16px',
+            backgroundColor: '#fff', borderRadius: 12,
+            border: '1px solid #e2e8f0',
+          }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>
+              Calendar legend
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6,
+                  backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, color: '#dc2626', fontWeight: 700 }}>1</div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Red — blocked holiday date</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6,
+                  backgroundColor: '#f0fdf4', border: '1px solid #a7f3d0',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, color: '#065f46', fontWeight: 700 }}>2</div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Green — working day</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6,
+                  backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, color: '#64748b', fontWeight: 700 }}>3</div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Default — normal working day</span>
+              </div>
+            </div>
+          </div>
+
           {/* Unassigned faculty */}
           {unassigned?.data?.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">

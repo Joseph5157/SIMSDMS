@@ -200,6 +200,21 @@ export default function UsersPage({ user }) {
           ))}
         </tbody>
       </Table>
+
+      <div style={{
+        marginTop: 16, padding: '12px 16px',
+        backgroundColor: '#f8fafc', borderRadius: 12,
+        border: '1px solid #e2e8f0',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+      }}>
+        <span style={{ fontSize: 12, color: '#64748b' }}>
+          Total users in system
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+          {data?.data?.length ?? 0}
+        </span>
+      </div>
+
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
       <CreateUserModal open={showCreate} onClose={() => setShowCreate(false)} />
     </Layout>

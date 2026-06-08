@@ -130,6 +130,34 @@ export default function AdminDashboardPage({ user }) {
         </div>
       </div>
 
+      {/* Quick links */}
+      <div style={{ marginTop: 12 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
+          textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+          Quick actions
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {[
+            { label: 'View all violations', emoji: '⚠️', path: '/admin/violations' },
+            { label: 'Duty slots', emoji: '🗓', path: '/admin/duty-slots' },
+            { label: 'Live attendance', emoji: '✅', path: '/admin/attendance' },
+            { label: 'All reports', emoji: '📊', path: '/admin/reports' },
+          ].map((item) => (
+            <a key={item.path} href={item.path} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              backgroundColor: '#fff', border: '1px solid #e2e8f0',
+              borderRadius: 12, padding: '12px 14px',
+              textDecoration: 'none', color: '#0f172a',
+            }}>
+              <span style={{ fontSize: 20 }}>{item.emoji}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                {item.label}
+              </span>
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* Pending approvals alert */}
       {pendingCount > 0 && (
         <div className="bg-amber-50 border-l-4 border-l-amber-500 border border-amber-200 rounded-lg p-4">

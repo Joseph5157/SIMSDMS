@@ -5,7 +5,7 @@ export default function Layout({ user, children }) {
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar user={user} />
       <main className="flex-1 overflow-y-auto h-full">
-        <div className="px-4 md:px-6 pt-14 md:pt-6 pb-24 md:pb-8">
+        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-24 md:pb-8 min-h-full">
           {children}
         </div>
       </main>

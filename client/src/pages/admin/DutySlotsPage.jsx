@@ -58,6 +58,31 @@ export default function DutySlotsPage({ user }) {
           </div>
         );
       })}
+
+      <div style={{
+        marginTop: 16, padding: '12px 16px',
+        backgroundColor: '#f8fafc', borderRadius: 12,
+        border: '1px solid #e2e8f0',
+      }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
+          textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+          This month summary
+        </p>
+        <div style={{ display: 'flex', gap: 20 }}>
+          <div>
+            <p style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+              {morning?.length ?? 0}
+            </p>
+            <p style={{ fontSize: 11, color: '#94a3b8' }}>Morning</p>
+          </div>
+          <div>
+            <p style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+              {afternoon?.length ?? 0}
+            </p>
+            <p style={{ fontSize: 11, color: '#94a3b8' }}>Afternoon</p>
+          </div>
+        </div>
+      </div>
     </Layout>
   );
 }

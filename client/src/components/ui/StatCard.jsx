@@ -17,7 +17,7 @@ export default function StatCard({ label, value, sub, accent, icon }) {
       backgroundColor: c.bg,
       padding: '16px 16px 16px 20px',
       overflow: 'hidden',
-      minHeight: 90,
+      minHeight: 100,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
@@ -37,7 +37,7 @@ export default function StatCard({ label, value, sub, accent, icon }) {
         {label}
       </p>
       <p style={{
-        fontSize: 34, fontWeight: 800, color: c.text,
+        fontSize: 40, fontWeight: 800, color: c.text,
         lineHeight: 1, marginBottom: 2,
       }}>
         {value ?? '—'}
