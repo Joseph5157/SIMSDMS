@@ -129,9 +129,11 @@ export default function Sidebar({ user }) {
           zIndex: 40,
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          maxHeight: '70vh',
+          maxHeight: 'calc(100vh - 120px)',
           overflowY: 'auto',
-          paddingBottom: 8,
+          paddingBottom: 16,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* Handle bar */}
@@ -178,9 +180,10 @@ export default function Sidebar({ user }) {
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 1,
           backgroundColor: '#334155',
-          margin: '12px 12px 4px',
+          margin: '12px 12px 8px',
           borderRadius: 16,
           overflow: 'hidden',
+          flex: 1,
         }}>
           {links.map((link) => (
             <NavLink
@@ -215,7 +218,7 @@ export default function Sidebar({ user }) {
           onClick={() => { logout.mutate(); setOpen(false); }}
           style={{
             width: 'calc(100% - 24px)',
-            margin: '8px 12px 4px',
+            margin: '8px 12px 0',
             padding: '12px',
             backgroundColor: '#dc2626',
             color: '#fff',
@@ -224,6 +227,7 @@ export default function Sidebar({ user }) {
             fontSize: 13,
             fontWeight: 600,
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
           Log out
