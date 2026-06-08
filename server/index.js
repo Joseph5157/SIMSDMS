@@ -32,7 +32,21 @@ const { startCronJobs } = require('./lib/cron');
 const app = express();
 
 // ─── Security ───────────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'self'"],
+      scriptSrc:     ["'self'", "'unsafe-inline'"],   // Vite module scripts + preloads
+      styleSrc:      ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
+      imgSrc:        ["'self'", "data:", "blob:"],
+      connectSrc:    ["'self'"],
+      fontSrc:       ["'self'", "data:"],
+      objectSrc:     ["'none'"],
+      frameAncestors:["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,   // allows Vite assets with crossorigin attr
+}));
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
