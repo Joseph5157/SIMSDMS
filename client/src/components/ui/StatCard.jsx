@@ -1,29 +1,50 @@
-const ACCENTS = {
-  green:  { bg: 'bg-emerald-50',  border: 'border-emerald-200', text: 'text-emerald-700', bar: 'bg-emerald-500' },
-  yellow: { bg: 'bg-amber-50',    border: 'border-amber-200',   text: 'text-amber-700',   bar: 'bg-amber-500'   },
-  red:    { bg: 'bg-red-50',      border: 'border-red-200',     text: 'text-red-700',     bar: 'bg-red-500'     },
-  blue:   { bg: 'bg-blue-50',     border: 'border-blue-200',    text: 'text-blue-700',    bar: 'bg-blue-500'    },
-  default:{ bg: 'bg-white',       border: 'border-slate-200',   text: 'text-slate-900',   bar: 'bg-slate-300'   },
-};
-
 export default function StatCard({ label, value, sub, accent, icon }) {
-  const a = ACCENTS[accent] ?? ACCENTS.default;
+  const colors = {
+    green:   { bar: '#10b981', bg: '#f0fdf4', text: '#065f46', border: '#a7f3d0' },
+    yellow:  { bar: '#f59e0b', bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
+    red:     { bar: '#ef4444', bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
+    blue:    { bar: '#3b82f6', bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+    default: { bar: '#94a3b8', bg: '#ffffff', text: '#0f172a', border: '#e2e8f0' },
+  };
+
+  const c = colors[accent] ?? colors.default;
+
   return (
-    <div className={`relative rounded-xl border ${a.border} ${a.bg} p-5 overflow-hidden`}>
-      {/* Colored left bar */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 ${a.bar} rounded-l-xl`} />
-      <div className="pl-2">
-        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
-          {icon && <span className="mr-1">{icon}</span>}
-          {label}
-        </p>
-        <p className={`text-3xl font-bold ${a.text} leading-none mb-1`}>
-          {value ?? '—'}
-        </p>
-        {sub && (
-          <p className="text-[11px] text-slate-400 mt-1.5">{sub}</p>
-        )}
-      </div>
+    <div style={{
+      position: 'relative',
+      borderRadius: 14,
+      border: `1px solid ${c.border}`,
+      backgroundColor: c.bg,
+      padding: '16px 16px 16px 20px',
+      overflow: 'hidden',
+      minHeight: 90,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+    }}>
+      <div style={{
+        position: 'absolute',
+        left: 0, top: 0, bottom: 0,
+        width: 4,
+        backgroundColor: c.bar,
+        borderRadius: '14px 0 0 14px',
+      }} />
+      <p style={{
+        fontSize: 11, fontWeight: 600, color: '#94a3b8',
+        textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6,
+      }}>
+        {icon && <span style={{ marginRight: 4 }}>{icon}</span>}
+        {label}
+      </p>
+      <p style={{
+        fontSize: 34, fontWeight: 800, color: c.text,
+        lineHeight: 1, marginBottom: 2,
+      }}>
+        {value ?? '—'}
+      </p>
+      {sub && (
+        <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{sub}</p>
+      )}
     </div>
   );
 }

@@ -37,7 +37,7 @@ export default function AdminDashboardPage({ user }) {
       />
 
       {/* KPI grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <StatCard label="Active faculty" value={activeFaculty} accent="green" icon="👥" />
         <StatCard label="Pending approvals" value={pendingCount} accent={pendingCount > 0 ? 'yellow' : 'default'} sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
         <StatCard label="Open cover requests" value={openCoverCount} accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
@@ -45,13 +45,13 @@ export default function AdminDashboardPage({ user }) {
       </div>
 
       {/* Panels grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-4">
         {/* Live attendance panel */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-            <p className="text-[13px] font-semibold text-slate-900">📋 Today's attendance</p>
+        <div style={{ backgroundColor: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>📋 Today's attendance</p>
           </div>
-          <div>
+          <div style={{ padding: '12px 16px' }}>
             {!liveSlots.length ? (
               <p className="text-[13px] text-slate-500">No duty slots scheduled today.</p>
             ) : (
@@ -98,11 +98,11 @@ export default function AdminDashboardPage({ user }) {
         </div>
 
         {/* Open cover requests panel */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-            <p className="text-[13px] font-semibold text-slate-900">🔄 Open cover requests</p>
+        <div style={{ backgroundColor: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 16px' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>🔄 Open cover requests</p>
           </div>
-          <div>
+          <div style={{ padding: '12px 16px' }}>
             {!openCovers?.data?.length ? (
               <p className="text-[13px] text-slate-500">No open cover requests.</p>
             ) : (

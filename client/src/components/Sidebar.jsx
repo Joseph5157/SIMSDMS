@@ -9,32 +9,32 @@ import { ROUTES, ROLES } from '../utils/constants';
 import { useLogout } from '../hooks/useAuth';
 
 const adminLinks = [
-  { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',       icon: LayoutDashboard },
-  { to: ROUTES.ADMIN_USERS,           label: 'Users',           icon: Users },
-  { to: ROUTES.ADMIN_STUDENTS,        label: 'Students',        icon: GraduationCap },
-  { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',        icon: Calendar },
-  { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',      icon: CalendarDays },
-  { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',      icon: ClipboardCheck },
-  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Violations',      icon: AlertTriangle },
-  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Violation Types', icon: Tag },
-  { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',  icon: ArrowLeftRight },
-  { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',        icon: Mail },
-  { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',         icon: BarChart3 },
+  { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',       icon: LayoutDashboard, emoji: '📊' },
+  { to: ROUTES.ADMIN_USERS,           label: 'Users',           icon: Users, emoji: '👥' },
+  { to: ROUTES.ADMIN_STUDENTS,        label: 'Students',        icon: GraduationCap, emoji: '🎓' },
+  { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',        icon: Calendar, emoji: '📅' },
+  { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',      icon: CalendarDays, emoji: '📆' },
+  { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',      icon: ClipboardCheck, emoji: '✓' },
+  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Violations',      icon: AlertTriangle, emoji: '⚠️' },
+  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Violation Types', icon: Tag, emoji: '🏷️' },
+  { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',  icon: ArrowLeftRight, emoji: '🔄' },
+  { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',        icon: Mail, emoji: '✉️' },
+  { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',         icon: BarChart3, emoji: '📊' },
 ];
 
 const facultyLinks = [
-  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',      icon: LayoutDashboard },
-  { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',       icon: CalendarDays },
-  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',     icon: ClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations',     icon: AlertTriangle },
-  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests', icon: ArrowLeftRight },
-  { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',       icon: Mail },
+  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',      icon: LayoutDashboard, emoji: '📊' },
+  { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',       icon: CalendarDays, emoji: '📆' },
+  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',     icon: ClipboardCheck, emoji: '✓' },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations',     icon: AlertTriangle, emoji: '⚠️' },
+  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests', icon: ArrowLeftRight, emoji: '🔄' },
+  { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',       icon: Mail, emoji: '✉️' },
 ];
 
 const superAdminExtra = [
-  { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard',  icon: Zap },
-  { to: ROUTES.SUPER_ADMIN_SESSIONS,  label: 'Session Reset', icon: KeyRound },
-  { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',    icon: ScrollText },
+  { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard',  icon: Zap, emoji: '⚡' },
+  { to: ROUTES.SUPER_ADMIN_SESSIONS,  label: 'Session Reset', icon: KeyRound, emoji: '🔑' },
+  { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',    icon: ScrollText, emoji: '📋' },
 ];
 
 function getRoleSubtitle(role) {
@@ -69,16 +69,6 @@ export default function Sidebar({ user }) {
           onClick={() => setOpen(false)}
         />
       )}
-
-      {/* Hamburger button — visible only on mobile */}
-      <button
-        onClick={() => setOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-50 w-9 h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-slate-800 transition-colors"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
 
       {/* Sidebar — drawer on mobile, fixed on desktop */}
       <aside className={`${
@@ -136,6 +126,69 @@ export default function Sidebar({ user }) {
           </button>
         </div>
       </aside>
+
+      {/* Mobile bottom tab bar */}
+      <nav style={{
+        display: 'flex',
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 60,
+        backgroundColor: '#0f172a',
+        borderTop: '1px solid #1e293b',
+        zIndex: 50,
+        alignItems: 'stretch',
+      }} className="md:hidden">
+        {links.slice(0, 5).map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            style={({ isActive }) => ({
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 2,
+              color: isActive ? '#60a5fa' : '#64748b',
+              fontSize: 9,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              textDecoration: 'none',
+              borderTop: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+            })}
+          >
+            <span style={{ fontSize: 18 }}>{link.emoji}</span>
+            <span>{link.label.split(' ')[0]}</span>
+          </NavLink>
+        ))}
+        {/* More button that opens the drawer */}
+        <button
+          onClick={() => setOpen(true)}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            color: '#64748b',
+            fontSize: 9,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            background: 'none',
+            border: 'none',
+            borderTop: '2px solid transparent',
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 18 }}>☰</span>
+          <span>More</span>
+        </button>
+      </nav>
     </>
   );
 }
