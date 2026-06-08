@@ -4,15 +4,11 @@ export default function Layout({ user, children }) {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar user={user} />
-      <main className="flex-1 overflow-y-auto h-full" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div style={{
-          paddingTop: 'max(56px, calc(env(safe-area-inset-top) + 16px))',
-          paddingLeft: 'max(16px, env(safe-area-inset-left))',
-          paddingRight: 'max(16px, env(safe-area-inset-right))',
-          paddingBottom: 'max(96px, calc(env(safe-area-inset-bottom) + 80px))',
-          minWidth: 0,
-          minHeight: '100%',
-        }}>
+      <main
+        className="flex-1 overflow-y-auto h-full"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        <div className="page-content">
           {children}
         </div>
       </main>
@@ -22,15 +18,45 @@ export default function Layout({ user, children }) {
 
 export function PageHeader({ title, subtitle, action }) {
   return (
-    <div className="flex items-center justify-between mb-5 gap-2 pb-4 border-b border-slate-200"
-      style={{ minWidth: 0, width: '100%' }}>
+    <div
+      className="flex items-center justify-between gap-3 mb-6 pb-4"
+      style={{ borderBottom: '1px solid #e2e8f0', minWidth: 0 }}
+    >
       <div className="min-w-0 flex-1">
-        <h1 className="text-[17px] font-bold text-slate-900 truncate" style={{ paddingLeft: 0 }}>{title}</h1>
+        <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">
+          {title}
+        </h1>
         {subtitle && (
-          <p className="text-[12px] text-slate-400 mt-0.5 truncate">{subtitle}</p>
+          <p className="text-xs text-slate-400 mt-0.5 truncate">{subtitle}</p>
         )}
       </div>
       {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+/* ── Section card ── */
+export function Card({ children, className = '' }) {
+  return (
+    <div className={`card overflow-hidden ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+export function CardHeader({ children, action }) {
+  return (
+    <div className="card-header flex items-center justify-between gap-2">
+      <p className="text-[13px] font-semibold text-slate-700">{children}</p>
+      {action}
+    </div>
+  );
+}
+
+export function CardBody({ children, className = '' }) {
+  return (
+    <div className={`p-4 ${className}`}>
+      {children}
     </div>
   );
 }

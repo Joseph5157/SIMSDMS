@@ -1,8 +1,13 @@
+/* ── Tailwind v4 ── */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 /* ── Fonts ── */
-@import "@fontsource-variable/geist";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/dm-mono/400.css";
 
 /* ── Dark mode variant ── */
 @custom-variant dark (&:is(.dark *));
@@ -14,7 +19,68 @@
   padding: 0;
 }
 
-/* ── Base styles (ONE source of truth) ── */
+/* ── Tailwind v4 theme — these generate utility classes ── */
+@theme {
+  /* Typography */
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  /* Brand colors */
+  --color-primary-50:  #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+
+  /* Surface/background */
+  --color-surface:     #f8fafc;
+  --color-card:        #ffffff;
+
+  /* Sidebar */
+  --color-sidebar:     #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-border: #1e293b;
+  --color-sidebar-active: #2563eb;
+  --color-sidebar-text: #94a3b8;
+  --color-sidebar-text-active: #ffffff;
+
+  /* Border */
+  --color-border:      #e2e8f0;
+  --color-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  /* Status */
+  --color-success-bg: #f0fdf4;
+  --color-success-text: #166534;
+  --color-success-border: #bbf7d0;
+
+  --color-warning-bg: #fffbeb;
+  --color-warning-text: #92400e;
+  --color-warning-border: #fde68a;
+
+  --color-danger-bg: #fef2f2;
+  --color-danger-text: #991b1b;
+  --color-danger-border: #fecaca;
+
+  /* Radius */
+  --radius-sm:  0.375rem;
+  --radius-md:  0.5rem;
+  --radius-lg:  0.75rem;
+  --radius-xl:  1rem;
+  --radius-2xl: 1.5rem;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-modal: 0 20px 60px -12px rgb(0 0 0 / 0.25), 0 8px 24px -8px rgb(0 0 0 / 0.15);
+  --shadow-dropdown: 0 4px 16px -2px rgb(0 0 0 / 0.12), 0 2px 8px -2px rgb(0 0 0 / 0.08);
+}
+
+/* ── Base HTML ── */
 html {
   width: 100%;
   height: 100%;
@@ -22,6 +88,7 @@ html {
   padding-bottom: env(safe-area-inset-bottom, 0px);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -34,8 +101,8 @@ body {
   background-color: #f8fafc;
 }
 
-code, .mono {
-  font-family: 'DM Mono', monospace;
+code, .mono, pre {
+  font-family: 'DM Mono', 'Courier New', monospace;
 }
 
 #root {
@@ -43,29 +110,70 @@ code, .mono {
   width: 100%;
 }
 
-/* ── Tailwind v4 theme overrides ── */
-@theme inline {
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --color-primary: #2563eb;
-  --color-primary-foreground: #ffffff;
-  --color-destructive: #ef4444;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #3b82f6;
-  --color-background: #f8fafc;
-  --color-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #94a3b8;
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #0f172a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ── Selection ── */
+::selection {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* ── Transition defaults ── */
+button, a, input, select, textarea {
+  transition-property: color, background-color, border-color, box-shadow, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* ── Utility — card surface ── */
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafa;
+}
+
+/* ── Page layout helpers ── */
+.page-content {
+  padding-top: max(56px, calc(env(safe-area-inset-top) + 16px));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px));
+  min-width: 0;
+  min-height: 100%;
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding-top: 24px;
+    padding-left: 28px;
+    padding-right: 28px;
+    padding-bottom: 40px;
+  }
 }

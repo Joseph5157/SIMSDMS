@@ -1,12 +1,22 @@
-import Layout, { PageHeader } from '../../components/Layout';
+import Layout, { PageHeader, Card, CardHeader, CardBody } from '../../components/Layout';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useCoverRequests } from '../../hooks/useCoverRequests';
 import { useFlaggedViolations } from '../../hooks/useReports';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../utils/constants';
+
+const QUICK_ACTIONS = [
+  { label: 'Violations',     emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS },
+  { label: 'Duty Slots',     emoji: '📆', path: ROUTES.ADMIN_DUTY_SLOTS },
+  { label: 'Live Attendance',emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE },
+  { label: 'Reports',        emoji: '📊', path: ROUTES.ADMIN_REPORTS },
+];
 
 export default function AdminDashboardPage({ user }) {
+  const navigate = useNavigate();
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -32,143 +42,184 @@ export default function AdminDashboardPage({ user }) {
   return (
     <Layout user={user}>
       <PageHeader
-        title={`Welcome, ${user?.name?.split(' ')[0]}`}
+        title={`Good ${getGreeting()}, ${user?.name?.split(' ')[0]}`}
         subtitle={dateStr}
       />
 
       {/* KPI grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <StatCard label="Active faculty" value={activeFaculty} accent="green" icon="👥" />
-        <StatCard label="Pending approvals" value={pendingCount} accent={pendingCount > 0 ? 'yellow' : 'default'} sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-        <StatCard label="Open cover requests" value={openCoverCount} accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
-        <StatCard label="Flagged violations" value={flaggedCount} accent={flaggedCount > 0 ? 'red' : 'default'} sub={flaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
-      </div>
-
-      {/* Panels grid */}
-      <div className="flex flex-col gap-3 mb-4">
-        {/* Live attendance panel */}
-        <div style={{ backgroundColor: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>📋 Today's attendance</p>
-          </div>
-          <div style={{ padding: '12px 16px' }}>
-            {!liveSlots.length ? (
-              <p className="text-[13px] text-slate-500">No duty slots scheduled today.</p>
-            ) : (
-              <>
-                <div className="flex gap-4 mb-5 text-[12px]">
-                  <div>
-                    <span className="font-semibold text-green-700 block">{checkedOut}</span>
-                    <span className="text-slate-500">Checked out</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-blue-700 block">{checkedIn}</span>
-                    <span className="text-slate-500">Checked in</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-slate-500 block">{notCheckedIn}</span>
-                    <span className="text-slate-500">Not in</span>
-                  </div>
-                  {lateCount > 0 && (
-                    <div>
-                      <span className="font-semibold text-amber-700 block">{lateCount}</span>
-                      <span className="text-slate-500">Late</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2.5 max-h-48 overflow-y-auto">
-                  {liveSlots.map((s) => (
-                    <div key={s.slot_id} className="flex items-center justify-between text-[12px]">
-                      <span className="text-slate-700 truncate flex-1">{s.faculty?.name}</span>
-                      <span className="text-slate-500 capitalize mx-3 text-[11px]">{s.session_type}</span>
-                      <Badge
-                        status={s.attendance_status === 'checked_out' ? 'completed'
-                               : s.attendance_status === 'checked_in'  ? 'active'
-                               : 'absent'}
-                        label={s.attendance_status === 'checked_out' ? 'Out'
-                             : s.attendance_status === 'checked_in'  ? 'In'
-                             : 'Not in'}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Open cover requests panel */}
-        <div style={{ backgroundColor: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          <div style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '12px 16px' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>🔄 Open cover requests</p>
-          </div>
-          <div style={{ padding: '12px 16px' }}>
-            {!openCovers?.data?.length ? (
-              <p className="text-[13px] text-slate-500">No open cover requests.</p>
-            ) : (
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {openCovers.data.slice(0, 8).map((cr) => (
-                  <div key={cr.id} className="flex items-start justify-between text-[12px] gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-slate-900 font-medium truncate">{cr.requester?.name}</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 capitalize">
-                        {cr.dutySlot?.session_type} •{' '}
-                        {cr.dutySlot?.duty_date
-                          ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
-                          : '—'}
-                      </p>
-                    </div>
-                    <Badge
-                      status={cr.volunteer_id ? 'pending' : 'open'}
-                      label={cr.volunteer_id ? 'Has volunteer' : 'Open'}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick links */}
-      <div style={{ marginTop: 12 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
-          textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-          Quick actions
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {[
-            { label: 'View all violations', emoji: '⚠️', path: '/admin/violations' },
-            { label: 'Duty slots', emoji: '🗓', path: '/admin/duty-slots' },
-            { label: 'Live attendance', emoji: '✅', path: '/admin/attendance' },
-            { label: 'All reports', emoji: '📊', path: '/admin/reports' },
-          ].map((item) => (
-            <a key={item.path} href={item.path} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              backgroundColor: '#fff', border: '1px solid #e2e8f0',
-              borderRadius: 12, padding: '12px 14px',
-              textDecoration: 'none', color: '#0f172a',
-            }}>
-              <span style={{ fontSize: 20 }}>{item.emoji}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
-                {item.label}
-              </span>
-            </a>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <StatCard label="Active Faculty"     value={activeFaculty}  accent="blue"   icon="👥" />
+        <StatCard
+          label="Pending Approvals"
+          value={pendingCount}
+          accent={pendingCount > 0 ? 'yellow' : 'default'}
+          sub={pendingCount > 0 ? 'Needs action' : 'All clear'}
+          icon="⏳"
+        />
+        <StatCard
+          label="Open Cover Requests"
+          value={openCoverCount}
+          accent={openCoverCount > 0 ? 'yellow' : 'default'}
+          icon="🔄"
+        />
+        <StatCard
+          label="Flagged Violations"
+          value={flaggedCount}
+          accent={flaggedCount > 0 ? 'red' : 'default'}
+          sub={flaggedCount > 0 ? 'Awaiting review' : 'None pending'}
+          icon="⚑"
+        />
       </div>
 
       {/* Pending approvals alert */}
       {pendingCount > 0 && (
-        <div className="bg-amber-50 border-l-4 border-l-amber-500 border border-amber-200 rounded-lg p-4">
-          <p className="text-[13px] font-semibold text-amber-900 mb-1">
-            {pendingCount} account{pendingCount !== 1 ? 's' : ''} awaiting approval
-          </p>
-          <p className="text-[12px] text-amber-800">
-            Go to <span className="font-medium">Users</span> to review and activate pending accounts.
-          </p>
+        <div
+          className="mb-4 flex items-start gap-3 rounded-xl p-3.5 cursor-pointer"
+          style={{
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderLeft: '3px solid #f59e0b',
+          }}
+          onClick={() => navigate(ROUTES.ADMIN_USERS)}
+        >
+          <span style={{ fontSize: 18, flexShrink: 0 }}>⏳</span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 1 }}>
+              {pendingCount} account{pendingCount !== 1 ? 's' : ''} awaiting approval
+            </p>
+            <p style={{ fontSize: 12, color: '#b45309' }}>
+              Tap to go to Users and approve pending accounts.
+            </p>
+          </div>
         </div>
       )}
+
+      {/* Today's attendance panel */}
+      <Card className="mb-3">
+        <CardHeader>📋 Today's attendance</CardHeader>
+        <CardBody className="p-0">
+          {!liveSlots.length ? (
+            <p style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>
+              No duty slots scheduled today.
+            </p>
+          ) : (
+            <>
+              {/* Summary pills */}
+              <div style={{ display: 'flex', gap: 12, padding: '12px 16px 8px', borderBottom: '1px solid #f1f5f9' }}>
+                {[
+                  { n: checkedOut, label: 'Out',     color: '#059669' },
+                  { n: checkedIn,  label: 'In',      color: '#2563eb' },
+                  { n: notCheckedIn, label: 'Not in',color: '#94a3b8' },
+                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: '#d97706' }] : []),
+                ].map((item) => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{item.n}</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+              {/* List */}
+              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                {liveSlots.map((s) => (
+                  <div
+                    key={s.slot_id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '9px 16px',
+                      borderBottom: '1px solid #f8fafc',
+                    }}
+                  >
+                    <span style={{ fontSize: 13, color: '#334155', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.faculty?.name}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize', marginRight: 10, flexShrink: 0 }}>
+                      {s.session_type}
+                    </span>
+                    <Badge
+                      status={
+                        s.attendance_status === 'checked_out' ? 'completed' :
+                        s.attendance_status === 'checked_in'  ? 'checked_in' :
+                        'not_checked_in'
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Open cover requests panel */}
+      <Card className="mb-4">
+        <CardHeader>🔄 Open cover requests</CardHeader>
+        <CardBody className="p-0">
+          {!openCovers?.data?.length ? (
+            <p style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>
+              No open cover requests.
+            </p>
+          ) : (
+            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              {openCovers.data.slice(0, 8).map((cr) => (
+                <div
+                  key={cr.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '9px 16px', borderBottom: '1px solid #f8fafc', gap: 10,
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {cr.requester?.name}
+                    </p>
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 1, textTransform: 'capitalize' }}>
+                      {cr.dutySlot?.session_type}
+                      {cr.dutySlot?.duty_date && ` · ${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
+                    </p>
+                  </div>
+                  <Badge status={cr.volunteer_id ? 'pending' : 'open'} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* Quick actions */}
+      <div>
+        <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+          Quick actions
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {QUICK_ACTIONS.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                backgroundColor: '#fff', border: '1px solid #e2e8f0',
+                borderRadius: 12, padding: '12px 14px',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = '#bfdbfe'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}
+            >
+              <span style={{ fontSize: 20 }}>{item.emoji}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                {item.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
     </Layout>
   );
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
 }
