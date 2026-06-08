@@ -146,10 +146,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="min-h-screen w-full flex overflow-hidden">
       {/* ── Left panel ── */}
       <div
-        className="hidden md:flex flex-1 flex-col justify-center px-16 relative overflow-hidden"
+        className="hidden md:flex flex-col flex-1 min-w-0 justify-center px-16 relative overflow-hidden"
         style={{
           background: 'radial-gradient(ellipse at 30% 50%, #1e3a5f 0%, #0f172a 65%)',
         }}
@@ -157,7 +157,7 @@ export default function LoginPage() {
         {/* Subtle glow */}
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-sm">
+        <div className="relative z-10">
           <p className="text-blue-400 text-[11px] font-semibold tracking-[.12em] uppercase mb-6">
             SIMS College of Pharmacy
           </p>
@@ -175,7 +175,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel ── */}
-      <div className="w-full md:w-[400px] bg-white flex flex-col justify-center px-10 py-12 shrink-0">
+      <div className="w-full md:w-[480px] bg-white flex flex-col justify-center px-10 py-12 shrink-0 shadow-[-8px_0_30px_rgba(0,0,0,0.12)]">
         {/* Mobile brand */}
         <div className="md:hidden text-center mb-8">
           <p className="text-slate-900 font-bold text-lg">SIMS DMS</p>
