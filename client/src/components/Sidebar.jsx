@@ -70,21 +70,11 @@ export default function Sidebar({ user }) {
         />
       )}
 
-      {/* Sidebar — drawer on mobile, fixed on desktop */}
-      <aside className={`${
-        open ? 'flex' : 'hidden'
-      } md:flex w-[220px] bg-slate-900 text-slate-300 flex-col h-screen fixed md:sticky top-0 left-0 z-40 shrink-0 transition-all duration-300 border-r border-slate-800`}>
-
-        {/* Close button — visible only on mobile */}
-        <button
-          onClick={() => setOpen(false)}
-          className="md:hidden absolute top-3 right-3 text-slate-400 hover:text-white p-1"
-        >
-          <X size={20} strokeWidth={2} />
-        </button>
+      {/* Desktop sidebar — fixed on desktop */}
+      <aside className="hidden md:flex w-[220px] bg-slate-900 text-slate-300 flex-col h-screen fixed md:sticky top-0 left-0 z-40 shrink-0 transition-all duration-300 border-r border-slate-800">
 
         {/* Brand */}
-        <div className="px-5 py-4 border-b border-slate-800 mt-10 md:mt-0">
+        <div className="px-5 py-4 border-b border-slate-800">
           <p className="text-white font-semibold text-[14px]">SIMS DMS</p>
           <p className="text-slate-400 text-[11px] mt-0.5">{getRoleSubtitle(user?.role)}</p>
         </div>
@@ -95,7 +85,6 @@ export default function Sidebar({ user }) {
             <NavLink
               key={link.to}
               to={link.to}
-              onClick={() => setOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors mb-0.5 ${
                   isActive
@@ -126,6 +115,120 @@ export default function Sidebar({ user }) {
           </button>
         </div>
       </aside>
+
+      {/* Mobile bottom sheet drawer */}
+      <div
+        className="md:hidden"
+        style={{
+          position: 'fixed',
+          bottom: 60,
+          left: 0,
+          right: 0,
+          backgroundColor: '#1e293b',
+          borderRadius: '20px 20px 0 0',
+          zIndex: 40,
+          transform: open ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          maxHeight: '70vh',
+          overflowY: 'auto',
+          paddingBottom: 8,
+        }}
+      >
+        {/* Handle bar */}
+        <div style={{
+          width: 36, height: 4, backgroundColor: '#475569',
+          borderRadius: 2, margin: '12px auto 4px',
+        }} />
+
+        {/* User info strip */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 16px 14px',
+          borderBottom: '1px solid #334155',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            backgroundColor: '#3b82f6',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
+          }}>
+            {getInitials(user?.name)}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.name}
+            </p>
+            <p style={{ fontSize: 11, color: '#64748b' }}>
+              {getRoleSubtitle(user?.role)}
+            </p>
+          </div>
+          <button
+            onClick={() => setOpen(false)}
+            style={{ marginLeft: 'auto', color: '#64748b', background: 'none',
+              border: 'none', fontSize: 20, cursor: 'pointer', padding: 4 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 3-column grid of nav items */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 1,
+          backgroundColor: '#334155',
+          margin: '12px 12px 4px',
+          borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setOpen(false)}
+              style={({ isActive }) => ({
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '14px 8px',
+                backgroundColor: isActive ? '#2563eb' : '#1e293b',
+                gap: 6,
+                textDecoration: 'none',
+              })}
+            >
+              <span style={{ fontSize: 22 }}>{link.emoji}</span>
+              <span style={{
+                fontSize: 10, fontWeight: 600, color: '#94a3b8',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+                textAlign: 'center', lineHeight: 1.2,
+              }}>
+                {link.label}
+              </span>
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Logout button */}
+        <button
+          onClick={() => { logout.mutate(); setOpen(false); }}
+          style={{
+            width: 'calc(100% - 24px)',
+            margin: '8px 12px 4px',
+            padding: '12px',
+            backgroundColor: '#dc2626',
+            color: '#fff',
+            borderRadius: 12,
+            border: 'none',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Log out
+        </button>
+      </div>
 
       {/* Mobile bottom tab bar */}
       <nav style={{
