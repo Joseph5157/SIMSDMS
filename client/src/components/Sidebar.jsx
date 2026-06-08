@@ -54,7 +54,7 @@ export default function Sidebar({ user }) {
       : adminLinks;
 
   return (
-    <aside className="w-[220px] bg-slate-900 text-slate-300 flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className="hidden md:flex w-[220px] bg-slate-900 text-slate-300 flex-col h-screen sticky top-0 shrink-0">
       {/* Brand */}
       <div className="px-5 py-4 border-b border-slate-800">
         <p className="text-white font-semibold text-[14px]">SIMS DMS</p>

@@ -21,6 +21,6 @@ body {
 code, .mono { font-family: 'DM Mono', monospace; }
 
 #root {
-  min-height: 100vh;
+  height: 100vh; /* Changed from min-height */
   width: 100%;
 }

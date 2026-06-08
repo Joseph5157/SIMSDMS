@@ -56,7 +56,7 @@ export default function AdminDashboardPage({ user }) {
       />
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Active faculty" value={activeFaculty} accent="green" />
         <StatCard
           label="Pending approvals"
