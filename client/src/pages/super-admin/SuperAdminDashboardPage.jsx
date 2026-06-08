@@ -45,43 +45,61 @@ export default function SuperAdminDashboardPage({ user }) {
       <PageHeader title="Super Admin Dashboard" subtitle={dateStr} />
 
       <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
-        <StatCard label="Total users"     value={totalUsers} />
-        <StatCard label="Faculty"         value={totalFaculty} />
-        <StatCard label="Admins"          value={totalAdmins} />
+        <StatCard label="Total users" value={totalUsers} accent="blue" icon="👥" />
+        <StatCard label="Faculty" value={totalFaculty} accent="green" icon="🎓" />
+        <StatCard label="Admins" value={totalAdmins} accent="yellow" icon="⚡" />
         <StatCard
           label="Pending approvals"
           value={pendingCount}
+          accent={pendingCount > 0 ? 'red' : 'default'}
           sub={pendingCount > 0 ? 'Needs action' : 'All clear'}
+          icon="⏳"
         />
       </div>
 
-      {/* Recent audit log */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <p className="text-sm font-semibold text-gray-700 mb-4">Recent system activity</p>
-        {!logs.length ? (
-          <p className="text-sm text-gray-400">No audit log entries yet.</p>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {logs.map((entry) => (
-              <div key={entry.id} className="flex items-start justify-between py-2.5 gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm text-gray-800 capitalize">{fmtAction(entry.action)}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    by {entry.actor?.name ?? 'System'}
-                    {entry.target_type && (
-                      <span className="ml-1 text-gray-300">· {entry.target_type}</span>
-                    )}
+      {/* Recent activity */}
+      <div style={{ marginTop: 16 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          marginBottom: 8, paddingLeft: 4 }}>
+          Recent system activity
+        </p>
+        <div style={{ backgroundColor: '#fff', borderRadius: 16,
+          border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          {!logs.length ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+              No audit log entries yet.
+            </div>
+          ) : (
+            logs.map((entry, i) => (
+              <div key={entry.id} style={{
+                padding: '12px 16px',
+                borderBottom: i < logs.length - 1
+                  ? '1px solid #f8fafc' : 'none',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 12,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a',
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap' }}>
+                    {fmtAction(entry.action)}
+                  </p>
+                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                    by {entry.actor?.name ?? 'System'} · {entry.target_type}
                   </p>
                 </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">
-                  {new Date(entry.created_at).toLocaleString('en-IN', {
-                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                <p style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+                  {new Date(entry.created_at).toLocaleDateString('en-IN', {
+                    day: '2-digit', month: 'short',
                   })}
-                </span>
+                </p>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
     </Layout>
   );
