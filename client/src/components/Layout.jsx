@@ -2,9 +2,9 @@ import Sidebar from './Sidebar';
 
 export default function Layout({ user, children }) {
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar user={user} />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto h-full">
         <div className="max-w-none px-6 py-6">{children}</div>
       </main>
     </div>

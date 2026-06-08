@@ -146,7 +146,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex overflow-hidden">
+    <div className="h-screen w-full flex overflow-hidden">
       {/* ── Left panel ── */}
       <div
         className="hidden md:flex flex-col flex-1 min-w-0 justify-center px-16 relative overflow-hidden"

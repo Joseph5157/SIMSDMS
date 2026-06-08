@@ -172,7 +172,7 @@ export default function MessagesPage({ user }) {
         action={<Button onClick={() => setCompose(true)}>+ Compose</Button>}
       />
 
-      <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden" style={{ minHeight: 520 }}>
+      <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden flex-1" style={{ minHeight: 400 }}>
         {/* ── Left panel — list (220px) ── */}
         <div className="w-[260px] shrink-0 flex flex-col border-r border-slate-200">
           {/* Tab bar */}

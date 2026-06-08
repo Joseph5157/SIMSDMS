@@ -368,7 +368,7 @@ export default function ReportsPage({ user }) {
       <PageHeader title="Reports" subtitle="16 system reports" />
 
       {/* 4-column card grid */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {REPORTS.map((r) => (
           <button
             key={r.id}
