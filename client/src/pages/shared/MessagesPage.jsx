@@ -1,66 +1,16 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
-import { useInbox, useSent, useMessage, useSendMessage, useDeleteMessage } from '../../hooks/useMessages';
-import { useUsers } from '../../hooks/useUsers';
+import ComposeDrawer from '../../components/ComposeDrawer';
+import { useInbox, useSent, useMessage, useDeleteMessage } from '../../hooks/useMessages';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function fmtDate(iso) {
   const d = new Date(iso);
   return `${d.getDate()} ${MONTHS[d.getMonth()]} · ${d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-// ── Compose modal ─────────────────────────────────────────────────────────────
-function ComposeModal({ open, onClose }) {
-  const toast = useToast();
-  const send  = useSendMessage();
-  const { data: usersData } = useUsers({ limit: 100 });
-  const [form, setForm] = useState({ to_user_id: '', subject: '', body: '' });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      await send.mutateAsync(form);
-      toast({ message: 'Message sent.' });
-      onClose();
-      setForm({ to_user_id: '', subject: '', body: '' });
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title="New Message">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-semibold text-slate-600">To</label>
-          <select value={form.to_user_id} onChange={set('to_user_id')} required
-            className="border border-slate-200 rounded-lg px-3 py-2.5 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-100">
-            <option value="">Select recipient…</option>
-            {usersData?.data?.map((u) => (
-              <option key={u.id} value={u.id}>{u.name} ({u.role.replace(/_/g, ' ')})</option>
-            ))}
-          </select>
-        </div>
-        <Input label="Subject" value={form.subject} onChange={set('subject')} required />
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-semibold text-slate-600">Message</label>
-          <textarea value={form.body} onChange={set('body')} required rows={5}
-            className="border border-slate-200 rounded-lg px-3 py-2.5 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-100 resize-none" />
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={send.isPending}>Send</Button>
-        </div>
-      </form>
-    </Modal>
-  );
 }
 
 // ── Thread panel ──────────────────────────────────────────────────────────────
@@ -233,7 +183,7 @@ export default function MessagesPage({ user }) {
         )}
       </div>
 
-      <ComposeModal open={compose} onClose={() => setCompose(false)} />
+      <ComposeDrawer open={compose} onClose={() => setCompose(false)} />
     </Layout>
   );
 }

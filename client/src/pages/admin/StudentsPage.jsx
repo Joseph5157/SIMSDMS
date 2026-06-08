@@ -1,53 +1,14 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
-import { useStudents, useUploadStudents, useUploadLogs, usePromoteStudent, useDeactivateStudent } from '../../hooks/useStudents';
-
-function UploadModal({ open, onClose }) {
-  const toast = useToast();
-  const upload = useUploadStudents();
-  const fileRef = useRef();
-  const [result, setResult] = useState(null);
-
-  async function handleUpload(e) {
-    e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
-    try {
-      const res = await upload.mutateAsync(file);
-      setResult(res.data);
-      toast({ message: `Upload complete: ${res.data.added_count} added, ${res.data.updated_count} updated, ${res.data.deactivated_count} deactivated.` });
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Upload failed.', type: 'error' });
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={() => { onClose(); setResult(null); }} title="Upload Students (Excel)">
-      <form onSubmit={handleUpload} className="flex flex-col gap-4">
-        <p className="text-sm text-gray-600">File must be <strong>.xlsx</strong>. Required columns: Registration Number, Student Name, Course, Semester/Year, Academic Year, Institution.</p>
-        <input ref={fileRef} type="file" accept=".xlsx,.xls" className="text-sm" required />
-        {result && (
-          <div className="bg-green-50 rounded-lg p-3 text-sm text-green-800 space-y-1">
-            <p>Added: {result.added_count} | Updated: {result.updated_count} | Deactivated: {result.deactivated_count}</p>
-            {result.error_count > 0 && <p className="text-red-600">Errors: {result.error_count} rows skipped.</p>}
-          </div>
-        )}
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Close</Button>
-          <Button type="submit" loading={upload.isPending}>Upload</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
+import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
+import { useStudents, useUploadLogs, usePromoteStudent, useDeactivateStudent } from '../../hooks/useStudents';
 
 function PromoteModal({ open, student, onClose }) {
   const toast = useToast();
@@ -178,7 +139,7 @@ export default function StudentsPage({ user }) {
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
-      <UploadModal open={showUpload} onClose={() => setShowUpload(false)} />
+      <UploadStudentsDrawer open={showUpload} onClose={() => setShowUpload(false)} />
       {promoting && <PromoteModal open student={promoting} onClose={() => setPromoting(null)} />}
     </Layout>
   );

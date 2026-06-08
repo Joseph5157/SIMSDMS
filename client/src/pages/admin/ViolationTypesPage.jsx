@@ -3,48 +3,9 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
-import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
 import { useToast } from '../../components/ui/Toast';
-import { useViolationTypes, useCreateViolationType, useUpdateViolationType, useDeactivateViolationType, useDeleteViolationType } from '../../hooks/useViolationTypes';
-
-function TypeModal({ open, editing, onClose }) {
-  const toast = useToast();
-  const create = useCreateViolationType();
-  const update = useUpdateViolationType();
-  const [form, setForm] = useState({ name: editing?.name ?? '', default_fine: editing?.default_fine ?? '' });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const payload = { name: form.name, default_fine: parseFloat(form.default_fine) };
-    try {
-      if (editing) {
-        await update.mutateAsync({ id: editing.id, ...payload });
-        toast({ message: 'Updated.' });
-      } else {
-        await create.mutateAsync(payload);
-        toast({ message: 'Violation type created.' });
-      }
-      onClose();
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    }
-  }
-
-  return (
-    <Modal open={open} onClose={onClose} title={editing ? 'Edit Violation Type' : 'New Violation Type'} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Name" value={form.name} onChange={set('name')} required />
-        <Input label="Default fine (₹)" type="number" min="0" step="0.01" value={form.default_fine} onChange={set('default_fine')} required />
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={create.isPending || update.isPending}>{editing ? 'Save' : 'Create'}</Button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
+import ViolationTypeDrawer from '../../components/ViolationTypeDrawer';
+import { useViolationTypes, useDeactivateViolationType, useDeleteViolationType } from '../../hooks/useViolationTypes';
 
 export default function ViolationTypesPage({ user }) {
   const toast = useToast();
@@ -105,7 +66,7 @@ export default function ViolationTypesPage({ user }) {
           ))}
         </tbody>
       </Table>
-      <TypeModal open={showModal} editing={editing} onClose={() => { setShowModal(false); setEditing(null); }} />
+      <ViolationTypeDrawer open={showModal} editing={editing} onClose={() => { setShowModal(false); setEditing(null); }} />
     </Layout>
   );
 }
