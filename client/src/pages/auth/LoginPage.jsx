@@ -146,55 +146,76 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="h-screen w-full flex overflow-hidden">
-      {/* ── Left panel ── */}
-      <div
-        className="hidden md:flex flex-col flex-1 min-w-0 justify-center px-16 relative overflow-hidden"
-        style={{
-          background: 'radial-gradient(ellipse at 30% 50%, #1e3a5f 0%, #0f172a 65%)',
-        }}
-      >
-        {/* Subtle glow */}
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10">
-          <p className="text-blue-400 text-[11px] font-semibold tracking-[.12em] uppercase mb-6">
+    <div style={{
+      display: 'flex',
+      minHeight: '100vh',
+      width: '100vw',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+    }}>
+      {/* Left dark panel */}
+      <div style={{
+        flex: 1,
+        background: 'radial-gradient(ellipse at 30% 50%, #1e3a5f 0%, #0f172a 65%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '0 64px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '33%',
+          left: '25%',
+          width: 384,
+          height: 384,
+          background: 'rgba(37,99,235,0.1)',
+          borderRadius: '50%',
+          filter: 'blur(64px)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{ position: 'relative', zIndex: 10 }}>
+          <p style={{ color: '#60a5fa', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 24 }}>
             SIMS College of Pharmacy
           </p>
-          <h1 className="text-white text-4xl font-bold leading-tight mb-4">
+          <h1 style={{ color: '#fff', fontSize: 36, fontWeight: 700, lineHeight: 1.25, marginBottom: 16 }}>
             Discipline<br />Management<br />System
           </h1>
-          <p className="text-slate-400 text-[15px] leading-relaxed">
+          <p style={{ color: '#94a3b8', fontSize: 15, lineHeight: 1.625 }}>
             Digital duty scheduling, student violations, and live attendance — all in one place.
           </p>
         </div>
-
-        <p className="absolute bottom-6 left-16 text-slate-600 text-[11px]">
+        <p style={{ position: 'absolute', bottom: 24, left: 64, color: '#475569', fontSize: 11 }}>
           SIMS DMS · Version 1.0
         </p>
       </div>
 
-      {/* ── Right panel ── */}
-      <div className="w-full md:w-[480px] bg-white flex flex-col justify-center px-10 py-12 shrink-0 shadow-[-8px_0_30px_rgba(0,0,0,0.12)]">
-        {/* Mobile brand */}
-        <div className="md:hidden text-center mb-8">
-          <p className="text-slate-900 font-bold text-lg">SIMS DMS</p>
-          <p className="text-slate-500 text-sm">SIMS College of Pharmacy</p>
-        </div>
-
+      {/* Right white panel */}
+      <div style={{
+        width: 420,
+        minWidth: 420,
+        maxWidth: 420,
+        background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '48px 40px',
+        boxShadow: '-8px 0 30px rgba(0,0,0,0.12)',
+        overflowY: 'auto',
+      }}>
         {step === 'request' ? (
-          <form onSubmit={handleRequestOtp} className="flex flex-col gap-5">
+          <form onSubmit={handleRequestOtp} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
-              <h2 className="text-[22px] font-semibold text-slate-900">Sign in</h2>
-              <p className="text-slate-500 text-[13px] mt-1">
+              <h2 style={{ fontSize: 22, fontWeight: 600, color: '#0f172a' }}>Sign in</h2>
+              <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
                 Enter your Telegram ID to receive your OTP
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-semibold text-slate-600">
-                Telegram ID
-              </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>Telegram ID</label>
               <input
                 type="text"
                 placeholder="@username or numeric ID"
@@ -202,20 +223,25 @@ export default function LoginPage() {
                 onChange={(e) => setTelegramId(e.target.value)}
                 required
                 autoFocus
-                className="border border-slate-200 rounded-lg px-3 py-2.5 text-[13px] text-slate-900
-                  placeholder:text-slate-400 outline-none focus:border-blue-500
-                  focus:ring-[3px] focus:ring-blue-100 transition-all"
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 13,
+                  color: '#0f172a',
+                  outline: 'none',
+                }}
               />
             </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-[12px] text-blue-700">
+            <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#1d4ed8' }}>
               Your OTP will be sent to you via the{' '}
-              <span className="font-semibold">@SIMSDMSBOT</span> Telegram bot.
+              <span style={{ fontWeight: 600 }}>@SIMSDMSBOT</span> Telegram bot.
               Make sure you have started the bot before signing in.
             </div>
 
             {error && (
-              <p className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              <p style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 12px' }}>
                 {error}
               </p>
             )}
@@ -223,64 +249,64 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={requestOtp.isPending || !telegramId.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-                text-white text-[13px] font-semibold rounded-lg py-2.5 transition-colors"
+              style={{
+                width: '100%',
+                background: requestOtp.isPending || !telegramId.trim() ? '#93c5fd' : '#2563eb',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 8,
+                padding: '10px 0',
+                border: 'none',
+                cursor: requestOtp.isPending || !telegramId.trim() ? 'not-allowed' : 'pointer',
+              }}
             >
               {requestOtp.isPending ? 'Sending…' : 'Send OTP'}
             </button>
           </form>
         ) : (
-          <form onSubmit={handleVerifyOtp} className="flex flex-col gap-5">
+          <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
-              <h2 className="text-[22px] font-semibold text-slate-900">Enter OTP</h2>
-              <p className="text-slate-500 text-[13px] mt-1">
+              <h2 style={{ fontSize: 22, fontWeight: 600, color: '#0f172a' }}>Enter OTP</h2>
+              <p style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
                 Check your Telegram for a 6-digit code
               </p>
             </div>
 
-            {/* Locked error — full alert */}
             {errorType === 'locked' && (
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-[12px] text-red-700">
-                <p className="font-semibold mb-0.5">Account locked</p>
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#b91c1c' }}>
+                <p style={{ fontWeight: 600, marginBottom: 2 }}>Account locked</p>
                 <p>{error} Contact your Admin to reset your session.</p>
               </div>
             )}
 
-            {/* Expired warning */}
             {(errorType === 'expired' || expired) && errorType !== 'locked' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-[12px] text-amber-700">
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 16px', fontSize: 12, color: '#92400e' }}>
                 OTP has expired.{' '}
-                <button type="button" onClick={handleResend}
-                  className="font-semibold underline underline-offset-2">
+                <button type="button" onClick={handleResend} style={{ fontWeight: 600, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#92400e' }}>
                   Send a new one
                 </button>
               </div>
             )}
 
-            {/* Wrong OTP error */}
             {errorType === 'wrong' && (
-              <p className="text-[12px] text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              <p style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 12px' }}>
                 {error}
               </p>
             )}
 
-            <OtpInput
-              value={otp}
-              onChange={setOtp}
-              hasError={errorType === 'wrong'}
-            />
+            <OtpInput value={otp} onChange={setOtp} hasError={errorType === 'wrong'} />
 
-            {/* Timer + resend */}
             {!expired && errorType !== 'locked' && (
-              <div className="flex items-center justify-between text-[12px]">
-                <span className="text-slate-400">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                <span style={{ color: '#94a3b8' }}>
                   Expires in <Countdown key={timerKey} startAt={300} onExpire={() => setExpired(true)} />
                 </span>
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={requestOtp.isPending}
-                  className="text-blue-600 hover:underline disabled:opacity-50"
+                  style={{ color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12 }}
                 >
                   {requestOtp.isPending ? 'Sending…' : 'Resend OTP'}
                 </button>
@@ -291,8 +317,17 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={verifyOtp.isPending || otp.length < 6 || expired}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-                  text-white text-[13px] font-semibold rounded-lg py-2.5 transition-colors"
+                style={{
+                  width: '100%',
+                  background: verifyOtp.isPending || otp.length < 6 || expired ? '#93c5fd' : '#2563eb',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 8,
+                  padding: '10px 0',
+                  border: 'none',
+                  cursor: verifyOtp.isPending || otp.length < 6 || expired ? 'not-allowed' : 'pointer',
+                }}
               >
                 {verifyOtp.isPending ? 'Verifying…' : 'Verify & Sign in'}
               </button>
@@ -301,7 +336,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setStep('request'); setError(''); setErrorType(''); setOtp(''); setExpired(false); }}
-              className="text-[12px] text-slate-400 hover:text-slate-600 text-center transition-colors"
+              style={{ fontSize: 12, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'center' }}
             >
               ← Use a different Telegram ID
             </button>
