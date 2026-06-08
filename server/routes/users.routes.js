@@ -16,6 +16,9 @@ router.get('/me', ctrl.getMe);
 // POST /users — Admin, Super Admin
 router.post('/', authorize('admin', 'super_admin'), validate(createUserSchema), ctrl.createUser);
 
+// GET /users/pending — Admin, Super Admin
+router.get('/pending', authorize('admin', 'super_admin'), ctrl.getPendingUsers);
+
 // GET /users — Admin, Super Admin
 router.get('/', authorize('admin', 'super_admin'), ctrl.listUsers);
 

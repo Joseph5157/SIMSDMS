@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
 const settingsService = require('../services/settings.service');
+const logger = require('../lib/logger');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,33 @@ async function reactivateUser(req, res) {
   res.json(safeUser(updated));
 }
 
+// ─── GET /users/pending — Admin/Super Admin ───────────────────────────────────
+
+async function getPendingUsers(req, res) {
+  try {
+    const users = await prisma.user.findMany({
+      where: { status: 'pending', deleted_at: null },
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        department: true,
+        designation: true,
+        telegram_id: true,
+        status: true,
+        created_at: true,
+      },
+    });
+    res.json({ data: users });
+  } catch (err) {
+    logger.error(err);
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Failed to fetch pending users.' });
+  }
+}
+
 // ─── GET /admin/audit-logs — Super Admin ──────────────────────────────────────
 
 async function getAuditLogs(req, res) {
@@ -314,6 +342,7 @@ module.exports = {
   getMe,
   createUser,
   listUsers,
+  getPendingUsers,
   getUser,
   updateProfile,
   deactivateUser,
