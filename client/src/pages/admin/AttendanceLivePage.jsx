@@ -3,7 +3,8 @@ import Layout, { PageHeader } from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Button from '../../components/ui/Button';
-import Input, { Select } from '../../components/ui/Input';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
 import { useToast } from '../../components/ui/Toast';
 import { useLiveAttendance, useOverrideAttendance } from '../../hooks/useAttendance';
 
