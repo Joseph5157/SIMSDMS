@@ -21,6 +21,11 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Screenshots
+*.png
+*.jpg
+*.jpeg
+
 # IDE
 .vscode/
 .idea/
