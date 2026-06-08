@@ -242,6 +242,7 @@ export default function Sidebar({ user }) {
         left: 0,
         right: 0,
         height: 60,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         backgroundColor: '#0f172a',
         borderTop: '1px solid #1e293b',
         zIndex: 50,
