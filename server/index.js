@@ -31,6 +31,9 @@ const { startCronJobs } = require('./lib/cron');
 
 const app = express();
 
+// ─── Trust proxy (required for deployed environments like Railway) ─────────────
+app.set('trust proxy', 1);
+
 // ─── Security ───────────────────────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
