@@ -4,6 +4,7 @@ const STATUS_LABELS = {
   active:          'Active',
   inactive:        'Inactive',
   pending:         'Pending',
+  pending_telegram: 'Awaiting Telegram',
   open:            'Open',
   covered:         'Covered',
   expired:         'Expired',

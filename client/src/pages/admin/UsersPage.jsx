@@ -6,10 +6,10 @@ import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
-import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser, useDeleteUser } from '../../hooks/useUsers';
+import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser, useDeleteUser, useRegenerateInvite } from '../../hooks/useUsers';
 
 // ── ··· action menu ─────────────────────────────────────────────────────────
-function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onDelete }) {
+function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onRegenerateInvite, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -38,6 +38,13 @@ function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onDelete }) {
               className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
             >
               Deactivate
+            </button>
+          ) : u.status === 'pending_telegram' ? (
+            <button
+              onClick={() => { setOpen(false); onRegenerateInvite(u); }}
+              className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
+            >
+              Regenerate Invite
             </button>
           ) : (
             <button
@@ -74,10 +81,11 @@ export default function UsersPage({ user }) {
   const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
-  const create     = useCreateUser();
-  const deactivate = useDeactivateUser();
-  const reactivate = useReactivateUser();
-  const deleteUser = useDeleteUser();
+  const create          = useCreateUser();
+  const deactivate      = useDeactivateUser();
+  const reactivate      = useReactivateUser();
+  const regenerateInvite = useRegenerateInvite();
+  const deleteUser      = useDeleteUser();
 
   async function handleDeactivate(u) {
     if (!confirm(`Deactivate ${u.name}?`)) return;
@@ -109,6 +117,16 @@ export default function UsersPage({ user }) {
     }
   }
 
+  async function handleRegenerateInvite(u) {
+    try {
+      const response = await regenerateInvite.mutateAsync(u.id);
+      toast({ message: 'Invite link regenerated. Share with user.', type: 'success' });
+      // Optionally copy link to clipboard or show in a modal
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed to regenerate invite.', type: 'error' });
+    }
+  }
+
   const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-100 bg-white';
 
   return (
@@ -137,6 +155,7 @@ export default function UsersPage({ user }) {
           <option value="">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="pending_telegram">Awaiting Telegram</option>
         </select>
       </div>
 
@@ -201,6 +220,7 @@ export default function UsersPage({ user }) {
                   userRole={user.role}
                   onDeactivate={handleDeactivate}
                   onReactivate={handleReactivate}
+                  onRegenerateInvite={handleRegenerateInvite}
                   onDelete={handleDelete}
                 />
               </Td>
@@ -238,7 +258,7 @@ export default function UsersPage({ user }) {
             } else {
               // Account was immediately activated
               toast({ message: 'User created and activated.' });
-              setShowCreate(false);
+              callback(response.data);
             }
           } catch (err) {
             toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });

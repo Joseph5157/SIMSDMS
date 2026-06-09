@@ -196,6 +196,13 @@ async function reactivateUser(req, res) {
   if (user.status === 'active') {
     return res.status(400).json({ error: true, code: 'ALREADY_ACTIVE', message: 'User is already active.' });
   }
+  if (user.status === 'pending_telegram') {
+    return res.status(400).json({
+      error: true,
+      code: 'TELEGRAM_NOT_LINKED',
+      message: "Cannot reactivate — user's Telegram is not yet linked. Use regenerate-invite instead.",
+    });
+  }
 
   const updated = await prisma.user.update({
     where: { id: req.params.id },

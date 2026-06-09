@@ -8,14 +8,14 @@ const logger = require('./logger');
  */
 async function handleWebhook(req, res) {
   try {
-    const { message, chat } = req.body.message ? req.body : {};
+    const message = req.body?.message;
 
-    if (!message || !chat) {
+    if (!message) {
       return res.status(200).json({ ok: true });
     }
 
-    const { text } = message;
-    const chatId = String(chat.id);
+    const chatId = String(message.chat.id);
+    const text = message.text;
 
     // Check if message is /start invite_TOKEN format
     const inviteMatch = text?.match(/^\/start\s+invite_(.+)$/);
