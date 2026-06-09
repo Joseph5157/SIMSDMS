@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const prisma = require('../db');
+const prisma = require('./prisma');
 const logger = require('./logger');
 
 /**
