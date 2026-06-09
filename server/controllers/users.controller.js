@@ -72,13 +72,14 @@ async function createUser(req, res) {
 
   const user = await prisma.user.create({ data: userData });
 
-  await logAction({
+  // Log action in background (don't wait for it)
+  logAction({
     actorId: req.user.id,
     action: 'CREATE_USER',
     targetId: user.id,
     targetType: 'user',
     metadata: { email, role, hasInviteToken: !telegram_id },
-  });
+  }).catch(err => logger.error('Failed to log CREATE_USER action', err));
 
   const response = {
     user: safeUser(user),
