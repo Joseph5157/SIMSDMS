@@ -34,59 +34,73 @@ async function getMe(req, res) {
 // ─── POST /users — Admin/Super Admin ──────────────────────────────────────────
 
 async function createUser(req, res) {
-  const { name, email, role, department, designation, phone, telegram_id } = req.body;
+  try {
+    const { name, email, role, department, designation, phone, telegram_id } = req.body;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing && !existing.deleted_at) {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
+    logger.info(`[CREATE_USER] Starting for ${email}`);
+
+    // Validate input
+    if (!name || !email || !role) {
+      return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Name, email, and role are required.' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && !existing.deleted_at) {
+      return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
+    }
+
+    let inviteLink = null;
+    let userData = {
+      name,
+      email,
+      role,
+      department,
+      designation,
+      phone,
+      telegram_id: telegram_id ? String(telegram_id) : null,
+      approved_at: new Date(),
+      approved_by: req.user.id,
+    };
+
+    // Path A: Telegram ID provided — account is immediately active
+    if (telegram_id) {
+      userData.status = 'active';
+      userData.telegram_verified = true;
+      logger.info(`[CREATE_USER] Path A: With Telegram ID ${telegram_id}`);
+    } else {
+      // Path B: No Telegram ID — generate invite token and set status to pending_telegram
+      const token = crypto.randomBytes(32).toString('hex');
+      userData.status = 'pending_telegram';
+      userData.telegram_invite_token = token;
+      userData.telegram_invite_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+      inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
+      logger.info(`[CREATE_USER] Path B: Without Telegram ID, generated invite token`);
+    }
+
+    logger.info(`[CREATE_USER] Creating user in database for ${email}`);
+    const user = await prisma.user.create({ data: userData });
+    logger.info(`[CREATE_USER] User created successfully: ${user.id}`);
+
+    const response = {
+      user: safeUser(user),
+      invite_link: inviteLink,
+    };
+
+    res.status(201).json(response);
+
+    // Log action after response (don't block response on logging)
+    logAction({
+      actorId: req.user.id,
+      action: 'CREATE_USER',
+      targetId: user.id,
+      targetType: 'user',
+      metadata: { email, role, hasInviteToken: !telegram_id },
+    }).catch(err => logger.error('Failed to log CREATE_USER action', err));
+  } catch (err) {
+    logger.error('[CREATE_USER] Error:', err);
+    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: err.message || 'Failed to create user.' });
   }
-
-  let inviteLink = null;
-  let userData = {
-    name,
-    email,
-    role,
-    department,
-    designation,
-    phone,
-    telegram_id: telegram_id || null,
-    approved_at: new Date(),
-    approved_by: req.user.id,
-  };
-
-  // Path A: Telegram ID provided — account is immediately active
-  if (telegram_id) {
-    userData.status = 'active';
-    userData.telegram_verified = true;
-  } else {
-    // Path B: No Telegram ID — generate invite token and set status to pending_telegram
-    const token = crypto.randomBytes(32).toString('hex');
-    userData.status = 'pending_telegram';
-    userData.telegram_invite_token = token;
-    userData.telegram_invite_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-
-    // Build invite link
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-    inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
-  }
-
-  const user = await prisma.user.create({ data: userData });
-
-  const response = {
-    user: safeUser(user),
-    invite_link: inviteLink,
-  };
-
-  res.status(201).json(response);
-
-  // Log action after response (don't block response on logging)
-  logAction({
-    actorId: req.user.id,
-    action: 'CREATE_USER',
-    targetId: user.id,
-    targetType: 'user',
-    metadata: { email, role, hasInviteToken: !telegram_id },
-  }).catch(err => logger.error('Failed to log CREATE_USER action', err));
 }
 
 // ─── GET /users — Admin/Super Admin ───────────────────────────────────────────
