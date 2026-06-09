@@ -9,7 +9,7 @@ function Field({ label, icon: Icon, error, children }) {
       <label style={{
         display: 'flex', alignItems: 'center', gap: 5,
         fontSize: 11, fontWeight: 700, color: '#64748b',
-        textTransform: 'uppercase', letterSpacing: '0.08em',
+        letterSpacing: '0.08em',
         marginBottom: 6,
       }}>
         {Icon && <Icon size={11} strokeWidth={2.5} />}

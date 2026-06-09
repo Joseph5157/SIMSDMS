@@ -98,8 +98,25 @@ async function createUser(req, res) {
       metadata: { email, role, hasInviteToken: !telegram_id },
     }).catch(err => logger.error('Failed to log CREATE_USER action', err));
   } catch (err) {
+    // Handle Prisma-specific errors
+    if (err.code === 'P2002') {
+      // Unique constraint violation
+      const field = err.meta?.target?.[0] ?? 'field';
+      logger.warn(`[CREATE_USER] Duplicate ${field} for user creation attempt: ${email}`);
+      return res.status(409).json({
+        error: true,
+        code: 'DUPLICATE_FIELD',
+        message: `An account with this ${field} already exists.`,
+      });
+    }
+
+    // All other errors — log internally, never expose Prisma internals
     logger.error('[CREATE_USER] Error:', err);
-    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: err.message || 'Failed to create user.' });
+    return res.status(500).json({
+      error: true,
+      code: 'SERVER_ERROR',
+      message: 'Something went wrong. Please try again.',
+    });
   }
 }
 
