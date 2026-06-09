@@ -34,4 +34,7 @@ router.patch('/:id/deactivate', authorize('admin', 'super_admin'), ctrl.deactiva
 // PATCH /users/:id/reactivate — Admin, Super Admin
 router.patch('/:id/reactivate', authorize('admin', 'super_admin'), ctrl.reactivateUser);
 
+// POST /users/:id/regenerate-invite — Admin, Super Admin
+router.post('/:id/regenerate-invite', authorize('admin', 'super_admin'), ctrl.regenerateInvite);
+
 module.exports = router;

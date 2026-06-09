@@ -203,11 +203,18 @@ export default function UsersPage({ user }) {
       <CreateUserDrawer
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onSubmit={async (form) => {
+        onSubmit={async (form, callback) => {
           try {
-            await create.mutateAsync(form);
-            toast({ message: 'User created successfully.' });
-            setShowCreate(false);
+            const response = await create.mutateAsync(form);
+            if (response.invite_link) {
+              // Invite link was generated
+              toast({ message: 'User created. Invite link generated.' });
+              callback(response);
+            } else {
+              // Account was immediately activated
+              toast({ message: 'User created and activated.' });
+              setShowCreate(false);
+            }
           } catch (err) {
             toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });
           }

@@ -86,13 +86,43 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
     name: '', email: '', telegram_id: '', role: 'faculty',
     department: '', designation: '', phone: '',
   });
+  const [inviteLink, setInviteLink] = useState(null);
+  const [createdUserName, setCreatedUserName] = useState('');
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setRole = (r) => setForm(f => ({ ...f, role: r }));
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit(form);
+    // Pass a callback to handle the response
+    onSubmit(form, (response) => {
+      if (response.invite_link) {
+        // Telegram ID was not provided, show invite panel
+        setInviteLink(response.invite_link);
+        setCreatedUserName(response.user.name);
+      } else {
+        // Telegram ID was provided, account is immediately active
+        resetAndClose();
+      }
+    });
+  }
+
+  function resetAndClose() {
+    setForm({ name: '', email: '', telegram_id: '', role: 'faculty', department: '', designation: '', phone: '' });
+    setInviteLink(null);
+    setCreatedUserName('');
+    onClose();
+  }
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(inviteLink);
+  }
+
+  function shareOnWhatsApp() {
+    const message = `Hi ${createdUserName}, tap this link to activate your SIMS account: ${inviteLink}`;
+    const encoded = encodeURIComponent(message);
+    const waUrl = `https://wa.me/?text=${encoded}`;
+    window.open(waUrl, '_blank');
   }
 
   return (
@@ -161,118 +191,191 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
             </button>
           </div>
 
-          {/* Scrollable form body */}
+          {/* Scrollable body — form or invite panel */}
           <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-            <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
+            {inviteLink ? (
+              // ── INVITE LINK PANEL ──
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ textAlign: 'center', marginTop: 8 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+                    ✅ Account created
+                  </p>
+                  <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
+                    Share this link with {createdUserName}:
+                  </p>
+                </div>
 
-              {/* ── Section: Identity ── */}
-              <p style={{
-                fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                marginBottom: 10,
-              }}>
-                Identity
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                <Field label="Full name" icon={User}>
-                  <TextInput
-                    placeholder="Dr. Priya Sharma"
-                    value={form.name}
-                    onChange={set('name')}
-                    required
-                    autoComplete="name"
-                  />
-                </Field>
-                <Field label="Email" icon={Mail}>
-                  <TextInput
-                    type="email"
-                    placeholder="priya@sims.edu.in"
-                    value={form.email}
-                    onChange={set('email')}
-                    required
-                    autoComplete="email"
-                  />
-                </Field>
-                <Field label="Telegram ID" icon={MessageCircle}>
-                  <TextInput
-                    placeholder="@username or numeric ID"
-                    value={form.telegram_id}
-                    onChange={set('telegram_id')}
-                  />
-                </Field>
+                {/* Link box */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 12,
+                  wordBreak: 'break-all',
+                  fontSize: 12,
+                  color: '#475569',
+                  fontFamily: 'monospace',
+                }}>
+                  {inviteLink}
+                </div>
+
+                {/* Copy and Share buttons */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={copyToClipboard}
+                    style={{
+                      flex: 1,
+                      height: 44,
+                      borderRadius: 10,
+                      border: '1.5px solid #e2e8f0',
+                      backgroundColor: '#fff',
+                      fontSize: 13, fontWeight: 700, color: '#2563eb',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    📋 Copy link
+                  </button>
+                  <button
+                    onClick={shareOnWhatsApp}
+                    style={{
+                      flex: 1,
+                      height: 44,
+                      borderRadius: 10,
+                      border: 'none',
+                      backgroundColor: '#25d366',
+                      fontSize: 13, fontWeight: 700, color: '#fff',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    💬 Share WhatsApp
+                  </button>
+                </div>
+
+                {/* Info text */}
+                <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                  Link expires in 7 days.<br />
+                  Status changes to Active once<br />
+                  they tap it.
+                </p>
               </div>
+            ) : (
+              // ── FORM ──
+              <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
 
-              {/* ── Section: Role ── */}
-              <p style={{
-                fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                marginBottom: 10,
-              }}>
-                Role
-              </p>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                <RoleButton
-                  value="faculty"
-                  label="Faculty"
-                  subtitle="Records violations"
-                  selected={form.role === 'faculty'}
-                  onClick={() => setRole('faculty')}
-                />
-                <RoleButton
-                  value="admin"
-                  label="Admin"
-                  subtitle="Manages system"
-                  selected={form.role === 'admin'}
-                  onClick={() => setRole('admin')}
-                />
-              </div>
+                {/* ── Section: Identity ── */}
+                <p style={{
+                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
+                  textTransform: 'uppercase', letterSpacing: '0.12em',
+                  marginBottom: 10,
+                }}>
+                  Identity
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                  <Field label="Full name" icon={User}>
+                    <TextInput
+                      placeholder="Dr. Priya Sharma"
+                      value={form.name}
+                      onChange={set('name')}
+                      required
+                      autoComplete="name"
+                    />
+                  </Field>
+                  <Field label="Email" icon={Mail}>
+                    <TextInput
+                      type="email"
+                      placeholder="priya@sims.edu.in"
+                      value={form.email}
+                      onChange={set('email')}
+                      required
+                      autoComplete="email"
+                    />
+                  </Field>
+                  <Field label="Telegram ID" icon={MessageCircle}>
+                    <TextInput
+                      placeholder="@username or numeric ID"
+                      value={form.telegram_id}
+                      onChange={set('telegram_id')}
+                    />
+                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                      Optional — leave blank to generate an invite link instead
+                    </p>
+                  </Field>
+                </div>
 
-              {/* ── Section: Department ── */}
-              <p style={{
-                fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                marginBottom: 10,
-              }}>
-                Department
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-                <Field label="Department" icon={Briefcase}>
-                  <TextInput
-                    placeholder="Pharmacology"
-                    value={form.department}
-                    onChange={set('department')}
+                {/* ── Section: Role ── */}
+                <p style={{
+                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
+                  textTransform: 'uppercase', letterSpacing: '0.12em',
+                  marginBottom: 10,
+                }}>
+                  Role
+                </p>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                  <RoleButton
+                    value="faculty"
+                    label="Faculty"
+                    subtitle="Records violations"
+                    selected={form.role === 'faculty'}
+                    onClick={() => setRole('faculty')}
                   />
-                </Field>
-                <Field label="Designation" icon={Shield}>
-                  <TextInput
-                    placeholder="Assistant Professor"
-                    value={form.designation}
-                    onChange={set('designation')}
+                  <RoleButton
+                    value="admin"
+                    label="Admin"
+                    subtitle="Manages system"
+                    selected={form.role === 'admin'}
+                    onClick={() => setRole('admin')}
                   />
-                </Field>
-              </div>
+                </div>
 
-              {/* ── Section: Contact ── */}
-              <p style={{
-                fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em',
-                marginBottom: 10,
-              }}>
-                Contact
-              </p>
-              <div style={{ marginBottom: 24 }}>
-                <Field label="Phone" icon={Phone}>
-                  <TextInput
-                    type="tel"
-                    placeholder="+91 98765 43210"
-                    value={form.phone}
-                    onChange={set('phone')}
-                    autoComplete="tel"
-                  />
-                </Field>
-              </div>
+                {/* ── Section: Department ── */}
+                <p style={{
+                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
+                  textTransform: 'uppercase', letterSpacing: '0.12em',
+                  marginBottom: 10,
+                }}>
+                  Department
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                  <Field label="Department" icon={Briefcase}>
+                    <TextInput
+                      placeholder="Pharmacology"
+                      value={form.department}
+                      onChange={set('department')}
+                    />
+                  </Field>
+                  <Field label="Designation" icon={Shield}>
+                    <TextInput
+                      placeholder="Assistant Professor"
+                      value={form.designation}
+                      onChange={set('designation')}
+                    />
+                  </Field>
+                </div>
 
-            </form>
+                {/* ── Section: Contact ── */}
+                <p style={{
+                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
+                  textTransform: 'uppercase', letterSpacing: '0.12em',
+                  marginBottom: 10,
+                }}>
+                  Contact
+                </p>
+                <div style={{ marginBottom: 24 }}>
+                  <Field label="Phone" icon={Phone}>
+                    <TextInput
+                      type="tel"
+                      placeholder="+91 98765 43210"
+                      value={form.phone}
+                      onChange={set('phone')}
+                      autoComplete="tel"
+                    />
+                  </Field>
+                </div>
+
+              </form>
+            )}
           </div>
 
           {/* Sticky footer */}
@@ -284,53 +387,77 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
             flexShrink: 0,
             paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
             backgroundColor: '#fff',
+            justifyContent: inviteLink ? 'center' : 'flex-start',
           }}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                flex: 1,
-                height: 48,
-                borderRadius: 14,
-                border: '1.5px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
-                fontSize: 14, fontWeight: 700, color: '#475569',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              form="create-user-form"
-              disabled={loading || !form.name.trim() || !form.email.trim()}
-              onClick={handleSubmit}
-              style={{
-                flex: 2,
-                height: 48,
-                borderRadius: 14,
-                border: 'none',
-                background: loading || !form.name.trim() || !form.email.trim()
-                  ? '#93c5fd'
-                  : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                fontSize: 14, fontWeight: 700, color: '#fff',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-                transition: 'all 0.15s',
-              }}
-            >
-              {loading && (
-                <span style={{
-                  width: 14, height: 14,
-                  border: '2px solid rgba(255,255,255,0.4)',
-                  borderTopColor: '#fff',
-                  borderRadius: '50%',
-                  animation: 'spin 0.7s linear infinite',
-                }} />
-              )}
-              {loading ? 'Creating…' : 'Create account'}
-            </button>
+            {inviteLink ? (
+              // ── INVITE PANEL BUTTONS ──
+              <button
+                onClick={resetAndClose}
+                style={{
+                  flex: 1,
+                  maxWidth: 200,
+                  height: 48,
+                  borderRadius: 14,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+                  fontSize: 14, fontWeight: 700, color: '#fff',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Done
+              </button>
+            ) : (
+              // ── FORM BUTTONS ──
+              <>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  style={{
+                    flex: 1,
+                    height: 48,
+                    borderRadius: 14,
+                    border: '1.5px solid #e2e8f0',
+                    backgroundColor: '#f8fafc',
+                    fontSize: 14, fontWeight: 700, color: '#475569',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !form.name.trim() || !form.email.trim()}
+                  onClick={handleSubmit}
+                  style={{
+                    flex: 2,
+                    height: 48,
+                    borderRadius: 14,
+                    border: 'none',
+                    background: loading || !form.name.trim() || !form.email.trim()
+                      ? '#93c5fd'
+                      : 'linear-gradient(135deg, #2563eb, #4f46e5)',
+                    fontSize: 14, fontWeight: 700, color: '#fff',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {loading && (
+                    <span style={{
+                      width: 14, height: 14,
+                      border: '2px solid rgba(255,255,255,0.4)',
+                      borderTopColor: '#fff',
+                      borderRadius: '50%',
+                      animation: 'spin 0.7s linear infinite',
+                    }} />
+                  )}
+                  {loading ? 'Creating…' : 'Create account'}
+                </button>
+              </>
+            )}
           </div>
 
         </Drawer.Content>

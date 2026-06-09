@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
 const settingsService = require('../services/settings.service');
@@ -40,30 +41,51 @@ async function createUser(req, res) {
     return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
   }
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      role,
-      department,
-      designation,
-      phone,
-      telegram_id,
-      status: 'active',
-      approved_at: new Date(),
-      approved_by: req.user.id,
-    },
-  });
+  let inviteLink = null;
+  let userData = {
+    name,
+    email,
+    role,
+    department,
+    designation,
+    phone,
+    telegram_id: telegram_id || null,
+    approved_at: new Date(),
+    approved_by: req.user.id,
+  };
+
+  // Path A: Telegram ID provided — account is immediately active
+  if (telegram_id) {
+    userData.status = 'active';
+    userData.telegram_verified = true;
+  } else {
+    // Path B: No Telegram ID — generate invite token and set status to pending_telegram
+    const token = crypto.randomBytes(32).toString('hex');
+    userData.status = 'pending_telegram';
+    userData.telegram_invite_token = token;
+    userData.telegram_invite_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Build invite link
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+    inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
+  }
+
+  const user = await prisma.user.create({ data: userData });
 
   await logAction({
     actorId: req.user.id,
     action: 'CREATE_USER',
     targetId: user.id,
     targetType: 'user',
-    metadata: { email, role },
+    metadata: { email, role, hasInviteToken: !telegram_id },
   });
 
-  res.status(201).json(safeUser(user));
+  const response = {
+    user: safeUser(user),
+    invite_link: inviteLink,
+  };
+
+  res.status(201).json(response);
 }
 
 // ─── GET /users — Admin/Super Admin ───────────────────────────────────────────
@@ -338,6 +360,45 @@ async function updateSettings(req, res) {
   res.json(settings);
 }
 
+// ─── POST /users/:id/regenerate-invite — Admin/Super Admin ──────────────────
+
+async function regenerateInvite(req, res) {
+  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!user || user.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
+  }
+
+  if (user.status !== 'pending_telegram') {
+    return res.status(400).json({
+      error: true,
+      code: 'ALREADY_ACTIVE',
+      message: "This user's Telegram is already linked.",
+    });
+  }
+
+  // Generate new token
+  const token = crypto.randomBytes(32).toString('hex');
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+  const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
+
+  await prisma.user.update({
+    where: { id: req.params.id },
+    data: {
+      telegram_invite_token: token,
+      telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  await logAction({
+    actorId: req.user.id,
+    action: 'REGENERATE_INVITE',
+    targetId: user.id,
+    targetType: 'user',
+  });
+
+  res.json({ invite_link: inviteLink });
+}
+
 module.exports = {
   getMe,
   createUser,
@@ -352,4 +413,5 @@ module.exports = {
   hardDelete,
   getSettings,
   updateSettings,
+  regenerateInvite,
 };

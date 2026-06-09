@@ -17,6 +17,7 @@ enum Role {
 }
 
 enum UserStatus {
+  pending_telegram
   pending
   active
   inactive
@@ -78,6 +79,8 @@ model User {
   designation        String?    @db.VarChar(100)
   telegram_id         String?    @unique @db.VarChar(50)
   telegram_verified   Boolean    @default(false)
+  telegram_invite_token String?  @unique @db.VarChar(100)
+  telegram_invite_expires_at DateTime?
   otp_failed_attempts Int        @default(0) @db.SmallInt
   status              UserStatus @default(pending)
   approved_at        DateTime?

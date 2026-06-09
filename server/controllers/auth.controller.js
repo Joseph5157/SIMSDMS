@@ -34,7 +34,23 @@ async function requestOtp(req, res) {
 
     const user = await prisma.user.findUnique({ where: { telegram_id: String(telegram_id) } });
 
-    if (!user || user.deleted_at || user.status !== 'active') {
+    if (!user || user.deleted_at) {
+      return res.status(404).json({
+        error: true,
+        code: 'USER_NOT_FOUND',
+        message: 'No active account found for that Telegram ID.',
+      });
+    }
+
+    if (user.status === 'pending_telegram') {
+      return res.status(403).json({
+        error: true,
+        code: 'TELEGRAM_NOT_LINKED',
+        message: 'Your account is not yet activated. Tap the invite link your admin sent you.',
+      });
+    }
+
+    if (user.status !== 'active') {
       return res.status(404).json({
         error: true,
         code: 'USER_NOT_FOUND',

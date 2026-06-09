@@ -50,3 +50,9 @@ export function useAuditLogs(filters = {}) {
     },
   });
 }
+
+export function useRegenerateInvite() {
+  return useMutation({
+    mutationFn: (id) => api.post(`/users/${id}/regenerate-invite`),
+  });
+}

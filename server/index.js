@@ -15,6 +15,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const logger = require('./lib/logger');
+const botRoutes = require('./routes/bot.routes');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const adminRoutes = require('./routes/admin.routes');
@@ -62,6 +63,10 @@ app.use(cors({
   credentials: true,
 }));
 
+// ─── Telegram Bot Webhook (MUST be before global rate limiter) ────────────────
+app.use(express.json()); // Need to parse JSON for webhook
+app.use('/bot', botRoutes);
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'development' ? 10000 : 100,
@@ -72,7 +77,6 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter);
 
 // ─── Parsing ─────────────────────────────────────────────────────────────────
-app.use(express.json());
 app.use(cookieParser());
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
