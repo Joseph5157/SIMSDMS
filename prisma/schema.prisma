@@ -82,6 +82,7 @@ model User {
   telegram_invite_token String?  @unique @db.VarChar(100)
   telegram_invite_expires_at DateTime?
   otp_failed_attempts Int        @default(0) @db.SmallInt
+  session_version     Int        @default(0)
   status              UserStatus @default(pending)
   approved_at        DateTime?
   approved_by        String?
@@ -191,6 +192,7 @@ model DutySlot {
   violations      Violation[]
   coverRequests   CoverRequest[]
 
+  @@unique([duty_date, session_type])
   @@index([faculty_id, duty_date])
   @@map("duty_slots")
 }
@@ -373,6 +375,9 @@ model Message {
   sender              User     @relation("MessageSender", fields: [from_user_id], references: [id])
   receiver            User     @relation("MessageReceiver", fields: [to_user_id], references: [id])
 
+  @@index([to_user_id, created_at])
+  @@index([from_user_id, created_at])
+  @@index([to_user_id, is_read])
   @@map("messages")
 }
 

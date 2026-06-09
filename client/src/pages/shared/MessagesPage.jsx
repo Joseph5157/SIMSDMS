@@ -14,18 +14,10 @@ function fmtDate(iso) {
 }
 
 // ── Thread panel ──────────────────────────────────────────────────────────────
-function ThreadPanel({ messageId, currentUser, tab, onClose }) {
-  const { data }    = useMessage(messageId);
-  const deleteMsg   = useDeleteMessage();
-  const toast       = useToast();
-
-  if (!data) return (
-    <div className="flex-1 flex items-center justify-center text-[13px] text-slate-400">
-      Loading…
-    </div>
-  );
-
-  const isSent = data.sender?.id === currentUser?.id;
+function ThreadPanel({ messageId, currentUser, onClose }) {
+  const { data }  = useMessage(messageId);
+  const deleteMsg = useDeleteMessage();
+  const toast     = useToast();
 
   async function handleDelete() {
     if (!confirm('Delete this message?')) return;
@@ -38,24 +30,46 @@ function ThreadPanel({ messageId, currentUser, tab, onClose }) {
     }
   }
 
+  if (!data) return (
+    <div className="flex-1 flex items-center justify-center text-[13px] text-slate-400 w-full">
+      Loading…
+    </div>
+  );
+
+  const isSent = data.sender?.id === currentUser?.id;
+
   return (
-    <div className="flex-1 flex flex-col min-w-0 border-l border-slate-200">
-      {/* Thread header */}
-      <div className="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[14px] font-semibold text-slate-900">{data.subject}</p>
+    <div className="flex-1 flex flex-col min-w-0 w-full sm:border-l sm:border-slate-200">
+      {/* Header — back button on mobile, close ✕ on desktop */}
+      <div className="px-4 sm:px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+        {/* Mobile back button */}
+        <button
+          onClick={onClose}
+          className="sm:hidden flex items-center gap-1 text-[13px] text-blue-600 font-medium mr-1"
+          aria-label="Back to messages"
+        >
+          ← Back
+        </button>
+
+        {/* Subject + meta */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] font-semibold text-slate-900 truncate">{data.subject}</p>
           <p className="text-[11px] text-slate-400 mt-0.5">
             {isSent ? `To: ${data.receiver?.name}` : `From: ${data.sender?.name}`}
             {' · '}{fmtDate(data.created_at)}
           </p>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-[18px] leading-none">✕</button>
+
+        {/* Desktop close */}
+        <button onClick={onClose} className="hidden sm:block text-slate-400 hover:text-slate-600 text-[18px] leading-none flex-shrink-0">
+          ✕
+        </button>
       </div>
 
       {/* Message bubble */}
-      <div className="flex-1 overflow-y-auto px-5 py-5">
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-5">
         <div className={`flex ${isSent ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+          <div className={`max-w-[80%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
             isSent
               ? 'bg-blue-600 text-white rounded-br-sm'
               : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
@@ -65,8 +79,8 @@ function ThreadPanel({ messageId, currentUser, tab, onClose }) {
         </div>
       </div>
 
-      {/* Footer actions */}
-      <div className="px-5 py-3 border-t border-slate-200 flex justify-end">
+      {/* Footer */}
+      <div className="px-4 sm:px-5 py-3 border-t border-slate-200 flex justify-end">
         <Button variant="danger" size="sm" onClick={handleDelete} loading={deleteMsg.isPending}>
           Delete
         </Button>
@@ -122,9 +136,22 @@ export default function MessagesPage({ user }) {
         action={<Button onClick={() => setCompose(true)}>+ Compose</Button>}
       />
 
+      {/*
+        Mobile:  show EITHER the list OR the thread (full-width), never both.
+        Desktop: side-by-side panel layout.
+      */}
       <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden flex-1" style={{ minHeight: 400 }}>
-        {/* ── Left panel — list (220px) ── */}
-        <div className="w-[260px] shrink-0 flex flex-col border-r border-slate-200">
+
+        {/* ── Left panel — list ── */}
+        {/* On mobile: hidden when a message is open; full-width when no message selected.
+            On sm+: always visible at fixed width. */}
+        <div
+          className={[
+            'flex-col border-r border-slate-200',
+            'w-full sm:w-[260px] sm:flex-shrink-0',
+            viewing ? 'hidden sm:flex' : 'flex',
+          ].join(' ')}
+        >
           {/* Tab bar */}
           <div className="flex border-b border-slate-200">
             {['inbox', 'sent'].map((t) => (
@@ -160,23 +187,23 @@ export default function MessagesPage({ user }) {
           </div>
 
           {/* Pagination */}
-          {data?.meta && data.meta.totalPages > 1 && (
+          {data?.meta && data.meta.pages > 1 && (
             <div className="border-t border-slate-100 p-2">
               <Pagination meta={data.meta} page={page} onPage={setPage} />
             </div>
           )}
         </div>
 
-        {/* ── Right panel — thread / empty state ── */}
+        {/* ── Right panel — thread or empty state ── */}
         {viewing ? (
           <ThreadPanel
             messageId={viewing}
             currentUser={user}
-            tab={tab}
             onClose={() => setViewing(null)}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 gap-2">
+          // Empty state: hidden on mobile (list is shown instead), visible on desktop
+          <div className="hidden sm:flex flex-1 flex-col items-center justify-center text-slate-400 gap-2">
             <p className="text-[28px]">✉️</p>
             <p className="text-[13px]">Select a message to read it</p>
           </div>

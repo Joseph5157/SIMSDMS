@@ -270,6 +270,10 @@ async function getUnassignedFaculty(req, res) {
 }
 
 // ─── POST /calendar/:year/:month/assign/:facultyId ────────────────────────────
+// Checks each requested slot globally (not per-faculty) using the unique index,
+// collects valid ones, then creates them all inside a single transaction so the
+// entire valid batch is atomic. A P2002 on the transaction means a concurrent
+// request took a slot between our pre-check and the insert; that surfaces as 409.
 
 async function assignSlots(req, res) {
   const params = parseParams(req, res);
@@ -288,9 +292,9 @@ async function assignSlots(req, res) {
 
   const { slots } = req.body;
 
-  // Detect duplicates within the request
+  // Phase 1 — pre-validate: deduplicate within the request and check global conflicts
   const seen = new Set();
-  const created = [];
+  const toCreate = [];
   const skipped = [];
 
   for (const slot of slots) {
@@ -301,29 +305,52 @@ async function assignSlots(req, res) {
     }
     seen.add(key);
 
-    // Check if this slot already exists for this faculty
-    const existing = await prisma.dutySlot.findFirst({
+    // Global check using compound unique index — catches any existing assignment,
+    // regardless of which faculty member holds it.
+    const existing = await prisma.dutySlot.findUnique({
       where: {
-        faculty_id: facultyId,
-        duty_date: new Date(slot.duty_date),
-        session_type: slot.session_type,
+        duty_date_session_type: {
+          duty_date: new Date(slot.duty_date),
+          session_type: slot.session_type,
+        },
       },
     });
 
     if (existing) {
-      skipped.push({ ...slot, reason: 'Slot already assigned.' });
+      skipped.push({ ...slot, reason: 'This slot is already taken.' });
       continue;
     }
 
-    const created_slot = await prisma.dutySlot.create({
-      data: {
-        faculty_id: facultyId,
-        duty_date: new Date(slot.duty_date),
-        session_type: slot.session_type,
-        created_by: req.user.id,
-      },
-    });
-    created.push(created_slot);
+    toCreate.push(slot);
+  }
+
+  // Phase 2 — create all validated slots in one atomic transaction
+  let created = [];
+  if (toCreate.length > 0) {
+    try {
+      created = await prisma.$transaction(
+        toCreate.map((slot) =>
+          prisma.dutySlot.create({
+            data: {
+              faculty_id: facultyId,
+              duty_date: new Date(slot.duty_date),
+              session_type: slot.session_type,
+              created_by: req.user.id,
+            },
+          }),
+        ),
+      );
+    } catch (err) {
+      if (err.code === 'P2002') {
+        return res.status(409).json({
+          error: true,
+          code: 'SLOT_TAKEN',
+          message: 'One or more slots were taken by another request during assignment. Please refresh and retry.',
+        });
+      }
+      logger.error(`assignSlots transaction error: ${err.message}`);
+      return res.status(500).json({ error: true, code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' });
+    }
   }
 
   await logAction({

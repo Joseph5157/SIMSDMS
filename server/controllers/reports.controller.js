@@ -196,19 +196,27 @@ async function pendingFinesSummary(req, res) {
 }
 
 // 10. Flagged Violations Report
+// Queries ALL ever-flagged violations: currently pending (is_flagged=true) AND
+// previously resolved (flag_resolved_at IS NOT NULL, is_flagged=false after resolution).
+// Counting only is_flagged=true would always show resolved_count=0.
 async function flaggedViolationsReport(req, res) {
   const violations = await prisma.violation.findMany({
-    where: { is_flagged: true },
+    where: {
+      OR: [
+        { is_flagged: true },
+        { flag_resolved_at: { not: null } },
+      ],
+    },
     include: {
-      student:  { select: { student_name: true, registration_number: true } },
-      faculty:  { select: { name: true } },
+      student:       { select: { student_name: true, registration_number: true } },
+      faculty:       { select: { name: true } },
       violationType: { select: { name: true } },
     },
     orderBy: { created_at: 'desc' },
   });
 
-  const pending  = violations.filter(v => !v.flag_resolved_at);
-  const resolved = violations.filter(v =>  v.flag_resolved_at);
+  const pending  = violations.filter((v) => v.is_flagged);
+  const resolved = violations.filter((v) => v.flag_resolved_at !== null);
 
   res.json({ data: violations, total: violations.length, pending_count: pending.length, resolved_count: resolved.length });
 }

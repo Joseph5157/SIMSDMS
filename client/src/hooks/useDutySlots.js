@@ -27,7 +27,10 @@ export function usePickSlot() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/duty-slots/pick', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['availableSlots'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['availableSlots'] });
+      qc.invalidateQueries({ queryKey: ['dutySlots'] });
+    },
   });
 }
 

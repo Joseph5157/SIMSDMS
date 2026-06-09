@@ -42,6 +42,7 @@ export function useCheckOut() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['liveAttendance'] });
       qc.invalidateQueries({ queryKey: ['attendance'] });
+      qc.invalidateQueries({ queryKey: ['dutySlots'] });
     },
   });
 }
@@ -50,6 +51,9 @@ export function useOverrideAttendance() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ dutySlotId, ...data }) => api.patch(`/attendance/${dutySlotId}/override`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['liveAttendance'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['liveAttendance'] });
+      qc.invalidateQueries({ queryKey: ['attendance'] });
+    },
   });
 }

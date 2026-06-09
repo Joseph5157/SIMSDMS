@@ -1,12 +1,37 @@
 /**
- * Test script for Telegram invite flow
- * Run: node test-invite-flow.js
+ * ⚠️  STALE — DO NOT RUN IN PRODUCTION
  *
- * This script tests:
- * 1. Creating a user without Telegram ID (generates invite link)
- * 2. Creating a user with Telegram ID (immediately active)
- * 3. Verifying auth guard prevents pending_telegram users from login
- * 4. Simulating webhook callback
+ * This script was written before the current auth system was implemented and
+ * contains several incorrect assumptions that will cause every test to fail:
+ *
+ * 1. WRONG AUTH MECHANISM
+ *    Uses `Authorization: Bearer <token>` header.
+ *    The server uses httpOnly cookie auth only — there is no Bearer token endpoint.
+ *    Admin requests require a valid `sims_token` httpOnly cookie, which cannot be
+ *    set from a Node.js script without a real browser-based login flow.
+ *
+ * 2. WRONG OTP FIELD
+ *    Test 2 sends `{ email }` to POST /auth/request-otp.
+ *    The correct field is `{ telegram_id }` (numeric Telegram User ID, not email).
+ *
+ * 3. WRONG TOKEN SOURCE COMMENT
+ *    Says "Get token from browser localStorage".
+ *    JWT is stored exclusively in an httpOnly cookie — it is never in localStorage.
+ *
+ * 4. CSRF PROTECTION
+ *    Authenticated mutation requests now require an X-CSRF-Token header matching
+ *    the sims_csrf cookie. This script sends no CSRF token and will receive 403
+ *    on all POST/PATCH/DELETE routes that require authentication.
+ *
+ * To manually test the invite flow:
+ *   1. Log in via the admin UI at http://localhost:5173
+ *   2. Create a user via Admin → Users → Create User
+ *   3. Copy the invite link from the response
+ *   4. Send the link to the faculty member's Telegram
+ *   5. Faculty taps the link → bot activates account
+ *   6. Faculty logs in via /auth/request-otp and /auth/verify-otp using telegram_id
+ *
+ * See TELEGRAM_INVITE_FLOW_TESTING.md for the current manual test procedure.
  */
 
 const crypto = require('crypto');
@@ -68,8 +93,7 @@ async function runTests() {
 
   if (response1.error) {
     console.log('❌ Error:', response1.message);
-    console.log('Note: You may need a valid admin token to test this');
-    console.log('Get token: Login as admin at http://localhost:5173, check localStorage');
+    console.log('Note: This script cannot authenticate — see the STALE warning at the top.');
   } else {
     console.log('✅ User created successfully');
     console.log(`   Status: ${response1.user?.status}`);
@@ -180,8 +204,8 @@ async function runTests() {
   console.log('1. Path A (no telegram_id): Generates 7-day invite token');
   console.log('2. Path B (with telegram_id): Immediately active');
   console.log('3. Webhook: Activates pending_telegram accounts');
-  console.log('\n💡 Tip: Get admin token from browser localStorage');
-  console.log('   Open DevTools → Application → localStorage → token');
+  console.log('\n💡 NOTE: JWT tokens are stored in httpOnly cookies, not localStorage.');
+  console.log('   This script requires manual testing via the admin UI instead.');
 }
 
 // Run tests

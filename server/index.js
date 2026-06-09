@@ -67,9 +67,22 @@ app.use(cors({
 app.use(express.json()); // Need to parse JSON for webhook
 app.use('/bot', botRoutes);
 
-// ─── Health (MUST be before global rate limiter to avoid rate limiting) ───────
+// ─── Health endpoints (MUST be before global rate limiter) ───────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// DB-backed health check — used by deployment monitors that need to verify the
+// database is reachable, not just that the Node process is alive.
+app.get('/health/db', async (req, res) => {
+  try {
+    const prisma = require('./lib/prisma');
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
+  } catch (err) {
+    logger.error(`/health/db check failed: ${err.message}`);
+    res.status(503).json({ status: 'degraded', db: 'error', timestamp: new Date().toISOString() });
+  }
 });
 
 const globalLimiter = rateLimit({
@@ -83,6 +96,9 @@ app.use(globalLimiter);
 
 // ─── Parsing ─────────────────────────────────────────────────────────────────
 app.use(cookieParser());
+
+// ─── CSRF protection (POST/PUT/PATCH/DELETE on authenticated sessions) ────────
+app.use(require('./middleware/csrf'));
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);

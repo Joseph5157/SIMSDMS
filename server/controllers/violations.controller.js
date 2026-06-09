@@ -41,9 +41,10 @@ function snapshotViolation(v) {
 async function createViolation(req, res) {
   const { student_id, duty_slot_id, violation_type_id, custom_violation, fine_amount, is_warning_only, remarks } = req.body;
 
-  // Verify the duty slot belongs to this faculty
+  // Verify the requesting faculty is the originally assigned faculty or the
+  // confirmed covering faculty for this slot.
   const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
-  if (!slot || slot.faculty_id !== req.user.id) {
+  if (!slot || (slot.faculty_id !== req.user.id && slot.covered_by !== req.user.id)) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record violations for your own duty slots.' });
   }
 

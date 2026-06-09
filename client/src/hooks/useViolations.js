@@ -25,7 +25,10 @@ export function useCreateViolation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/violations', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['myViolations'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['myViolations'] });
+      qc.invalidateQueries({ queryKey: ['violations'] });
+    },
   });
 }
 

@@ -4,27 +4,11 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const telegram = require('../lib/telegram');
 const logger = require('../lib/logger');
+const { authCookieOptions, csrfCookieOptions, clearAuthOptions, clearCsrfOptions } = require('../lib/cookieOptions');
 
-const OTP_TTL_MS = 5 * 60 * 1000;        // 5 minutes
-const MAX_ATTEMPTS = 5;                   // Account-level lock threshold
-const OTP_COOLDOWN_MS = 60 * 1000;        // 60-second cooldown between requests
-
-// Parse JWT_EXPIRES_IN (e.g. "7d", "24h") into milliseconds for the cookie
-function parseExpiryMs(expiresIn) {
-  const match = String(expiresIn || '7d').match(/^(\d+)([dhms])$/);
-  if (!match) return 7 * 24 * 60 * 60 * 1000;
-  const n = parseInt(match[1], 10);
-  return n * { d: 86400000, h: 3600000, m: 60000, s: 1000 }[match[2]];
-}
-
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  };
-}
+const OTP_TTL_MS = 5 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
+const OTP_COOLDOWN_MS = 60 * 1000;
 
 // ─── POST /auth/request-otp ───────────────────────────────────────────────────
 
@@ -58,7 +42,6 @@ async function requestOtp(req, res) {
       });
     }
 
-    // Account-level lock — too many failed OTP attempts across all sessions
     if (user.otp_failed_attempts >= MAX_ATTEMPTS) {
       return res.status(403).json({
         error: true,
@@ -75,7 +58,6 @@ async function requestOtp(req, res) {
       });
     }
 
-    // Cooldown — block if an unexpired session was created in the last 60 seconds
     const recentSession = await prisma.otpSession.findFirst({
       where: {
         user_id: user.id,
@@ -94,7 +76,6 @@ async function requestOtp(req, res) {
       });
     }
 
-    // Generate 6-digit OTP
     const otp = String(crypto.randomInt(100000, 999999));
     const otp_hash = await bcrypt.hash(otp, 10);
     const expires_at = new Date(Date.now() + OTP_TTL_MS);
@@ -140,7 +121,6 @@ async function verifyOtp(req, res) {
       });
     }
 
-    // Account-level lock check
     if (user.otp_failed_attempts >= MAX_ATTEMPTS) {
       return res.status(401).json({
         error: true,
@@ -149,7 +129,6 @@ async function verifyOtp(req, res) {
       });
     }
 
-    // Find latest unexpired, unverified session
     const session = await prisma.otpSession.findFirst({
       where: {
         user_id: user.id,
@@ -170,7 +149,6 @@ async function verifyOtp(req, res) {
     const isValid = await bcrypt.compare(otp, session.otp_hash);
 
     if (!isValid) {
-      // Increment both session-level and account-level counters atomically
       const newAccountFailures = user.otp_failed_attempts + 1;
 
       await Promise.all([
@@ -200,7 +178,6 @@ async function verifyOtp(req, res) {
       });
     }
 
-    // OTP is valid — mark session verified and reset account failure counter
     await Promise.all([
       prisma.otpSession.update({
         where: { id: session.id },
@@ -212,7 +189,6 @@ async function verifyOtp(req, res) {
       }),
     ]);
 
-    // Mark Telegram as verified on first successful login
     if (!user.telegram_verified) {
       await prisma.user.update({
         where: { id: user.id },
@@ -221,12 +197,15 @@ async function verifyOtp(req, res) {
     }
 
     const token = jwt.sign(
-      { sub: user.id, role: user.role },
+      { sub: user.id, role: user.role, session_version: user.session_version },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
     );
 
-    res.cookie('sims_token', token, cookieOptions());
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+
+    res.cookie('sims_token', token, authCookieOptions());
+    res.cookie('sims_csrf', csrfToken, csrfCookieOptions());
 
     res.json({
       id: user.id,
@@ -236,7 +215,6 @@ async function verifyOtp(req, res) {
       role: user.role,
       department: user.department,
       designation: user.designation,
-      telegram_id: user.telegram_id,
       telegram_verified: user.telegram_verified,
       status: user.status,
       approved_at: user.approved_at,
@@ -251,11 +229,8 @@ async function verifyOtp(req, res) {
 // ─── POST /auth/logout ────────────────────────────────────────────────────────
 
 async function logout(req, res) {
-  res.clearCookie('sims_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  });
+  res.clearCookie('sims_token', clearAuthOptions());
+  res.clearCookie('sims_csrf', clearCsrfOptions());
   res.json({ message: 'Logged out successfully.' });
 }
 

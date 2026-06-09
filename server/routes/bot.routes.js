@@ -5,36 +5,42 @@ const logger = require('../lib/logger');
 
 const router = express.Router();
 
+function secretsMatch(candidate, expected) {
+  if (!candidate || !expected) return false;
+  const a = Buffer.from(candidate);
+  const b = Buffer.from(expected);
+  // Length check must come first — timingSafeEqual throws on mismatched lengths
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 /**
  * POST /bot/webhook/:secret
- * Receives Telegram webhook updates
- * Must be registered BEFORE global rate limiter
+ * Accepts either the URL path secret or the official Telegram
+ * X-Telegram-Bot-Api-Secret-Token header, both validated against
+ * TELEGRAM_WEBHOOK_SECRET.
  */
 router.post('/webhook/:secret', (req, res, next) => {
-  const { secret } = req.params;
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-  // Validate secret using timing-safe comparison
-  if (!expectedSecret || !secret) {
-    logger.warn('[BOT] Missing webhook secret');
+  if (!expectedSecret) {
+    logger.warn('[BOT] TELEGRAM_WEBHOOK_SECRET is not configured');
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(secret),
-    Buffer.from(expectedSecret)
-  );
+  const pathSecret = req.params.secret;
+  const headerSecret = req.headers['x-telegram-bot-api-secret-token'];
 
-  if (!isValid) {
-    logger.warn('[BOT] Invalid webhook secret provided');
+  // Accept if either the path secret or the Telegram header matches
+  const valid = secretsMatch(pathSecret, expectedSecret) || secretsMatch(headerSecret, expectedSecret);
+
+  if (!valid) {
+    logger.warn('[BOT] Invalid webhook secret');
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  // Secret is valid, proceed to webhook handler
   next();
 });
 
-// Handle the webhook update
 router.post('/webhook/:secret', handleWebhook);
 
 module.exports = router;

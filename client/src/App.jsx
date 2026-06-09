@@ -64,8 +64,8 @@ function AppRoutes() {
         <Route path="/admin/reports"          element={<ReportsPage user={user} />} />
       </Route>
 
-      {/* Faculty routes — any authenticated user */}
-      <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
+      {/* Faculty routes — Faculty only */}
+      <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['faculty']} />}>
         <Route path="/faculty/dashboard"      element={<DashboardPage user={user} />} />
         <Route path="/faculty/slots"          element={<SlotPickerPage user={user} />} />
         <Route path="/faculty/attendance"     element={<AttendancePage user={user} />} />

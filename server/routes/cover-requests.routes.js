@@ -32,4 +32,10 @@ router.post('/:id/volunteer', authorize('faculty'), ctrl.volunteer);
 // PATCH /cover-requests/:id/confirm — Admin
 router.patch('/:id/confirm', authorize('admin', 'super_admin'), ctrl.confirmCover);
 
+// PATCH /cover-requests/:id/cancel — Faculty (own) or Admin (any)
+router.patch('/:id/cancel', authorize('faculty', 'admin', 'super_admin'), ctrl.cancelCoverRequest);
+
+// PATCH /cover-requests/:id/reject — Admin: clears volunteer, keeps request open
+router.patch('/:id/reject', authorize('admin', 'super_admin'), ctrl.rejectVolunteer);
+
 module.exports = router;

@@ -36,7 +36,10 @@ export function useCreateCoverRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/cover-requests', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['myCoverRequests'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['myCoverRequests'] });
+      qc.invalidateQueries({ queryKey: ['dutySlots'] });
+    },
   });
 }
 
@@ -55,6 +58,29 @@ export function useConfirmCover() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id) => api.patch(`/cover-requests/${id}/confirm`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['coverRequests'] });
+      qc.invalidateQueries({ queryKey: ['dutySlots'] });
+    },
+  });
+}
+
+export function useCancelCoverRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.patch(`/cover-requests/${id}/cancel`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['coverRequests'] });
+      qc.invalidateQueries({ queryKey: ['myCoverRequests'] });
+      qc.invalidateQueries({ queryKey: ['dutySlots'] });
+    },
+  });
+}
+
+export function useRejectVolunteer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.patch(`/cover-requests/${id}/reject`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['coverRequests'] }),
   });
 }

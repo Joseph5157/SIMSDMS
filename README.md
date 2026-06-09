@@ -287,7 +287,7 @@ graph TD
 ### Architecture & System Design
 - **Monolithic Architecture**: Both the Express API backend and built static React assets are deployed together on **Railway**, maintaining a single deployment unit and simplifying network topology.
 - **Data Query Synchronization**: Employs **TanStack React Query** with a default `staleTime` of 30 seconds and automatic polling intervals to ensure UI dashboard updates are real-time, removing complex infrastructural overheads like WebSockets or Server-Sent Events (SSE).
-- **Service Worker integration**: Built using **VitePWA** (Workbox) configuration which registers an auto-updating service worker to cache system assets (HTML, CSS, JS, fonts) and employs `NetworkFirst` runtime caching for core API endpoints, providing basic offline robustness for mobile browsers.
+- **Service Worker integration**: Built using **VitePWA** (Workbox) configuration which registers an auto-updating service worker to precache only static build assets (HTML, CSS, JS, fonts, images). **API responses are intentionally never cached** — auth cookies, user data, violations, attendance, messages, and report data are sensitive and must always be fetched from the network to prevent stale or leaked data on shared devices.
 
 ### Security Implementation
 - **httpOnly Cookies**: Authentication JSON Web Tokens (JWT) are strictly stored in `httpOnly` secure cookies. They are never written to `localStorage` or `sessionStorage`, securing the application against Cross-Site Scripting (XSS) token theft.
@@ -322,11 +322,10 @@ The repository has a clean, decoupled monorepo structure:
 
 ### Frontend Structure & Optimizations
 - **Consolidated Tailwind CSS**: Consolidates layout styling into Tailwind CSS v4 utility classes and inline styles where dynamic variables (safe-area spacing, dynamic color configurations) are required, preventing competing CSS variables.
-- **Protected Routes**: Utilizes the `ProtectedRoute` component enforcing strict array-based access limits:
+- **Protected Routes**: Utilizes the `ProtectedRoute` component enforcing strict role-based access:
   - Admin/Super Admin pages: `requiredRoles={['admin', 'super_admin']}`
   - Super Admin audit logs: `requiredRoles={['super_admin']}`
-  - Faculty pages: Authentication check only.
-- **Route-based Lazy Loading**: Page imports in `App.jsx` use `React.lazy()` dynamic imports combined with `<Suspense>` boundaries. This optimized Vite's output, reducing the main JS chunk size from **515.84 kB** to **319.13 kB** and completely eliminating minification size warnings.
+  - Faculty pages: `requiredRoles={['faculty']}` — Admin users cannot access faculty-only pages.
 
 ---
 
@@ -351,16 +350,28 @@ The product aims to optimize operations for SIMS College of Pharmacy by substitu
 
 ## Actionable Insights & Future Recommendations
 
-1. **CORS Development Setup**:
-   In `.env`, the `CORS_ORIGIN` is configured as a comma-separated list. We have expanded it to:
-   `CORS_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176`
-   This is critical to prevent development failures when port `5173` is busy and Vite launches the client on `5174` or `5175`. Ensure this configuration is reflected in deployment templates.
+1. **Required Production Environment Variables**:
+   Set all variables from `.env.example` in Railway → Variables. Critical ones:
+   - `TZ=Asia/Kolkata` — required for correct cron scheduling (auto clock-out, calendar auto-close) and IST date comparisons in attendance.
+   - `CORS_ORIGIN` — must match your deployed frontend URL exactly (no trailing slash).
+   - `JWT_SECRET` — use a 64+ hex character random string. Never reuse across environments.
+   - `TELEGRAM_WEBHOOK_SECRET` — register this with Telegram when setting the webhook URL.
+   - `APP_URL` — public URL of the deployed application.
 
-2. **Cron Scheduler Dependencies**:
-   The daily auto clock-out cron job runs at 4:30 PM IST (`30 16 * * *`). For this to execute at the correct local hour on Railway servers, the environment variable `TZ=Asia/Kolkata` **must** be set in the Railway configuration dashboard.
+2. **Authentication — httpOnly Cookie, Not localStorage**:
+   After successful OTP verification the server sets a `sims_token` httpOnly cookie and a `sims_csrf` non-httpOnly cookie. The JWT is **never** placed in `localStorage` or `sessionStorage`. Any tool or script that tries to read a token from `localStorage` will find nothing.
 
-3. **Validation & Promoted Student Flow**:
-   Excel student uploads support promotion. However, ensure that promotions do not conflict with unresolved student violations in database history. It is recommended to add validation rules blocking promotional upgrades if unpaid fines exceed system limits.
+3. **Telegram OTP Login Flow**:
+   - User enters their **numeric Telegram User ID** (not `@username`) on the login page.
+   - Server looks up the user by `telegram_id`, sends a 6-digit OTP via the Telegram bot.
+   - User pastes the OTP on the verification screen.
+   - Valid OTP sets the httpOnly `sims_token` and CSRF cookies and redirects to the dashboard.
 
-4. **Phase 2 Photo Upload Foundation**:
+4. **Recommended Account Creation (Invite Flow)**:
+   Create users via Admin → Users → Create User **without** supplying a Telegram ID. The system generates a 7-day invite link (`https://t.me/BOT?start=invite_TOKEN`). Share this link with the new faculty member — when they start the bot, their Telegram account is linked and their status changes to `active`. Only then can they request an OTP and log in.
+
+5. **CSRF Protection**:
+   All authenticated POST/PUT/PATCH/DELETE requests require an `X-CSRF-Token` header matching the `sims_csrf` cookie. The Axios client reads this cookie automatically and attaches the header. Scripts or curl commands that use httpOnly cookie auth must also forward this token.
+
+6. **Phase 2 Photo Upload Foundation**:
    Columns `photo_path` and `photo_expires_at` exist in the database, but endpoints return `501 NOT IMPLEMENTED`. As the app shifts to Phase 2, a secure presigned URL strategy (e.g., AWS S3 or Supabase Storage) should be implemented to support temporary attachment access while maintaining strict privacy boundaries.

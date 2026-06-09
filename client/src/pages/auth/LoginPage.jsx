@@ -250,11 +250,12 @@ export default function LoginPage() {
                 fontSize: 12, fontWeight: 700, color: '#475569',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
               }}>
-                Telegram ID
+                Telegram User ID
               </label>
               <input
                 type="text"
-                placeholder="@username or numeric ID"
+                inputMode="numeric"
+                placeholder="Numeric Telegram ID (e.g. 123456789)"
                 value={telegramId}
                 onChange={(e) => setTelegramId(e.target.value)}
                 required

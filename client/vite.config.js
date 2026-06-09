@@ -19,18 +19,11 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/(?:auth|users|admin|students|calendar|duty-slots|attendance|violations|violation-types|cover-requests|messages|reports|health)\//,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 10,
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-        ],
+        // Precache only static build assets (JS, CSS, HTML, fonts, images).
+        // API responses are NEVER cached — auth cookies, user data, violations,
+        // attendance, messages, and reports must always come from the network.
+        // Caching these on shared devices would expose sensitive information.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
       },
       devOptions: { enabled: false },
     }),

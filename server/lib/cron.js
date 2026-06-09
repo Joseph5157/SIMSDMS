@@ -2,20 +2,21 @@ const cron = require('node-cron');
 const prisma = require('./prisma');
 const logger = require('./logger');
 const settingsService = require('../services/settings.service');
+const { nowInIST, istDayRangeUTC, istWallToUTC } = require('./time');
 
-// All schedules use IST (Asia/Kolkata). Set TZ=Asia/Kolkata in Railway env vars.
+// All schedules fire at IST times via { timezone: 'Asia/Kolkata' }.
+// Date calculations inside each job use IST-aware helpers so they are correct
+// even when the server's TZ env var is UTC (the default on Railway).
 
 // ─── 1. Auto clock-out — daily at 4:30 PM IST ─────────────────────────────────
 
 async function autoClockOut() {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const ist        = nowInIST();
+  const todayRange = istDayRangeUTC(ist.year, ist.month, ist.day);
 
-  // Find all duty slots today that have a check-in but no check-out
   const openAttendance = await prisma.dutyAttendance.findMany({
     where: {
-      dutySlot: { duty_date: { gte: todayStart, lte: todayEnd } },
+      dutySlot: { duty_date: todayRange },
       in_time:  { not: null },
       out_time: null,
     },
@@ -24,17 +25,21 @@ async function autoClockOut() {
 
   if (openAttendance.length === 0) return;
 
-  const cfg = await settingsService.getSettings();
-  const autoOutTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), cfg.auto_checkout_hour, cfg.auto_checkout_min);
+  const cfg        = await settingsService.getSettings();
+  // Produce a UTC timestamp that represents the configured IST clock-out time.
+  const autoOutUTC = istWallToUTC(
+    ist.year, ist.month, ist.day,
+    cfg.auto_checkout_hour, cfg.auto_checkout_min,
+  );
 
   await prisma.dutyAttendance.updateMany({
     where: { id: { in: openAttendance.map((a) => a.id) } },
-    data: { out_time: autoOutTime, out_status: 'auto', auto_out: true },
+    data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
   });
 
   await prisma.dutySlot.updateMany({
     where: { id: { in: openAttendance.map((a) => a.duty_slot_id) } },
-    data: { status: 'completed' },
+    data:  { status: 'completed' },
   });
 
   logger.info(`[cron] Auto clock-out: ${openAttendance.length} record(s) closed.`);
@@ -45,7 +50,7 @@ async function autoClockOut() {
 async function expireCoverRequests() {
   const result = await prisma.coverRequest.updateMany({
     where: { status: 'open', expires_at: { lt: new Date() } },
-    data: { status: 'expired' },
+    data:  { status: 'expired' },
   });
 
   if (result.count > 0) {
@@ -54,24 +59,24 @@ async function expireCoverRequests() {
 }
 
 // ─── 3. Calendar auto-close — daily at midnight IST ──────────────────────────
+// The cron fires at midnight IST. At that moment the UTC clock shows the
+// *previous* calendar day, so we must derive the date from IST, not UTC.
 
 async function autoCloseCalendar() {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
+  const ist = nowInIST();
 
-  // Last day of current month
-  const lastDay = new Date(year, month, 0).getDate();
+  // Last day of the current IST month (day 0 of next month = last day of this month)
+  const lastDay = new Date(Date.UTC(ist.year, ist.month, 0)).getUTCDate();
 
-  if (now.getDate() !== lastDay) return;
+  if (ist.day !== lastDay) return;
 
   const result = await prisma.calendarConfig.updateMany({
-    where: { config_month: month, config_year: year, is_window_open: true },
-    data: { is_window_open: false },
+    where: { config_month: ist.month, config_year: ist.year, is_window_open: true },
+    data:  { is_window_open: false },
   });
 
   if (result.count > 0) {
-    logger.info(`[cron] Calendar auto-close: window closed for ${year}-${String(month).padStart(2, '0')}.`);
+    logger.info(`[cron] Calendar auto-close: window closed for ${ist.year}-${String(ist.month).padStart(2, '0')}.`);
   }
 }
 

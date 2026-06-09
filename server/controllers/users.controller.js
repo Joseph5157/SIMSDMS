@@ -180,9 +180,14 @@ async function updateProfile(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
+  const updateData = { ...req.body };
+  if (updateData.role && updateData.role !== user.role) {
+    updateData.session_version = { increment: 1 };
+  }
+
   const updated = await prisma.user.update({
     where: { id: targetId },
-    data: req.body,
+    data: updateData,
   });
 
   res.json(safeUser(updated));
@@ -204,7 +209,7 @@ async function deactivateUser(req, res) {
 
   const updated = await prisma.user.update({
     where: { id: req.params.id },
-    data: { status: 'inactive' },
+    data: { status: 'inactive', session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -237,7 +242,7 @@ async function reactivateUser(req, res) {
 
   const updated = await prisma.user.update({
     where: { id: req.params.id },
-    data: { status: 'active' },
+    data: { status: 'active', session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -266,7 +271,7 @@ async function deleteUser(req, res) {
 
   const deleted = await prisma.user.update({
     where: { id: req.params.id },
-    data: { deleted_at: new Date() },
+    data: { deleted_at: new Date(), session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -345,11 +350,11 @@ async function resetUserLogin(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
-  // Clear account lock and delete all unexpired OTP sessions
+  // Clear account lock, invalidate existing sessions, and delete all unexpired OTP sessions
   await Promise.all([
     prisma.user.update({
       where: { id: req.params.id },
-      data: { otp_failed_attempts: 0 },
+      data: { otp_failed_attempts: 0, session_version: { increment: 1 } },
     }),
     prisma.otpSession.deleteMany({
       where: { user_id: req.params.id, verified: false },
@@ -386,7 +391,7 @@ async function hardDelete(req, res) {
       return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Super Admin cannot be hard deleted.' });
     }
     // Soft-delete only for users (preserves relational integrity with violations/audit logs)
-    await prisma.user.update({ where: { id }, data: { deleted_at: new Date() } });
+    await prisma.user.update({ where: { id }, data: { deleted_at: new Date(), session_version: { increment: 1 } } });
   } else if (resource === 'student') {
     const student = await prisma.student.findUnique({ where: { id } });
     if (!student) {
