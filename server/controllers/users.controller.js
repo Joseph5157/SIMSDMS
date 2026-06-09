@@ -37,7 +37,7 @@ async function createUser(req, res) {
   const { name, email, role, department, designation, phone, telegram_id } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+  if (existing && !existing.deleted_at) {
     return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
   }
 
