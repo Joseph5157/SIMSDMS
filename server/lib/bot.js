@@ -76,7 +76,7 @@ async function handleWebhook(req, res) {
 
     if (result.success) {
       const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
-      replyText = `Welcome ${result.user.name}! Your SIMS DMS account is now active. Visit ${appUrl} to log in. Enter your Telegram ID when prompted.`;
+      replyText = `Welcome ${result.user.name}! Your SIMS DMS account is now active. Visit ${appUrl} and login with your email. You'll receive an OTP here in Telegram.`;
       logger.info(`[TELEGRAM] Account activated: ${result.user.id} (${result.user.email})`);
     } else if (result.error === 'ALREADY_LINKED') {
       replyText =
