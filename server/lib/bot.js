@@ -28,53 +28,48 @@ async function handleWebhook(req, res) {
     const token = inviteMatch[1];
 
     // Process the activation with row-level locking
-    const result = await prisma.$transaction(
-      async (tx) => {
-        // Step 1: Find user with valid invite token (row-level lock with SELECT FOR UPDATE)
-        const user = await tx.$queryRaw`
-          SELECT id, name, email, status, telegram_id
-          FROM users
-          WHERE telegram_invite_token = ${token}
-          AND telegram_invite_expires_at > NOW()
-          FOR UPDATE
-        `;
+    const result = await prisma.$transaction(async (tx) => {
+      // Step 1: Find user with valid invite token (row-level lock with SELECT FOR UPDATE)
+      const user = await tx.$queryRaw`
+        SELECT id, name, email, status, telegram_id
+        FROM users
+        WHERE telegram_invite_token = ${token}
+        AND telegram_invite_expires_at > NOW()
+        FOR UPDATE
+      `;
 
-        if (!user || user.length === 0) {
-          return { success: false, error: 'INVALID_TOKEN' };
-        }
-
-        const targetUser = user[0];
-
-        // Step 2: Check if this Telegram ID is already linked to another account
-        const existingUser = await tx.$queryRaw`
-          SELECT id FROM users
-          WHERE telegram_id = ${chatId}
-          AND id != ${targetUser.id}
-          LIMIT 1
-        `;
-
-        if (existingUser && existingUser.length > 0) {
-          return { success: false, error: 'ALREADY_LINKED' };
-        }
-
-        // Step 3: Update the user atomically
-        await tx.user.update({
-          where: { id: targetUser.id },
-          data: {
-            telegram_id: chatId,
-            telegram_verified: true,
-            status: 'active',
-            telegram_invite_token: null,
-            telegram_invite_expires_at: null,
-          },
-        });
-
-        return { success: true, user: targetUser };
-      },
-      {
-        isolationLevel: 'Serializable', // Maximum isolation for concurrent safety
+      if (!user || user.length === 0) {
+        return { success: false, error: 'INVALID_TOKEN' };
       }
-    );
+
+      const targetUser = user[0];
+
+      // Step 2: Check if this Telegram ID is already linked to another account
+      const existingUser = await tx.$queryRaw`
+        SELECT id FROM users
+        WHERE telegram_id = ${chatId}
+        AND id != ${targetUser.id}
+        LIMIT 1
+      `;
+
+      if (existingUser && existingUser.length > 0) {
+        return { success: false, error: 'ALREADY_LINKED' };
+      }
+
+      // Step 3: Update the user atomically
+      await tx.user.update({
+        where: { id: targetUser.id },
+        data: {
+          telegram_id: chatId,
+          telegram_verified: true,
+          status: 'active',
+          telegram_invite_token: null,
+          telegram_invite_expires_at: null,
+        },
+      });
+
+      return { success: true, user: targetUser };
+    });
 
     // Step 4: Send response message based on result
     let replyText;
