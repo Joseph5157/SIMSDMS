@@ -35,6 +35,14 @@ export function useReactivateUser() {
   });
 }
 
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/users/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
 export function useResetUserLogin() {
   return useMutation({
     mutationFn: (id) => api.post(`/admin/users/${id}/reset-login`),

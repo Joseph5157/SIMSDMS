@@ -6,10 +6,10 @@ import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
-import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser } from '../../hooks/useUsers';
+import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser, useDeleteUser } from '../../hooks/useUsers';
 
 // ── ··· action menu ─────────────────────────────────────────────────────────
-function RowMenu({ user: u, onDeactivate, onReactivate }) {
+function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -20,6 +20,7 @@ function RowMenu({ user: u, onDeactivate, onReactivate }) {
   }, []);
 
   if (u.role === 'super_admin') return null;
+  const isSuperAdmin = userRole === 'super_admin';
 
   return (
     <div className="relative" ref={ref}>
@@ -46,6 +47,17 @@ function RowMenu({ user: u, onDeactivate, onReactivate }) {
               Reactivate
             </button>
           )}
+          {isSuperAdmin && (
+            <>
+              <div className="border-t border-slate-100 my-1"></div>
+              <button
+                onClick={() => { setOpen(false); onDelete(u); }}
+                className="w-full text-left px-4 py-2 text-[13px] text-red-700 hover:bg-red-50 transition-colors"
+              >
+                Delete User
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -65,6 +77,7 @@ export default function UsersPage({ user }) {
   const create     = useCreateUser();
   const deactivate = useDeactivateUser();
   const reactivate = useReactivateUser();
+  const deleteUser = useDeleteUser();
 
   async function handleDeactivate(u) {
     if (!confirm(`Deactivate ${u.name}?`)) return;
@@ -83,6 +96,16 @@ export default function UsersPage({ user }) {
       toast({ message: `${u.name} reactivated.` });
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  async function handleDelete(u) {
+    if (!confirm(`Delete ${u.name}? This action cannot be undone.`)) return;
+    try {
+      await deleteUser.mutateAsync(u.id);
+      toast({ message: `${u.name} deleted.` });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed to delete user.', type: 'error' });
     }
   }
 
@@ -175,8 +198,10 @@ export default function UsersPage({ user }) {
               <Td>
                 <RowMenu
                   user={u}
+                  userRole={user.role}
                   onDeactivate={handleDeactivate}
                   onReactivate={handleReactivate}
+                  onDelete={handleDelete}
                 />
               </Td>
             </tr>

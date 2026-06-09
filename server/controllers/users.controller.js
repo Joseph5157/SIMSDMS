@@ -211,6 +211,35 @@ async function reactivateUser(req, res) {
   res.json(safeUser(updated));
 }
 
+// ─── DELETE /users/:id — Super Admin only ────────────────────────────────────
+
+async function deleteUser(req, res) {
+  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+  if (!user || user.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
+  }
+  if (user.role === 'super_admin') {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Super Admin cannot be deleted.' });
+  }
+  if (user.id === req.user.id) {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You cannot delete yourself.' });
+  }
+
+  const deleted = await prisma.user.update({
+    where: { id: req.params.id },
+    data: { deleted_at: new Date() },
+  });
+
+  await logAction({
+    actorId: req.user.id,
+    action: 'DELETE_USER',
+    targetId: user.id,
+    targetType: 'user',
+  });
+
+  res.json(safeUser(deleted));
+}
+
 // ─── GET /users/pending — Admin/Super Admin ───────────────────────────────────
 
 async function getPendingUsers(req, res) {
@@ -408,6 +437,7 @@ module.exports = {
   updateProfile,
   deactivateUser,
   reactivateUser,
+  deleteUser,
   getAuditLogs,
   resetUserLogin,
   hardDelete,
