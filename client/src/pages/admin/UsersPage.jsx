@@ -206,10 +206,10 @@ export default function UsersPage({ user }) {
         onSubmit={async (form, callback) => {
           try {
             const response = await create.mutateAsync(form);
-            if (response.invite_link) {
+            if (response.data?.invite_link) {
               // Invite link was generated
               toast({ message: 'User created. Invite link generated.' });
-              callback(response);
+              callback(response.data);
             } else {
               // Account was immediately activated
               toast({ message: 'User created and activated.' });
