@@ -157,17 +157,18 @@ export default function Sidebar({ user }) {
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 10px',
+              padding: '8px 10px',
               borderRadius: 8,
-              border: 'none',
-              background: 'none',
+              border: '1px solid #dc2626/30',
+              backgroundColor: '#7f1d1d',
               cursor: 'pointer',
               fontSize: 12,
-              color: '#64748b',
+              color: '#fecaca',
+              fontWeight: 500,
               transition: 'all 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1e293b'; e.currentTarget.style.color = '#ef4444'; }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#dc2626'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#7f1d1d'; e.currentTarget.style.color = '#fecaca'; }}
           >
             <LogOut size={13} strokeWidth={2} />
             Log out
