@@ -10,8 +10,7 @@ node_modules/
 dist/
 build/
 
-# Prisma generated
-prisma/migrations/
+# Prisma generated (migrations MUST be committed to git)
 
 # Logs
 logs/
