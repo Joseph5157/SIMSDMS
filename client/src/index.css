@@ -2,9 +2,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* ── Vaul drawer styles ── */
-@import "vaul/style.css";
-
 /* ── Fonts ── */
 @import "@fontsource/dm-sans/400.css";
 @import "@fontsource/dm-sans/500.css";

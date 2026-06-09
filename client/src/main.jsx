@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource/dm-sans/400.css'
 import '@fontsource/dm-sans/600.css'
 import '@fontsource/dm-mono/400.css'
+import 'vaul/style.css'
 import './index.css'
 import App from './App.jsx'
 
