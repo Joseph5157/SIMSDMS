@@ -67,6 +67,11 @@ app.use(cors({
 app.use(express.json()); // Need to parse JSON for webhook
 app.use('/bot', botRoutes);
 
+// ─── Health (MUST be before global rate limiter to avoid rate limiting) ───────
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === 'development' ? 10000 : 100,
@@ -78,16 +83,6 @@ app.use(globalLimiter);
 
 // ─── Parsing ─────────────────────────────────────────────────────────────────
 app.use(cookieParser());
-
-// ─── Logging ─────────────────────────────────────────────────────────────────
-app.use(morgan('dev', {
-  stream: { write: (msg) => logger.http(msg.trim()) },
-}));
-
-// ─── Health ──────────────────────────────────────────────────────────────────
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
