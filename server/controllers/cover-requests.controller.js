@@ -37,36 +37,65 @@ async function createCoverRequest(req, res) {
   });
   const maxAllowed = config?.max_cover_requests_per_slot ?? 3;
 
-  const openCount = await prisma.coverRequest.count({
-    where: { duty_slot_id, status: 'open' },
-  });
-  if (openCount >= maxAllowed) {
-    return res.status(409).json({
-      error: true,
-      code: 'MAX_REQUESTS_REACHED',
-      message: `This slot already has the maximum number of open cover requests (${maxAllowed}).`,
-    });
-  }
-
   const cfg = await settingsService.getSettings();
   const coverTtlMs = cfg.cover_ttl_hours * 60 * 60 * 1000;
 
-  const coverRequest = await prisma.coverRequest.create({
-    data: {
-      duty_slot_id,
-      requested_by: req.user.id,
-      reason:       reason ?? null,
-      expires_at:   new Date(Date.now() + coverTtlMs),
-    },
-    include: COVER_INCLUDE,
-  });
+  try {
+    const coverRequest = await prisma.$transaction(async (tx) => {
+      // Check open count inside transaction to prevent race conditions
+      const openCount = await tx.coverRequest.count({
+        where: { duty_slot_id, status: 'open' },
+      });
 
-  await prisma.dutySlot.update({
-    where: { id: duty_slot_id },
-    data:  { status: 'cover_pending' },
-  });
+      if (openCount >= maxAllowed) {
+        throw {
+          code: 'MAX_REQUESTS_REACHED',
+          message: `This slot already has the maximum number of open cover requests (${maxAllowed}).`,
+        };
+      }
 
-  res.status(201).json(coverRequest);
+      // Create the cover request atomically
+      const newRequest = await tx.coverRequest.create({
+        data: {
+          duty_slot_id,
+          requested_by: req.user.id,
+          reason: reason ?? null,
+          expires_at: new Date(Date.now() + coverTtlMs),
+        },
+        include: COVER_INCLUDE,
+      });
+
+      // Update slot status atomically
+      await tx.dutySlot.update({
+        where: { id: duty_slot_id },
+        data: { status: 'cover_pending' },
+      });
+
+      return newRequest;
+    });
+
+    res.status(201).json(coverRequest);
+  } catch (err) {
+    // Handle Prisma P2002 unique constraint violation (duplicate open request)
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        error: true,
+        code: 'COVER_REQUEST_EXISTS',
+        message: 'An open cover request already exists for this duty slot.',
+      });
+    }
+
+    // Handle transaction-thrown validation errors
+    if (err.code === 'MAX_REQUESTS_REACHED') {
+      return res.status(409).json({
+        error: true,
+        code: 'MAX_REQUESTS_REACHED',
+        message: err.message,
+      });
+    }
+
+    throw err;
+  }
 }
 
 // ─── GET /cover-requests — Admin ──────────────────────────────────────────────

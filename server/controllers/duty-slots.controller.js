@@ -150,43 +150,64 @@ async function pickSlot(req, res) {
     });
   }
 
-  // Check faculty hasn't reached their session limit for the month
-  const pickedCount = await prisma.dutySlot.count({
-    where: { faculty_id: req.user.id, duty_date: monthDateRange(year, month) },
-  });
+  // CRITICAL: Use transaction to prevent race conditions on limit check + slot creation
+  try {
+    const slot = await prisma.$transaction(async (tx) => {
+      // Check faculty hasn't reached their session limit for the month (inside transaction)
+      const pickedCount = await tx.dutySlot.count({
+        where: { faculty_id: req.user.id, duty_date: monthDateRange(year, month) },
+      });
 
-  if (pickedCount >= config.sessions_per_faculty) {
-    return res.status(409).json({
-      error: true,
-      code: 'LIMIT_REACHED',
-      message: `You have already picked ${config.sessions_per_faculty} slot(s) for this month.`,
+      if (pickedCount >= config.sessions_per_faculty) {
+        throw { code: 'LIMIT_REACHED', message: `You have already picked ${config.sessions_per_faculty} slot(s) for this month.` };
+      }
+
+      // Check slot isn't already taken (inside transaction)
+      const existing = await tx.dutySlot.findFirst({
+        where: { duty_date: date, session_type },
+      });
+
+      if (existing) {
+        throw { code: 'SLOT_TAKEN', message: 'That slot has already been picked by another faculty member.' };
+      }
+
+      // Create slot atomically
+      const newSlot = await tx.dutySlot.create({
+        data: {
+          faculty_id: req.user.id,
+          duty_date: date,
+          session_type,
+          created_by: req.user.id,
+        },
+        select: SLOT_SELECT,
+      });
+
+      return newSlot;
     });
+
+    res.status(201).json(slot);
+  } catch (err) {
+    // Handle Prisma duplicate key error (P2002) - slot taken by concurrent request
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        error: true,
+        code: 'SLOT_TAKEN',
+        message: 'That slot has already been picked by another faculty member. Please refresh and try another slot.',
+      });
+    }
+
+    // Handle transaction-thrown conflict errors
+    if (err.code === 'LIMIT_REACHED' || err.code === 'SLOT_TAKEN') {
+      return res.status(409).json({
+        error: true,
+        code: err.code,
+        message: err.message,
+      });
+    }
+
+    // Unexpected error
+    throw err;
   }
-
-  // Check slot isn't already taken
-  const existing = await prisma.dutySlot.findFirst({
-    where: { duty_date: date, session_type },
-  });
-
-  if (existing) {
-    return res.status(409).json({
-      error: true,
-      code: 'SLOT_TAKEN',
-      message: 'That slot has already been picked by another faculty member.',
-    });
-  }
-
-  const slot = await prisma.dutySlot.create({
-    data: {
-      faculty_id: req.user.id,
-      duty_date: date,
-      session_type,
-      created_by: req.user.id,
-    },
-    select: SLOT_SELECT,
-  });
-
-  res.status(201).json(slot);
 }
 
 // ─── DELETE /duty-slots/:id/unpick ────────────────────────────────────────────
