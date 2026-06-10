@@ -20,10 +20,27 @@ export default defineConfig({
         skipWaiting: true,
         clientsClaim: true,
         // Precache only static build assets (JS, CSS, HTML, fonts, images).
-        // API responses are NEVER cached — auth cookies, user data, violations,
-        // attendance, messages, and reports must always come from the network.
-        // Caching these on shared devices would expose sensitive information.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Runtime caching — allowlist only. /violation-types and /calendar are
+        // safe to cache: role-agnostic, non-sensitive GET responses.
+        // /auth /users /messages /attendance and all other paths are never cached.
+        // urlPattern must be a function — Workbox matches against the full URL
+        // (https://host/path), so a regex anchored to / never matches.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              ['/violation-types', '/calendar'].some(p => url.pathname.startsWith(p)),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'sims-api-safe',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 3600,
+              },
+              networkTimeoutSeconds: 5,
+            },
+          },
+        ],
       },
       devOptions: { enabled: false },
     }),
