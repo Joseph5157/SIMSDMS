@@ -220,8 +220,11 @@ async function verifyOtp(req, res) {
       });
     }
 
+    // Get current session_version for JWT (default to 0 if not set)
+    const sessionVersion = user.session_version ?? 0;
+
     const token = jwt.sign(
-      { sub: user.id, role: user.role },
+      { sub: user.id, role: user.role, session_version: sessionVersion },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
     );

@@ -227,7 +227,7 @@ async function deactivateUser(req, res) {
 
   const updated = await prisma.user.update({
     where: { id: req.params.id },
-    data: { status: 'inactive' },
+    data: { status: 'inactive', session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -260,7 +260,7 @@ async function reactivateUser(req, res) {
 
   const updated = await prisma.user.update({
     where: { id: req.params.id },
-    data: { status: 'active' },
+    data: { status: 'active', session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -289,7 +289,7 @@ async function deleteUser(req, res) {
 
   const deleted = await prisma.user.update({
     where: { id: req.params.id },
-    data: { deleted_at: new Date() },
+    data: { deleted_at: new Date(), session_version: { increment: 1 } },
   });
 
   await logAction({
@@ -383,6 +383,7 @@ async function resetUserLogin(req, res) {
         status: 'pending_telegram',
         telegram_invite_token: token,
         telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        session_version: { increment: 1 },
       },
     }),
     prisma.otpSession.deleteMany({
