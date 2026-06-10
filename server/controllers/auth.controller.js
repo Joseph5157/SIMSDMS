@@ -4,27 +4,11 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const telegram = require('../lib/telegram');
 const logger = require('../lib/logger');
+const { authCookieOptions, csrfCookieOptions } = require('../lib/cookieOptions');
 
 const OTP_TTL_MS = 5 * 60 * 1000;        // 5 minutes
 const MAX_ATTEMPTS = 5;                   // Account-level lock threshold
 const OTP_COOLDOWN_MS = 60 * 1000;        // 60-second cooldown between requests
-
-// Parse JWT_EXPIRES_IN (e.g. "7d", "24h") into milliseconds for the cookie
-function parseExpiryMs(expiresIn) {
-  const match = String(expiresIn || '7d').match(/^(\d+)([dhms])$/);
-  if (!match) return 7 * 24 * 60 * 60 * 1000;
-  const n = parseInt(match[1], 10);
-  return n * { d: 86400000, h: 3600000, m: 60000, s: 1000 }[match[2]];
-}
-
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  };
-}
 
 // ─── POST /auth/request-otp ───────────────────────────────────────────────────
 
@@ -229,7 +213,7 @@ async function verifyOtp(req, res) {
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
     );
 
-    res.cookie('sims_token', token, cookieOptions());
+    res.cookie('sims_token', token, authCookieOptions());
 
     res.json({
       id: user.id,

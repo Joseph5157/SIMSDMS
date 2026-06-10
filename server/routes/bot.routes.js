@@ -13,17 +13,43 @@ const router = express.Router();
 router.post('/webhook/:secret', (req, res, next) => {
   const { secret } = req.params;
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const xTelegramSecret = req.get('X-Telegram-Bot-Api-Secret-Token');
 
   // Validate secret using timing-safe comparison
-  if (!expectedSecret || !secret) {
-    logger.warn('[BOT] Missing webhook secret');
+  if (!expectedSecret) {
+    logger.warn('[BOT] TELEGRAM_WEBHOOK_SECRET not configured');
     return res.status(403).json({ error: 'Forbidden' });
   }
 
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(secret),
-    Buffer.from(expectedSecret)
-  );
+  // Check both URL secret and X-Telegram-Bot-Api-Secret-Token header
+  // (Telegram v6.9+ sends the token in the header as well)
+  let isValid = false;
+
+  // Length-safe comparison: ensure both buffers are same length before comparing
+  if (secret) {
+    const secretBuffer = Buffer.from(secret);
+    const expectedBuffer = Buffer.from(expectedSecret);
+    if (secretBuffer.length === expectedBuffer.length) {
+      try {
+        isValid = crypto.timingSafeEqual(secretBuffer, expectedBuffer);
+      } catch (err) {
+        isValid = false;
+      }
+    }
+  }
+
+  // Also check header-based secret if URL secret failed
+  if (!isValid && xTelegramSecret) {
+    const headerBuffer = Buffer.from(xTelegramSecret);
+    const expectedBuffer = Buffer.from(expectedSecret);
+    if (headerBuffer.length === expectedBuffer.length) {
+      try {
+        isValid = crypto.timingSafeEqual(headerBuffer, expectedBuffer);
+      } catch (err) {
+        isValid = false;
+      }
+    }
+  }
 
   if (!isValid) {
     logger.warn('[BOT] Invalid webhook secret provided');
