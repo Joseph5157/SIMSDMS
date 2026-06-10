@@ -31,8 +31,11 @@ router.post('/webhook/:secret', (req, res, next) => {
   const pathSecret = req.params.secret;
   const headerSecret = req.headers['x-telegram-bot-api-secret-token'];
 
-  // Accept if either the path secret or the Telegram header matches
-  const valid = secretsMatch(pathSecret, expectedSecret) || secretsMatch(headerSecret, expectedSecret);
+  // Header is the primary mechanism (Telegram ≥6.9 sends X-Telegram-Bot-Api-Secret-Token).
+  // Path secret is kept as a fallback only for the currently registered webhook URL.
+  // TODO: re-register the webhook with secret_token and a static /bot/webhook path,
+  // then remove the pathSecret fallback and the /:secret route parameter.
+  const valid = secretsMatch(headerSecret, expectedSecret) || secretsMatch(pathSecret, expectedSecret);
 
   if (!valid) {
     logger.warn('[BOT] Invalid webhook secret');

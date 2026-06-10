@@ -64,6 +64,16 @@ app.use(cors({
   credentials: true,
 }));
 
+// ─── HTTP access logging ─────────────────────────────────────────────────────
+// Custom token redacts the webhook secret from the URL path so it never appears
+// in log files. /bot/webhook/SECRETTOKEN → /bot/webhook/[redacted]
+morgan.token('url-safe', (req) =>
+  (req.originalUrl || req.url).replace(/^(\/bot\/webhook\/)[^/?#]+/, '$1[redacted]')
+);
+app.use(morgan(':method :url-safe :status :res[content-length] - :response-time ms', {
+  stream: { write: (msg) => logger.info(msg.trim()) },
+}));
+
 // ─── Telegram Bot Webhook (MUST be before global rate limiter) ────────────────
 app.use(express.json()); // Need to parse JSON for webhook
 app.use('/bot', botRoutes);
