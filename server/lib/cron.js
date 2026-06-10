@@ -89,4 +89,4 @@ function startCronJobs() {
   logger.info('[cron] All scheduled jobs registered.');
 }
 
-module.exports = { startCronJobs };
+module.exports = { startCronJobs, autoClockOut };
