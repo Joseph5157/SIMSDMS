@@ -288,9 +288,9 @@ async function assignSlots(req, res) {
 
   const { slots } = req.body;
 
-  // Detect duplicates within the request
+  // Phase 2: Detect duplicates within the request
   const seen = new Set();
-  const created = [];
+  const slotsToCreate = [];
   const skipped = [];
 
   for (const slot of slots) {
@@ -300,46 +300,83 @@ async function assignSlots(req, res) {
       continue;
     }
     seen.add(key);
-
-    // Check if this slot already exists for this faculty
-    const existing = await prisma.dutySlot.findFirst({
-      where: {
-        faculty_id: facultyId,
-        duty_date: new Date(slot.duty_date),
-        session_type: slot.session_type,
-      },
-    });
-
-    if (existing) {
-      skipped.push({ ...slot, reason: 'Slot already assigned.' });
-      continue;
-    }
-
-    const created_slot = await prisma.dutySlot.create({
-      data: {
-        faculty_id: facultyId,
-        duty_date: new Date(slot.duty_date),
-        session_type: slot.session_type,
-        created_by: req.user.id,
-      },
-    });
-    created.push(created_slot);
+    slotsToCreate.push(slot);
   }
 
-  await logAction({
-    actorId: req.user.id,
-    action: 'ADMIN_ASSIGN_SLOTS',
-    targetId: facultyId,
-    targetType: 'user',
-    metadata: { year, month, created_count: created.length, skipped_count: skipped.length },
-  });
+  // Phase 2: Use batch transaction for atomic creation with global conflict detection
+  try {
+    const { created, conflicted } = await prisma.$transaction(async (tx) => {
+      const createdSlots = [];
+      const conflictedSlots = [];
 
-  res.status(201).json({
-    created_count: created.length,
-    skipped_count: skipped.length,
-    created,
-    skipped,
-  });
+      // Phase 2: Global conflict check - check if ANY of these slots exist (not just for this faculty)
+      const existingSlots = await tx.dutySlot.findMany({
+        where: {
+          OR: slotsToCreate.map((slot) => ({
+            duty_date: new Date(slot.duty_date),
+            session_type: slot.session_type,
+          })),
+        },
+        select: { duty_date: true, session_type: true },
+      });
+
+      const existingSet = new Set(
+        existingSlots.map((s) => `${s.duty_date.toISOString().slice(0, 10)}|${s.session_type}`)
+      );
+
+      // Batch create all non-conflicting slots
+      for (const slot of slotsToCreate) {
+        const key = `${new Date(slot.duty_date).toISOString().slice(0, 10)}|${slot.session_type}`;
+
+        if (existingSet.has(key)) {
+          conflictedSlots.push({ ...slot, reason: 'Slot already assigned globally.' });
+          continue;
+        }
+
+        const createdSlot = await tx.dutySlot.create({
+          data: {
+            faculty_id: facultyId,
+            duty_date: new Date(slot.duty_date),
+            session_type: slot.session_type,
+            created_by: req.user.id,
+          },
+        });
+        createdSlots.push(createdSlot);
+      }
+
+      return { created: createdSlots, conflicted: conflictedSlots };
+    });
+
+    // Combine all skipped/conflicted slots for response
+    const allSkipped = [...skipped, ...conflicted];
+
+    await logAction({
+      actorId: req.user.id,
+      action: 'ADMIN_ASSIGN_SLOTS',
+      targetId: facultyId,
+      targetType: 'user',
+      metadata: { year, month, created_count: created.length, skipped_count: allSkipped.length },
+    });
+
+    res.status(201).json({
+      created_count: created.length,
+      skipped_count: allSkipped.length,
+      created,
+      skipped: allSkipped,
+    });
+  } catch (err) {
+    // Handle Prisma duplicate key error (P2002) - should be rare with transaction
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        error: true,
+        code: 'SLOT_CONFLICT',
+        message: 'One or more slots are already assigned. Please refresh and try again.',
+      });
+    }
+
+    // Unexpected error
+    throw err;
+  }
 }
 
 module.exports = {

@@ -223,6 +223,15 @@ async function unpickSlot(req, res) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only unpick your own slots.' });
   }
 
+  // Phase 2: Block unpick if status is not 'scheduled'
+  if (slot.status !== 'scheduled') {
+    return res.status(409).json({
+      error: true,
+      code: 'INVALID_SLOT_STATUS',
+      message: `Cannot unpick a slot with status '${slot.status}'. Only 'scheduled' slots can be unpicked.`,
+    });
+  }
+
   const year = slot.duty_date.getFullYear();
   const month = slot.duty_date.getMonth() + 1;
 
@@ -248,6 +257,18 @@ async function unpickSlot(req, res) {
     });
   }
 
+  // Phase 2: Block unpick if there are violations recorded for this slot
+  const violations = await prisma.violation.findFirst({
+    where: { duty_slot_id: slot.id },
+  });
+  if (violations) {
+    return res.status(409).json({
+      error: true,
+      code: 'VIOLATIONS_EXIST',
+      message: 'Cannot unpick a slot with recorded violations.',
+    });
+  }
+
   await prisma.dutySlot.delete({ where: { id: slot.id } });
 
   res.json({ message: 'Slot unpicked successfully.' });
@@ -265,29 +286,55 @@ async function adminAssign(req, res) {
 
   const date = new Date(duty_date);
 
-  const existing = await prisma.dutySlot.findFirst({
-    where: { duty_date: date, session_type },
-  });
+  // Phase 2: Use transaction to prevent race condition on unique constraint
+  try {
+    const slot = await prisma.$transaction(async (tx) => {
+      // Check if slot is already assigned (inside transaction)
+      const existing = await tx.dutySlot.findFirst({
+        where: { duty_date: date, session_type },
+      });
 
-  if (existing) {
-    return res.status(409).json({
-      error: true,
-      code: 'SLOT_TAKEN',
-      message: 'That slot is already assigned to another faculty member.',
+      if (existing) {
+        throw { code: 'SLOT_TAKEN', message: 'That slot is already assigned to another faculty member.' };
+      }
+
+      // Create slot atomically
+      const newSlot = await tx.dutySlot.create({
+        data: {
+          faculty_id,
+          duty_date: date,
+          session_type,
+          created_by: req.user.id,
+        },
+        select: SLOT_SELECT,
+      });
+
+      return newSlot;
     });
+
+    res.status(201).json(slot);
+  } catch (err) {
+    // Handle Prisma unique constraint error (P2002) - slot taken by concurrent request
+    if (err.code === 'P2002') {
+      return res.status(409).json({
+        error: true,
+        code: 'SLOT_TAKEN',
+        message: 'That slot is already assigned to another faculty member. Please refresh and try again.',
+      });
+    }
+
+    // Handle transaction-thrown conflict errors
+    if (err.code === 'SLOT_TAKEN') {
+      return res.status(409).json({
+        error: true,
+        code: err.code,
+        message: err.message,
+      });
+    }
+
+    // Unexpected error
+    throw err;
   }
-
-  const slot = await prisma.dutySlot.create({
-    data: {
-      faculty_id,
-      duty_date: date,
-      session_type,
-      created_by: req.user.id,
-    },
-    select: SLOT_SELECT,
-  });
-
-  res.status(201).json(slot);
 }
 
 // ─── GET /duty-slots/:id ──────────────────────────────────────────────────────
