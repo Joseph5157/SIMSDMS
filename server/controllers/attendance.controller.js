@@ -1,21 +1,21 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
-const { nowInIST, istDayRangeUTC, isSlotToday, istWallToUTC } = require('../lib/time');
+const { nowInIST, istDayRangeUTC, isSlotToday } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Calculates in_status ('normal' or 'late') against the configured IST threshold.
-async function resolveInStatus(sessionType) {
-  const cfg = await settingsService.getSettings();
-  const thresholdHour   = sessionType === 'morning'
+// Calculates in_status ('normal' or 'late') by comparing current IST hour/minute
+// directly against the configured threshold — no server TZ dependency.
+// Accepts cfg so the caller can share one settings fetch across window + late checks.
+function resolveInStatus(sessionType, cfg) {
+  const thresholdHour = sessionType === 'morning'
     ? cfg.late_threshold_morning_hour
     : cfg.late_threshold_afternoon_hour;
-  const thresholdMinute = sessionType === 'morning'
+  const thresholdMin  = sessionType === 'morning'
     ? cfg.late_threshold_morning_min
     : cfg.late_threshold_afternoon_min;
-  const ist        = nowInIST();
-  const threshold  = istWallToUTC(ist.year, ist.month, ist.day, thresholdHour, thresholdMinute);
-  return new Date() > threshold ? 'late' : 'normal';
+  const ist = nowInIST();
+  return ist.hour * 60 + ist.minute > thresholdHour * 60 + thresholdMin ? 'late' : 'normal';
 }
 
 // Fetches the duty slot and verifies the requesting faculty is either the
@@ -47,6 +47,28 @@ async function checkIn(req, res) {
     });
   }
 
+  // Session-window enforcement (ISSUE-04): reject if current IST time is more than
+  // 30 minutes before session start or after the configured auto-checkout time.
+  const cfg = await settingsService.getSettings();
+  const ist = nowInIST();
+  const nowMins = ist.hour * 60 + ist.minute;
+  const startHour = slot.session_type === 'morning'
+    ? cfg.session_start_morning_hour
+    : cfg.session_start_afternoon_hour;
+  const startMin  = slot.session_type === 'morning'
+    ? cfg.session_start_morning_min
+    : cfg.session_start_afternoon_min;
+  const windowOpenMins  = Math.max(0, startHour * 60 + startMin - 30);
+  const windowCloseMins = cfg.auto_checkout_hour * 60 + cfg.auto_checkout_min;
+
+  if (nowMins < windowOpenMins || nowMins > windowCloseMins) {
+    return res.status(409).json({
+      error: true,
+      code: 'OUTSIDE_SESSION_WINDOW',
+      message: 'Check-in is not allowed outside your duty session window.',
+    });
+  }
+
   const existing = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
 
   if (existing?.in_time) {
@@ -57,7 +79,7 @@ async function checkIn(req, res) {
     });
   }
 
-  const in_status = await resolveInStatus(slot.session_type);
+  const in_status = resolveInStatus(slot.session_type, cfg);
 
   // faculty_id is the actual performer (covering faculty if covered, original if not)
   let attendance;

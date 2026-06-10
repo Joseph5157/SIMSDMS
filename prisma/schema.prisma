@@ -393,6 +393,10 @@ model SystemConfig {
   auto_checkout_hour           Int      @default(16) @db.SmallInt
   auto_checkout_min            Int      @default(30) @db.SmallInt
   cover_ttl_hours              Int      @default(48) @db.SmallInt
+  session_start_morning_hour   Int      @default(8)  @db.SmallInt
+  session_start_morning_min    Int      @default(0)  @db.SmallInt
+  session_start_afternoon_hour Int      @default(13) @db.SmallInt
+  session_start_afternoon_min  Int      @default(0)  @db.SmallInt
   updated_by                   String?
   updated_at                   DateTime @updatedAt
 

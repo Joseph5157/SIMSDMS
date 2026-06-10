@@ -379,6 +379,10 @@ Version 2.1 | PostgreSQL | Prisma ORM
 | auto_checkout_hour | SMALLINT | IST hour for the daily auto clock-out cron (default: 16) |
 | auto_checkout_min | SMALLINT | IST minute for the daily auto clock-out cron (default: 30) |
 | cover_ttl_hours | SMALLINT | Hours before an open cover request auto-expires (default: 48) |
+| session_start_morning_hour | SMALLINT | IST hour when the morning duty session starts — window opens 30 min before (default: 8) |
+| session_start_morning_min | SMALLINT | IST minute component of morning session start (default: 0) |
+| session_start_afternoon_hour | SMALLINT | IST hour when the afternoon duty session starts — window opens 30 min before (default: 13) |
+| session_start_afternoon_min | SMALLINT | IST minute component of afternoon session start (default: 0) |
 | updated_by | UUID → users | Last Admin/Super Admin who updated settings (nullable) |
 | updated_at | TIMESTAMPTZ | Auto-updated on change |
 

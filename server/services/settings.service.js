@@ -11,6 +11,10 @@ const DEFAULTS = {
   auto_checkout_hour:            16,
   auto_checkout_min:             30,
   cover_ttl_hours:               48,
+  session_start_morning_hour:    8,
+  session_start_morning_min:     0,
+  session_start_afternoon_hour:  13,
+  session_start_afternoon_min:   0,
 };
 
 // Returns the single SystemConfig row, creating it with defaults if absent.
