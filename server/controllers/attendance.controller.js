@@ -1,16 +1,8 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
+const { isToday, getTodayStartUTC, getTodayEndUTC } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function isToday(date) {
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth()    === now.getMonth() &&
-    date.getDate()     === now.getDate()
-  );
-}
 
 async function resolveInStatus(sessionType) {
   const now = new Date();
@@ -28,7 +20,8 @@ async function findSlotForFaculty(slotId, facultyId, res) {
     res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
     return null;
   }
-  if (slot.faculty_id !== facultyId) {
+  // Phase 4: Allow faculty to access their own slot OR a slot they're covering
+  if (slot.faculty_id !== facultyId && slot.covered_by !== facultyId) {
     res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'This is not your duty slot.' });
     return null;
   }
@@ -121,14 +114,15 @@ async function checkOut(req, res) {
 // ─── GET /attendance/live ─────────────────────────────────────────────────────
 
 async function getLive(req, res) {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  // Phase 4: Use IST dates for today's boundaries
+  const todayStart = getTodayStartUTC();
+  const todayEnd = getTodayEndUTC();
 
   const slots = await prisma.dutySlot.findMany({
     where: { duty_date: { gte: todayStart, lte: todayEnd } },
     include: {
       faculty: { select: { id: true, name: true, email: true, department: true } },
+      coveringFaculty: { select: { id: true, name: true, email: true, department: true } },
       attendance: true,
     },
     orderBy: [{ session_type: 'asc' }, { faculty: { name: 'asc' } }],
@@ -137,6 +131,10 @@ async function getLive(req, res) {
   const result = slots.map((s) => ({
     slot_id: s.id,
     faculty: s.faculty,
+    // Phase 4: Expose covering_faculty if slot is covered
+    covering_faculty: s.coveringFaculty ?? null,
+    // Phase 4: Expose performed_by (who is actually doing the duty)
+    performed_by_id: s.covered_by ?? s.faculty_id,
     duty_date: s.duty_date,
     session_type: s.session_type,
     slot_status: s.status,
@@ -153,6 +151,7 @@ async function getLive(req, res) {
   }));
 
   const pad = (n) => String(n).padStart(2, '0');
+  const now = new Date();
   const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
   res.json({

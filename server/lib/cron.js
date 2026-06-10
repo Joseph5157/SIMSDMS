@@ -2,15 +2,16 @@ const cron = require('node-cron');
 const prisma = require('./prisma');
 const logger = require('./logger');
 const settingsService = require('../services/settings.service');
+const { getTodayStartUTC, getTodayEndUTC } = require('./time');
 
 // All schedules use IST (Asia/Kolkata). Set TZ=Asia/Kolkata in Railway env vars.
 
 // ─── 1. Auto clock-out — daily at 4:30 PM IST ─────────────────────────────────
 
 async function autoClockOut() {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  // Phase 4: Use IST-aware date boundaries
+  const todayStart = getTodayStartUTC();
+  const todayEnd = getTodayEndUTC();
 
   // Find all duty slots today that have a check-in but no check-out
   const openAttendance = await prisma.dutyAttendance.findMany({
@@ -56,14 +57,16 @@ async function expireCoverRequests() {
 // ─── 3. Calendar auto-close — daily at midnight IST ──────────────────────────
 
 async function autoCloseCalendar() {
+  // Phase 4: Use IST-aware date to determine month boundaries
   const now = new Date();
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
+  const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000); // IST offset
+  const month = istNow.getUTCMonth() + 1;
+  const year  = istNow.getUTCFullYear();
 
-  // Last day of current month
-  const lastDay = new Date(year, month, 0).getDate();
+  // Last day of current month in IST
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
-  if (now.getDate() !== lastDay) return;
+  if (istNow.getUTCDate() !== lastDay) return;
 
   const result = await prisma.calendarConfig.updateMany({
     where: { config_month: month, config_year: year, is_window_open: true },

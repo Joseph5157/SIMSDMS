@@ -43,7 +43,8 @@ async function createViolation(req, res) {
 
   // Verify the duty slot belongs to this faculty
   const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
-  if (!slot || slot.faculty_id !== req.user.id) {
+  // Phase 4: Allow faculty OR covered_by faculty to record violations
+  if (!slot || (slot.faculty_id !== req.user.id && slot.covered_by !== req.user.id)) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record violations for your own duty slots.' });
   }
 
