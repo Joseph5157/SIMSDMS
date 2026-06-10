@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { isSlotToday } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,16 @@ async function createViolation(req, res) {
   const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
   if (!slot || (slot.faculty_id !== req.user.id && slot.covered_by !== req.user.id)) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record violations for your own duty slots.' });
+  }
+
+  // Reject unless faculty is actively on duty: slot must be today and the faculty
+  // must be checked in (in_time set) but not yet checked out (out_time null).
+  if (!isSlotToday(slot.duty_date)) {
+    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Violations can only be recorded during an active duty session.' });
+  }
+  const activeAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
+  if (!activeAttendance?.in_time || activeAttendance.out_time !== null) {
+    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Violations can only be recorded during an active duty session.' });
   }
 
   // Verify student exists and is active
