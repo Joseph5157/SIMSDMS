@@ -5,9 +5,11 @@ function parseExpiryMs(expiresIn) {
   return n * { d: 86400000, h: 3600000, m: 60000, s: 1000 }[match[2]];
 }
 
+// sameSite: 'lax' works for same-origin SPAs and top-level navigations.
+// Switch to 'none' only if the client is ever served from a different origin than the API.
 const base = () => ({
   secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  sameSite: 'lax',
 });
 
 const authCookieOptions = () => ({

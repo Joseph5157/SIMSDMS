@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
 const logger = require('../lib/logger');
+const telegram = require('../lib/telegram');
 
 const COVER_INCLUDE = {
   dutySlot: {
@@ -28,6 +29,28 @@ async function hasDutyConflict(userId, dutyDate, sessionType) {
     },
   });
   return conflict !== null;
+}
+
+// Fire-and-forget Telegram broadcast to all active faculty except excludeId.
+async function notifyFaculty(excludeId, text) {
+  const faculty = await prisma.user.findMany({
+    where: { role: 'faculty', status: 'active', deleted_at: null, telegram_id: { not: null }, id: { not: excludeId } },
+    select: { id: true, telegram_id: true },
+  });
+  for (const f of faculty) {
+    telegram.sendMessage(f.telegram_id, text).catch((err) => {
+      logger.warn(`[cover-notify] Telegram failed for faculty ${f.id}: ${err.message}`);
+    });
+  }
+}
+
+// Fire-and-forget to a single user by userId.
+async function notifyUser(userId, text) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { telegram_id: true } });
+  if (!user?.telegram_id) return;
+  telegram.sendMessage(user.telegram_id, text).catch((err) => {
+    logger.warn(`[cover-notify] Telegram failed for user ${userId}: ${err.message}`);
+  });
 }
 
 // ─── POST /cover-requests — Faculty ───────────────────────────────────────────
@@ -79,6 +102,15 @@ async function createCoverRequest(req, res) {
     });
 
     res.status(201).json(coverRequest);
+
+    // Fire-and-forget broadcast — never block or fail the response
+    const dutyDate = coverRequest.dutySlot.duty_date.toISOString().slice(0, 10);
+    notifyFaculty(req.user.id,
+      `📢 <b>Cover Request Broadcast</b>\n\n` +
+      `<b>${coverRequest.requester.name}</b> needs cover for their duty slot.\n` +
+      `📅 Date: <b>${dutyDate}</b> — ${coverRequest.dutySlot.session_type}\n\n` +
+      `Log in to SIMS DMS to volunteer if you are available.`
+    ).catch((err) => logger.warn(`[cover-notify] broadcast failed: ${err.message}`));
   } catch (err) {
     logger.error(`createCoverRequest error: ${err.message}`);
     res.status(500).json({ error: true, code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' });
@@ -226,6 +258,15 @@ async function volunteer(req, res) {
       include: COVER_INCLUDE,
     });
     res.json(updated);
+
+    // Notify requester that someone volunteered — fire-and-forget
+    const dutyDate = updated.dutySlot.duty_date.toISOString().slice(0, 10);
+    notifyUser(coverRequest.requested_by,
+      `✋ <b>Volunteer for Your Cover Request</b>\n\n` +
+      `<b>${updated.volunteer?.name ?? 'A faculty member'}</b> has volunteered to cover your duty on ` +
+      `<b>${dutyDate}</b> (${updated.dutySlot.session_type}).\n\n` +
+      `An admin will confirm the arrangement shortly.`
+    ).catch((err) => logger.warn(`[cover-notify] volunteer notify failed: ${err.message}`));
   } catch (err) {
     logger.error(`volunteer error: ${err.message}`);
     res.status(500).json({ error: true, code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' });
@@ -290,6 +331,12 @@ async function confirmCover(req, res) {
     ]);
 
     res.json(updated);
+
+    // Notify requester and volunteer that cover is confirmed — fire-and-forget
+    const dutyDate = updated.dutySlot.duty_date.toISOString().slice(0, 10);
+    const msg = `✅ <b>Cover Confirmed</b>\n\nCoverage for duty on <b>${dutyDate}</b> (${updated.dutySlot.session_type}) has been confirmed by the admin.`;
+    notifyUser(coverRequest.requested_by, msg).catch((err) => logger.warn(`[cover-notify] confirm notify failed: ${err.message}`));
+    notifyUser(coverRequest.volunteer_id,  msg).catch((err) => logger.warn(`[cover-notify] confirm notify failed: ${err.message}`));
   } catch (err) {
     logger.error(`confirmCover error: ${err.message}`);
     res.status(500).json({ error: true, code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' });

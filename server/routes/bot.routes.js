@@ -2,6 +2,7 @@ const express = require('express');
 const crypto = require('crypto');
 const { handleWebhook } = require('../lib/bot');
 const logger = require('../lib/logger');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
@@ -41,6 +42,6 @@ router.post('/webhook/:secret', (req, res, next) => {
   next();
 });
 
-router.post('/webhook/:secret', handleWebhook);
+router.post('/webhook/:secret', asyncHandler(handleWebhook));
 
 module.exports = router;

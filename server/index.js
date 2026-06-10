@@ -86,9 +86,11 @@ app.get('/health/db', async (req, res) => {
   }
 });
 
+// Global limiter — high cap, DoS backstop only. Keep the strict OTP limiter in auth.routes.js.
+// 100 req/15min would 429 every faculty on a shared NAT IP (30 users × 3 polls = ~90 req/15min).
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'development' ? 10000 : 100,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: true, code: 'RATE_LIMITED', message: 'Too many requests, please try again later.' },

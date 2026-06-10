@@ -58,9 +58,8 @@ async function expireCoverRequests() {
   }
 }
 
-// ─── 3. Calendar auto-close — daily at midnight IST ──────────────────────────
-// The cron fires at midnight IST. At that moment the UTC clock shows the
-// *previous* calendar day, so we must derive the date from IST, not UTC.
+// ─── 3. Calendar auto-close — 23:55 IST on the last day of the month ─────────
+// Fires at 23:55 IST so faculty have the full last day to pick slots.
 
 async function autoCloseCalendar() {
   const ist = nowInIST();
@@ -85,7 +84,7 @@ async function autoCloseCalendar() {
 function startCronJobs() {
   cron.schedule('30 16 * * *', autoClockOut,        { timezone: 'Asia/Kolkata' });
   cron.schedule('0  *  * * *', expireCoverRequests,  { timezone: 'Asia/Kolkata' });
-  cron.schedule('0  0  * * *', autoCloseCalendar,    { timezone: 'Asia/Kolkata' });
+  cron.schedule('55 23 * * *', autoCloseCalendar,    { timezone: 'Asia/Kolkata' });
 
   logger.info('[cron] All scheduled jobs registered.');
 }

@@ -54,4 +54,15 @@ function istWallToUTC(year, month, day, hour, minute) {
   return new Date(Date.UTC(year, month - 1, day, hour, minute) - IST_OFFSET_MS);
 }
 
-module.exports = { nowInIST, istDayRangeUTC, isSlotToday, istWallToUTC };
+/**
+ * Formats a Date as an IST date string (YYYY-MM-DD).
+ */
+function formatDateIST(date) {
+  const shifted = new Date(date.getTime() + IST_OFFSET_MS);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(shifted.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+module.exports = { nowInIST, istDayRangeUTC, isSlotToday, istWallToUTC, formatDateIST };

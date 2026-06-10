@@ -3,6 +3,7 @@ const multer = require('multer');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
+const asyncHandler = require('../middleware/asyncHandler');
 const { promoteSchema } = require('../schemas/students.schema');
 const ctrl = require('../controllers/students.controller');
 
@@ -40,22 +41,22 @@ router.post(
   authorize('admin', 'super_admin'),
   upload.single('file'),
   handleUploadError,
-  ctrl.uploadStudents,
+  asyncHandler(ctrl.uploadStudents),
 );
 
 // GET /students/upload-logs — Admin only
-router.get('/upload-logs', authorize('admin', 'super_admin'), ctrl.getUploadLogs);
+router.get('/upload-logs', authorize('admin', 'super_admin'), asyncHandler(ctrl.getUploadLogs));
 
 // GET /students/search — All Auth (autocomplete for violation form)
-router.get('/search', ctrl.searchStudents);
+router.get('/search', asyncHandler(ctrl.searchStudents));
 
 // GET /students — Admin only
-router.get('/', authorize('admin', 'super_admin'), ctrl.listStudents);
+router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listStudents));
 
 // PATCH /students/:id/promote — Admin only
-router.patch('/:id/promote', authorize('admin', 'super_admin'), validate(promoteSchema), ctrl.promoteStudent);
+router.patch('/:id/promote', authorize('admin', 'super_admin'), validate(promoteSchema), asyncHandler(ctrl.promoteStudent));
 
 // PATCH /students/:id/deactivate — Admin only
-router.patch('/:id/deactivate', authorize('admin', 'super_admin'), ctrl.deactivateStudent);
+router.patch('/:id/deactivate', authorize('admin', 'super_admin'), asyncHandler(ctrl.deactivateStudent));
 
 module.exports = router;

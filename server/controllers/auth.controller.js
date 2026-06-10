@@ -14,16 +14,13 @@ const OTP_COOLDOWN_MS = 60 * 1000;
 
 async function requestOtp(req, res) {
   try {
-    const { telegram_id } = req.body;
+    const { email } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { telegram_id: String(telegram_id) } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user || user.deleted_at) {
-      return res.status(404).json({
-        error: true,
-        code: 'USER_NOT_FOUND',
-        message: 'No active account found for that Telegram ID.',
-      });
+    // ISSUE-09: never reveal whether the account exists for unknown/inactive users
+    if (!user || user.deleted_at || user.status === 'inactive') {
+      return res.json({ message: 'If an account exists with this email, an OTP has been sent.' });
     }
 
     if (user.status === 'pending_telegram') {
@@ -35,11 +32,7 @@ async function requestOtp(req, res) {
     }
 
     if (user.status !== 'active') {
-      return res.status(404).json({
-        error: true,
-        code: 'USER_NOT_FOUND',
-        message: 'No active account found for that Telegram ID.',
-      });
+      return res.json({ message: 'If an account exists with this email, an OTP has been sent.' });
     }
 
     if (user.otp_failed_attempts >= MAX_ATTEMPTS) {
@@ -76,6 +69,12 @@ async function requestOtp(req, res) {
       });
     }
 
+    // ISSUE-10: expire all prior unverified sessions before creating a new one
+    await prisma.otpSession.updateMany({
+      where: { user_id: user.id, verified: false },
+      data: { expires_at: new Date() },
+    });
+
     const otp = String(crypto.randomInt(100000, 999999));
     const otp_hash = await bcrypt.hash(otp, 10);
     const expires_at = new Date(Date.now() + OTP_TTL_MS);
@@ -98,7 +97,7 @@ async function requestOtp(req, res) {
       });
     }
 
-    res.json({ message: 'OTP sent to your registered Telegram account.' });
+    res.json({ message: 'If an account exists with this email, an OTP has been sent.' });
   } catch (err) {
     logger.error(`requestOtp error: ${err.message}`);
     res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
@@ -109,15 +108,15 @@ async function requestOtp(req, res) {
 
 async function verifyOtp(req, res) {
   try {
-    const { telegram_id, otp } = req.body;
+    const { email, otp } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { telegram_id: String(telegram_id) } });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user || user.deleted_at || user.status !== 'active') {
       return res.status(401).json({
         error: true,
         code: 'INVALID_CREDENTIALS',
-        message: 'Invalid Telegram ID or OTP.',
+        message: 'Invalid email or OTP.',
       });
     }
 
@@ -229,6 +228,7 @@ async function verifyOtp(req, res) {
 // ─── POST /auth/logout ────────────────────────────────────────────────────────
 
 async function logout(req, res) {
+  // ISSUE-11: clear both cookies using the same options used to set them
   res.clearCookie('sims_token', clearAuthOptions());
   res.clearCookie('sims_csrf', clearCsrfOptions());
   res.json({ message: 'Logged out successfully.' });

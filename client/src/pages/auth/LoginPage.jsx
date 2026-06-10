@@ -52,6 +52,7 @@ function OtpInput({ value, onChange, hasError }) {
           type="text"
           inputMode="numeric"
           maxLength={1}
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
           value={d}
           onChange={(e) => handleChange(e, i)}
           onKeyDown={(e) => handleKey(e, i)}
@@ -95,7 +96,7 @@ function Countdown({ startAt, onExpire }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const [step, setStep]           = useState('request'); // 'request' | 'verify'
-  const [telegramId, setTelegramId] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp]             = useState('');
   const [error, setError]         = useState('');
   const [errorType, setErrorType] = useState(''); // 'wrong' | 'expired' | 'locked' | ''
@@ -112,11 +113,11 @@ export default function LoginPage() {
     setOtp('');
     setExpired(false);
     try {
-      await requestOtp.mutateAsync(telegramId.trim());
+      await requestOtp.mutateAsync(email.trim());
       setStep('verify');
       setTimerKey((k) => k + 1);
     } catch (err) {
-      const msg = err.response?.data?.message ?? 'Could not send OTP. Check your Telegram ID.';
+      const msg = err.response?.data?.message ?? 'Could not send OTP. Please try again.';
       setError(msg);
     }
   }, [telegramId, requestOtp]);
@@ -127,7 +128,7 @@ export default function LoginPage() {
     setError('');
     setErrorType('');
     try {
-      const res = await verifyOtp.mutateAsync({ telegram_id: telegramId.trim(), otp });
+      const res = await verifyOtp.mutateAsync({ email: email.trim(), otp });
       const user = res.data;
       if (user.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
       else navigate('/admin/dashboard', { replace: true });
@@ -241,7 +242,7 @@ export default function LoginPage() {
                 Sign in
               </h2>
               <p style={{ fontSize: 14, color: '#94a3b8' }}>
-                Enter your Telegram ID to receive your OTP
+                Enter your email address to receive your OTP
               </p>
             </div>
 
@@ -250,14 +251,14 @@ export default function LoginPage() {
                 fontSize: 12, fontWeight: 700, color: '#475569',
                 textTransform: 'uppercase', letterSpacing: '0.06em',
               }}>
-                Telegram User ID
+                Email Address
               </label>
               <input
-                type="text"
-                inputMode="numeric"
-                placeholder="Numeric Telegram ID (e.g. 123456789)"
-                value={telegramId}
-                onChange={(e) => setTelegramId(e.target.value)}
+                type="email"
+                autoComplete="email"
+                placeholder="your.email@college.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
                 style={{
@@ -305,21 +306,21 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={requestOtp.isPending || !telegramId.trim()}
+              disabled={requestOtp.isPending || !email.trim()}
               style={{
                 width: '100%',
                 padding: '16px',
                 borderRadius: 14,
                 border: 'none',
-                background: requestOtp.isPending || !telegramId.trim()
+                background: requestOtp.isPending || !email.trim()
                   ? '#93c5fd'
                   : 'linear-gradient(135deg, #2563eb, #4f46e5)',
                 color: '#fff',
                 fontSize: 15,
                 fontWeight: 700,
-                cursor: requestOtp.isPending || !telegramId.trim()
+                cursor: requestOtp.isPending || !email.trim()
                   ? 'not-allowed' : 'pointer',
-                boxShadow: requestOtp.isPending || !telegramId.trim()
+                boxShadow: requestOtp.isPending || !email.trim()
                   ? 'none' : '0 4px 16px rgba(37,99,235,0.35)',
                 transition: 'all 0.15s',
               }}
@@ -428,7 +429,7 @@ export default function LoginPage() {
                 border: 'none', cursor: 'pointer', textAlign: 'center',
               }}
             >
-              ← Use a different Telegram ID
+              ← Use a different email
             </button>
           </form>
         )}
