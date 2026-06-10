@@ -162,9 +162,9 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ---
 
-## 5. Database — 14 Tables
+## 5. Database — 15 Tables
 
-All migrations must match this schema exactly. Full column definitions in `SIMS_Database_Schema_v2.0.md`.
+All migrations must match this schema exactly. Full column definitions in `SIMS_Database_Schema_v2.1.md`.
 
 | Table | Purpose |
 |---|---|
@@ -180,6 +180,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `cover_requests` | Need Cover broadcasts — open to all faculty, confirmed by Admin |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
+| `system_config` | Single-row system-wide timing thresholds — late detection, auto clock-out, cover TTL |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 

@@ -32,7 +32,7 @@ A faculty member opens the system and enters their registered Telegram username 
 
 ### User Story 2 — Admin Creates and Manages User Accounts (Priority: P2)
 
-An Admin user creates new accounts for faculty, coordinators, and other admins. They can deactivate accounts that are no longer active and view all accounts in the system.
+An Admin user creates new accounts for faculty and other admins. They can deactivate accounts that are no longer active and view all accounts in the system.
 
 **Why this priority**: Without user accounts, faculty cannot be registered to log in. Admin account management is prerequisite to all role-based access in Phase 1.
 
@@ -40,7 +40,7 @@ An Admin user creates new accounts for faculty, coordinators, and other admins. 
 
 **Acceptance Scenarios**:
 
-1. **Given** a logged-in Admin, **When** they create a new user with a role (Faculty, Coordinator, Admin), **Then** the account is created and the new user can log in via Telegram OTP.
+1. **Given** a logged-in Admin, **When** they create a new user with a role (Faculty, Admin, Super Admin), **Then** the account is created and the new user can log in via Telegram OTP.
 2. **Given** a logged-in Admin, **When** they deactivate a user account, **Then** that user can no longer authenticate until reactivated.
 3. **Given** a logged-in Admin, **When** they view the user list, **Then** all active and deactivated accounts are listed with their roles and status.
 4. **Given** a logged-in Admin, **When** they attempt to create a user with a duplicate Telegram identity, **Then** the system rejects the request with a clear duplicate error.
@@ -73,7 +73,7 @@ Every user, once authenticated, can only access screens and actions permitted fo
 
 **Acceptance Scenarios**:
 
-1. **Given** a Faculty user, **When** they attempt to access Admin or Coordinator functions, **Then** they receive a clear "access denied" response.
+1. **Given** a Faculty user, **When** they attempt to access Admin functions, **Then** they receive a clear "access denied" response.
 2. **Given** an unauthenticated user, **When** they attempt to access any protected page, **Then** they are redirected to the login screen.
 4. **Given** any authenticated user, **When** their session JWT expires, **Then** they are automatically redirected to login on their next action.
 
@@ -106,7 +106,7 @@ Every user, once authenticated, can only access screens and actions permitted fo
 **User Accounts**
 
 - **FR-008**: System MUST support exactly 3 roles: Super Admin, Admin, Faculty.
-- **FR-009**: Admin MUST be able to create new user accounts and assign one of the 4 roles.
+- **FR-009**: Admin MUST be able to create new user accounts and assign one of the 3 roles.
 - **FR-010**: Admin MUST be able to deactivate user accounts. Deactivated users cannot authenticate.
 - **FR-011**: Admin MUST be able to view a list of all user accounts with their roles and active/deactivated status.
 - **FR-012**: Super Admin MUST be able to reset any user's locked session, restoring their ability to log in.
@@ -116,7 +116,7 @@ Every user, once authenticated, can only access screens and actions permitted fo
 
 ### Key Entities
 
-- **User**: Represents any system participant. Has a role (Super Admin / Admin / Coordinator / Faculty), Telegram identity, active/deactivated status, and timestamps.
+- **User**: Represents any system participant. Has a role (Super Admin / Admin / Faculty), Telegram identity, active/deactivated status, and timestamps.
 - **OTP Session**: Represents a pending login attempt. Linked to a user, holds a hashed OTP value, expiry time, and failed-attempt count.
 - **Audit Log**: Immutable record of sensitive system actions (session resets, account changes), recording actor, action type, target, and timestamp.
 
@@ -129,7 +129,7 @@ Every user, once authenticated, can only access screens and actions permitted fo
 - **SC-001**: A new user can complete the full login flow (request OTP → receive Telegram message → enter code → reach dashboard) in under 60 seconds under normal conditions.
 - **SC-002**: An OTP that has expired is rejected 100% of the time with no authenticated session created.
 - **SC-003**: After 5 failed OTP attempts, the account is locked and remains inaccessible until explicitly reset by Super Admin — no bypass path exists.
-- **SC-004**: All 4 roles are independently accessible, and each role's access boundaries are enforced with zero cross-role data or action leakage.
+- **SC-004**: All 3 roles are independently accessible, and each role's access boundaries are enforced with zero cross-role data or action leakage.
 - **SC-005**: Admin can create, deactivate, and list user accounts within 3 clicks from their dashboard.
 - **SC-006**: 100% of protected routes reject unauthenticated requests — no unprotected route exists except OTP request and OTP verification.
 - **SC-007**: Every session reset by Super Admin appears in the audit log within the same request cycle — no reset goes unlogged.
