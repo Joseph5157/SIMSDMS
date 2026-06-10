@@ -274,6 +274,7 @@ model Violation {
   @@index([faculty_id])
   @@index([duty_slot_id])
   @@index([is_flagged])
+  @@index([violation_type_id])
   @@map("violations")
 }
 
@@ -377,6 +378,7 @@ model Message {
 
   @@index([to_user_id, created_at])
   @@index([from_user_id, created_at])
+  @@index([from_user_id])
   @@index([to_user_id, is_read])
   @@map("messages")
 }

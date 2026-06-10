@@ -412,10 +412,12 @@ Version 2.1 | PostgreSQL | Prisma ORM
 | `(faculty_id)` | `violations` | Single | Fast faculty report generation |
 | `(duty_slot_id)` | `violations` | Single | Session-level violation queries |
 | `(is_flagged)` | `violations` | Single | Fast flag queue for Admin |
+| `(violation_type_id)` | `violations` | Single | Violation-type breakdown report |
 | `(status, expires_at)` | `cover_requests` | Composite | Expiry cron + open broadcast list |
 | `UNIQUE (config_month, config_year)` | `calendar_config` | Unique | One config row per month |
 | `(to_user_id, created_at)` | `messages` | Composite | Inbox listing — newest first |
-| `(from_user_id, created_at)` | `messages` | Composite | Sent-items listing |
+| `(from_user_id, created_at)` | `messages` | Composite | Sent-items listing with sort |
+| `(from_user_id)` | `messages` | Single | FK lookup — unsorted sent-by queries |
 | `(to_user_id, is_read)` | `messages` | Composite | Unread count query |
 
 ---
