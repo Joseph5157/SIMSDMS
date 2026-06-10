@@ -156,6 +156,7 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ### Data & Safety
 - All deletes are soft deletes using `deleted_at` — except Super Admin hard delete.
+- **Exception — messages**: a `messages` row is physically deleted when both `deleted_by_sender = true` and `deleted_by_receiver = true`. This is the only non-Super-Admin physical delete permitted in the system. It is intentional: retaining abandoned message rows indefinitely after both parties have dismissed them provides no audit value and would accumulate unbounded storage. The `violation_audit_log` and `admin_audit_log` tables remain fully immutable and are unaffected by this exception.
 - All tables use UUID primary keys — never sequential integers.
 - All monetary values use `DECIMAL(8,2)` — never floats.
 - Every table has `created_at` and `updated_at` timestamps.
