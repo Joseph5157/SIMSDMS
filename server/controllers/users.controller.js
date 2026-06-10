@@ -49,7 +49,12 @@ async function createUser(req, res) {
       return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
     }
 
-    let inviteLink = null;
+    // Always use invite-token flow for proper Telegram verification
+    // Do not auto-activate based on manually-supplied telegram_id
+    const token = crypto.randomBytes(32).toString('hex');
+    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+    const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
+
     let userData = {
       name,
       email,
@@ -60,23 +65,13 @@ async function createUser(req, res) {
       telegram_id: telegram_id ? String(telegram_id) : null,
       approved_at: new Date(),
       approved_by: req.user.id,
+      status: 'pending_telegram',
+      telegram_verified: false,
+      telegram_invite_token: token,
+      telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     };
 
-    // Path A: Telegram ID provided — account is immediately active
-    if (telegram_id) {
-      userData.status = 'active';
-      userData.telegram_verified = true;
-      logger.info(`[CREATE_USER] Path A: With Telegram ID ${telegram_id}`);
-    } else {
-      // Path B: No Telegram ID — generate invite token and set status to pending_telegram
-      const token = crypto.randomBytes(32).toString('hex');
-      userData.status = 'pending_telegram';
-      userData.telegram_invite_token = token;
-      userData.telegram_invite_expires_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-      inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
-      logger.info(`[CREATE_USER] Path B: Without Telegram ID, generated invite token`);
-    }
+    logger.info(`[CREATE_USER] Created with status=${userData.status}, telegram_verified=${userData.telegram_verified}, invite_token generated`);
 
     logger.info(`[CREATE_USER] Creating user in database for ${email}`);
     const user = await prisma.user.create({ data: userData });
@@ -165,7 +160,8 @@ async function getUser(req, res) {
 }
 
 // ─── PATCH /users/:id/profile ─────────────────────────────────────────────────
-// Faculty can update their own. Admin+ can update anyone.
+// Faculty can update their own profile (safe fields only). Admin+ can update anyone's basic info.
+// Security-sensitive fields (role, status, telegram fields) must use explicit endpoints.
 
 async function updateProfile(req, res) {
   const targetId = req.params.id;
@@ -180,9 +176,31 @@ async function updateProfile(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
-  const updateData = { ...req.body };
-  if (updateData.role && updateData.role !== user.role) {
-    updateData.session_version = { increment: 1 };
+  // Whitelist allowed editable fields to prevent mass assignment
+  const allowedFields = ['name', 'phone', 'department', 'designation'];
+  const updateData = {};
+
+  for (const field of allowedFields) {
+    if (field in req.body) {
+      updateData[field] = req.body[field];
+    }
+  }
+
+  // Admin+ can also update email (but not role/status/telegram fields)
+  if (role !== 'faculty' && 'email' in req.body) {
+    updateData.email = req.body.email;
+  }
+
+  // Reject attempts to modify security-sensitive fields
+  const sensitiveFields = ['role', 'status', 'telegram_id', 'telegram_verified', 'approved_at', 'deleted_at'];
+  const attemptedSensitiveChanges = sensitiveFields.filter(f => f in req.body);
+  if (attemptedSensitiveChanges.length > 0) {
+    logger.warn(`[UPDATE_PROFILE] Attempted unauthorized change of fields: ${attemptedSensitiveChanges.join(', ')} for user ${targetId}`);
+    return res.status(400).json({
+      error: true,
+      code: 'INVALID_FIELDS',
+      message: `Cannot modify ${attemptedSensitiveChanges.join(', ')} through this endpoint. Use appropriate admin endpoints for role/status changes.`,
+    });
   }
 
   const updated = await prisma.user.update({
@@ -350,11 +368,23 @@ async function resetUserLogin(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
-  // Clear account lock, invalidate existing sessions, and delete all unexpired OTP sessions
+  // Generate new invite token for Telegram reactivation
+  const token = crypto.randomBytes(32).toString('hex');
+  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+
+  // Clear account lock, reset Telegram state, and delete all unexpired OTP sessions
   await Promise.all([
     prisma.user.update({
       where: { id: req.params.id },
-      data: { otp_failed_attempts: 0, session_version: { increment: 1 } },
+      data: {
+        otp_failed_attempts: 0,
+        telegram_id: null,
+        telegram_verified: false,
+        status: 'pending_telegram',
+        telegram_invite_token: token,
+        telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        session_version: { increment: 1 },
+      },
     }),
     prisma.otpSession.deleteMany({
       where: { user_id: req.params.id, verified: false },
@@ -366,9 +396,15 @@ async function resetUserLogin(req, res) {
     action: 'RESET_USER_LOGIN',
     targetId: user.id,
     targetType: 'user',
+    metadata: { telegram_reset: true },
   });
 
-  res.json({ success: true, message: 'OTP sessions cleared. User must log in again via Telegram OTP.' });
+  const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
+  res.json({
+    success: true,
+    message: 'User login reset. Telegram state cleared and new invite generated.',
+    invite_link: inviteLink,
+  });
 }
 
 // ─── DELETE /admin/hard-delete/:resource/:id — Super Admin ───────────────────

@@ -15,6 +15,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const logger = require('./lib/logger');
+const csrfMiddleware = require('./middleware/csrf');
 const botRoutes = require('./routes/bot.routes');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
@@ -98,7 +99,7 @@ app.use(globalLimiter);
 app.use(cookieParser());
 
 // ─── CSRF protection (POST/PUT/PATCH/DELETE on authenticated sessions) ────────
-app.use(require('./middleware/csrf'));
+app.use(csrfMiddleware);
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
