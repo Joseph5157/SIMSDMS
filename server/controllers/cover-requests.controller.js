@@ -170,68 +170,243 @@ async function getMyCoverRequests(req, res) {
 // ─── POST /cover-requests/:id/volunteer — Faculty ─────────────────────────────
 
 async function volunteer(req, res) {
-  const coverRequest = await prisma.coverRequest.findUnique({
-    where:   { id: req.params.id },
-    include: COVER_INCLUDE,
-  });
+  const coverRequestId = req.params.id;
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      // Fetch cover request with full conditions for validation
+      const coverRequest = await tx.coverRequest.findUnique({
+        where: { id: coverRequestId },
+        include: COVER_INCLUDE,
+      });
+
+      if (!coverRequest) {
+        throw { code: 'NOT_FOUND', message: 'Cover request not found.', statusCode: 404 };
+      }
+      if (coverRequest.status !== 'open') {
+        throw { code: 'NOT_OPEN', message: `This cover request is no longer open (status: ${coverRequest.status}).`, statusCode: 409 };
+      }
+      if (new Date() > coverRequest.expires_at) {
+        throw { code: 'EXPIRED', message: 'This cover request has expired.', statusCode: 409 };
+      }
+      if (coverRequest.requested_by === req.user.id) {
+        throw { code: 'CONFLICT', message: 'You cannot volunteer for your own cover request.', statusCode: 409 };
+      }
+
+      // Phase 3: Double-booking check - ensure volunteer doesn't already have a duty at this time
+      const volunteerConflict = await tx.dutySlot.findFirst({
+        where: {
+          faculty_id: req.user.id,
+          duty_date: coverRequest.dutySlot.duty_date,
+          session_type: coverRequest.dutySlot.session_type,
+          status: { not: 'absent' }, // Can't conflict if already absent
+        },
+      });
+      if (volunteerConflict) {
+        throw {
+          code: 'DOUBLE_BOOKING',
+          message: 'You already have a duty scheduled for this date and time.',
+          statusCode: 409,
+        };
+      }
+
+      // Phase 3: Atomic volunteer claim - use updateMany with full WHERE conditions
+      const updateResult = await tx.coverRequest.updateMany({
+        where: {
+          id: coverRequestId,
+          status: 'open',
+          volunteer_id: null,
+          expires_at: { gt: new Date() },
+        },
+        data: { volunteer_id: req.user.id },
+      });
+
+      if (updateResult.count === 0) {
+        throw {
+          code: 'ALREADY_VOLUNTEERED',
+          message: 'Another faculty member has already volunteered or request no longer open.',
+          statusCode: 409,
+        };
+      }
+
+      // Fetch updated cover request
+      const result = await tx.coverRequest.findUnique({
+        where: { id: coverRequestId },
+        include: COVER_INCLUDE,
+      });
+
+      return result;
+    });
+
+    res.json(updated);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: true,
+        code: err.code,
+        message: err.message,
+      });
+    }
+    throw err;
+  }
+}
+
+// ─── PATCH /cover-requests/:id/confirm — Admin ────────────────────────────────
+
+async function confirmCover(req, res) {
+  const coverRequestId = req.params.id;
+
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const coverRequest = await tx.coverRequest.findUnique({
+        where: { id: coverRequestId },
+        include: COVER_INCLUDE,
+      });
+
+      if (!coverRequest) {
+        throw { code: 'NOT_FOUND', message: 'Cover request not found.', statusCode: 404 };
+      }
+      if (coverRequest.status !== 'open') {
+        throw { code: 'NOT_OPEN', message: `Cannot confirm — status is '${coverRequest.status}'.`, statusCode: 409 };
+      }
+      if (!coverRequest.volunteer_id) {
+        throw { code: 'NO_VOLUNTEER', message: 'No volunteer has come forward yet.', statusCode: 409 };
+      }
+
+      // Phase 3: Double-booking check - ensure volunteer doesn't have another duty
+      const volunteerConflict = await tx.dutySlot.findFirst({
+        where: {
+          faculty_id: coverRequest.volunteer_id,
+          duty_date: coverRequest.dutySlot.duty_date,
+          session_type: coverRequest.dutySlot.session_type,
+          id: { not: coverRequest.duty_slot_id }, // Exclude the slot being covered
+          status: { not: 'absent' },
+        },
+      });
+      if (volunteerConflict) {
+        throw {
+          code: 'DOUBLE_BOOKING',
+          message: 'Volunteer has a conflicting duty. Cannot confirm coverage.',
+          statusCode: 409,
+        };
+      }
+
+      // Update slot to covered
+      await tx.dutySlot.update({
+        where: { id: coverRequest.duty_slot_id },
+        data: { status: 'covered', covered_by: coverRequest.volunteer_id },
+      });
+
+      // Update the confirmed cover request
+      await tx.coverRequest.update({
+        where: { id: coverRequestId },
+        data: { status: 'covered', confirmed_by: req.user.id, confirmed_at: new Date() },
+      });
+
+      // Phase 3: Close sibling open requests for the same slot in same transaction
+      await tx.coverRequest.updateMany({
+        where: {
+          duty_slot_id: coverRequest.duty_slot_id,
+          id: { not: coverRequestId },
+          status: 'open',
+        },
+        data: { status: 'cancelled' },
+      });
+
+      // Fetch and return updated cover request
+      const result = await tx.coverRequest.findUnique({
+        where: { id: coverRequestId },
+        include: COVER_INCLUDE,
+      });
+
+      return result;
+    });
+
+    res.json(updated);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: true,
+        code: err.code,
+        message: err.message,
+      });
+    }
+    throw err;
+  }
+}
+
+// ─── DELETE /cover-requests/:id — Faculty ────────────────────────────────────
+
+async function cancelCoverRequest(req, res) {
+  const coverRequestId = req.params.id;
+
+  const coverRequest = await prisma.coverRequest.findUnique({ where: { id: coverRequestId } });
 
   if (!coverRequest) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Cover request not found.' });
   }
+
+  // Phase 3: Only requester can cancel, and only if status is still open
+  if (coverRequest.requested_by !== req.user.id) {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Only the requester can cancel this cover request.' });
+  }
+
   if (coverRequest.status !== 'open') {
-    return res.status(409).json({ error: true, code: 'NOT_OPEN', message: `This cover request is no longer open (status: ${coverRequest.status}).` });
-  }
-  if (new Date() > coverRequest.expires_at) {
-    return res.status(409).json({ error: true, code: 'EXPIRED', message: 'This cover request has expired.' });
-  }
-  if (coverRequest.requested_by === req.user.id) {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'You cannot volunteer for your own cover request.' });
-  }
-  if (coverRequest.volunteer_id) {
-    return res.status(409).json({ error: true, code: 'ALREADY_VOLUNTEERED', message: 'Another faculty member has already volunteered. Waiting for Admin confirmation.' });
+    return res.status(409).json({ error: true, code: 'CANNOT_CANCEL', message: `Cannot cancel a cover request with status '${coverRequest.status}'.` });
   }
 
   const updated = await prisma.coverRequest.update({
-    where:   { id: req.params.id },
-    data:    { volunteer_id: req.user.id },
+    where: { id: coverRequestId },
+    data: { status: 'cancelled' },
     include: COVER_INCLUDE,
   });
 
   res.json(updated);
 }
 
-// ─── PATCH /cover-requests/:id/confirm — Admin ────────────────────────────────
+// ─── POST /cover-requests/:id/reject-volunteer — Admin ────────────────────────
 
-async function confirmCover(req, res) {
-  const coverRequest = await prisma.coverRequest.findUnique({
-    where:   { id: req.params.id },
-    include: COVER_INCLUDE,
-  });
+async function rejectVolunteer(req, res) {
+  const coverRequestId = req.params.id;
 
-  if (!coverRequest) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Cover request not found.' });
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const coverRequest = await tx.coverRequest.findUnique({
+        where: { id: coverRequestId },
+        include: COVER_INCLUDE,
+      });
+
+      if (!coverRequest) {
+        throw { code: 'NOT_FOUND', message: 'Cover request not found.', statusCode: 404 };
+      }
+      if (coverRequest.status !== 'open') {
+        throw { code: 'INVALID_STATUS', message: `Cannot reject volunteer for status '${coverRequest.status}'.`, statusCode: 409 };
+      }
+      if (!coverRequest.volunteer_id) {
+        throw { code: 'NO_VOLUNTEER', message: 'No volunteer to reject.', statusCode: 409 };
+      }
+
+      // Phase 3: Clear the volunteer, keeping request open for others
+      const result = await tx.coverRequest.update({
+        where: { id: coverRequestId },
+        data: { volunteer_id: null },
+        include: COVER_INCLUDE,
+      });
+
+      return result;
+    });
+
+    res.json(updated);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        error: true,
+        code: err.code,
+        message: err.message,
+      });
+    }
+    throw err;
   }
-  if (coverRequest.status !== 'open') {
-    return res.status(409).json({ error: true, code: 'NOT_OPEN', message: `Cannot confirm — status is '${coverRequest.status}'.` });
-  }
-  if (!coverRequest.volunteer_id) {
-    return res.status(409).json({ error: true, code: 'NO_VOLUNTEER', message: 'No volunteer has come forward yet.' });
-  }
-
-  // Slot update runs first so the include in coverRequest sees the updated status
-  const [, updated] = await prisma.$transaction([
-    prisma.dutySlot.update({
-      where: { id: coverRequest.duty_slot_id },
-      data:  { status: 'covered', covered_by: coverRequest.volunteer_id },
-    }),
-    prisma.coverRequest.update({
-      where:   { id: req.params.id },
-      data:    { status: 'covered', confirmed_by: req.user.id, confirmed_at: new Date() },
-      include: COVER_INCLUDE,
-    }),
-  ]);
-
-  res.json(updated);
 }
 
 // ─── PATCH /cover-requests/config — Admin ─────────────────────────────────────
@@ -255,5 +430,7 @@ module.exports = {
   getMyCoverRequests,
   volunteer,
   confirmCover,
+  cancelCoverRequest,
+  rejectVolunteer,
   updateCoverConfig,
 };

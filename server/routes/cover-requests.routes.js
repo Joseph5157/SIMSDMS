@@ -29,6 +29,12 @@ router.get('/', authorize('admin', 'super_admin'), ctrl.listCoverRequests);
 // POST /cover-requests/:id/volunteer — Faculty
 router.post('/:id/volunteer', authorize('faculty'), ctrl.volunteer);
 
+// DELETE /cover-requests/:id — Faculty
+router.delete('/:id', authorize('faculty'), ctrl.cancelCoverRequest);
+
+// POST /cover-requests/:id/reject-volunteer — Admin
+router.post('/:id/reject-volunteer', authorize('admin', 'super_admin'), ctrl.rejectVolunteer);
+
 // PATCH /cover-requests/:id/confirm — Admin
 router.patch('/:id/confirm', authorize('admin', 'super_admin'), ctrl.confirmCover);
 
