@@ -41,7 +41,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "'unsafe-inline'"],   // Vite module scripts + preloads
+      scriptSrc:     ["'self'"],                        // production Vite build uses external modules — no inline scripts needed
       styleSrc:      ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
       imgSrc:        ["'self'", "data:", "blob:"],
       connectSrc:    ["'self'"],

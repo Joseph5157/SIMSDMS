@@ -29,7 +29,9 @@ async function handleWebhook(req, res) {
 
     // Process the activation with row-level locking
     const result = await prisma.$transaction(async (tx) => {
-      // Step 1: Find user with valid invite token (row-level lock with SELECT FOR UPDATE)
+      // Step 1: Find user with valid invite token using SELECT FOR UPDATE for row-level locking.
+      // Raw SQL is used here because Prisma does not support FOR UPDATE natively — this is
+      // the sole constitution exception for non-report raw SQL in this file.
       const user = await tx.$queryRaw`
         SELECT id, name, email, status, telegram_id
         FROM users
@@ -44,15 +46,13 @@ async function handleWebhook(req, res) {
 
       const targetUser = user[0];
 
-      // Step 2: Check if this Telegram ID is already linked to another account
-      const existingUser = await tx.$queryRaw`
-        SELECT id FROM users
-        WHERE telegram_id = ${chatId}
-        AND id != ${targetUser.id}
-        LIMIT 1
-      `;
+      // Step 2: Check if this Telegram ID is already linked to another account.
+      const existingUser = await tx.user.findFirst({
+        where: { telegram_id: chatId, id: { not: targetUser.id } },
+        select: { id: true },
+      });
 
-      if (existingUser && existingUser.length > 0) {
+      if (existingUser) {
         return { success: false, error: 'ALREADY_LINKED' };
       }
 
