@@ -19,6 +19,7 @@ const csrfMiddleware = require('./middleware/csrf');
 const botRoutes = require('./routes/bot.routes');
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
+const invitesRoutes = require('./routes/invites.routes');
 const adminRoutes = require('./routes/admin.routes');
 const studentsRoutes = require('./routes/students.routes');
 const calendarRoutes = require('./routes/calendar.routes');
@@ -116,6 +117,7 @@ app.use(csrfMiddleware);
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/auth', authRoutes);
 app.use('/users', usersRoutes);
+app.use('/invites', invitesRoutes);
 app.use('/admin', adminRoutes);
 app.use('/students', studentsRoutes);
 app.use('/calendar', calendarRoutes);
@@ -152,9 +154,43 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ─── Telegram Webhook Registration ──────────────────────────────────────────
+async function registerTelegramWebhook() {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const appUrl = process.env.APP_URL;
+  const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  if (!token || !appUrl || !webhookSecret) {
+    logger.warn('[WEBHOOK] Missing Telegram credentials; webhook not registered');
+    return;
+  }
+
+  try {
+    const webhookUrl = `${appUrl}/bot/webhook/${webhookSecret}`;
+    const response = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl,
+        secret_token: webhookSecret,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.ok) {
+      logger.info(`[WEBHOOK] Registered: ${webhookUrl}`);
+    } else {
+      logger.warn(`[WEBHOOK] Registration failed: ${data.description}`);
+    }
+  } catch (err) {
+    logger.error('[WEBHOOK] Registration error:', err.message);
+  }
+}
+
 // ─── Start ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`SIMS DMS server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  registerTelegramWebhook();
   startCronJobs();
 });

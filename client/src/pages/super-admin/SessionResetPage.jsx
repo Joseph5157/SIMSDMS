@@ -13,10 +13,14 @@ export default function SessionResetPage({ user }) {
   const reset = useResetUserLogin();
 
   async function handleReset(u) {
-    if (!confirm(`Reset login session for ${u.name}?`)) return;
+    if (!confirm(`Reset Telegram for ${u.name}? They will need to re-link via a new link.`)) return;
     try {
-      await reset.mutateAsync(u.id);
-      toast({ message: `Session reset for ${u.name}. They must log in again.` });
+      const res = await reset.mutateAsync(u.id);
+      const relinkLink = res.data?.relink_link;
+      if (relinkLink) {
+        navigator.clipboard.writeText(relinkLink).catch(() => {});
+      }
+      toast({ message: `Relink link generated for ${u.name}. Copied to clipboard.` });
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -24,7 +28,7 @@ export default function SessionResetPage({ user }) {
 
   return (
     <Layout user={user}>
-      <PageHeader title="Session Reset" subtitle="Force users to re-authenticate via Telegram OTP" />
+      <PageHeader title="Telegram Relink" subtitle="Reset users' Telegram connection and generate relink links" />
       <div className="mb-4">
         <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Search user…" value={search} onChange={(e) => setSearch(e.target.value)} />

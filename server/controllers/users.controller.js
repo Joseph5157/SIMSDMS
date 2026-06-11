@@ -254,7 +254,7 @@ async function reactivateUser(req, res) {
     return res.status(400).json({
       error: true,
       code: 'TELEGRAM_NOT_LINKED',
-      message: "Cannot reactivate — user's Telegram is not yet linked. Use regenerate-invite instead.",
+      message: "Cannot reactivate — Telegram needs relinking. Use Reset Login to generate a relink link.",
     });
   }
 
@@ -368,12 +368,31 @@ async function resetUserLogin(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
 
-  // Generate new invite token for Telegram reactivation
+  // Guard: cannot reset super_admin
+  if (user.role === 'super_admin') {
+    return res.status(403).json({
+      error: true,
+      code: 'FORBIDDEN',
+      message: 'Super Admin login cannot be reset.',
+    });
+  }
+
+  // Generate new relink token
   const token = crypto.randomBytes(32).toString('hex');
   const botUsername = process.env.TELEGRAM_BOT_USERNAME;
+  if (!botUsername) {
+    return res.status(500).json({
+      error: true,
+      code: 'BOT_NOT_CONFIGURED',
+      message: 'Telegram bot not configured.',
+    });
+  }
 
-  // Clear account lock, reset Telegram state, and delete all unexpired OTP sessions
-  await Promise.all([
+  const relinkLink = `https://t.me/${botUsername}?start=relink_${token}`;
+
+  // Use transaction for atomicity: update user, delete unverified OTP sessions,
+  // delete old unused relink tokens, create new relink token
+  await prisma.$transaction([
     prisma.user.update({
       where: { id: req.params.id },
       data: {
@@ -381,13 +400,22 @@ async function resetUserLogin(req, res) {
         telegram_id: null,
         telegram_verified: false,
         status: 'pending_telegram',
-        telegram_invite_token: token,
-        telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         session_version: { increment: 1 },
       },
     }),
     prisma.otpSession.deleteMany({
       where: { user_id: req.params.id, verified: false },
+    }),
+    prisma.telegramRelinkToken.deleteMany({
+      where: { user_id: req.params.id, used_at: null },
+    }),
+    prisma.telegramRelinkToken.create({
+      data: {
+        user_id: req.params.id,
+        token,
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        created_by: req.user.id,
+      },
     }),
   ]);
 
@@ -399,11 +427,10 @@ async function resetUserLogin(req, res) {
     metadata: { telegram_reset: true },
   });
 
-  const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
   res.json({
     success: true,
-    message: 'User login reset. Telegram state cleared and new invite generated.',
-    invite_link: inviteLink,
+    message: 'User login reset. Telegram unlinked. Send the relink link to the user.',
+    relink_link: relinkLink,
   });
 }
 

@@ -4,36 +4,66 @@ const { PrismaClient } = require('../server/node_modules/@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const telegramId = process.env.SUPER_ADMIN_TELEGRAM_ID;
-  const name = process.env.SUPER_ADMIN_NAME || 'Super Admin';
-  const email = process.env.SUPER_ADMIN_EMAIL || 'superadmin@sims.edu';
+  const email = process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL;
+  const name = process.env.BOOTSTRAP_SUPER_ADMIN_NAME || 'SIMS Super Admin';
+  const telegramId = process.env.BOOTSTRAP_SUPER_ADMIN_TELEGRAM_ID;
+  const phone = process.env.BOOTSTRAP_SUPER_ADMIN_PHONE || null;
+  const department = process.env.BOOTSTRAP_SUPER_ADMIN_DEPARTMENT || 'Administration';
+  const designation = process.env.BOOTSTRAP_SUPER_ADMIN_DESIGNATION || 'Super Admin';
 
-  if (!telegramId) {
-    throw new Error('SUPER_ADMIN_TELEGRAM_ID is required in .env to seed');
+  if (!email) {
+    throw new Error('BOOTSTRAP_SUPER_ADMIN_EMAIL is required in .env to seed');
   }
 
-  const existing = await prisma.user.findFirst({
-    where: { role: 'super_admin' },
+  if (!telegramId) {
+    throw new Error('BOOTSTRAP_SUPER_ADMIN_TELEGRAM_ID is required in .env to seed');
+  }
+
+  const existingSuperAdmin = await prisma.user.findFirst({
+    where: {
+      role: 'super_admin',
+      deleted_at: null,
+    },
   });
 
-  if (existing) {
-    console.log(`Super Admin already exists: ${existing.name} (${existing.email})`);
+  if (existingSuperAdmin) {
+    console.log(`Bootstrap skipped: super_admin already exists (${existingSuperAdmin.email})`);
     return;
+  }
+
+  const existingEmail = await prisma.user.findUnique({
+    where: { email },
+  });
+
+  if (existingEmail) {
+    throw new Error(`Cannot bootstrap: email already exists: ${email}`);
+  }
+
+  const existingTelegram = await prisma.user.findUnique({
+    where: { telegram_id: telegramId },
+  });
+
+  if (existingTelegram) {
+    throw new Error(`Cannot bootstrap: Telegram ID already exists: ${telegramId}`);
   }
 
   const superAdmin = await prisma.user.create({
     data: {
       name,
       email,
+      phone,
       role: 'super_admin',
+      department,
+      designation,
+      status: 'active',
       telegram_id: telegramId,
       telegram_verified: true,
-      status: 'active',
+      session_version: 1,
       approved_at: new Date(),
     },
   });
 
-  console.log(`Super Admin created: ${superAdmin.name} | Telegram: ${superAdmin.telegram_id}`);
+  console.log(`Bootstrap super_admin created: ${superAdmin.email}`);
 }
 
 main()

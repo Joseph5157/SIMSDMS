@@ -81,6 +81,14 @@ describe('requestOtp', () => {
     expect(res._status).toBe(200);
     expect(res._body.message).toMatch(/if an account exists/i);
   });
+
+  it('returns 403 TELEGRAM_NOT_LINKED for pending_telegram users (relink scenario)', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...activeUser, status: 'pending_telegram', telegram_id: null });
+    const res = makeRes();
+    await requestOtp(makeReq({ email: activeUser.email }), res);
+    expect(res._status).toBe(403);
+    expect(res._body.code).toBe('TELEGRAM_NOT_LINKED');
+  });
 });
 
 describe('verifyOtp', () => {

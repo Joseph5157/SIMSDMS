@@ -81,13 +81,13 @@ function RoleButton({ value, label, subtitle, selected, onClick }) {
 }
 
 /* ── main component ── */
-export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
+export default function CreateUserDrawer({ open, onClose, onSubmit, loading, actorRole }) {
   const [form, setForm] = useState({
-    name: '', email: '', telegram_id: '', role: 'faculty',
+    name: '', email: '', role: 'faculty',
     department: '', designation: '', phone: '',
   });
   const [inviteLink, setInviteLink] = useState(null);
-  const [createdUserName, setCreatedUserName] = useState('');
+  const [invitedName, setInvitedName] = useState('');
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const setRole = (r) => setForm(f => ({ ...f, role: r }));
@@ -97,20 +97,20 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
     // Pass a callback to handle the response
     onSubmit(form, (response) => {
       if (response.invite_link) {
-        // Telegram ID was not provided, show invite panel
+        // Always show invite panel after creating invite
         setInviteLink(response.invite_link);
-        setCreatedUserName(response.user.name);
+        setInvitedName(response.invite?.name || form.name);
       } else {
-        // Telegram ID was provided, account is immediately active
+        // Shouldn't happen now, but reset anyway
         resetAndClose();
       }
     });
   }
 
   function resetAndClose() {
-    setForm({ name: '', email: '', telegram_id: '', role: 'faculty', department: '', designation: '', phone: '' });
+    setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '' });
     setInviteLink(null);
-    setCreatedUserName('');
+    setInvitedName('');
     onClose();
   }
 
@@ -119,7 +119,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
   }
 
   function shareOnWhatsApp() {
-    const message = `Hi ${createdUserName}, tap this link to activate your SIMS account: ${inviteLink}`;
+    const message = `Hi ${invitedName}, tap this link to activate your SIMS account: ${inviteLink}`;
     const encoded = encodeURIComponent(message);
     const waUrl = `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
@@ -170,10 +170,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
               <Drawer.Title style={{
                 fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0,
               }}>
-                Add user
+                Invite user
               </Drawer.Title>
               <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
-                New account needs Admin approval
+                An invite link will be sent to their Telegram
               </p>
             </div>
             <button
@@ -198,10 +198,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
               <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ textAlign: 'center', marginTop: 8 }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-                    ✅ Account created
+                    ✅ Invite created
                   </p>
                   <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
-                    Share this link with {createdUserName}:
+                    Share this link with {invitedName}:
                   </p>
                 </div>
 
@@ -256,8 +256,8 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
                 {/* Info text */}
                 <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
                   Link expires in 7 days.<br />
-                  Status changes to Active once<br />
-                  they tap it.
+                  The user must tap it in Telegram<br />
+                  to activate their account.
                 </p>
               </div>
             ) : (
@@ -292,16 +292,6 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
                       autoComplete="email"
                     />
                   </Field>
-                  <Field label="Telegram ID" icon={MessageCircle}>
-                    <TextInput
-                      placeholder="@username or numeric ID"
-                      value={form.telegram_id}
-                      onChange={set('telegram_id')}
-                    />
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                      Optional — leave blank to generate an invite link instead
-                    </p>
-                  </Field>
                 </div>
 
                 {/* ── Section: Role ── */}
@@ -320,13 +310,15 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
                     selected={form.role === 'faculty'}
                     onClick={() => setRole('faculty')}
                   />
-                  <RoleButton
-                    value="admin"
-                    label="Admin"
-                    subtitle="Manages system"
-                    selected={form.role === 'admin'}
-                    onClick={() => setRole('admin')}
-                  />
+                  {actorRole === 'super_admin' && (
+                    <RoleButton
+                      value="admin"
+                      label="Admin"
+                      subtitle="Manages system"
+                      selected={form.role === 'admin'}
+                      onClick={() => setRole('admin')}
+                    />
+                  )}
                 </div>
 
                 {/* ── Section: Department ── */}
@@ -445,21 +437,11 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
                     transition: 'all 0.15s',
                   }}
                 >
-                  {loading && (
-                    <span style={{
-                      width: 14, height: 14,
-                      border: '2px solid rgba(255,255,255,0.4)',
-                      borderTopColor: '#fff',
-                      borderRadius: '50%',
-                      animation: 'spin 0.7s linear infinite',
-                    }} />
-                  )}
-                  {loading ? 'Creating…' : 'Create account'}
+                  {loading ? '🔄 Sending...' : 'Send Invite'}
                 </button>
               </>
             )}
           </div>
-
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>

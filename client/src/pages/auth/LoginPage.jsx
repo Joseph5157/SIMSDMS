@@ -120,7 +120,7 @@ export default function LoginPage() {
       const msg = err.response?.data?.message ?? 'Could not send OTP. Please try again.';
       setError(msg);
     }
-  }, [telegramId, requestOtp]);
+  }, [requestOtp]);
 
   async function handleVerifyOtp(e) {
     e.preventDefault();

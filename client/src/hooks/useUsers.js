@@ -11,14 +11,6 @@ export function useUsers(filters = {}) {
   });
 }
 
-export function useCreateUser() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (data) => api.post('/users', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
-  });
-}
-
 export function useDeactivateUser() {
   const qc = useQueryClient();
   return useMutation({
@@ -56,11 +48,5 @@ export function useAuditLogs(filters = {}) {
       const res = await api.get('/admin/audit-logs', { params: filters });
       return res.data;
     },
-  });
-}
-
-export function useRegenerateInvite() {
-  return useMutation({
-    mutationFn: (id) => api.post(`/users/${id}/regenerate-invite`),
   });
 }

@@ -6,10 +6,11 @@ import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
-import { useUsers, useCreateUser, useDeactivateUser, useReactivateUser, useDeleteUser, useRegenerateInvite } from '../../hooks/useUsers';
+import { useUsers, useDeactivateUser, useReactivateUser, useDeleteUser, useResetUserLogin } from '../../hooks/useUsers';
+import { useInvites, useCreateInvite, useRegenerateInvite, useCancelInvite } from '../../hooks/useInvites';
 
-// ── ··· action menu ─────────────────────────────────────────────────────────
-function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onRegenerateInvite, onDelete }) {
+// ── Row menu for users ──────────────────────────────────────────────────────
+function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetTelegram, onDelete }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -40,12 +41,14 @@ function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onRegenerateIn
               Deactivate
             </button>
           ) : u.status === 'pending_telegram' ? (
-            <button
-              onClick={() => { setOpen(false); onRegenerateInvite(u); }}
-              className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
-            >
-              Regenerate Invite
-            </button>
+            isSuperAdmin && (
+              <button
+                onClick={() => { setOpen(false); onResetTelegram(u); }}
+                className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                Reset Telegram
+              </button>
+            )
           ) : (
             <button
               onClick={() => { setOpen(false); onReactivate(u); }}
@@ -71,7 +74,47 @@ function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onRegenerateIn
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Row menu for pending invites ────────────────────────────────────────────
+function InviteRowMenu({ invite, onRegenerate, onCancel }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors text-[16px]"
+      >
+        ···
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]">
+          <button
+            onClick={() => { setOpen(false); onRegenerate(invite); }}
+            className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            Regenerate
+          </button>
+          <div className="border-t border-slate-100 my-1"></div>
+          <button
+            onClick={() => { setOpen(false); onCancel(invite); }}
+            className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ────────────────────────────────────────────────────────────────────
 export default function UsersPage({ user }) {
   const toast = useToast();
   const [page,       setPage]       = useState(1);
@@ -81,11 +124,15 @@ export default function UsersPage({ user }) {
   const [showCreate, setShowCreate] = useState(false);
 
   const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
-  const create          = useCreateUser();
-  const deactivate      = useDeactivateUser();
-  const reactivate      = useReactivateUser();
-  const regenerateInvite = useRegenerateInvite();
-  const deleteUser      = useDeleteUser();
+  const { data: invitesData, isLoading: invitesLoading } = useInvites();
+
+  const createInvite         = useCreateInvite();
+  const deactivate           = useDeactivateUser();
+  const reactivate           = useReactivateUser();
+  const resetUserLogin       = useResetUserLogin();
+  const regenerateInvite     = useRegenerateInvite();
+  const cancelInvite         = useCancelInvite();
+  const deleteUser           = useDeleteUser();
 
   async function handleDeactivate(u) {
     if (!confirm(`Deactivate ${u.name}?`)) return;
@@ -107,6 +154,19 @@ export default function UsersPage({ user }) {
     }
   }
 
+  async function handleResetTelegram(u) {
+    if (!confirm(`Reset Telegram for ${u.name}? They will need to re-link via a new link.`)) return;
+    try {
+      const response = await resetUserLogin.mutateAsync(u.id);
+      if (response.data?.relink_link) {
+        navigator.clipboard.writeText(response.data.relink_link).catch(() => {});
+      }
+      toast({ message: `Relink link generated for ${u.name}. Copied to clipboard.` });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
   async function handleDelete(u) {
     if (!confirm(`Delete ${u.name}? This action cannot be undone.`)) return;
     try {
@@ -117,13 +177,25 @@ export default function UsersPage({ user }) {
     }
   }
 
-  async function handleRegenerateInvite(u) {
+  async function handleRegenerateInvite(inv) {
     try {
-      const response = await regenerateInvite.mutateAsync(u.id);
-      toast({ message: 'Invite link regenerated. Share with user.', type: 'success' });
-      // Optionally copy link to clipboard or show in a modal
+      const response = await regenerateInvite.mutateAsync(inv.id);
+      if (response.data?.invite_link) {
+        navigator.clipboard.writeText(response.data.invite_link).catch(() => {});
+      }
+      toast({ message: 'New invite link generated. Copied to clipboard.' });
     } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed to regenerate invite.', type: 'error' });
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  async function handleCancelInvite(inv) {
+    if (!confirm(`Cancel invite for ${inv.name}?`)) return;
+    try {
+      await cancelInvite.mutateAsync(inv.id);
+      toast({ message: `Invite for ${inv.name} cancelled.` });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
   }
 
@@ -134,7 +206,7 @@ export default function UsersPage({ user }) {
       <PageHeader
         title="User Management"
         subtitle="Manage faculty and admin accounts"
-        action={<Button onClick={() => setShowCreate(true)}>+ Add User</Button>}
+        action={<Button onClick={() => setShowCreate(true)}>+ Invite User</Button>}
       />
 
       {/* Filter bar */}
@@ -155,7 +227,7 @@ export default function UsersPage({ user }) {
           <option value="">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-          <option value="pending_telegram">Awaiting Telegram</option>
+          <option value="pending_telegram">Telegram Relink Needed</option>
         </select>
       </div>
 
@@ -186,48 +258,48 @@ export default function UsersPage({ user }) {
 
       {/* Desktop table */}
       <div className="hidden md:block">
-      <Table>
-        <thead>
-          <tr>
-            <Th>Name</Th>
-            <Th>Role</Th>
-            <Th className="hidden sm:table-cell">Department</Th>
-            <Th className="hidden md:table-cell">Telegram ID</Th>
-            <Th>Status</Th>
-            <Th />
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {isLoading && <EmptyRow cols={6} message="Loading…" />}
-          {!isLoading && !data?.data?.length && <EmptyRow cols={6} />}
-          {data?.data?.map((u) => (
-            <tr key={u.id}>
-              <Td>
-                <p className="font-medium text-slate-900">{u.name}</p>
-                <p className="text-[11px] text-slate-400">{u.email}</p>
-              </Td>
-              <Td><Badge status={u.role} label={u.role.replace(/_/g, ' ')} /></Td>
-              <Td className="hidden sm:table-cell">{u.department ?? '—'}</Td>
-              <Td className="hidden md:table-cell">
-                <span className="font-mono text-[12px] text-slate-600">
-                  {u.telegram_id ?? '—'}
-                </span>
-              </Td>
-              <Td><Badge status={u.status} /></Td>
-              <Td>
-                <RowMenu
-                  user={u}
-                  userRole={user.role}
-                  onDeactivate={handleDeactivate}
-                  onReactivate={handleReactivate}
-                  onRegenerateInvite={handleRegenerateInvite}
-                  onDelete={handleDelete}
-                />
-              </Td>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Name</Th>
+              <Th>Role</Th>
+              <Th className="hidden sm:table-cell">Department</Th>
+              <Th className="hidden md:table-cell">Telegram ID</Th>
+              <Th>Status</Th>
+              <Th />
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {!isLoading && !data?.data?.length && <EmptyRow cols={6} />}
+            {data?.data?.map((u) => (
+              <tr key={u.id}>
+                <Td>
+                  <p className="font-medium text-slate-900">{u.name}</p>
+                  <p className="text-[11px] text-slate-400">{u.email}</p>
+                </Td>
+                <Td><Badge status={u.role} label={u.role.replace(/_/g, ' ')} /></Td>
+                <Td className="hidden sm:table-cell">{u.department ?? '—'}</Td>
+                <Td className="hidden md:table-cell">
+                  <span className="font-mono text-[12px] text-slate-600">
+                    {u.telegram_id ?? '—'}
+                  </span>
+                </Td>
+                <Td><Badge status={u.status} /></Td>
+                <Td>
+                  <RowMenu
+                    user={u}
+                    userRole={user.role}
+                    onDeactivate={handleDeactivate}
+                    onReactivate={handleReactivate}
+                    onResetTelegram={handleResetTelegram}
+                    onDelete={handleDelete}
+                  />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       </div>
 
       <div style={{
@@ -237,7 +309,7 @@ export default function UsersPage({ user }) {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
         <span style={{ fontSize: 12, color: '#64748b' }}>
-          Total users in system
+          Active users
         </span>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
           {data?.data?.length ?? 0}
@@ -245,26 +317,66 @@ export default function UsersPage({ user }) {
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
+
+      {/* ── PENDING INVITES SECTION ── */}
+      <div style={{ marginTop: 32, marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>Pending Invites</h2>
+            <p style={{ fontSize: 12, color: '#94a3b8' }}>Invite links not yet activated</p>
+          </div>
+        </div>
+
+        <Table>
+          <thead>
+            <tr>
+              <Th>Name</Th>
+              <Th>Email</Th>
+              <Th>Role</Th>
+              <Th className="hidden sm:table-cell">Expires</Th>
+              <Th />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {invitesLoading && <EmptyRow cols={5} message="Loading…" />}
+            {!invitesLoading && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
+            {invitesData?.data?.map((inv) => (
+              <tr key={inv.id}>
+                <Td>
+                  <p className="font-medium text-slate-900">{inv.name}</p>
+                </Td>
+                <Td>{inv.email}</Td>
+                <Td><Badge status={inv.role} label={inv.role.replace(/_/g, ' ')} /></Td>
+                <Td className="hidden sm:table-cell text-[12px] text-slate-600">
+                  {new Date(inv.invite_expires_at).toLocaleDateString()}
+                </Td>
+                <Td>
+                  <InviteRowMenu
+                    invite={inv}
+                    onRegenerate={handleRegenerateInvite}
+                    onCancel={handleCancelInvite}
+                  />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+
       <CreateUserDrawer
         open={showCreate}
         onClose={() => setShowCreate(false)}
+        actorRole={user.role}
         onSubmit={async (form, callback) => {
           try {
-            const response = await create.mutateAsync(form);
-            if (response.data?.invite_link) {
-              // Invite link was generated
-              toast({ message: 'User created. Invite link generated.' });
-              callback(response.data);
-            } else {
-              // Account was immediately activated
-              toast({ message: 'User created and activated.' });
-              callback(response.data);
-            }
+            const response = await createInvite.mutateAsync(form);
+            toast({ message: 'Invite created.' });
+            callback(response.data);
           } catch (err) {
-            toast({ message: err.response?.data?.message ?? 'Failed to create user.', type: 'error' });
+            toast({ message: err.response?.data?.message ?? 'Failed to create invite.', type: 'error' });
           }
         }}
-        loading={create.isPending}
+        loading={createInvite.isPending}
       />
     </Layout>
   );

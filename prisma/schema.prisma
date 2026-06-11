@@ -70,49 +70,50 @@ enum ViolationChangeType {
 // ─── 1. Users ─────────────────────────────────────────────────────────────────
 
 model User {
-  id                 String     @id @default(uuid())
-  name               String     @db.VarChar(150)
-  email              String     @unique @db.VarChar(200)
-  phone              String?    @db.VarChar(20)
-  role               Role
-  department         String?    @db.VarChar(100)
-  designation        String?    @db.VarChar(100)
+  id                  String     @id @default(uuid())
+  name                String     @db.VarChar(150)
+  email               String     @unique @db.VarChar(200)
+  phone               String?    @db.VarChar(20)
+  role                Role
+  department          String?    @db.VarChar(100)
+  designation         String?    @db.VarChar(100)
   telegram_id         String?    @unique @db.VarChar(50)
   telegram_verified   Boolean    @default(false)
-  telegram_invite_token String?  @unique @db.VarChar(100)
-  telegram_invite_expires_at DateTime?
   otp_failed_attempts Int        @default(0) @db.SmallInt
   session_version     Int        @default(0)
   status              UserStatus @default(pending)
-  approved_at        DateTime?
-  approved_by        String?
-  deleted_at         DateTime?
-  created_at         DateTime   @default(now())
-  updated_at         DateTime   @updatedAt
+  approved_at         DateTime?
+  approved_by         String?
+  deleted_at          DateTime?
+  created_at          DateTime   @default(now())
+  updated_at          DateTime   @updatedAt
 
-  approver           User?      @relation("ApprovedBy", fields: [approved_by], references: [id])
-  approvedUsers      User[]     @relation("ApprovedBy")
+  approver      User?  @relation("ApprovedBy", fields: [approved_by], references: [id])
+  approvedUsers User[] @relation("ApprovedBy")
 
-  otpSessions        OtpSession[]
-  dutySlots          DutySlot[]         @relation("FacultyDutySlots")
-  createdDutySlots   DutySlot[]         @relation("CreatedDutySlots")
-  coveredSlots       DutySlot[]         @relation("CoveredSlots")
-  attendance         DutyAttendance[]   @relation("FacultyAttendance")
-  overriddenAttendance DutyAttendance[] @relation("OverriddenAttendance")
-  violations         Violation[]        @relation("RecordedViolations")
-  flagResolvedViolations Violation[]    @relation("FlagResolvedViolations")
-  violationAuditLogs ViolationAuditLog[]
-  adminAuditLogsAsActor AdminAuditLog[] @relation("AuditActor")
-  coverRequestsPosted CoverRequest[]   @relation("CoverRequested")
-  coverRequestsVolunteered CoverRequest[] @relation("CoverVolunteer")
-  coverRequestsConfirmed CoverRequest[] @relation("CoverConfirmed")
-  calendarOpened     CalendarConfig[]
-  messagesSent       Message[]          @relation("MessageSender")
-  messagesReceived   Message[]          @relation("MessageReceiver")
-  photoAccessLogs    PhotoAccessLog[]
-  studentUploadLogs  StudentUploadLog[]
-  violationTypes     ViolationType[]
-  systemConfigUpdates SystemConfig[]
+  otpSessions              OtpSession[]
+  issuedInvites            PendingInvite[]       @relation("IssuedInvites")
+  relinkTokens             TelegramRelinkToken[] @relation("RelinkTokens")
+  createdRelinkTokens      TelegramRelinkToken[] @relation("CreatedRelinkTokens")
+  dutySlots                DutySlot[]            @relation("FacultyDutySlots")
+  createdDutySlots         DutySlot[]            @relation("CreatedDutySlots")
+  coveredSlots             DutySlot[]            @relation("CoveredSlots")
+  attendance               DutyAttendance[]      @relation("FacultyAttendance")
+  overriddenAttendance     DutyAttendance[]      @relation("OverriddenAttendance")
+  violations               Violation[]           @relation("RecordedViolations")
+  flagResolvedViolations   Violation[]           @relation("FlagResolvedViolations")
+  violationAuditLogs       ViolationAuditLog[]
+  adminAuditLogsAsActor    AdminAuditLog[]       @relation("AuditActor")
+  coverRequestsPosted      CoverRequest[]        @relation("CoverRequested")
+  coverRequestsVolunteered CoverRequest[]        @relation("CoverVolunteer")
+  coverRequestsConfirmed   CoverRequest[]        @relation("CoverConfirmed")
+  calendarOpened           CalendarConfig[]
+  messagesSent             Message[]             @relation("MessageSender")
+  messagesReceived         Message[]             @relation("MessageReceiver")
+  photoAccessLogs          PhotoAccessLog[]
+  studentUploadLogs        StudentUploadLog[]
+  violationTypes           ViolationType[]
+  systemConfigUpdates      SystemConfig[]
 
   @@map("users")
 }
@@ -128,28 +129,66 @@ model OtpSession {
   attempt_count Int      @default(0) @db.SmallInt
   created_at    DateTime @default(now())
 
-  user          User     @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
 
   @@index([user_id, expires_at])
   @@map("otp_sessions")
 }
 
+// ─── 2a. Pending Invites ──────────────────────────────────────────────────
+
+model PendingInvite {
+  id                String   @id @default(uuid())
+  name              String   @db.VarChar(150)
+  email             String   @unique @db.VarChar(200)
+  phone             String?  @db.VarChar(20)
+  role              Role
+  department        String?  @db.VarChar(100)
+  designation       String?  @db.VarChar(100)
+  invite_token      String   @unique @db.VarChar(100)
+  invite_expires_at DateTime
+  invited_by        String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  inviter User @relation("IssuedInvites", fields: [invited_by], references: [id])
+
+  @@map("pending_invites")
+}
+
+// ─── 2b. Telegram Relink Tokens ───────────────────────────────────────────
+
+model TelegramRelinkToken {
+  id         String    @id @default(uuid())
+  user_id    String
+  token      String    @unique @db.VarChar(100)
+  expires_at DateTime
+  used_at    DateTime?
+  created_by String
+  created_at DateTime  @default(now())
+
+  user    User @relation("RelinkTokens", fields: [user_id], references: [id])
+  creator User @relation("CreatedRelinkTokens", fields: [created_by], references: [id])
+
+  @@map("telegram_relink_tokens")
+}
+
 // ─── 3. Students ─────────────────────────────────────────────────────────────
 
 model Student {
-  id                  String   @id @default(uuid())
-  registration_number String   @unique @db.VarChar(50)
-  student_name        String   @db.VarChar(150)
-  course              String   @db.VarChar(50)
-  semester_or_year    String   @db.VarChar(20)
-  academic_year       String   @db.VarChar(10)
-  institution         String   @db.VarChar(150)
-  status              String   @default("active") @db.VarChar(10)
+  id                  String    @id @default(uuid())
+  registration_number String    @unique @db.VarChar(50)
+  student_name        String    @db.VarChar(150)
+  course              String    @db.VarChar(50)
+  semester_or_year    String    @db.VarChar(20)
+  academic_year       String    @db.VarChar(10)
+  institution         String    @db.VarChar(150)
+  status              String    @default("active") @db.VarChar(10)
   deleted_at          DateTime?
-  created_at          DateTime @default(now())
-  updated_at          DateTime @updatedAt
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
 
-  violations          Violation[]
+  violations Violation[]
 
   @@map("students")
 }
@@ -166,7 +205,7 @@ model StudentUploadLog {
   errors            Json     @default("[]")
   uploaded_at       DateTime @default(now())
 
-  uploader          User     @relation(fields: [uploaded_by], references: [id])
+  uploader User @relation(fields: [uploaded_by], references: [id])
 
   @@map("student_upload_log")
 }
@@ -174,23 +213,23 @@ model StudentUploadLog {
 // ─── 5. Duty Slots ───────────────────────────────────────────────────────────
 
 model DutySlot {
-  id              String      @id @default(uuid())
-  faculty_id      String
-  duty_date       DateTime    @db.Date
-  session_type    SessionType
-  status          SlotStatus  @default(scheduled)
-  covered_by      String?
-  created_by      String
-  created_at      DateTime    @default(now())
-  updated_at      DateTime    @updatedAt
+  id           String      @id @default(uuid())
+  faculty_id   String
+  duty_date    DateTime    @db.Date
+  session_type SessionType
+  status       SlotStatus  @default(scheduled)
+  covered_by   String?
+  created_by   String
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
 
-  faculty         User        @relation("FacultyDutySlots", fields: [faculty_id], references: [id])
-  coveringFaculty User?       @relation("CoveredSlots", fields: [covered_by], references: [id])
-  creator         User        @relation("CreatedDutySlots", fields: [created_by], references: [id])
+  faculty         User  @relation("FacultyDutySlots", fields: [faculty_id], references: [id])
+  coveringFaculty User? @relation("CoveredSlots", fields: [covered_by], references: [id])
+  creator         User  @relation("CreatedDutySlots", fields: [created_by], references: [id])
 
-  attendance      DutyAttendance?
-  violations      Violation[]
-  coverRequests   CoverRequest[]
+  attendance    DutyAttendance?
+  violations    Violation[]
+  coverRequests CoverRequest[]
 
   @@unique([duty_date, session_type])
   @@index([faculty_id, duty_date])
@@ -213,9 +252,9 @@ model DutyAttendance {
   created_at      DateTime            @default(now())
   updated_at      DateTime            @updatedAt
 
-  dutySlot        DutySlot            @relation(fields: [duty_slot_id], references: [id])
-  faculty         User                @relation("FacultyAttendance", fields: [faculty_id], references: [id])
-  overriddenBy    User?               @relation("OverriddenAttendance", fields: [overridden_by], references: [id])
+  dutySlot     DutySlot @relation(fields: [duty_slot_id], references: [id])
+  faculty      User     @relation("FacultyAttendance", fields: [faculty_id], references: [id])
+  overriddenBy User?    @relation("OverriddenAttendance", fields: [overridden_by], references: [id])
 
   @@index([duty_slot_id])
   @@map("duty_attendance")
@@ -233,8 +272,8 @@ model ViolationType {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  creator      User     @relation(fields: [created_by], references: [id])
-  violations   Violation[]
+  creator    User        @relation(fields: [created_by], references: [id])
+  violations Violation[]
 
   @@map("violation_types")
 }
@@ -242,33 +281,33 @@ model ViolationType {
 // ─── 8. Violations ───────────────────────────────────────────────────────────
 
 model Violation {
-  id                  String       @id @default(uuid())
-  student_id          String
-  faculty_id          String
-  duty_slot_id        String
-  violation_type_id   String
-  custom_violation    String?      @db.Text
-  fine_amount         Decimal      @db.Decimal(8, 2)
-  is_warning_only     Boolean      @default(false)
-  remarks             String?      @db.Text
-  is_flagged          Boolean      @default(false)
-  flag_note           String?      @db.Text
-  flag_resolved_by    String?
-  flag_resolved_at    DateTime?
-  record_status       RecordStatus @default(active)
-  photo_path          String?      @db.VarChar(500)
-  photo_expires_at    DateTime?
-  created_at          DateTime     @default(now())
-  updated_at          DateTime     @updatedAt
+  id                String       @id @default(uuid())
+  student_id        String
+  faculty_id        String
+  duty_slot_id      String
+  violation_type_id String
+  custom_violation  String?      @db.Text
+  fine_amount       Decimal      @db.Decimal(8, 2)
+  is_warning_only   Boolean      @default(false)
+  remarks           String?      @db.Text
+  is_flagged        Boolean      @default(false)
+  flag_note         String?      @db.Text
+  flag_resolved_by  String?
+  flag_resolved_at  DateTime?
+  record_status     RecordStatus @default(active)
+  photo_path        String?      @db.VarChar(500)
+  photo_expires_at  DateTime?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
 
-  student             Student      @relation(fields: [student_id], references: [id])
-  faculty             User         @relation("RecordedViolations", fields: [faculty_id], references: [id])
-  dutySlot            DutySlot     @relation(fields: [duty_slot_id], references: [id])
-  violationType       ViolationType @relation(fields: [violation_type_id], references: [id])
-  flagResolver        User?        @relation("FlagResolvedViolations", fields: [flag_resolved_by], references: [id])
+  student       Student       @relation(fields: [student_id], references: [id])
+  faculty       User          @relation("RecordedViolations", fields: [faculty_id], references: [id])
+  dutySlot      DutySlot      @relation(fields: [duty_slot_id], references: [id])
+  violationType ViolationType @relation(fields: [violation_type_id], references: [id])
+  flagResolver  User?         @relation("FlagResolvedViolations", fields: [flag_resolved_by], references: [id])
 
-  auditLogs           ViolationAuditLog[]
-  photoAccessLogs     PhotoAccessLog[]
+  auditLogs       ViolationAuditLog[]
+  photoAccessLogs PhotoAccessLog[]
 
   @@index([student_id])
   @@index([faculty_id])
@@ -290,8 +329,8 @@ model ViolationAuditLog {
   reason       String?             @db.Text
   created_at   DateTime            @default(now())
 
-  violation    Violation           @relation(fields: [violation_id], references: [id])
-  changedBy    User                @relation(fields: [changed_by], references: [id])
+  violation Violation @relation(fields: [violation_id], references: [id])
+  changedBy User      @relation(fields: [changed_by], references: [id])
 
   @@map("violation_audit_log")
 }
@@ -307,7 +346,7 @@ model AdminAuditLog {
   metadata    Json?
   created_at  DateTime @default(now())
 
-  actor       User     @relation("AuditActor", fields: [actor_id], references: [id])
+  actor User @relation("AuditActor", fields: [actor_id], references: [id])
 
   @@map("admin_audit_log")
 }
@@ -327,10 +366,10 @@ model CoverRequest {
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
 
-  dutySlot     DutySlot    @relation(fields: [duty_slot_id], references: [id])
-  requester    User        @relation("CoverRequested", fields: [requested_by], references: [id])
-  volunteer    User?       @relation("CoverVolunteer", fields: [volunteer_id], references: [id])
-  confirmedBy  User?       @relation("CoverConfirmed", fields: [confirmed_by], references: [id])
+  dutySlot    DutySlot @relation(fields: [duty_slot_id], references: [id])
+  requester   User     @relation("CoverRequested", fields: [requested_by], references: [id])
+  volunteer   User?    @relation("CoverVolunteer", fields: [volunteer_id], references: [id])
+  confirmedBy User?    @relation("CoverConfirmed", fields: [confirmed_by], references: [id])
 
   @@index([status, expires_at])
   @@map("cover_requests")
@@ -339,21 +378,21 @@ model CoverRequest {
 // ─── 12. Calendar Config ─────────────────────────────────────────────────────
 
 model CalendarConfig {
-  id                        String   @id @default(uuid())
-  config_month              Int      @db.SmallInt
-  config_year               Int      @db.SmallInt
-  blocked_dates             Json     @default("[]")
-  working_days              Json     @default("[]")
-  sessions_per_faculty      Int      @default(3) @db.SmallInt
-  max_cover_requests_per_slot Int    @default(3) @db.SmallInt
-  is_window_open            Boolean  @default(false)
-  opened_by                 String?
-  opened_at                 DateTime?
-  closes_at                 DateTime?
-  created_at                DateTime @default(now())
-  updated_at                DateTime @updatedAt
+  id                          String    @id @default(uuid())
+  config_month                Int       @db.SmallInt
+  config_year                 Int       @db.SmallInt
+  blocked_dates               Json      @default("[]")
+  working_days                Json      @default("[]")
+  sessions_per_faculty        Int       @default(3) @db.SmallInt
+  max_cover_requests_per_slot Int       @default(3) @db.SmallInt
+  is_window_open              Boolean   @default(false)
+  opened_by                   String?
+  opened_at                   DateTime?
+  closes_at                   DateTime?
+  created_at                  DateTime  @default(now())
+  updated_at                  DateTime  @updatedAt
 
-  openedBy                  User?    @relation(fields: [opened_by], references: [id])
+  openedBy User? @relation(fields: [opened_by], references: [id])
 
   @@unique([config_month, config_year])
   @@map("calendar_config")
@@ -362,19 +401,19 @@ model CalendarConfig {
 // ─── 13. Messages ────────────────────────────────────────────────────────────
 
 model Message {
-  id                  String   @id @default(uuid())
+  id                  String    @id @default(uuid())
   from_user_id        String
   to_user_id          String
-  subject             String   @db.VarChar(255)
-  body                String   @db.Text
-  is_read             Boolean  @default(false)
+  subject             String    @db.VarChar(255)
+  body                String    @db.Text
+  is_read             Boolean   @default(false)
   read_at             DateTime?
-  deleted_by_sender   Boolean  @default(false)
-  deleted_by_receiver Boolean  @default(false)
-  created_at          DateTime @default(now())
+  deleted_by_sender   Boolean   @default(false)
+  deleted_by_receiver Boolean   @default(false)
+  created_at          DateTime  @default(now())
 
-  sender              User     @relation("MessageSender", fields: [from_user_id], references: [id])
-  receiver            User     @relation("MessageReceiver", fields: [to_user_id], references: [id])
+  sender   User @relation("MessageSender", fields: [from_user_id], references: [id])
+  receiver User @relation("MessageReceiver", fields: [to_user_id], references: [id])
 
   @@index([to_user_id, created_at])
   @@index([from_user_id, created_at])
@@ -387,22 +426,22 @@ model Message {
 // Single-row table. Always access via settings.service.js — never query directly.
 
 model SystemConfig {
-  id                           String   @id @default(uuid())
-  late_threshold_morning_hour  Int      @default(8)  @db.SmallInt
-  late_threshold_morning_min   Int      @default(15) @db.SmallInt
-  late_threshold_afternoon_hour Int     @default(13) @db.SmallInt
-  late_threshold_afternoon_min  Int     @default(15) @db.SmallInt
-  auto_checkout_hour           Int      @default(16) @db.SmallInt
-  auto_checkout_min            Int      @default(30) @db.SmallInt
-  cover_ttl_hours              Int      @default(48) @db.SmallInt
-  session_start_morning_hour   Int      @default(8)  @db.SmallInt
-  session_start_morning_min    Int      @default(0)  @db.SmallInt
-  session_start_afternoon_hour Int      @default(13) @db.SmallInt
-  session_start_afternoon_min  Int      @default(0)  @db.SmallInt
-  updated_by                   String?
-  updated_at                   DateTime @updatedAt
+  id                            String   @id @default(uuid())
+  late_threshold_morning_hour   Int      @default(8) @db.SmallInt
+  late_threshold_morning_min    Int      @default(15) @db.SmallInt
+  late_threshold_afternoon_hour Int      @default(13) @db.SmallInt
+  late_threshold_afternoon_min  Int      @default(15) @db.SmallInt
+  auto_checkout_hour            Int      @default(16) @db.SmallInt
+  auto_checkout_min             Int      @default(30) @db.SmallInt
+  cover_ttl_hours               Int      @default(48) @db.SmallInt
+  session_start_morning_hour    Int      @default(8) @db.SmallInt
+  session_start_morning_min     Int      @default(0) @db.SmallInt
+  session_start_afternoon_hour  Int      @default(13) @db.SmallInt
+  session_start_afternoon_min   Int      @default(0) @db.SmallInt
+  updated_by                    String?
+  updated_at                    DateTime @updatedAt
 
-  updatedBy                    User?    @relation(fields: [updated_by], references: [id])
+  updatedBy User? @relation(fields: [updated_by], references: [id])
 
   @@map("system_config")
 }
@@ -410,13 +449,13 @@ model SystemConfig {
 // ─── 14. Photo Access Log (Foundation — Phase 2) ─────────────────────────────
 
 model PhotoAccessLog {
-  id           String    @id @default(uuid())
+  id           String   @id @default(uuid())
   violation_id String
   accessed_by  String
-  accessed_at  DateTime  @default(now())
+  accessed_at  DateTime @default(now())
 
-  violation    Violation @relation(fields: [violation_id], references: [id])
-  accessedBy   User      @relation(fields: [accessed_by], references: [id])
+  violation  Violation @relation(fields: [violation_id], references: [id])
+  accessedBy User      @relation(fields: [accessed_by], references: [id])
 
   @@map("photo_access_log")
 }

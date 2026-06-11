@@ -3,7 +3,7 @@ const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { createUserSchema, updateProfileSchema } = require('../schemas/users.schema');
+const { updateProfileSchema } = require('../schemas/users.schema');
 const ctrl = require('../controllers/users.controller');
 
 const router = Router();
@@ -14,11 +14,23 @@ router.use(authenticate);
 // GET /users/me — All authenticated roles
 router.get('/me', asyncHandler(ctrl.getMe));
 
-// POST /users — Admin, Super Admin
-router.post('/', authorize('admin', 'super_admin'), validate(createUserSchema), asyncHandler(ctrl.createUser));
+// POST /users — DEPRECATED (use POST /invites instead)
+router.post('/', authorize('admin', 'super_admin'), (req, res) =>
+  res.status(410).json({
+    error: true,
+    code: 'GONE',
+    message: 'POST /users is no longer used. Use POST /invites to invite new users.',
+  })
+);
 
-// GET /users/pending — Admin, Super Admin
-router.get('/pending', authorize('admin', 'super_admin'), asyncHandler(ctrl.getPendingUsers));
+// GET /users/pending — DEPRECATED (use GET /invites instead)
+router.get('/pending', authorize('admin', 'super_admin'), (req, res) =>
+  res.status(410).json({
+    error: true,
+    code: 'GONE',
+    message: 'GET /users/pending is no longer used. Use GET /invites for pending invites.',
+  })
+);
 
 // GET /users — Admin, Super Admin
 router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listUsers));
@@ -38,7 +50,13 @@ router.patch('/:id/reactivate', authorize('admin', 'super_admin'), asyncHandler(
 // DELETE /users/:id — Super Admin only
 router.delete('/:id', authorize('super_admin'), asyncHandler(ctrl.deleteUser));
 
-// POST /users/:id/regenerate-invite — Admin, Super Admin
-router.post('/:id/regenerate-invite', authorize('admin', 'super_admin'), asyncHandler(ctrl.regenerateInvite));
+// POST /users/:id/regenerate-invite — DEPRECATED (use POST /invites/:id/regenerate instead)
+router.post('/:id/regenerate-invite', authorize('admin', 'super_admin'), (req, res) =>
+  res.status(410).json({
+    error: true,
+    code: 'GONE',
+    message: 'Use POST /invites/:id/regenerate instead.',
+  })
+);
 
 module.exports = router;
