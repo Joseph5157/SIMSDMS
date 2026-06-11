@@ -92,7 +92,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
 
   function handleSubmit(e) {
     e.preventDefault();
-    onSubmit(form);
+    onSubmit(form, (result) => {
+      setForm({ name: '', email: '', telegram_id: '', role: 'faculty', department: '', designation: '', phone: '' });
+      onClose();
+    });
   }
 
   return (
@@ -163,7 +166,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading }) {
 
           {/* Scrollable form body */}
           <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-            <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
+            <form id="create-user-form" onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
 
               {/* ── Section: Identity ── */}
               <p style={{
