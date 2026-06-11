@@ -35,9 +35,9 @@ async function getMe(req, res) {
 
 async function createUser(req, res) {
   try {
-    const { name, email, role, department, designation, phone, telegram_id } = req.body;
+    const { name, email, role, department, designation, phone, telegram_id } = req.body || {};
 
-    logger.info(`[CREATE_USER] Starting for ${email}`);
+    logger.info(`[CREATE_USER] Starting for ${email ?? 'unknown'}`);
 
     // Validate input
     if (!name || !email || !role) {
@@ -97,7 +97,7 @@ async function createUser(req, res) {
     if (err.code === 'P2002') {
       // Unique constraint violation
       const field = err.meta?.target?.[0] ?? 'field';
-      logger.warn(`[CREATE_USER] Duplicate ${field} for user creation attempt: ${email}`);
+      logger.warn(`[CREATE_USER] Duplicate ${field} for user creation attempt: ${email ?? 'unknown email'}`);
       return res.status(409).json({
         error: true,
         code: 'DUPLICATE_FIELD',
