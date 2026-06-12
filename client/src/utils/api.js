@@ -8,7 +8,7 @@ function getCsrfToken() {
 }
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000',
+  baseURL: process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000',
   withCredentials: true,
 });
 
