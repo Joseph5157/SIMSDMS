@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRequestOtp, useVerifyOtp } from '../../hooks/useAuth';
+import { useToast } from '../../components/ui/Toast';
+import api from '../../utils/api';
 
 // ── 6-box OTP input ─────────────────────────────────────────────────────────
 function OtpInput({ value, onChange, hasError }) {
@@ -95,6 +97,7 @@ function Countdown({ startAt, onExpire }) {
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function LoginPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep]           = useState('request'); // 'request' | 'verify'
   const [email, setEmail] = useState('');
   const [otp, setOtp]             = useState('');
@@ -102,9 +105,78 @@ export default function LoginPage() {
   const [errorType, setErrorType] = useState(''); // 'wrong' | 'expired' | 'locked' | ''
   const [timerKey, setTimerKey]   = useState(0);
   const [expired, setExpired]     = useState(false);
+  const [telegramLoading, setTelegramLoading] = useState(false);
 
   const requestOtp = useRequestOtp();
   const verifyOtp  = useVerifyOtp();
+
+  // Inject Telegram widget script and set up auth handler
+  useEffect(() => {
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+    const container = document.getElementById('telegram-login-widget');
+
+    // Define the global auth callback before loading script
+    window.onTelegramAuth = async (user) => {
+      try {
+        setTelegramLoading(true);
+        const res = await api.post('/auth/telegram-callback', user);
+        const userData = res.data;
+        if (userData.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
+        else navigate('/admin/dashboard', { replace: true });
+      } catch (err) {
+        setTelegramLoading(false);
+        const code = err.response?.data?.code;
+        const msg = err.response?.data?.message ?? 'Telegram login failed. Please try again.';
+
+        if (code === 'TELEGRAM_NOT_LINKED') {
+          toast({ message: 'Account not linked. Please use your invite link from Telegram first.', type: 'error' });
+        } else {
+          toast({ message: msg, type: 'error' });
+        }
+      }
+    };
+
+    // Inject Telegram widget script with data attributes into the container
+    if (container && botUsername) {
+      // Create script tag with data attributes — the widget library's getAllWidgets()
+      // scans for script[data-telegram-login] and replaces it with an iframe in-place
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.async = true;
+      script.setAttribute('data-telegram-login', botUsername);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '10');
+      script.setAttribute('data-request-access', 'write');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-userpic', 'false');
+
+      // Append script into the container — widget self-initializes on script execution
+      container.appendChild(script);
+
+      // Cleanup: remove the injected script and any generated iframe on unmount
+      return () => {
+        if (window.onTelegramAuth) {
+          delete window.onTelegramAuth;
+        }
+        // Remove the script tag we injected
+        if (script.parentNode === container) {
+          container.removeChild(script);
+        }
+        // Remove any generated iframe (id starts with "telegram-login-")
+        const iframe = container.querySelector('iframe[id^="telegram-login-"]');
+        if (iframe) {
+          container.removeChild(iframe);
+        }
+      };
+    }
+
+    return () => {
+      // Cleanup on unmount if container wasn't found
+      if (window.onTelegramAuth) {
+        delete window.onTelegramAuth;
+      }
+    };
+  }, [navigate, toast]);
 
   const handleRequestOtp = useCallback(async (e) => {
     e?.preventDefault();
@@ -246,6 +318,36 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* ── Telegram Login Section ── */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 12,
+              backgroundColor: '#f0f9ff', border: '1px solid #bfdbfe',
+              borderRadius: 12, padding: '16px',
+            }}>
+              <p style={{
+                fontSize: 12, fontWeight: 700, color: '#0369a1',
+                textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
+              }}>
+                Quick Login
+              </p>
+              <div id="telegram-login-widget" style={{ textAlign: 'center' }} />
+              {telegramLoading && (
+                <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', margin: 0 }}>
+                  ⏳ Verifying with Telegram…
+                </p>
+              )}
+            </div>
+
+            {/* ── Divider ── */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              marginTop: 4, marginBottom: 4,
+            }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+              <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>OR</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }} />
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <label style={{
                 fontSize: 12, fontWeight: 700, color: '#475569',
@@ -289,7 +391,7 @@ export default function LoginPage() {
             }}>
               <span style={{ fontSize: 16, flexShrink: 0 }}>✈️</span>
               <p style={{ fontSize: 13, color: '#1d4ed8', lineHeight: 1.5 }}>
-                OTP sent via <strong>@SIMSDMSBOT</strong> Telegram bot.
+                OTP sent via <strong>@SimsPharmacybot</strong> Telegram bot.
                 Make sure you have started the bot.
               </p>
             </div>
