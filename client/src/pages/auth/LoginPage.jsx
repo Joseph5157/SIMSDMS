@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRequestOtp, useVerifyOtp } from '../../hooks/useAuth';
 import { useToast } from '../../components/ui/Toast';
 import api from '../../utils/api';
@@ -98,6 +99,7 @@ function Countdown({ startAt, onExpire }) {
 export default function LoginPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [step, setStep]           = useState('request'); // 'request' | 'verify'
   const [email, setEmail] = useState('');
   const [otp, setOtp]             = useState('');
@@ -171,6 +173,8 @@ export default function LoginPage() {
         // POST user object to backend
         const res = await api.post('/auth/telegram-callback', user);
         const userData = res.data;
+        // Update React Query cache so ProtectedRoute recognizes auth immediately
+        queryClient.setQueryData(['currentUser'], userData);
         if (userData.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
         else navigate('/admin/dashboard', { replace: true });
       } catch (err) {
@@ -188,7 +192,7 @@ export default function LoginPage() {
     };
 
     processTelegramAuth();
-  }, [navigate, toast]);
+  }, [navigate, toast, queryClient]);
 
   // Inject Telegram widget script with data-auth-url (avoids eval required by data-onauth)
   useEffect(() => {
@@ -251,6 +255,8 @@ export default function LoginPage() {
     try {
       const res = await verifyOtp.mutateAsync({ email: email.trim(), otp });
       const user = res.data;
+      // Update React Query cache so ProtectedRoute recognizes auth immediately
+      queryClient.setQueryData(['currentUser'], user);
       if (user.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
       else navigate('/admin/dashboard', { replace: true });
     } catch (err) {
