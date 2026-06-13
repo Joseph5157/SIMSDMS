@@ -225,6 +225,106 @@ async function verifyOtp(req, res) {
   }
 }
 
+// ─── POST /auth/telegram-callback ────────────────────────────────────────────
+
+async function telegramCallback(req, res) {
+  try {
+    const payload = req.body;
+
+    // Build data-check-string: all fields except hash, sorted alphabetically, formatted as "key=value\n..."
+    const fields = Object.keys(payload)
+      .filter(key => key !== 'hash' && payload[key] !== null && payload[key] !== undefined)
+      .sort()
+      .map(key => `${key}=${payload[key]}`)
+      .join('\n');
+
+    // Compute secret_key = SHA256(BOT_TOKEN)
+    const secretKey = crypto.createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest();
+
+    // Compute HMAC-SHA256 and compare with timing-safe comparison
+    const computedHash = crypto.createHmac('sha256', secretKey).update(fields).digest('hex');
+    const receivedHash = payload.hash;
+
+    let hashValid = false;
+    try {
+      const a = Buffer.from(computedHash);
+      const b = Buffer.from(receivedHash);
+      hashValid = a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      hashValid = false;
+    }
+
+    if (!hashValid) {
+      return res.status(401).json({
+        error: true,
+        code: 'INVALID_TELEGRAM_HASH',
+        message: 'Telegram login verification failed.',
+      });
+    }
+
+    // Check if auth_date is not older than 86400 seconds (24 hours)
+    const now = Math.floor(Date.now() / 1000);
+    if (now - payload.auth_date > 86400) {
+      return res.status(401).json({
+        error: true,
+        code: 'TELEGRAM_AUTH_EXPIRED',
+        message: 'Telegram login has expired. Please try again.',
+      });
+    }
+
+    // Look up user by telegram_id
+    const telegramId = String(payload.id);
+    const user = await prisma.user.findUnique({ where: { telegram_id: telegramId } });
+
+    if (!user || user.deleted_at || user.status !== 'active') {
+      return res.status(403).json({
+        error: true,
+        code: 'TELEGRAM_NOT_LINKED',
+        message: 'Account not linked. Use your invite link from Telegram first.',
+      });
+    }
+
+    // Issue JWT + CSRF cookies (same pattern as verifyOtp)
+    const token = jwt.sign(
+      { sub: user.id, role: user.role, session_version: user.session_version },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    );
+
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+
+    res.cookie('sims_token', token, authCookieOptions());
+    res.cookie('sims_csrf', csrfToken, csrfCookieOptions());
+
+    // Log the successful Telegram login
+    const { logAction } = require('../services/audit.service');
+    await logAction({
+      actorId: user.id,
+      action: 'TELEGRAM_LOGIN',
+      targetId: user.id,
+      targetType: 'user',
+      metadata: { telegram_id: telegramId },
+    });
+
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      department: user.department,
+      designation: user.designation,
+      telegram_verified: user.telegram_verified,
+      status: user.status,
+      approved_at: user.approved_at,
+      created_at: user.created_at,
+    });
+  } catch (err) {
+    logger.error(`telegramCallback error: ${err.message}`);
+    res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
+  }
+}
+
 // ─── POST /auth/logout ────────────────────────────────────────────────────────
 
 async function logout(req, res) {
@@ -234,4 +334,4 @@ async function logout(req, res) {
   res.json({ message: 'Logged out successfully.' });
 }
 
-module.exports = { requestOtp, verifyOtp, logout };
+module.exports = { requestOtp, verifyOtp, telegramCallback, logout };
