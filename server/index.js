@@ -42,12 +42,13 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'"],                        // production Vite build uses external modules — no inline scripts needed
+      scriptSrc:     ["'self'", "https://telegram.org"],                        // Telegram Login Widget script
       styleSrc:      ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
       imgSrc:        ["'self'", "data:", "blob:"],
-      connectSrc:    ["'self'"],
+      connectSrc:    ["'self'", "https://oauth.telegram.org"],                 // Telegram widget auth XHR
       fontSrc:       ["'self'", "data:"],
       objectSrc:     ["'none'"],
+      frameSrc:      ["https://oauth.telegram.org"],                           // Telegram login iframe
       frameAncestors:["'none'"],
     },
   },
