@@ -154,7 +154,7 @@ describe('changePassword', () => {
     prisma.user.findUnique.mockResolvedValue(userWithPassword);
     bcrypt.compare.mockResolvedValue(true);
     const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
-    req.user = { sub: userWithPassword.id };
+    req.user = { id: userWithPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(200);
@@ -173,7 +173,7 @@ describe('changePassword', () => {
   it('successfully changes password when password_hash is null (first-time set)', async () => {
     prisma.user.findUnique.mockResolvedValue(userWithoutPassword);
     const req = makeReq({ current_password: '', new_password: 'newpassword123' });
-    req.user = { sub: userWithoutPassword.id };
+    req.user = { id: userWithoutPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(200);
@@ -194,7 +194,7 @@ describe('changePassword', () => {
     prisma.user.findUnique.mockResolvedValue(userWithPassword);
     bcrypt.compare.mockResolvedValue(false);
     const req = makeReq({ current_password: 'wrongpassword', new_password: 'newpassword123' });
-    req.user = { sub: userWithPassword.id };
+    req.user = { id: userWithPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(401);
@@ -205,7 +205,7 @@ describe('changePassword', () => {
   it('returns 401 INVALID_USER for a deleted user', async () => {
     prisma.user.findUnique.mockResolvedValue({ ...userWithPassword, deleted_at: new Date() });
     const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
-    req.user = { sub: userWithPassword.id };
+    req.user = { id: userWithPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(401);
@@ -226,7 +226,7 @@ describe('changePassword', () => {
     prisma.user.findUnique.mockResolvedValue(userWithPassword);
     bcrypt.compare.mockResolvedValue(true);
     const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
-    req.user = { sub: userWithPassword.id };
+    req.user = { id: userWithPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(audit.logAction).toHaveBeenCalledWith(
@@ -238,5 +238,19 @@ describe('changePassword', () => {
         metadata: expect.objectContaining({ changed_by: 'self' }),
       }),
     );
+  });
+
+  it('uses req.user.id (from authenticate middleware) not req.user.sub', async () => {
+    // Verify the fix for issue where changePassword was using req.user.sub instead of req.user.id
+    // This test documents the correct shape: authenticate middleware sets { id, role }, not { sub, role }
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(true);
+    const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
+    req.user = { id: userWithPassword.id, role: 'faculty' }; // Shape set by authenticate middleware
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: userWithPassword.id }, // Must use req.user.id
+    });
   });
 });

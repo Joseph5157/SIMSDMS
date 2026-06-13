@@ -79,7 +79,7 @@ async function login(req, res) {
 async function changePassword(req, res) {
   try {
     const { current_password, new_password } = req.body;
-    const userId = req.user.sub; // From JWT middleware
+    const userId = req.user.id; // From authenticate middleware
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
