@@ -194,7 +194,69 @@ export default function LoginPage() {
     processTelegramAuth();
   }, [navigate, toast, queryClient]);
 
-  // Inject Telegram widget script with data-auth-url (avoids eval required by data-onauth)
+  // Listen for postMessage from Telegram widget iframe
+  useEffect(() => {
+    const handleTelegramMessage = async (event) => {
+      // Security: only process messages from Telegram origins
+      if (!event.origin.includes('telegram.org')) {
+        return;
+      }
+
+      let authData;
+      try {
+        authData = JSON.parse(event.data);
+      } catch (e) {
+        // Not JSON, ignore
+        return;
+      }
+
+      // Check if this is a Telegram auth message
+      if (authData.event !== 'auth_user' || !authData.auth_data) {
+        return;
+      }
+
+      const user = authData.auth_data;
+
+      // Convert id and auth_date to numbers if they're strings
+      if (typeof user.id === 'string') {
+        user.id = parseInt(user.id, 10);
+      }
+      if (typeof user.auth_date === 'string') {
+        user.auth_date = parseInt(user.auth_date, 10);
+      }
+
+      try {
+        setTelegramLoading(true);
+
+        // POST user object to backend
+        const res = await api.post('/auth/telegram-callback', user);
+        const userData = res.data;
+        // Update React Query cache so ProtectedRoute recognizes auth immediately
+        queryClient.setQueryData(['currentUser'], userData);
+        if (userData.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
+        else navigate('/admin/dashboard', { replace: true });
+      } catch (err) {
+        setTelegramLoading(false);
+
+        const code = err.response?.data?.code;
+        const msg = err.response?.data?.message ?? 'Telegram login failed. Please try again.';
+
+        if (code === 'TELEGRAM_NOT_LINKED') {
+          toast({ message: 'Account not linked. Please use your invite link from Telegram first.', type: 'error' });
+        } else {
+          toast({ message: msg, type: 'error' });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleTelegramMessage);
+
+    return () => {
+      window.removeEventListener('message', handleTelegramMessage);
+    };
+  }, [navigate, toast, queryClient]);
+
+  // Inject Telegram widget script with postMessage-based auth (no eval, no redirects)
   useEffect(() => {
     const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
     const container = document.getElementById('telegram-login-widget');
@@ -203,6 +265,7 @@ export default function LoginPage() {
     if (container && botUsername) {
       // Create script tag with data attributes — the widget library's getAllWidgets()
       // scans for script[data-telegram-login] and replaces it with an iframe in-place
+      // The widget will postMessage auth_data when user authenticates
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.async = true;
@@ -210,7 +273,6 @@ export default function LoginPage() {
       script.setAttribute('data-size', 'large');
       script.setAttribute('data-radius', '10');
       script.setAttribute('data-request-access', 'write');
-      script.setAttribute('data-auth-url', window.location.origin + '/login');
       script.setAttribute('data-userpic', 'false');
 
       // Append script into the container — widget self-initializes on script execution
