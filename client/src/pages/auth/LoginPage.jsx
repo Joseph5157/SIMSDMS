@@ -197,6 +197,8 @@ export default function LoginPage() {
   // Listen for postMessage from Telegram widget iframe
   useEffect(() => {
     const handleTelegramMessage = async (event) => {
+      console.log('[TG DEBUG] postMessage received:', event.origin, event.data);
+
       // Security: only process messages from Telegram origins
       if (!event.origin.includes('telegram.org')) {
         return;
