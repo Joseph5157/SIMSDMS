@@ -155,7 +155,7 @@ export default function LoginPage() {
             // Decode and parse
             const decoded = atob(base64);
             user = JSON.parse(decoded);
-          } catch (e) {
+          } catch { // eslint-disable-line no-unused-vars
             return; // Invalid hash, skip processing
           }
           // Clear hash from URL
@@ -197,8 +197,6 @@ export default function LoginPage() {
   // Listen for postMessage from Telegram widget iframe
   useEffect(() => {
     const handleTelegramMessage = async (event) => {
-      console.log('[TG DEBUG] postMessage received:', event.origin, event.data);
-
       // Security: only process messages from Telegram origins
       if (!event.origin.includes('telegram.org')) {
         return;
@@ -207,7 +205,7 @@ export default function LoginPage() {
       let authData;
       try {
         authData = JSON.parse(event.data);
-      } catch (e) {
+      } catch { // eslint-disable-line no-unused-vars
         // Not JSON, ignore
         return;
       }
