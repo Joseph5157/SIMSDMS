@@ -110,21 +110,42 @@ export default function LoginPage() {
   const requestOtp = useRequestOtp();
   const verifyOtp  = useVerifyOtp();
 
-  // Inject Telegram widget script and set up auth handler
+  // Process Telegram auth hash on component mount
   useEffect(() => {
-    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
-    const container = document.getElementById('telegram-login-widget');
+    const processAuthHash = async () => {
+      const hash = window.location.hash;
+      if (!hash.includes('tgAuthResult=')) return;
 
-    // Define the global auth callback before loading script
-    window.onTelegramAuth = async (user) => {
       try {
         setTelegramLoading(true);
+
+        // Extract and decode tgAuthResult from hash
+        const match = hash.match(/tgAuthResult=([^&]*)/);
+        if (!match || !match[1]) return;
+
+        const encoded = match[1];
+        // Replace URL-safe base64 chars and pad
+        const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+        const padding = (4 - (padded.length % 4)) % 4;
+        const base64 = padded + '='.repeat(padding);
+
+        // Decode and parse
+        const decoded = atob(base64);
+        const user = JSON.parse(decoded);
+
+        // Clear hash from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // POST decoded user to backend
         const res = await api.post('/auth/telegram-callback', user);
         const userData = res.data;
         if (userData.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
         else navigate('/admin/dashboard', { replace: true });
       } catch (err) {
         setTelegramLoading(false);
+        // Clear hash on error
+        window.history.replaceState({}, document.title, window.location.pathname);
+
         const code = err.response?.data?.code;
         const msg = err.response?.data?.message ?? 'Telegram login failed. Please try again.';
 
@@ -135,6 +156,14 @@ export default function LoginPage() {
         }
       }
     };
+
+    processAuthHash();
+  }, [navigate, toast]);
+
+  // Inject Telegram widget script with data-auth-url (avoids eval required by data-onauth)
+  useEffect(() => {
+    const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME;
+    const container = document.getElementById('telegram-login-widget');
 
     // Inject Telegram widget script with data attributes into the container
     if (container && botUsername) {
@@ -147,7 +176,7 @@ export default function LoginPage() {
       script.setAttribute('data-size', 'large');
       script.setAttribute('data-radius', '10');
       script.setAttribute('data-request-access', 'write');
-      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-auth-url', window.location.origin + '/login');
       script.setAttribute('data-userpic', 'false');
 
       // Append script into the container — widget self-initializes on script execution
@@ -155,9 +184,6 @@ export default function LoginPage() {
 
       // Cleanup: remove the injected script and any generated iframe on unmount
       return () => {
-        if (window.onTelegramAuth) {
-          delete window.onTelegramAuth;
-        }
         // Remove the script tag we injected
         if (script.parentNode === container) {
           container.removeChild(script);
@@ -169,14 +195,7 @@ export default function LoginPage() {
         }
       };
     }
-
-    return () => {
-      // Cleanup on unmount if container wasn't found
-      if (window.onTelegramAuth) {
-        delete window.onTelegramAuth;
-      }
-    };
-  }, [navigate, toast]);
+  }, []);
 
   const handleRequestOtp = useCallback(async (e) => {
     e?.preventDefault();
