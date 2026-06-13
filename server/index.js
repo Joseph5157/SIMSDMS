@@ -42,13 +42,13 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:    ["'self'"],
-      scriptSrc:     ["'self'", "https://telegram.org"],                        // Telegram Login Widget script
+      scriptSrc:     ["'self'"],
       styleSrc:      ["'self'", "'unsafe-inline'"],   // Tailwind inline styles
       imgSrc:        ["'self'", "data:", "blob:"],
-      connectSrc:    ["'self'", "https://oauth.telegram.org"],                 // Telegram widget auth XHR
+      connectSrc:    ["'self'"],
       fontSrc:       ["'self'", "data:"],
       objectSrc:     ["'none'"],
-      frameSrc:      ["https://oauth.telegram.org"],                           // Telegram login iframe
+      frameSrc:      ["'none'"],
       frameAncestors:["'none'"],
     },
   },

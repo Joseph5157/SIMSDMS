@@ -1,6 +1,8 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
+  const location = useLocation();
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -9,6 +11,12 @@ export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+
+  // If user must change password and is not already on the change-password page, redirect
+  if (user.must_change_password && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
+  }
+
   if (requiredRoles && !requiredRoles.includes(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">

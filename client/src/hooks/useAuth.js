@@ -15,16 +15,21 @@ export function useCurrentUser() {
   });
 }
 
-export function useRequestOtp() {
+export function useLogin() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: (email) => api.post('/auth/request-otp', { email }),
+    mutationFn: ({ email, password }) => api.post('/auth/login', { email, password }),
+    onSuccess: (res) => {
+      qc.setQueryData(['currentUser'], res.data);
+    },
   });
 }
 
-export function useVerifyOtp() {
+export function useChangePassword() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ email, otp }) => api.post('/auth/verify-otp', { email, otp }),
+    mutationFn: ({ current_password, new_password }) =>
+      api.post('/auth/change-password', { current_password, new_password }),
     onSuccess: (res) => {
       qc.setQueryData(['currentUser'], res.data);
     },

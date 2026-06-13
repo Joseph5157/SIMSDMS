@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useCurrentUser } from './hooks/useAuth';
 
 import LoginPage          from './pages/auth/LoginPage';
+import ChangePasswordPage from './pages/auth/ChangePasswordPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage          from './pages/admin/UsersPage';
 import StudentsPage       from './pages/admin/StudentsPage';
@@ -45,9 +46,15 @@ function AppRoutes() {
       <Route path="/" element={
         isLoading ? null :
         !user ? <Navigate to="/login" replace /> :
+        user.must_change_password ? <Navigate to="/change-password" replace /> :
         isFaculty ? <Navigate to="/faculty/dashboard" replace /> :
         <Navigate to="/admin/dashboard" replace />
       } />
+
+      {/* Change password route — authenticated users only */}
+      <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+      </Route>
 
       {/* Admin routes — Admin and Super Admin only */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['admin', 'super_admin']} />}>
