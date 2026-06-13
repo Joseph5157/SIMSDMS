@@ -10,8 +10,10 @@ const _require   = createRequire(import.meta.url);
 const prisma   = _require('../lib/prisma');
 const bcrypt   = _require('bcryptjs');
 const jwt      = _require('jsonwebtoken');
+const crypto   = _require('crypto');
 const telegram = _require('../lib/telegram');
-const { requestOtp, verifyOtp } = _require('../controllers/auth.controller');
+const { requestOtp, verifyOtp, telegramCallback } = _require('../controllers/auth.controller');
+const audit    = _require('../services/audit.service');
 
 const activeUser = {
   id: 'user-1', email: 'faculty@sims.edu', status: 'active', telegram_id: '123456789',
@@ -137,5 +139,122 @@ describe('verifyOtp', () => {
     await verifyOtp(makeReq({ email: activeUser.email, otp: '123456' }), res);
     expect(res._status).toBe(401);
     expect(res._body.code).toBe('OTP_EXPIRED');
+  });
+});
+
+describe('telegramCallback', () => {
+  const testBotToken = 'test_bot_token_12345';
+  const testTelegramId = '987654321';
+  const telegramUser = { ...activeUser, telegram_id: testTelegramId };
+
+  function computeValidHash(payload) {
+    const fields = Object.keys(payload)
+      .filter(key => key !== 'hash' && payload[key] !== null && payload[key] !== undefined)
+      .sort()
+      .map(key => `${key}=${payload[key]}`)
+      .join('\n');
+
+    const secretKey = crypto.createHash('sha256').update(testBotToken).digest();
+    return crypto.createHmac('sha256', secretKey).update(fields).digest('hex');
+  }
+
+  function makeValidPayload(overrides = {}) {
+    const now = Math.floor(Date.now() / 1000);
+    const basePayload = {
+      id: parseInt(testTelegramId),
+      first_name: 'Test',
+      last_name: 'User',
+      username: 'testuser',
+      auth_date: now,
+    };
+    const payload = { ...basePayload, ...overrides };
+    payload.hash = computeValidHash(payload);
+    return payload;
+  }
+
+  beforeEach(() => {
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(audit, 'logAction').mockResolvedValue(undefined);
+    vi.spyOn(jwt, 'sign').mockReturnValue('test-jwt-token');
+    // Mock process.env.TELEGRAM_BOT_TOKEN for the test
+    process.env.TELEGRAM_BOT_TOKEN = testBotToken;
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns 200 and sets cookies for a valid Telegram payload with active user', async () => {
+    prisma.user.findUnique.mockResolvedValue(telegramUser);
+    const payload = makeValidPayload();
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(200);
+    expect(res._cookies['sims_token']).toBe('test-jwt-token');
+    expect(typeof res._cookies['sims_csrf']).toBe('string');
+    expect(res._cookies['sims_csrf'].length).toBeGreaterThan(0);
+    expect(res._body.id).toBe(telegramUser.id);
+    expect(res._body.email).toBe(telegramUser.email);
+  });
+
+  it('returns 401 INVALID_TELEGRAM_HASH for a tampered hash', async () => {
+    prisma.user.findUnique.mockResolvedValue(telegramUser);
+    const payload = makeValidPayload();
+    payload.hash = 'tampered_hash_value';
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_TELEGRAM_HASH');
+  });
+
+  it('returns 401 TELEGRAM_AUTH_EXPIRED for an expired auth_date (>86400 seconds old)', async () => {
+    prisma.user.findUnique.mockResolvedValue(telegramUser);
+    const now = Math.floor(Date.now() / 1000);
+    const expiredDate = now - 86401; // 1 second past the limit
+    const payload = makeValidPayload({ auth_date: expiredDate });
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('TELEGRAM_AUTH_EXPIRED');
+  });
+
+  it('returns 403 TELEGRAM_NOT_LINKED for an unknown telegram_id', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    const payload = makeValidPayload();
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(403);
+    expect(res._body.code).toBe('TELEGRAM_NOT_LINKED');
+  });
+
+  it('returns 403 TELEGRAM_NOT_LINKED for a deleted user', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...telegramUser, deleted_at: new Date() });
+    const payload = makeValidPayload();
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(403);
+    expect(res._body.code).toBe('TELEGRAM_NOT_LINKED');
+  });
+
+  it('returns 403 TELEGRAM_NOT_LINKED for an inactive user', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...telegramUser, status: 'inactive' });
+    const payload = makeValidPayload();
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(res._status).toBe(403);
+    expect(res._body.code).toBe('TELEGRAM_NOT_LINKED');
+  });
+
+  it('calls audit.logAction with TELEGRAM_LOGIN action on success', async () => {
+    prisma.user.findUnique.mockResolvedValue(telegramUser);
+    const payload = makeValidPayload();
+    const res = makeRes();
+    await telegramCallback(makeReq(payload), res);
+    expect(audit.logAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: telegramUser.id,
+        action: 'TELEGRAM_LOGIN',
+        targetId: telegramUser.id,
+        targetType: 'user',
+        metadata: expect.objectContaining({ telegram_id: testTelegramId }),
+      }),
+    );
   });
 });
