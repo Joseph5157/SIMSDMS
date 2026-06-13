@@ -70,28 +70,29 @@ enum ViolationChangeType {
 // ─── 1. Users ─────────────────────────────────────────────────────────────────
 
 model User {
-  id                  String     @id @default(uuid())
-  name                String     @db.VarChar(150)
-  email               String     @unique @db.VarChar(200)
-  phone               String?    @db.VarChar(20)
-  role                Role
-  department          String?    @db.VarChar(100)
-  designation         String?    @db.VarChar(100)
-  telegram_id         String?    @unique @db.VarChar(50)
-  telegram_verified   Boolean    @default(false)
-  otp_failed_attempts Int        @default(0) @db.SmallInt
-  session_version     Int        @default(0)
-  status              UserStatus @default(pending)
-  approved_at         DateTime?
-  approved_by         String?
-  deleted_at          DateTime?
-  created_at          DateTime   @default(now())
-  updated_at          DateTime   @updatedAt
+  id                      String     @id @default(uuid())
+  name                    String     @db.VarChar(150)
+  email                   String     @unique @db.VarChar(200)
+  phone                   String?    @db.VarChar(20)
+  role                    Role
+  department              String?    @db.VarChar(100)
+  designation             String?    @db.VarChar(100)
+  telegram_id             String?    @unique @db.VarChar(50)
+  telegram_verified       Boolean    @default(false)
+  otp_failed_attempts     Int        @default(0) @db.SmallInt
+  password_hash           String?    @db.VarChar(255)
+  must_change_password    Boolean    @default(true)
+  session_version         Int        @default(0)
+  status                  UserStatus @default(pending)
+  approved_at             DateTime?
+  approved_by             String?
+  last_password_reset_at  DateTime?
+  deleted_at              DateTime?
+  created_at              DateTime   @default(now())
+  updated_at              DateTime   @updatedAt
 
   approver      User?  @relation("ApprovedBy", fields: [approved_by], references: [id])
   approvedUsers User[] @relation("ApprovedBy")
-
-  otpSessions              OtpSession[]
   issuedInvites            PendingInvite[]       @relation("IssuedInvites")
   relinkTokens             TelegramRelinkToken[] @relation("RelinkTokens")
   createdRelinkTokens      TelegramRelinkToken[] @relation("CreatedRelinkTokens")
@@ -118,24 +119,7 @@ model User {
   @@map("users")
 }
 
-// ─── 2. OTP Sessions ─────────────────────────────────────────────────────────
-
-model OtpSession {
-  id            String   @id @default(uuid())
-  user_id       String
-  otp_hash      String   @db.VarChar(255)
-  expires_at    DateTime
-  verified      Boolean  @default(false)
-  attempt_count Int      @default(0) @db.SmallInt
-  created_at    DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id])
-
-  @@index([user_id, expires_at])
-  @@map("otp_sessions")
-}
-
-// ─── 2a. Pending Invites ──────────────────────────────────────────────────
+// ─── 2. Pending Invites ──────────────────────────────────────────────────
 
 model PendingInvite {
   id                String   @id @default(uuid())
@@ -156,7 +140,7 @@ model PendingInvite {
   @@map("pending_invites")
 }
 
-// ─── 2b. Telegram Relink Tokens ───────────────────────────────────────────
+// ─── 2a. Telegram Relink Tokens ───────────────────────────────────────────
 
 model TelegramRelinkToken {
   id         String    @id @default(uuid())

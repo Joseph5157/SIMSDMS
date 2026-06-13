@@ -12,7 +12,7 @@ const bcrypt   = _require('bcryptjs');
 const jwt      = _require('jsonwebtoken');
 const crypto   = _require('crypto');
 const telegram = _require('../lib/telegram');
-const { requestOtp, verifyOtp, telegramCallback } = _require('../controllers/auth.controller');
+const { requestOtp, verifyOtp, telegramCallback, login, changePassword } = _require('../controllers/auth.controller');
 const audit    = _require('../services/audit.service');
 
 const activeUser = {
@@ -254,6 +254,224 @@ describe('telegramCallback', () => {
         targetId: telegramUser.id,
         targetType: 'user',
         metadata: expect.objectContaining({ telegram_id: testTelegramId }),
+      }),
+    );
+  });
+});
+
+describe('login', () => {
+  const userWithPassword = {
+    id: 'user-1',
+    email: 'faculty@sims.edu',
+    password_hash: '$2b$12$somehash',
+    status: 'active',
+    deleted_at: null,
+    session_version: 1,
+    must_change_password: false,
+    name: 'Dr. Test',
+    role: 'faculty',
+    department: 'Pharmacy',
+    designation: 'AP',
+    phone: null,
+    telegram_verified: true,
+    approved_at: new Date(),
+    created_at: new Date(),
+  };
+
+  beforeEach(() => {
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+    vi.spyOn(jwt, 'sign').mockReturnValue('test-jwt-token');
+    vi.spyOn(audit, 'logAction').mockResolvedValue(undefined);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns 200 and sets cookies on successful login with correct password', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(true);
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'password123' }), res);
+    expect(res._status).toBe(200);
+    expect(res._cookies['sims_token']).toBe('test-jwt-token');
+    expect(typeof res._cookies['sims_csrf']).toBe('string');
+    expect(res._cookies['sims_csrf'].length).toBeGreaterThan(0);
+    expect(res._body.id).toBe(userWithPassword.id);
+    expect(res._body.email).toBe(userWithPassword.email);
+    expect(res._body.must_change_password).toBe(false);
+  });
+
+  it('returns 401 INVALID_CREDENTIALS on incorrect password', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(false);
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'wrongpassword' }), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('returns 401 INVALID_CREDENTIALS for unknown email', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    const res = makeRes();
+    await login(makeReq({ email: 'nobody@sims.edu', password: 'password123' }), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('returns 401 INVALID_CREDENTIALS for user with null password_hash', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...userWithPassword, password_hash: null });
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'password123' }), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('returns 401 INVALID_CREDENTIALS for deleted user', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...userWithPassword, deleted_at: new Date() });
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'password123' }), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('returns 401 INVALID_CREDENTIALS for inactive user', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...userWithPassword, status: 'inactive' });
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'password123' }), res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('calls audit.logAction with PASSWORD_LOGIN action on success', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(true);
+    const res = makeRes();
+    await login(makeReq({ email: userWithPassword.email, password: 'password123' }), res);
+    expect(audit.logAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: userWithPassword.id,
+        action: 'PASSWORD_LOGIN',
+        targetId: userWithPassword.id,
+        targetType: 'user',
+        metadata: expect.objectContaining({ email: userWithPassword.email }),
+      }),
+    );
+  });
+});
+
+describe('changePassword', () => {
+  const userWithPassword = {
+    id: 'user-1',
+    email: 'faculty@sims.edu',
+    password_hash: '$2b$12$somehash',
+    status: 'active',
+    deleted_at: null,
+    must_change_password: true,
+  };
+
+  const userWithoutPassword = {
+    id: 'user-1',
+    email: 'faculty@sims.edu',
+    password_hash: null,
+    status: 'active',
+    deleted_at: null,
+    must_change_password: true,
+  };
+
+  beforeEach(() => {
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(userWithPassword);
+    vi.spyOn(prisma.user, 'update').mockResolvedValue({});
+    vi.spyOn(bcrypt, 'compare').mockResolvedValue(false);
+    vi.spyOn(bcrypt, 'hash').mockResolvedValue('$2b$12$newhash');
+    vi.spyOn(audit, 'logAction').mockResolvedValue(undefined);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('successfully changes password when password_hash exists and current_password is correct', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(true);
+    const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
+    req.user = { sub: userWithPassword.id };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(res._status).toBe(200);
+    expect(res._body.message).toMatch(/password changed successfully/i);
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: userWithPassword.id },
+        data: expect.objectContaining({
+          password_hash: '$2b$12$newhash',
+          must_change_password: false,
+        }),
+      }),
+    );
+  });
+
+  it('successfully changes password when password_hash is null (first-time set)', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithoutPassword);
+    const req = makeReq({ current_password: '', new_password: 'newpassword123' });
+    req.user = { sub: userWithoutPassword.id };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(res._status).toBe(200);
+    expect(res._body.message).toMatch(/password changed successfully/i);
+    expect(bcrypt.compare).not.toHaveBeenCalled();
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: userWithoutPassword.id },
+        data: expect.objectContaining({
+          password_hash: '$2b$12$newhash',
+          must_change_password: false,
+        }),
+      }),
+    );
+  });
+
+  it('returns 401 INVALID_CURRENT_PASSWORD when current password is incorrect', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(false);
+    const req = makeReq({ current_password: 'wrongpassword', new_password: 'newpassword123' });
+    req.user = { sub: userWithPassword.id };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_CURRENT_PASSWORD');
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 INVALID_USER for a deleted user', async () => {
+    prisma.user.findUnique.mockResolvedValue({ ...userWithPassword, deleted_at: new Date() });
+    const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
+    req.user = { sub: userWithPassword.id };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_USER');
+  });
+
+  it('returns 401 INVALID_USER when user not found', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
+    req.user = { sub: 'nonexistent-user' };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(res._status).toBe(401);
+    expect(res._body.code).toBe('INVALID_USER');
+  });
+
+  it('calls audit.logAction with PASSWORD_CHANGED action on success', async () => {
+    prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    bcrypt.compare.mockResolvedValue(true);
+    const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
+    req.user = { sub: userWithPassword.id };
+    const res = makeRes();
+    await changePassword(req, res);
+    expect(audit.logAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: userWithPassword.id,
+        action: 'PASSWORD_CHANGED',
+        targetId: userWithPassword.id,
+        targetType: 'user',
+        metadata: expect.objectContaining({ changed_by: 'self' }),
       }),
     );
   });

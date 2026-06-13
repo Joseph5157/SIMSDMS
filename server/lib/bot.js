@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const prisma = require('./prisma');
 const logger = require('./logger');
+const { generateTempPassword, hashPassword } = require('./password');
+const { logAction } = require('../services/audit.service');
 
 /**
  * Handle Telegram webhook callback
@@ -30,7 +32,7 @@ async function handleWebhook(req, res) {
 
       if (result.success) {
         const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
-        replyText = `Welcome ${result.user.name}! Your SIMS DMS account is now active.\nVisit ${appUrl} and log in with your email: ${result.user.email}\nYour login OTP will be sent here in Telegram.`;
+        replyText = `✅ Your SIMS DMS account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${result.user.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
         logger.info(`[TELEGRAM] Account activated: ${result.user.id} (${result.user.email})`);
       } else if (result.error === 'ALREADY_LINKED') {
         replyText = 'This Telegram account is already linked to a SIMS account. Contact your admin.';
@@ -79,8 +81,29 @@ async function handleWebhook(req, res) {
         logger.error(`[TELEGRAM] Failed to send /myid response to ${chatId}:`, err);
       });
       return res.status(200).json({ ok: true });
+    } else if (text === '/resetpassword') {
+      // Handle /resetpassword command — reset password for linked user
+      const result = await handlePasswordReset(chatId);
+      let replyText;
+
+      if (result.success) {
+        replyText = `✅ Your password has been reset!\n\nLogin at: ${process.env.APP_URL || 'https://sims-dms.railway.app'}/login\nEmail: ${result.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+        logger.info(`[TELEGRAM] Password reset: ${result.userId}`);
+      } else if (result.error === 'NOT_LINKED') {
+        replyText = 'No SIMS DMS account linked to this Telegram account. Contact your Admin.';
+      } else if (result.error === 'RATE_LIMITED') {
+        replyText = `Please wait before requesting another reset (max 1 per hour). Try again in ${result.minutesWait} minute(s).`;
+      } else {
+        replyText = 'An error occurred. Please try again or contact your admin.';
+        logger.warn(`[TELEGRAM] Password reset error: ${result.error}`);
+      }
+
+      sendTelegramMessage(chatId, replyText).catch((err) => {
+        logger.error(`[TELEGRAM] Failed to send /resetpassword response to ${chatId}:`, err);
+      });
+      return res.status(200).json({ ok: true });
     } else {
-      // Not an invite, relink, or /myid command — ignore
+      // Not an invite, relink, /myid, or /resetpassword command — ignore
       return res.status(200).json({ ok: true });
     }
   } catch (error) {
@@ -133,7 +156,11 @@ async function handleInviteActivation(chatId, token) {
         return { success: false, error: 'EMAIL_CONFLICT', invite };
       }
 
-      // Step 4: Create the real User from the PendingInvite
+      // Step 4: Generate temporary password for the new user
+      const tempPassword = generateTempPassword();
+      const passwordHash = await hashPassword(tempPassword);
+
+      // Step 5: Create the real User from the PendingInvite
       const newUser = await tx.user.create({
         data: {
           name: invite.name,
@@ -145,15 +172,21 @@ async function handleInviteActivation(chatId, token) {
           telegram_id: chatId,
           telegram_verified: true,
           status: 'active',
+          password_hash: passwordHash,
+          must_change_password: true,
           approved_at: new Date(),
           approved_by: invite.invited_by,
         },
       });
 
-      // Step 5: Delete the PendingInvite (it's been consumed)
+      // Step 6: Delete the PendingInvite (it's been consumed)
       await tx.pendingInvite.delete({ where: { id: invite.id } });
 
-      return { success: true, user: { id: newUser.id, name: newUser.name, email: newUser.email } };
+      return {
+        success: true,
+        user: { id: newUser.id, name: newUser.name, email: newUser.email },
+        tempPassword,
+      };
     });
 
     return result;
@@ -224,6 +257,65 @@ async function handleRelinkActivation(chatId, token) {
 }
 
 /**
+ * Handle /resetpassword command — reset password for a user
+ * Rate-limited to 1 reset per hour
+ */
+async function handlePasswordReset(chatId) {
+  try {
+    const telegramId = String(chatId);
+
+    // Step 1: Find user by telegram_id
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: telegramId },
+      select: { id: true, email: true, status: true, deleted_at: true, last_password_reset_at: true },
+    });
+
+    if (!user || user.deleted_at || user.status !== 'active') {
+      return { success: false, error: 'NOT_LINKED' };
+    }
+
+    // Step 2: Rate limit check — max 1 reset per hour
+    const now = new Date();
+    if (user.last_password_reset_at) {
+      const lastResetTime = new Date(user.last_password_reset_at);
+      const minutesSince = Math.floor((now - lastResetTime) / (1000 * 60));
+      if (minutesSince < 60) {
+        const minutesWait = 60 - minutesSince;
+        return { success: false, error: 'RATE_LIMITED', minutesWait };
+      }
+    }
+
+    // Step 3: Generate temporary password and hash it
+    const tempPassword = generateTempPassword();
+    const passwordHash = await hashPassword(tempPassword);
+
+    // Step 4: Update user with new password and timestamp
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password_hash: passwordHash,
+        must_change_password: true,
+        last_password_reset_at: now,
+      },
+    });
+
+    // Step 5: Log the password reset action
+    await logAction({
+      actorId: user.id,
+      action: 'PASSWORD_RESET_VIA_BOT',
+      targetId: user.id,
+      targetType: 'user',
+      metadata: { reset_method: 'telegram_bot' },
+    });
+
+    return { success: true, userId: user.id, email: user.email, tempPassword };
+  } catch (error) {
+    logger.error('[TELEGRAM] Error in handlePasswordReset:', error);
+    return { success: false, error: 'SYSTEM_ERROR' };
+  }
+}
+
+/**
  * Send a message via Telegram Bot API
  */
 async function sendTelegramMessage(chatId, text) {
@@ -254,5 +346,8 @@ async function sendTelegramMessage(chatId, text) {
 
 module.exports = {
   handleWebhook,
+  handleInviteActivation,
+  handleRelinkActivation,
+  handlePasswordReset,
   sendTelegramMessage,
 };

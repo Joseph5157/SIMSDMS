@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 const validate = require('../middleware/validate');
 const authenticate = require('../middleware/authenticate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { requestOtpSchema, verifyOtpSchema, telegramCallbackSchema } = require('../schemas/auth.schema');
+const { requestOtpSchema, verifyOtpSchema, telegramCallbackSchema, loginSchema, changePasswordSchema } = require('../schemas/auth.schema');
 const ctrl = require('../controllers/auth.controller');
 
 const router = Router();
@@ -26,6 +26,12 @@ router.post('/verify-otp', otpLimiter, validate(verifyOtpSchema), asyncHandler(c
 
 // POST /auth/telegram-callback — Public
 router.post('/telegram-callback', otpLimiter, validate(telegramCallbackSchema), asyncHandler(ctrl.telegramCallback));
+
+// POST /auth/login — Public (username/password)
+router.post('/login', otpLimiter, validate(loginSchema), asyncHandler(ctrl.login));
+
+// POST /auth/change-password — All Auth
+router.post('/change-password', authenticate, validate(changePasswordSchema), asyncHandler(ctrl.changePassword));
 
 // POST /auth/logout — All Auth
 router.post('/logout', authenticate, asyncHandler(ctrl.logout));
