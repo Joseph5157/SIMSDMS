@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Drawer } from 'vaul';
-import { X, User, Mail, MessageCircle, Briefcase, Phone, Shield } from 'lucide-react';
+import { X, User, Mail, Briefcase, Phone, Shield } from 'lucide-react';
 
 /* ── tiny helpers ── */
 function Field({ label, icon: Icon, error, children }) {
@@ -52,7 +52,7 @@ function TextInput({ placeholder, value, onChange, type = 'text', ...props }) {
   );
 }
 
-function RoleButton({ value, label, subtitle, selected, onClick }) {
+function RoleButton({ label, subtitle, selected, onClick }) {
   return (
     <button
       type="button"
@@ -114,15 +114,23 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
     onClose();
   }
 
-  function copyToClipboard() {
-    navigator.clipboard.writeText(inviteLink);
-  }
-
   function shareOnWhatsApp() {
     const message = `Hi ${invitedName}, tap this link to activate your SIMS account: ${inviteLink}`;
     const encoded = encodeURIComponent(message);
     const waUrl = `https://wa.me/?text=${encoded}`;
     window.open(waUrl, '_blank');
+  }
+
+  // Extract invite token from the deep link
+  function extractInviteToken() {
+    const match = inviteLink?.match(/[?&]start=([^&]+)/);
+    return match ? match[1] : '';
+  }
+
+  function copyCommand() {
+    const token = extractInviteToken();
+    const command = `/start ${token}`;
+    navigator.clipboard.writeText(command);
   }
 
   return (
@@ -195,51 +203,110 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
             {inviteLink ? (
               // ── INVITE LINK PANEL ──
-              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ textAlign: 'center', marginTop: 8 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>
                     ✅ Invite created
                   </p>
-                  <p style={{ fontSize: 14, color: '#475569', marginBottom: 16 }}>
-                    Share this link with {invitedName}:
+                  <p style={{ fontSize: 12, color: '#64748b' }}>
+                    Share instructions with {invitedName}
                   </p>
                 </div>
 
-                {/* Link box */}
+                {/* Step-by-step instructions */}
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: 12,
+                  padding: 12,
+                  fontSize: 12,
+                  color: '#1e40af',
+                  lineHeight: 1.6,
+                }}>
+                  <p style={{ fontWeight: 700, marginBottom: 8 }}>📋 Instructions:</p>
+                  <ol style={{ margin: 0, paddingLeft: 18 }}>
+                    <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
+                    <li>Tap "Start" when you open the bot</li>
+                    <li>Copy and send this exact message:</li>
+                  </ol>
+                </div>
+
+                {/* Bot username highlight */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 10,
+                  padding: 10,
+                  textAlign: 'center',
+                }}>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 6px 0' }}>Bot Username</p>
+                  <p style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    fontFamily: 'monospace',
+                    margin: 0,
+                  }}>
+                    @SimsPharmacybot
+                  </p>
+                </div>
+
+                {/* Activation command */}
                 <div style={{
                   backgroundColor: '#f8fafc',
                   border: '1.5px solid #e2e8f0',
-                  borderRadius: 12,
+                  borderRadius: 10,
                   padding: 12,
-                  wordBreak: 'break-all',
+                  wordBreak: 'break-word',
                   fontSize: 12,
-                  color: '#475569',
+                  color: '#0f172a',
                   fontFamily: 'monospace',
+                  fontWeight: 600,
                 }}>
-                  {inviteLink}
+                  /start {extractInviteToken()}
                 </div>
 
-                {/* Copy and Share buttons */}
-                <div style={{ display: 'flex', gap: 8 }}>
+                {/* Copy command and quick link buttons */}
+                <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
                   <button
-                    onClick={copyToClipboard}
+                    onClick={copyCommand}
                     style={{
-                      flex: 1,
+                      width: '100%',
                       height: 44,
                       borderRadius: 10,
-                      border: '1.5px solid #e2e8f0',
-                      backgroundColor: '#fff',
+                      border: '1.5px solid #3b82f6',
+                      backgroundColor: '#eff6ff',
                       fontSize: 13, fontWeight: 700, color: '#2563eb',
                       cursor: 'pointer',
                       transition: 'all 0.15s',
                     }}
                   >
-                    📋 Copy link
+                    📋 Copy command
                   </button>
+                  <a
+                    href={inviteLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: 44,
+                      borderRadius: 10,
+                      border: 'none',
+                      backgroundColor: '#0088cc',
+                      fontSize: 13, fontWeight: 700, color: '#fff',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    🔗 Open Telegram
+                  </a>
                   <button
                     onClick={shareOnWhatsApp}
                     style={{
-                      flex: 1,
+                      width: '100%',
                       height: 44,
                       borderRadius: 10,
                       border: 'none',
@@ -254,10 +321,9 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* Info text */}
-                <p style={{ fontSize: 12, color: '#64748b', textAlign: 'center', lineHeight: 1.5 }}>
+                <p style={{ fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
                   Link expires in 7 days.<br />
-                  The user must tap it in Telegram<br />
-                  to activate their account.
+                  If issues with deep links, use the command method above.
                 </p>
               </div>
             ) : (
@@ -304,7 +370,6 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </p>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                   <RoleButton
-                    value="faculty"
                     label="Faculty"
                     subtitle="Records violations"
                     selected={form.role === 'faculty'}
@@ -312,7 +377,6 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                   />
                   {actorRole === 'super_admin' && (
                     <RoleButton
-                      value="admin"
                       label="Admin"
                       subtitle="Manages system"
                       selected={form.role === 'admin'}

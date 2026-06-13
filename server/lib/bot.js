@@ -74,6 +74,13 @@ async function handleWebhook(req, res) {
       });
 
       return res.status(200).json({ ok: true });
+    } else if (text === '/start') {
+      // Handle bare /start (no payload) — provide helpful message to guide user
+      const replyText = `Welcome to SIMS DMS! 👋\n\nIf you received an activation link from your Admin, please send the full command they shared with you:\n\n<code>/start invite_xxxxx</code>\n\nIf you don't have an activation link, contact your administrator to send you an invite.`;
+      sendTelegramMessage(chatId, replyText).catch((err) => {
+        logger.error(`[TELEGRAM] Failed to send /start response to ${chatId}:`, err);
+      });
+      return res.status(200).json({ ok: true });
     } else if (text === '/myid') {
       // Handle /myid command — reply with the user's Telegram chat ID
       const replyText = `Your Telegram ID is: ${chatId}`;
