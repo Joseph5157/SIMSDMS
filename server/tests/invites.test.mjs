@@ -50,7 +50,6 @@ describe('createInvite', () => {
     vi.spyOn(prisma.pendingInvite, 'findUnique').mockResolvedValue(null);
     vi.spyOn(prisma.pendingInvite, 'create').mockResolvedValue(existingInvite);
     vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
-    vi.spyOn(logAction, 'catch').mockReturnValue(undefined);
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -112,7 +111,6 @@ describe('regenerateInvite', () => {
     vi.spyOn(prisma.pendingInvite, 'findUnique').mockResolvedValue(existingInvite);
     vi.spyOn(prisma.pendingInvite, 'update').mockResolvedValue(existingInvite);
     vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
-    vi.spyOn(logAction, 'catch').mockReturnValue(undefined);
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -143,7 +141,6 @@ describe('cancelInvite', () => {
     vi.spyOn(prisma.pendingInvite, 'findUnique').mockResolvedValue(existingInvite);
     vi.spyOn(prisma.pendingInvite, 'delete').mockResolvedValue(existingInvite);
     vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
-    vi.spyOn(logAction, 'catch').mockReturnValue(undefined);
   });
   afterEach(() => vi.restoreAllMocks());
 
