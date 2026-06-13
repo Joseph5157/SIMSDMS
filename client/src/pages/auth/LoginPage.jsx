@@ -110,41 +110,66 @@ export default function LoginPage() {
   const requestOtp = useRequestOtp();
   const verifyOtp  = useVerifyOtp();
 
-  // Process Telegram auth hash on component mount
+  // Process Telegram auth from query params (data-auth-url redirect) or hash fallback
   useEffect(() => {
-    const processAuthHash = async () => {
-      const hash = window.location.hash;
-      if (!hash.includes('tgAuthResult=')) return;
+    const processTelegramAuth = async () => {
+      let user = null;
+
+      // Check for query parameters (data-auth-url redirect: ?id=...&hash=...&auth_date=...)
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.has('hash') && searchParams.has('id')) {
+        // Build user object from query params
+        const paramUser = {};
+        const paramKeys = ['id', 'first_name', 'last_name', 'username', 'photo_url', 'auth_date', 'hash'];
+        paramKeys.forEach(key => {
+          const value = searchParams.get(key);
+          if (value !== null) {
+            paramUser[key] = value;
+          }
+        });
+        user = paramUser;
+        // Clear query string from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else {
+        // Fallback: check for hash-based auth (tgAuthResult hash)
+        const hash = window.location.hash;
+        if (hash.includes('tgAuthResult=')) {
+          try {
+            // Extract and decode tgAuthResult from hash
+            const match = hash.match(/tgAuthResult=([^&]*)/);
+            if (!match || !match[1]) return;
+
+            const encoded = match[1];
+            // Replace URL-safe base64 chars and pad
+            const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
+            const padding = (4 - (padded.length % 4)) % 4;
+            const base64 = padded + '='.repeat(padding);
+
+            // Decode and parse
+            const decoded = atob(base64);
+            user = JSON.parse(decoded);
+          } catch (e) {
+            return; // Invalid hash, skip processing
+          }
+          // Clear hash from URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } else {
+          return; // No auth data found
+        }
+      }
+
+      if (!user) return;
 
       try {
         setTelegramLoading(true);
 
-        // Extract and decode tgAuthResult from hash
-        const match = hash.match(/tgAuthResult=([^&]*)/);
-        if (!match || !match[1]) return;
-
-        const encoded = match[1];
-        // Replace URL-safe base64 chars and pad
-        const padded = encoded.replace(/-/g, '+').replace(/_/g, '/');
-        const padding = (4 - (padded.length % 4)) % 4;
-        const base64 = padded + '='.repeat(padding);
-
-        // Decode and parse
-        const decoded = atob(base64);
-        const user = JSON.parse(decoded);
-
-        // Clear hash from URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        // POST decoded user to backend
+        // POST user object to backend
         const res = await api.post('/auth/telegram-callback', user);
         const userData = res.data;
         if (userData.role === 'faculty') navigate('/faculty/dashboard', { replace: true });
         else navigate('/admin/dashboard', { replace: true });
       } catch (err) {
         setTelegramLoading(false);
-        // Clear hash on error
-        window.history.replaceState({}, document.title, window.location.pathname);
 
         const code = err.response?.data?.code;
         const msg = err.response?.data?.message ?? 'Telegram login failed. Please try again.';
@@ -157,7 +182,7 @@ export default function LoginPage() {
       }
     };
 
-    processAuthHash();
+    processTelegramAuth();
   }, [navigate, toast]);
 
   // Inject Telegram widget script with data-auth-url (avoids eval required by data-onauth)
