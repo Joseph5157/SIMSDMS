@@ -124,12 +124,17 @@ export default function LoginPage() {
         paramKeys.forEach(key => {
           const value = searchParams.get(key);
           if (value !== null) {
-            paramUser[key] = value;
+            // Convert id and auth_date to numbers
+            if (key === 'id' || key === 'auth_date') {
+              paramUser[key] = parseInt(value, 10);
+            } else {
+              paramUser[key] = value;
+            }
           }
         });
         user = paramUser;
         // Clear query string from URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState(null, '', window.location.pathname);
       } else {
         // Fallback: check for hash-based auth (tgAuthResult hash)
         const hash = window.location.hash;
@@ -152,7 +157,7 @@ export default function LoginPage() {
             return; // Invalid hash, skip processing
           }
           // Clear hash from URL
-          window.history.replaceState({}, document.title, window.location.pathname);
+          window.history.replaceState(null, '', window.location.pathname);
         } else {
           return; // No auth data found
         }
