@@ -482,9 +482,10 @@ button, a, input, select, textarea {
 
 /* ── Page layout helpers ── */
 .page-content {
-  padding-top: max(56px, calc(env(safe-area-inset-top) + 16px));
-  padding-left: max(var(--space-4), env(safe-area-inset-left));
-  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  /* Mobile: minimal padding to avoid wasted space */
+  padding-top: var(--space-3);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
   padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px));
   min-width: 0;
   min-height: 100%;
@@ -492,6 +493,7 @@ button, a, input, select, textarea {
 
 @media (min-width: 768px) {
   .page-content {
+    /* Desktop: generous padding for comfortable reading */
     padding-top: var(--space-6);
     padding-left: var(--space-7);
     padding-right: var(--space-7);

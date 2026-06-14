@@ -9,23 +9,24 @@ export default function Layout({ user, children }) {
         className="flex-1 overflow-y-auto h-full relative"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Header bar with notification bell */}
-        <div style={{
-          position: 'sticky',
-          top: 0,
-          right: 0,
-          padding: '12px 16px',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          backgroundColor: 'transparent',
-          zIndex: 100,
-          pointerEvents: 'none',
-        }}>
-          <div style={{ pointerEvents: 'auto' }}>
-            <NotificationBell />
-          </div>
-        </div>
         <div className="page-content">
+          {/* Header bar with notification bell - inline with content */}
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            right: 0,
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            backgroundColor: 'var(--surface-page)',
+            zIndex: 100,
+            pointerEvents: 'none',
+            paddingBottom: '8px',
+          }}>
+            <div style={{ pointerEvents: 'auto' }}>
+              <NotificationBell />
+            </div>
+          </div>
           {children}
         </div>
       </main>
