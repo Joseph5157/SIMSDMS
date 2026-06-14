@@ -30,7 +30,8 @@ export default function LoginPage() {
         navigate('/change-password', { replace: true });
       } else {
         const role = res.role?.toLowerCase() || '';
-        if (role === ROLES.FACULTY.toLowerCase()) {
+        console.log('Login response role:', res.role, 'normalized:', role, 'FACULTY:', ROLES.FACULTY, 'match:', role === ROLES.FACULTY);
+        if (role === ROLES.FACULTY) {
           navigate('/faculty/dashboard', { replace: true });
         } else {
           navigate('/admin/dashboard', { replace: true });

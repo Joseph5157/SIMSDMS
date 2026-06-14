@@ -41,7 +41,7 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   const { data: user, isLoading } = useCurrentUser();
 
-  const isFaculty = user?.role?.toLowerCase() === ROLES.FACULTY.toLowerCase();
+  const isFaculty = user?.role === ROLES.FACULTY;
 
   return (
     <Routes>
