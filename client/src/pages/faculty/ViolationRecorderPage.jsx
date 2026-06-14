@@ -6,13 +6,20 @@ import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import FormLabel from '../../components/ui/FormLabel';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useMyViolations, useCreateViolation, useFlagViolation } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useStudentSearch } from '../../hooks/useStudents';
+
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[10px] font-extrabold text-blue-500/70 uppercase tracking-[0.14em] pb-1">
+      {children}
+    </p>
+  );
+}
 
 function RecordModal({ open, onClose }) {
   const toast = useToast();
@@ -64,30 +71,42 @@ function RecordModal({ open, onClose }) {
       size="xl"
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11">
+          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11 px-5">
             Cancel
           </Button>
-          <Button type="submit" form="violation-form" loading={create.isPending} className="min-h-11">
-            Record
+          <Button type="submit" form="violation-form" loading={create.isPending} className="min-h-11 px-6">
+            Record Violation
           </Button>
         </>
       }
     >
-      <form id="violation-form" onSubmit={handleSubmit} className="flex flex-col gap-7">
-        {/* ── Section: Student ── */}
-        <div className="flex flex-col gap-3">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Student</p>
-          <div className="flex flex-col gap-2">
-            <input className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+      <form id="violation-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
+
+        {/* ── Student ── */}
+        <div className="flex flex-col gap-3 pb-6">
+          <SectionLabel>Student</SectionLabel>
+          <div className="relative">
+            <input
+              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 hover:border-slate-300 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Search by name or reg. number…"
-              value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
+              value={studentQ}
+              onChange={(e) => setStudentQ(e.target.value)}
+            />
             {searchResults?.data?.length > 0 && !form.student_id && (
-              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-40 overflow-y-auto bg-white shadow-sm">
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-44 overflow-y-auto bg-white shadow-lg">
                 {searchResults.data.map((s) => (
-                  <button key={s.id} type="button"
-                    className="w-full text-left px-4 py-2.5 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
-                    onClick={() => { setForm(f => ({ ...f, student_id: s.id })); setStudentQ(`${s.student_name} (${s.registration_number})`); }}>
-                    {s.student_name} — {s.registration_number} ({s.course} · {s.semester_or_year})
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="w-full text-left px-4 py-3 text-[13px] text-slate-700 hover:bg-blue-50/60 transition-colors"
+                    onClick={() => {
+                      setForm(f => ({ ...f, student_id: s.id }));
+                      setStudentQ(`${s.student_name} (${s.registration_number})`);
+                    }}
+                  >
+                    <span className="font-medium text-slate-900">{s.student_name}</span>
+                    <span className="text-slate-400"> — {s.registration_number}</span>
+                    <span className="block text-[11px] text-slate-400 mt-0.5">{s.course} · {s.semester_or_year}</span>
                   </button>
                 ))}
               </div>
@@ -95,9 +114,11 @@ function RecordModal({ open, onClose }) {
           </div>
         </div>
 
-        {/* ── Section: Duty & Violation ── */}
-        <div className="flex flex-col gap-3.5">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Duty & Violation</p>
+        <div className="border-t border-slate-100" />
+
+        {/* ── Duty & Violation ── */}
+        <div className="flex flex-col gap-4 py-6">
+          <SectionLabel>Duty & Violation</SectionLabel>
           <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
             <option value="">Select duty slot…</option>
             {mySlots.map((s) => (
@@ -117,29 +138,48 @@ function RecordModal({ open, onClose }) {
           )}
         </div>
 
-        {/* ── Section: Fine ── */}
-        <div className="flex flex-col gap-3.5">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Fine</p>
-          <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3.5">
-            <label htmlFor="warning" className="flex items-center gap-3 cursor-pointer select-none">
-              <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-5 h-5 cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600" />
-              <span className="text-[13.5px] text-slate-700 leading-tight">Warning only (no fine)</span>
-            </label>
-          </div>
+        <div className="border-t border-slate-100" />
+
+        {/* ── Fine ── */}
+        <div className="flex flex-col gap-4 py-6">
+          <SectionLabel>Fine</SectionLabel>
+          <label htmlFor="warning" className="flex items-center gap-3.5 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-4 cursor-pointer select-none hover:border-slate-300 transition-colors">
+            <input
+              type="checkbox"
+              id="warning"
+              checked={form.is_warning_only}
+              onChange={set('is_warning_only')}
+              className="w-[18px] h-[18px] cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600"
+            />
+            <div className="flex flex-col">
+              <span className="text-[13.5px] font-medium text-slate-700">Warning only</span>
+              <span className="text-[11px] text-slate-400">No fine will be charged</span>
+            </div>
+          </label>
           {!form.is_warning_only && (
-            <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
+            <Input
+              label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.fine_amount}
+              onChange={set('fine_amount')}
+              placeholder={selectedType?.default_fine ?? ''}
+            />
           )}
         </div>
 
-        {/* ── Section: Notes ── */}
-        <div className="flex flex-col gap-3.5">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Notes</p>
+        <div className="border-t border-slate-100" />
+
+        {/* ── Notes ── */}
+        <div className="flex flex-col gap-3 pt-6">
+          <SectionLabel>Notes</SectionLabel>
           <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
         </div>
+
       </form>
     </Modal>
   );
-
 }
 
 function FlagModal({ violation, onClose }) {
@@ -163,22 +203,21 @@ function FlagModal({ violation, onClose }) {
       open
       onClose={onClose}
       title="Flag for Review"
+      description="This violation will be sent to an admin for review."
       size="sm"
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11">
+          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11 px-5">
             Cancel
           </Button>
-          <Button type="submit" form="flag-form" loading={flag.isPending} className="min-h-11">
+          <Button type="submit" form="flag-form" loading={flag.isPending} className="min-h-11 px-6">
             Flag
           </Button>
         </>
       }
     >
-      <form id="flag-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div>
-          <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
-        </div>
+      <form id="flag-form" onSubmit={handleSubmit}>
+        <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
       </form>
     </Modal>
   );
