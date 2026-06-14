@@ -38,7 +38,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
       <p style={{
         margin: 0,
         fontSize: 11, fontWeight: 600, color: 'var(--color-slate-400)',
-        textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
+        textTransform: 'uppercase', letterSpacing: '0.06em',
         display: 'flex', alignItems: 'center', gap: 4,
       }}>
         {icon && <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>}
