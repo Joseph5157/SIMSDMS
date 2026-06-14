@@ -26,54 +26,52 @@ export function useNotifications() {
   // Calculate unread count
   const unreadCount = data?.filter(n => !n.readAt)?.length || 0;
 
-  // Setup EventSource for real-time updates
-  useEffect(() => {
-    const connectEventSource = () => {
-      try {
-        eventSourceRef.current = new EventSource('/api/notifications/stream');
-        setIsConnected(true);
-        backoffRef.current = 1000; // Reset backoff on successful connection
-
-        eventSourceRef.current.addEventListener('notification', (event) => {
-          try {
-            const notification = JSON.parse(event.data);
-            // Add to cache
-            queryClient.setQueryData(['notifications'], (old) => {
-              if (!old) return [notification];
-              return [notification, ...old];
-            });
-          } catch (err) {
-            console.error('Failed to parse notification:', err);
-          }
-        });
-
-        eventSourceRef.current.onerror = () => {
-          setIsConnected(false);
-          eventSourceRef.current?.close();
-          // Reconnect with exponential backoff
-          backoffRef.current = Math.min(backoffRef.current * 1.5, 30000); // Max 30s
-          reconnectTimeoutRef.current = setTimeout(connectEventSource, backoffRef.current);
-        };
-      } catch (err) {
-        console.error('Failed to connect EventSource:', err);
-        setIsConnected(false);
-        // Retry with backoff
-        backoffRef.current = Math.min(backoffRef.current * 1.5, 30000);
-        reconnectTimeoutRef.current = setTimeout(connectEventSource, backoffRef.current);
-      }
-    };
-
-    connectEventSource();
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-    };
-  }, [queryClient]);
+  // EventSource/SSE disabled — backend /api/notifications/stream endpoint not yet implemented
+  // TODO: Re-enable when backend notifications module is ready
+  // useEffect(() => {
+  //   const connectEventSource = () => {
+  //     try {
+  //       eventSourceRef.current = new EventSource('/api/notifications/stream');
+  //       setIsConnected(true);
+  //       backoffRef.current = 1000;
+  //
+  //       eventSourceRef.current.addEventListener('notification', (event) => {
+  //         try {
+  //           const notification = JSON.parse(event.data);
+  //           queryClient.setQueryData(['notifications'], (old) => {
+  //             if (!old) return [notification];
+  //             return [notification, ...old];
+  //           });
+  //         } catch (err) {
+  //           console.error('Failed to parse notification:', err);
+  //         }
+  //       });
+  //
+  //       eventSourceRef.current.onerror = () => {
+  //         setIsConnected(false);
+  //         eventSourceRef.current?.close();
+  //         backoffRef.current = Math.min(backoffRef.current * 1.5, 30000);
+  //         reconnectTimeoutRef.current = setTimeout(connectEventSource, backoffRef.current);
+  //       };
+  //     } catch (err) {
+  //       console.error('Failed to connect EventSource:', err);
+  //       setIsConnected(false);
+  //       backoffRef.current = Math.min(backoffRef.current * 1.5, 30000);
+  //       reconnectTimeoutRef.current = setTimeout(connectEventSource, backoffRef.current);
+  //     }
+  //   };
+  //
+  //   connectEventSource();
+  //
+  //   return () => {
+  //     if (eventSourceRef.current) {
+  //       eventSourceRef.current.close();
+  //     }
+  //     if (reconnectTimeoutRef.current) {
+  //       clearTimeout(reconnectTimeoutRef.current);
+  //     }
+  //   };
+  // }, [queryClient]);
 
   return {
     notifications: data || [],

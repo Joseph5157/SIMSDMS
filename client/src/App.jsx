@@ -108,19 +108,20 @@ export default function App() {
     initializeTheme();
   }, []);
 
-  // Register service worker for PWA offline support
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((reg) => {
-          console.log('Service Worker registered:', reg);
-        })
-        .catch((err) => {
-          console.warn('Service Worker registration failed:', err);
-        });
-    }
-  }, []);
+  // Service worker disabled during active development to prevent stale cache issues
+  // TODO: Re-enable after layout/styling changes stabilize
+  // useEffect(() => {
+  //   if ('serviceWorker' in navigator) {
+  //     navigator.serviceWorker
+  //       .register('/service-worker.js')
+  //       .then((reg) => {
+  //         console.log('Service Worker registered:', reg);
+  //       })
+  //       .catch((err) => {
+  //         console.warn('Service Worker registration failed:', err);
+  //       });
+  //   }
+  // }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

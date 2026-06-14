@@ -44,20 +44,18 @@ function formatDate(isoString) {
 export default function NotificationsPage({ user }) {
   const toast = useToast();
   const [page, setPage] = useState(1);
-  const [filter, setFilter] = useState('all'); // all, unread, by type
+  const [filter, setFilter] = useState('all');
+
+  // Notifications feature disabled — backend module not yet implemented
+  const NOTIFICATIONS_ENABLED = false;
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notifications-page', page, filter],
+    enabled: NOTIFICATIONS_ENABLED,
     queryFn: async () => {
       try {
-        const params = new URLSearchParams({
-          page,
-          limit: 20,
-        });
-
-        if (filter !== 'all') {
-          params.append('filter', filter);
-        }
+        const params = new URLSearchParams({ page, limit: 20 });
+        if (filter !== 'all') params.append('filter', filter);
 
         const res = await fetch(`/api/notifications/list?${params}`);
         if (!res.ok) throw new Error('Failed to fetch notifications');
@@ -68,6 +66,38 @@ export default function NotificationsPage({ user }) {
       }
     },
   });
+
+  if (!NOTIFICATIONS_ENABLED) {
+    return (
+      <Layout user={user}>
+        <Breadcrumb items={[
+          { label: 'Dashboard', href: user?.role === 'faculty' ? ROUTES.FACULTY_DASHBOARD : ROUTES.ADMIN_DASHBOARD },
+          { label: 'Notifications' },
+        ]} />
+
+        <PageHeader title="Notifications" subtitle="View and manage your notifications" />
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '400px',
+          gap: '16px',
+          padding: '48px 24px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '48px' }}>🔔</div>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+            Notifications Not Yet Available
+          </h2>
+          <p style={{ color: 'var(--text-muted)', maxWidth: '400px' }}>
+            The notifications feature is currently under development. Check back soon for real-time updates and alerts.
+          </p>
+        </div>
+      </Layout>
+    );
+  }
 
   const notifications = data?.data || [];
   const meta = data?.meta || { total: 0, page: 1, pages: 1 };

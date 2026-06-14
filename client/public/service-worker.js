@@ -1,5 +1,8 @@
-const CACHE_NAME = 'sims-dms-v1';
-const API_CACHE_NAME = 'sims-dms-api-v1';
+// Versioned cache names for service worker updates
+// Increment version number to bust cache on deployment
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `sims-dms-${CACHE_VERSION}`;
+const API_CACHE_NAME = `sims-dms-api-${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',
@@ -46,7 +49,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // DO NOT cache EventSource/SSE connections (real-time streaming)
+  if (url.pathname.includes('/stream')) {
+    return; // Let browser handle streaming natively
+  }
+
   // API calls: NetworkFirst strategy (try network, fall back to cache)
+  // WARNING: Authenticated API responses are being cached — ensure this doesn't expose sensitive data
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirstStrategy(request, API_CACHE_NAME));
     return;
