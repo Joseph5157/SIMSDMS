@@ -1,6 +1,6 @@
 // Versioned cache names for service worker updates
 // Increment version number to bust cache on deployment
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `sims-dms-${CACHE_VERSION}`;
 const API_CACHE_NAME = `sims-dms-api-${CACHE_VERSION}`;
 const urlsToCache = [
