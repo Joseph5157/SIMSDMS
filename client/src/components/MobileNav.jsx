@@ -173,8 +173,8 @@ export default function MobileNav({ open, onClose, links, user, themeIcon }) {
           ))}
         </div>
 
-        {/* Theme toggle */}
-        <button
+        {/* Theme toggle hidden - dark mode disabled for now */}
+        {/* <button
           onClick={() => cycleTheme()}
           aria-label={`Toggle theme: currently ${getThemeLabel()}`}
           title={`Theme: ${getThemeLabel()}`}
@@ -198,7 +198,7 @@ export default function MobileNav({ open, onClose, links, user, themeIcon }) {
         >
           <span style={{ fontSize: 16 }}>{themeIcon}</span>
           Theme: {getThemeLabel()}
-        </button>
+        </button> */}
 
         {/* Logout */}
         <button

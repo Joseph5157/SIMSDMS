@@ -162,7 +162,8 @@ export default function Sidebar({ user }) {
               </p>
             </div>
           </div>
-          <button
+          {/* Theme toggle hidden - dark mode disabled for now */}
+          {/* <button
             onClick={() => cycleTheme()}
             aria-label={`Toggle theme: currently ${getThemeLabel()}`}
             title={`Theme: ${getThemeLabel()}`}
@@ -185,7 +186,7 @@ export default function Sidebar({ user }) {
           >
             <span style={{ fontSize: 14 }}>{themeIcon}</span>
             Theme
-          </button>
+          </button> */}
           <button
             onClick={() => logout.mutate()}
             aria-label="Log out from the application"
