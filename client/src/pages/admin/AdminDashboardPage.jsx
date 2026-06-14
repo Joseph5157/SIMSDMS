@@ -53,27 +53,12 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── KPI grid ── */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <StatCard label="Active Faculty"      value={activeFaculty}  accent="blue"   icon="👥" />
-        <StatCard
-          label="Pending Approvals"
-          value={pendingCount}
-          accent={pendingCount > 0 ? 'yellow' : 'default'}
-          sub={pendingCount > 0 ? 'Needs action' : 'All clear'}
-          icon="⏳"
-        />
-        <StatCard
-          label="Open Cover Requests"
-          value={openCoverCount}
-          accent={openCoverCount > 0 ? 'yellow' : 'default'}
-          icon="🔄"
-        />
-        <StatCard
-          label="Flagged Violations"
-          value={pendingFlaggedCount}
-          accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
-          sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'}
-          icon="⚑"
-        />
+        <StatCard label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
+        <StatCard label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
+          sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
+        <StatCard label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
+        <StatCard label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
+          sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
       </div>
 
       {/* ── Pending account approvals alert ── */}
