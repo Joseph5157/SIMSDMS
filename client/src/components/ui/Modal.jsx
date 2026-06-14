@@ -1,6 +1,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -13,8 +14,9 @@ const widths = {
   xl: 'sm:max-w-xl',
 };
 
-export default function Modal({ open, onClose, title, size = 'md', children }) {
+export default function Modal({ open, onClose, title, description, size = 'md', children }) {
   const titleId = `modal-title-${Math.random().toString(36).slice(2, 9)}`;
+  const descriptionId = `modal-desc-${Math.random().toString(36).slice(2, 9)}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -26,11 +28,15 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
         )}
         showCloseButton={false}
         aria-labelledby={titleId}
+        aria-describedby={descriptionId}
       >
         <DialogHeader className="px-6 py-5 border-b border-slate-200 shrink-0">
           <DialogTitle id={titleId} className="text-[15px] font-bold text-slate-900">
             {title}
           </DialogTitle>
+          <DialogDescription id={descriptionId} className={description ? "text-[13px] text-slate-600" : "sr-only"}>
+            {description || title}
+          </DialogDescription>
         </DialogHeader>
         <div className="overflow-y-auto flex-1 px-6 py-4 md:py-5 flex flex-col gap-4">
           {children}
