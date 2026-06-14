@@ -4,7 +4,7 @@ const ACCENTS = {
   red:     { bar: 'var(--color-red-solid)',     bg: 'var(--color-red-bg)',      text: 'var(--color-red-text)',     border: 'var(--color-red-tint)' },
   blue:    { bar: 'var(--color-blue-500)',      bg: 'var(--color-blue-50)',     text: 'var(--color-blue-800)',     border: 'var(--color-blue-200)' },
   purple:  { bar: 'var(--color-purple-solid)',  bg: 'var(--color-purple-bg)',   text: 'var(--color-purple-text)',  border: 'var(--color-purple-tint)' },
-  default: { bar: 'var(--color-slate-400)',     bg: 'var(--surface-card)',      text: 'var(--text-primary)',       border: 'var(--border)' },
+  default: { bar: '#cbd5e1',                     bg: '#ffffff',                  text: '#0f172a',                   border: '#e2e8f0' },
 };
 
 export default function StatCard({ label, value, sub, accent = 'default', icon }) {

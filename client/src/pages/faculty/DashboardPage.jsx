@@ -107,7 +107,7 @@ export default function DashboardPage({ user }) {
       {/* ── 3. KPI stat cards ── */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <StatCard label="Slots" value={slots.length} accent="blue" icon="🗓" />
-        <StatCard label="Violations" value={violationsData?.meta?.total ?? 0} accent="default" icon="⚠️" />
+        <StatCard label="Violations" value={violationsData?.meta?.total ?? 0} accent={(violationsData?.meta?.total ?? 0) > 0 ? 'red' : 'default'} icon="⚠️" />
         <StatCard label="Unread" value={unread} accent={unread > 0 ? 'yellow' : 'default'} icon="✉️" />
       </div>
 

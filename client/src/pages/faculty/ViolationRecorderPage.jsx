@@ -61,7 +61,7 @@ function RecordModal({ open, onClose }) {
         {/* Student search */}
         <div className="flex flex-col gap-1">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.08em]">Student</label>
-          <input className="border border-slate-200 rounded-xl px-4 h-11 text-[14px] text-slate-900 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/30 bg-white placeholder:text-slate-400"
+          <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Search by name or reg. number…"
             value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
           {searchResults?.data?.length > 0 && !form.student_id && (
