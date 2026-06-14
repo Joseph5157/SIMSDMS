@@ -3,7 +3,15 @@ require('dotenv').config(); // reloaded: 20260607b
 // Prevent unhandled async rejections from crashing the server
 process.on('unhandledRejection', (err) => {
   const logger = require('./lib/logger');
-  logger.error(`Unhandled rejection: ${err?.message ?? err}`);
+  logger.error(`Unhandled rejection: ${err?.message ?? err}`, err);
+});
+
+// Also handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  const logger = require('./lib/logger');
+  logger.error(`Uncaught exception: ${err?.message ?? err}`, err);
+  // Exit gracefully after logging
+  setTimeout(() => process.exit(1), 1000);
 });
 
 const express = require('express');
@@ -85,12 +93,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// DB-backed health check — used by deployment monitors that need to verify the
-// database is reachable, not just that the Node process is alive.
+// DB-backed health check with 5-second timeout
 app.get('/health/db', async (req, res) => {
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Health check timeout')), 5000)
+  );
+
   try {
     const prisma = require('./lib/prisma');
-    await prisma.$queryRaw`SELECT 1`;
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      timeoutPromise
+    ]);
     res.json({ status: 'ok', db: 'ok', timestamp: new Date().toISOString() });
   } catch (err) {
     logger.error(`/health/db check failed: ${err.message}`);

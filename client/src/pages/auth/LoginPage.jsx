@@ -26,18 +26,32 @@ export default function LoginPage() {
         password,
       });
 
+      console.log('=== LOGIN DEBUG ===');
+      console.log('Full response:', res);
+      console.log('Response role field:', res.role);
+      console.log('ROLES.FACULTY value:', ROLES.FACULTY);
+
       if (res.must_change_password) {
+        console.log('Redirecting to change password');
         navigate('/change-password', { replace: true });
+      } else if (!res.role) {
+        console.error('No role field in response!', res);
+        setError('Login failed: No role information received.');
       } else {
         const role = res.role?.toLowerCase() || '';
-        console.log('Login response role:', res.role, 'normalized:', role, 'FACULTY:', ROLES.FACULTY, 'match:', role === ROLES.FACULTY);
-        if (role === ROLES.FACULTY) {
+        const isFaculty = role === ROLES.FACULTY;
+        console.log('Role check:', { raw: res.role, normalized: role, expected: ROLES.FACULTY, isFaculty });
+
+        if (isFaculty) {
+          console.log('→ Redirecting to /faculty/dashboard');
           navigate('/faculty/dashboard', { replace: true });
         } else {
+          console.log('→ Redirecting to /admin/dashboard (role is not faculty)');
           navigate('/admin/dashboard', { replace: true });
         }
       }
-    } catch {
+    } catch (err) {
+      console.error('Login error:', err);
       setError('Invalid email or password. Please try again.');
     }
   };

@@ -79,12 +79,38 @@ async function autoCloseCalendar() {
   }
 }
 
+// ─── Wrap jobs with error handling ────────────────────────────────────────────
+
+async function safeAutoClockOut() {
+  try {
+    await autoClockOut();
+  } catch (err) {
+    logger.error('[cron] autoClockOut failed:', err.message);
+  }
+}
+
+async function safeExpireCoverRequests() {
+  try {
+    await expireCoverRequests();
+  } catch (err) {
+    logger.error('[cron] expireCoverRequests failed:', err.message);
+  }
+}
+
+async function safeAutoCloseCalendar() {
+  try {
+    await autoCloseCalendar();
+  } catch (err) {
+    logger.error('[cron] autoCloseCalendar failed:', err.message);
+  }
+}
+
 // ─── Register all jobs ────────────────────────────────────────────────────────
 
 function startCronJobs() {
-  cron.schedule('30 16 * * *', autoClockOut,        { timezone: 'Asia/Kolkata' });
-  cron.schedule('0  *  * * *', expireCoverRequests,  { timezone: 'Asia/Kolkata' });
-  cron.schedule('55 23 * * *', autoCloseCalendar,    { timezone: 'Asia/Kolkata' });
+  cron.schedule('30 16 * * *', safeAutoClockOut,        { timezone: 'Asia/Kolkata' });
+  cron.schedule('0  *  * * *', safeExpireCoverRequests,  { timezone: 'Asia/Kolkata' });
+  cron.schedule('55 23 * * *', safeAutoCloseCalendar,    { timezone: 'Asia/Kolkata' });
 
   logger.info('[cron] All scheduled jobs registered.');
 }
