@@ -26,21 +26,25 @@ export default function LoginPage() {
         password,
       });
 
+      // Extract data from axios response
+      const userData = res.data || res;
+
       console.log('=== LOGIN DEBUG ===');
       console.log('Full response:', res);
-      console.log('Response role field:', res.role);
+      console.log('User data:', userData);
+      console.log('Response role field:', userData.role);
       console.log('ROLES.FACULTY value:', ROLES.FACULTY);
 
-      if (res.must_change_password) {
-        console.log('Redirecting to change password');
+      if (userData.must_change_password) {
+        console.log('→ Redirecting to change password');
         navigate('/change-password', { replace: true });
-      } else if (!res.role) {
-        console.error('No role field in response!', res);
+      } else if (!userData.role) {
+        console.error('No role field in response!', userData);
         setError('Login failed: No role information received.');
       } else {
-        const role = res.role?.toLowerCase() || '';
+        const role = userData.role?.toLowerCase() || '';
         const isFaculty = role === ROLES.FACULTY;
-        console.log('Role check:', { raw: res.role, normalized: role, expected: ROLES.FACULTY, isFaculty });
+        console.log('Role check:', { raw: userData.role, normalized: role, expected: ROLES.FACULTY, isFaculty });
 
         if (isFaculty) {
           console.log('→ Redirecting to /faculty/dashboard');
