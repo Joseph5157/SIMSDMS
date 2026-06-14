@@ -6,6 +6,7 @@ import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
+import FormLabel from '../../components/ui/FormLabel';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useMyViolations, useCreateViolation, useFlagViolation } from '../../hooks/useViolations';
@@ -59,8 +60,8 @@ function RecordModal({ open, onClose }) {
     <Modal open={open} onClose={onClose} title="Record Violation" size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-0">
         {/* Student search */}
-        <div className="flex flex-col gap-1 px-6 py-3 md:py-4 border-b border-slate-200">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.08em]">Student</label>
+        <div className="flex flex-col gap-1.5 px-6 py-3 md:py-4 border-b border-slate-200">
+          <FormLabel required>Student</FormLabel>
           <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Search by name or reg. number…"
             value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
@@ -104,10 +105,10 @@ function RecordModal({ open, onClose }) {
         )}
 
         <div className="px-6 py-3 md:py-4 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-4 h-4" />
-            <label htmlFor="warning" className="text-[13px] text-slate-700">Warning only (no fine)</label>
-          </div>
+          <label htmlFor="warning" className="flex items-center gap-3 min-h-11 cursor-pointer select-none">
+            <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-6 h-6 cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600" />
+            <span className="text-[13px] text-slate-700 leading-tight">Warning only (no fine)</span>
+          </label>
         </div>
 
         {!form.is_warning_only && (
