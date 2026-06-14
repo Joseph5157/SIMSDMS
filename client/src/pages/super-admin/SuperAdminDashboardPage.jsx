@@ -59,39 +59,34 @@ export default function SuperAdminDashboardPage({ user }) {
 
       {/* Recent activity */}
       <div style={{ marginTop: 16 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
-          textTransform: 'uppercase', letterSpacing: '0.08em',
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)',
           marginBottom: 8, paddingLeft: 4 }}>
           Recent system activity
         </p>
-        <div style={{ backgroundColor: '#fff', borderRadius: 16,
-          border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)',
+          border: '1px solid var(--border)', overflow: 'hidden' }}>
           {!logs.length ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
               No audit log entries yet.
             </div>
           ) : (
             logs.map((entry, i) => (
               <div key={entry.id} style={{
                 padding: '12px 16px',
-                borderBottom: i < logs.length - 1
-                  ? '1px solid #f8fafc' : 'none',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 12,
+                borderBottom: i < logs.length - 1 ? '1px solid var(--surface-page)' : 'none',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a',
-                    overflow: 'hidden', textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {fmtAction(entry.action)}
                   </p>
-                  <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                  <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
                     by {entry.actor?.name ?? 'System'} · {entry.target_type}
                   </p>
                 </div>
-                <p style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', flexShrink: 0 }}>
                   {new Date(entry.created_at).toLocaleDateString('en-IN', {
                     day: '2-digit', month: 'short',
                   })}

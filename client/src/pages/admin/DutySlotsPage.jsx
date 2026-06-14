@@ -24,14 +24,14 @@ export default function DutySlotsPage({ user }) {
 
       <div className="flex items-center gap-3 mb-6">
         <select value={year} onChange={(e) => setYear(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
           {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y}>{y}</option>)}
         </select>
         <select value={month} onChange={(e) => setMonth(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
           {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
         </select>
-        <span className="text-sm text-gray-500">{slots.length} slot(s) total</span>
+        <span className="text-[13px] text-slate-500">{slots.length} slot(s) total</span>
       </div>
 
       {/* Mobile card list */}
@@ -40,29 +40,29 @@ export default function DutySlotsPage({ user }) {
           const group = session === 'morning' ? morning : afternoon;
           return (
             <div key={session} style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase',
-                letterSpacing: '0.08em', marginBottom: 8 }}>
+              <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase',
+                letterSpacing: 'var(--tracking-wide)', marginBottom: 8 }}>
                 {session} slots ({group.length})
               </p>
-              <div style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0',
+              <div style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
                 overflow: 'hidden', marginBottom: 16 }}>
                 {!group.length ? (
-                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
                     No {session} slots
                   </div>
                 ) : (
                   group.map((s) => (
                     <div key={s.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '14px 16px', backgroundColor: '#fff',
-                      borderBottom: '1px solid #f1f5f9', gap: 12,
+                      padding: '14px 16px', backgroundColor: 'var(--surface-card)',
+                      borderBottom: '1px solid var(--divider)', gap: 12,
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+                        <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
                           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {s.faculty?.name}
                         </p>
-                        <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
                           {new Date(s.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                         </p>
                       </div>
@@ -84,10 +84,10 @@ export default function DutySlotsPage({ user }) {
         const group = session === 'morning' ? morning : afternoon;
         return (
           <div key={session} className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2 capitalize">{session} slots ({group.length})</h3>
+            <h3 className="text-[13px] font-semibold text-slate-700 mb-2 capitalize">{session} slots ({group.length})</h3>
             <Table>
               <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th className="hidden sm:table-cell">Covered by</Th></tr></thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {isLoading && <EmptyRow cols={5} message="Loading…" />}
                 {!isLoading && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
                 {group.map((s) => (
@@ -108,25 +108,25 @@ export default function DutySlotsPage({ user }) {
 
       <div style={{
         marginTop: 16, padding: '12px 16px',
-        backgroundColor: '#f8fafc', borderRadius: 12,
-        border: '1px solid #e2e8f0',
+        backgroundColor: 'var(--surface-page)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border)',
       }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8',
-          textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 6 }}>
           This month summary
         </p>
         <div style={{ display: 'flex', gap: 20 }}>
           <div>
-            <p style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+            <p style={{ fontSize: 20, fontWeight: 'var(--weight-extra)', color: 'var(--text-primary)' }}>
               {morning?.length ?? 0}
             </p>
-            <p style={{ fontSize: 11, color: '#94a3b8' }}>Morning</p>
+            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>Morning</p>
           </div>
           <div>
-            <p style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+            <p style={{ fontSize: 20, fontWeight: 'var(--weight-extra)', color: 'var(--text-primary)' }}>
               {afternoon?.length ?? 0}
             </p>
-            <p style={{ fontSize: 11, color: '#94a3b8' }}>Afternoon</p>
+            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>Afternoon</p>
           </div>
         </div>
       </div>

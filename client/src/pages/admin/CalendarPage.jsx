@@ -73,25 +73,25 @@ export default function CalendarPage({ user }) {
       {/* Month picker */}
       <div className="flex items-center gap-3 mb-6">
         <select value={year} onChange={(e) => setYear(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
           {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y}>{y}</option>)}
         </select>
         <select value={month} onChange={(e) => setMonth(+e.target.value)}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
           {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
         </select>
       </div>
 
-      {isLoading ? <p className="text-gray-400 text-sm">Loading…</p> : (
+      {isLoading ? <p className="text-slate-400 text-[13px]">Loading…</p> : (
         <>
           {/* Status bar */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 flex items-center gap-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center gap-6">
             <div>
-              <p className="text-xs text-gray-500 mb-1">Window status</p>
+              <p className="text-xs text-slate-500 mb-1">Window status</p>
               <Badge status={config?.is_window_open ? 'active' : 'inactive'} label={config?.is_window_open ? 'Open' : 'Closed'} />
             </div>
             <div>
-              <p className="text-xs text-gray-500 mb-1">Sessions per faculty</p>
+              <p className="text-xs text-slate-500 mb-1">Sessions per faculty</p>
               <p className="text-sm font-semibold">{config?.sessions_per_faculty ?? 3}</p>
             </div>
             <div className="flex gap-2 ml-auto">
@@ -106,64 +106,64 @@ export default function CalendarPage({ user }) {
           </div>
 
           {/* Days grid */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-            <p className="text-sm font-medium text-gray-700 mb-3">Blocked dates (click to toggle)</p>
+          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
+            <p className="text-sm font-medium text-slate-700 mb-3">Blocked dates (click to toggle)</p>
             <div className="flex flex-wrap gap-2">
               {days.map((d) => {
                 const key = fmtDate(d);
                 const isBlocked = blocked.includes(key);
                 return (
                   <button key={d} onClick={() => toggleBlocked(d)}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'}`}>
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}>
                     {d}
                   </button>
                 );
               })}
             </div>
-            <p className="text-xs text-gray-400 mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
+            <p className="text-xs text-slate-400 mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
           </div>
 
           {/* Calendar legend */}
           <div style={{
             marginTop: 16, padding: '14px 16px',
-            backgroundColor: '#fff', borderRadius: 12,
-            border: '1px solid #e2e8f0',
+            backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border)',
           }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 10 }}>
+            <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', marginBottom: 10 }}>
               Calendar legend
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6,
-                  backgroundColor: '#fef2f2', border: '1px solid #fecaca',
+                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--color-red-bg)', border: '1px solid var(--color-red-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, color: '#dc2626', fontWeight: 700 }}>1</div>
-                <span style={{ fontSize: 12, color: '#64748b' }}>Red — blocked holiday date</span>
+                  fontSize: 'var(--text-small)', color: 'var(--color-red-600)', fontWeight: 'var(--weight-bold)' }}>1</div>
+                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Red — blocked holiday date</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6,
-                  backgroundColor: '#f0fdf4', border: '1px solid #a7f3d0',
+                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, color: '#065f46', fontWeight: 700 }}>2</div>
-                <span style={{ fontSize: 12, color: '#64748b' }}>Green — working day</span>
+                  fontSize: 'var(--text-small)', color: 'var(--color-emerald-text)', fontWeight: 'var(--weight-bold)' }}>2</div>
+                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Green — working day</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6,
-                  backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'var(--surface-page)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, color: '#64748b', fontWeight: 700 }}>3</div>
-                <span style={{ fontSize: 12, color: '#64748b' }}>Default — normal working day</span>
+                  fontSize: 'var(--text-small)', color: 'var(--text-secondary)', fontWeight: 'var(--weight-bold)' }}>3</div>
+                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Default — normal working day</span>
               </div>
             </div>
           </div>
 
           {/* Unassigned faculty */}
           {unassigned?.data?.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm font-medium text-gray-700 mb-3">Unassigned faculty ({unassigned.total})</p>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <p className="text-sm font-medium text-slate-700 mb-3">Unassigned faculty ({unassigned.total})</p>
               <Table>
                 <thead><tr><Th>Name</Th><Th>Dept.</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr></thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-slate-100">
                   {unassigned.data.map((f) => (
                     <tr key={f.id}>
                       <Td className="font-medium">{f.name}</Td>
@@ -218,7 +218,7 @@ function AssignSlotsModal({ faculty, year, month, onClose }) {
           <div key={i} className="flex gap-2 items-end">
             <Input label={i === 0 ? 'Date' : ''} type="date" value={s.duty_date} onChange={(e) => updateSlot(i, 'duty_date', e.target.value)} required />
             <select value={s.session_type} onChange={(e) => updateSlot(i, 'session_type', e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+              className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
               <option value="morning">Morning</option>
               <option value="afternoon">Afternoon</option>
             </select>

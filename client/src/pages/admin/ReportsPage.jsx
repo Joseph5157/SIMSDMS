@@ -60,7 +60,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'monthly-attendance': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Total</Th><Th>Completed</Th><Th>Absent</Th><Th>Late</Th><Th>Auto-out</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -76,7 +76,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'late-arrivals': case 'auto-clockout': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Session</Th><Th>In time</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r) => (
             <tr key={r.id}>
@@ -93,7 +93,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'absent-faculty': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Status</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={3} />}
           {data.data?.map((s) => (
             <tr key={s.id}>
@@ -109,7 +109,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'attendance-overrides': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Overridden by</Th><Th>Reason</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r) => (
             <tr key={r.id}>
@@ -126,7 +126,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'faculty-activity': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -143,7 +143,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'violation-types': return (
       <Table>
         <thead><tr><Th>Type</Th><Th>Count</Th><Th>Total Fines (₹)</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={3} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -163,7 +163,7 @@ function ReportSection({ id, data, isLoading }) {
         </p>
         <Table>
           <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td className="font-medium">{v.student?.student_name}</Td>
@@ -186,7 +186,7 @@ function ReportSection({ id, data, isLoading }) {
         </div>
         <Table>
           <thead><tr><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td>{v.student?.student_name}</Td>
@@ -218,7 +218,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'unassigned-faculty': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={4} message="All faculty have picked their slots." />}
           {data.data?.map((f) => (
             <tr key={f.id}>
@@ -248,7 +248,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'completion-rate': return (
       <Table>
         <thead><tr><Th>Month</Th><Th>Total slots</Th><Th>Completed</Th><Th>Rate</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {data.data?.map((r) => (
             <tr key={`${r.year}-${r.month}`}>
               <Td className="font-medium">{MONTHS[r.month - 1]} {r.year}</Td>
@@ -268,7 +268,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'upload-history': return (
       <Table>
         <thead><tr><Th>Filename</Th><Th>Uploaded by</Th><Th>Added</Th><Th>Updated</Th><Th>Deactivated</Th><Th>Errors</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((log) => (
             <tr key={log.id}>
@@ -299,7 +299,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'student-violations': return (
       <Table>
         <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Fine</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {!data.data?.length && <EmptyRow cols={6} />}
           {data.data?.map((v) => (
             <tr key={v.id}>

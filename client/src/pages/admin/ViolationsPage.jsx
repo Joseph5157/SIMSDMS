@@ -28,7 +28,7 @@ function ResolveFlagModal({ violation, onClose }) {
 
   return (
     <Modal open onClose={onClose} title="Resolve Flag" size="sm">
-      <div className="mb-3 text-sm text-gray-600 bg-yellow-50 rounded-lg p-3">
+      <div className="mb-3 text-[13px] text-slate-600 rounded-lg p-3" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>
         <strong>Flag note:</strong> {violation.flag_note}
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -48,15 +48,15 @@ function AuditModal({ violationId, onClose }) {
     <Modal open onClose={onClose} title="Violation Audit Log" size="lg">
       <div className="space-y-2">
         {data?.data?.map((log) => (
-          <div key={log.id} className="border rounded-lg p-3 text-sm">
-            <div className="flex justify-between text-xs text-gray-400 mb-1">
+          <div key={log.id} className="border border-slate-200 rounded-lg p-3 text-[13px]">
+            <div className="flex justify-between text-[11px] text-slate-400 mb-1">
               <span>{log.changedBy?.name} · <Badge status={log.change_type} label={log.change_type} /></span>
               <span>{new Date(log.created_at).toLocaleString()}</span>
             </div>
-            {log.reason && <p className="text-gray-600">{log.reason}</p>}
+            {log.reason && <p className="text-slate-600">{log.reason}</p>}
           </div>
         ))}
-        {!data?.data?.length && <p className="text-gray-400 text-sm">No audit entries.</p>}
+        {!data?.data?.length && <p className="text-slate-400 text-[13px]">No audit entries.</p>}
       </div>
     </Modal>
   );
@@ -100,22 +100,22 @@ export default function ViolationsPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No violations found.</div>}
+      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
+        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No violations found.</div>}
         {data?.data?.map((v) => (
           <div key={v.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', backgroundColor: '#fff',
-            borderBottom: '1px solid #f1f5f9', gap: 12,
+            padding: '14px 16px', backgroundColor: 'var(--surface-card)',
+            borderBottom: '1px solid var(--divider)', gap: 12,
             opacity: v.record_status === 'hidden' ? 0.6 : 1,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {v.student?.student_name}
               </p>
-              <p style={{ fontSize: 12, color: '#94a3b8' }}>
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
                 {v.student?.registration_number} • {v.violationType?.name}
               </p>
             </div>
@@ -131,18 +131,18 @@ export default function ViolationsPage({ user }) {
       <div className="hidden md:block">
       <Table>
         <thead><tr><Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th><Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading && <EmptyRow cols={7} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
           {data?.data?.map((v) => (
             <tr key={v.id} className={v.is_flagged ? 'bg-amber-50' : v.record_status === 'hidden' ? 'opacity-50' : ''}>
               <Td>
-                <p className="font-medium text-gray-900">{v.student?.student_name}</p>
-                <p className="text-xs text-gray-400">{v.student?.registration_number}</p>
+                <p className="font-medium text-slate-900">{v.student?.student_name}</p>
+                <p className="text-xs text-slate-400">{v.student?.registration_number}</p>
               </Td>
               <Td className="hidden md:table-cell">{v.faculty?.name}</Td>
-              <Td>{v.violationType?.name}{v.custom_violation && <p className="text-xs text-gray-400">{v.custom_violation}</p>}</Td>
-              <Td>{v.is_warning_only ? <span className="text-xs text-gray-500">Warning only</span> : `₹${v.fine_amount}`}</Td>
+              <Td>{v.violationType?.name}{v.custom_violation && <p className="text-xs text-slate-400">{v.custom_violation}</p>}</Td>
+              <Td>{v.is_warning_only ? <span className="text-xs text-slate-500">Warning only</span> : `₹${v.fine_amount}`}</Td>
               <Td><Badge status={v.record_status} /></Td>
               <Td>{v.is_flagged && <Badge status="pending" label="Flagged" />}</Td>
               <Td>

@@ -74,10 +74,10 @@ export default function FacultyCoverRequestsPage({ user }) {
         action={<Button onClick={() => setShowPost(true)}>+ Post Broadcast</Button>}
       />
 
-      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-lg w-fit">
         {['open','my'].map((t) => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
+            className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors ${tab === t ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>
             {t === 'open' ? 'Open broadcasts' : 'My requests'}
           </button>
         ))}
@@ -86,19 +86,19 @@ export default function FacultyCoverRequestsPage({ user }) {
       {tab === 'open' && (
         <Table>
           <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Session</Th><Th>Reason</Th><Th>Expires</Th><Th /></tr></thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {!open?.data?.length && <EmptyRow cols={6} message="No open broadcasts right now." />}
             {open?.data?.map((cr) => (
               <tr key={cr.id}>
                 <Td className="font-medium">{cr.requester?.name}</Td>
                 <Td>{cr.dutySlot ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}</Td>
                 <Td className="capitalize">{cr.dutySlot?.session_type}</Td>
-                <Td className="text-gray-500 text-xs">{cr.reason ?? '—'}</Td>
-                <Td className="text-xs text-gray-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
+                <Td className="text-slate-500 text-xs">{cr.reason ?? '—'}</Td>
+                <Td className="text-xs text-slate-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
                 <Td>
                   {!cr.volunteer_id
                     ? <Button size="sm" onClick={() => handleVolunteer(cr.id)} loading={volunteer.isPending}>Volunteer</Button>
-                    : <span className="text-xs text-gray-400">Volunteer assigned</span>}
+                    : <span className="text-xs text-slate-400">Volunteer assigned</span>}
                 </Td>
               </tr>
             ))}
@@ -109,12 +109,12 @@ export default function FacultyCoverRequestsPage({ user }) {
       {tab === 'my' && (
         <Table>
           <thead><tr><Th>Slot</Th><Th>Role</Th><Th>Status</Th><Th>Volunteer</Th></tr></thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-100">
             {!mine?.data?.length && <EmptyRow cols={4} message="No cover requests." />}
             {mine?.data?.map((cr) => (
               <tr key={cr.id}>
                 <Td>{cr.dutySlot ? `${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN')} · ${cr.dutySlot.session_type}` : '—'}</Td>
-                <Td><span className="text-xs text-gray-500">{cr.requested_by === user?.id ? 'Posted' : 'Volunteered'}</span></Td>
+                <Td><span className="text-xs text-slate-500">{cr.requested_by === user?.id ? 'Posted' : 'Volunteered'}</span></Td>
                 <Td><Badge status={cr.status} /></Td>
                 <Td>{cr.volunteer?.name ?? '—'}</Td>
               </tr>

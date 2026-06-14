@@ -20,11 +20,11 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
         className={cn(
           widths[size],
           'max-h-[92vh] overflow-hidden flex flex-col',
-          'rounded-2xl p-0 gap-0 border border-slate-200 shadow-2xl'
+          'rounded-2xl p-0 gap-0 border border-slate-200 shadow-modal'
         )}
         showCloseButton={false}
       >
-        <DialogHeader className="px-5 py-4 border-b border-slate-100 shrink-0">
+        <DialogHeader className="px-5 py-4 border-b border-divider shrink-0">
           <DialogTitle className="text-[15px] font-bold text-slate-900">
             {title}
           </DialogTitle>

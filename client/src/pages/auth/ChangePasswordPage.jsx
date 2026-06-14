@@ -4,6 +4,28 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
 
+/* Shared field style for this auth screen */
+const fieldStyle = (isLoading) => ({
+  border: '2px solid var(--border)',
+  borderRadius: 'var(--radius-xl)',
+  padding: '14px 16px',
+  fontSize: 'var(--text-card-lg)',
+  color: 'var(--text-primary)',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+  backgroundColor: 'var(--surface-page)',
+  transition: `border-color var(--dur-fast)`,
+  opacity: isLoading ? 0.6 : 1,
+  cursor: isLoading ? 'not-allowed' : 'auto',
+});
+
+const labelStyle = {
+  fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
+  color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
+};
+
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,14 +38,12 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if this is a mandatory password change
   const isMandatory = currentUser?.must_change_password ?? false;
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (!currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()) {
       setError('Please fill in all fields.');
       return;
@@ -46,11 +66,9 @@ export default function ChangePasswordPage() {
         new_password: newPassword,
       });
 
-      // Update React Query cache to reflect password change
       const updatedUser = { ...currentUser, must_change_password: false };
       queryClient.setQueryData(['currentUser'], updatedUser);
 
-      // Show success and redirect
       if (currentUser?.role === 'faculty') {
         navigate('/faculty/dashboard', { replace: true });
       } else {
@@ -68,7 +86,6 @@ export default function ChangePasswordPage() {
   };
 
   const handleCancel = () => {
-    // Go back or to dashboard if voluntary change
     if (location.state?.from) {
       navigate(location.state.from);
     } else if (currentUser?.role === 'faculty') {
@@ -78,18 +95,22 @@ export default function ChangePasswordPage() {
     }
   };
 
+  const isSubmitDisabled = isLoading
+    || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim()
+    || newPassword.length < 8 || newPassword !== confirmNewPassword;
+
   return (
     <div style={{
       minHeight: '100vh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#0f172a',
+      backgroundColor: 'var(--surface-sidebar)',
       position: 'relative',
       overflow: 'hidden',
     }}>
 
-      {/* ── Background decorative circles ── */}
+      {/* ── Background glow circles ── */}
       <div style={{
         position: 'absolute', top: -80, right: -80,
         width: 260, height: 260, borderRadius: '50%',
@@ -116,59 +137,63 @@ export default function ChangePasswordPage() {
         paddingRight: 24,
         textAlign: 'center',
       }}>
-        {/* App icon */}
+        {/* Brand mark */}
         <div style={{
           width: 72, height: 72,
-          borderRadius: 20,
-          background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+          borderRadius: 'var(--radius-3xl)',
+          background: 'var(--brand-gradient)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 32, marginBottom: 20,
-          boxShadow: '0 8px 32px rgba(59,130,246,0.35)',
+          boxShadow: 'var(--shadow-brand)',
         }}>
           🔐
         </div>
 
         <p style={{
-          fontSize: 12, fontWeight: 700, color: '#3b82f6',
-          textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8,
+          fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
+          color: 'var(--color-blue-500)',
+          textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)', marginBottom: 8,
         }}>
           SIMS College of Pharmacy
         </p>
 
         <h1 style={{
-          fontSize: 28, fontWeight: 800, color: '#f8fafc',
-          lineHeight: 1.2, marginBottom: 10,
+          fontSize: 'var(--text-display)', fontWeight: 'var(--weight-extra)',
+          color: 'var(--text-on-dark)',
+          lineHeight: 'var(--leading-tight)', marginBottom: 10,
         }}>
           Change Password
         </h1>
 
         <p style={{
-          fontSize: 14, color: '#64748b', lineHeight: 1.6, maxWidth: 280,
+          fontSize: 'var(--text-body)', color: 'var(--color-slate-500)',
+          lineHeight: 'var(--leading-normal)', maxWidth: 280,
         }}>
           Secure your account with a new password
         </p>
       </div>
 
-      {/* ── Bottom white form card ── */}
+      {/* ── Form sheet ── */}
       <div style={{
         flex: 1,
-        backgroundColor: '#ffffff',
-        borderRadius: '28px 28px 0 0',
+        backgroundColor: 'var(--surface-card)',
+        borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
         padding: '32px 24px 48px',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.25)',
+        boxShadow: 'var(--shadow-sheet)',
       }}>
         {/* Pull handle */}
         <div style={{
-          width: 40, height: 4, backgroundColor: '#e2e8f0',
+          width: 40, height: 4, backgroundColor: 'var(--border)',
           borderRadius: 2, margin: '0 auto 28px',
         }} />
 
         {/* Mandatory change banner */}
         {isMandatory && (
           <div style={{
-            backgroundColor: '#fef3c7',
-            border: '1px solid #fcd34d',
-            borderRadius: 12,
+            backgroundColor: 'var(--color-amber-bg)',
+            border: '1px solid var(--color-amber-border)',
+            borderLeft: '3px solid var(--color-amber-solid)',
+            borderRadius: 'var(--radius-lg)',
             padding: '12px 14px',
             marginBottom: 20,
             display: 'flex',
@@ -176,34 +201,28 @@ export default function ChangePasswordPage() {
             alignItems: 'flex-start',
           }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-            <p style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-amber-text)', lineHeight: 'var(--leading-snug)', margin: 0 }}>
               You must set a new password before continuing to access the system.
             </p>
           </div>
         )}
 
-        <form onSubmit={handleChangePassword} style={{
-          display: 'flex', flexDirection: 'column', gap: 20,
-        }}>
+        <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
             <h2 style={{
-              fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 4,
+              fontSize: 'var(--text-h2)', fontWeight: 'var(--weight-extra)',
+              color: 'var(--text-primary)', marginBottom: 4,
             }}>
               Update your password
             </h2>
-            <p style={{ fontSize: 14, color: '#94a3b8' }}>
+            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-muted)' }}>
               Enter your current password and choose a new one
             </p>
           </div>
 
-          {/* Current password field */}
+          {/* Current password */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{
-              fontSize: 12, fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              Current Password
-            </label>
+            <label style={labelStyle}>Current Password</label>
             <input
               type="password"
               autoComplete="current-password"
@@ -212,33 +231,15 @@ export default function ChangePasswordPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: 14,
-                padding: '14px 16px',
-                fontSize: 15,
-                color: '#0f172a',
-                outline: 'none',
-                width: '100%',
-                boxSizing: 'border-box',
-                backgroundColor: '#f8fafc',
-                transition: 'border-color 0.15s',
-                opacity: isLoading ? 0.6 : 1,
-                cursor: isLoading ? 'not-allowed' : 'auto',
-              }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              style={fieldStyle(isLoading)}
+              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
 
-          {/* New password field */}
+          {/* New password */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{
-              fontSize: 12, fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              New Password
-            </label>
+            <label style={labelStyle}>New Password</label>
             <input
               type="password"
               autoComplete="new-password"
@@ -247,38 +248,20 @@ export default function ChangePasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: 14,
-                padding: '14px 16px',
-                fontSize: 15,
-                color: '#0f172a',
-                outline: 'none',
-                width: '100%',
-                boxSizing: 'border-box',
-                backgroundColor: '#f8fafc',
-                transition: 'border-color 0.15s',
-                opacity: isLoading ? 0.6 : 1,
-                cursor: isLoading ? 'not-allowed' : 'auto',
-              }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              style={fieldStyle(isLoading)}
+              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
             {newPassword.length > 0 && newPassword.length < 8 && (
-              <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-red-solid)', margin: 0 }}>
                 Password must be at least 8 characters
               </p>
             )}
           </div>
 
-          {/* Confirm password field */}
+          {/* Confirm password */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{
-              fontSize: 12, fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}>
-              Confirm New Password
-            </label>
+            <label style={labelStyle}>Confirm New Password</label>
             <input
               type="password"
               autoComplete="new-password"
@@ -287,25 +270,12 @@ export default function ChangePasswordPage() {
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: 14,
-                padding: '14px 16px',
-                fontSize: 15,
-                color: '#0f172a',
-                outline: 'none',
-                width: '100%',
-                boxSizing: 'border-box',
-                backgroundColor: '#f8fafc',
-                transition: 'border-color 0.15s',
-                opacity: isLoading ? 0.6 : 1,
-                cursor: isLoading ? 'not-allowed' : 'auto',
-              }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              style={fieldStyle(isLoading)}
+              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
             {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
-              <p style={{ fontSize: 12, color: '#ef4444', margin: 0 }}>
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-red-solid)', margin: 0 }}>
                 Passwords do not match
               </p>
             )}
@@ -314,52 +284,54 @@ export default function ChangePasswordPage() {
           {/* Error message */}
           {error && (
             <div style={{
-              backgroundColor: '#fef2f2', border: '1px solid #fecaca',
-              borderRadius: 12, padding: '12px 14px',
-              fontSize: 13, color: '#dc2626',
+              backgroundColor: 'var(--color-red-bg)',
+              border: '1px solid var(--color-red-border)',
+              borderLeft: '3px solid var(--color-red-solid)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '12px 14px',
+              fontSize: 'var(--text-card)',
+              color: 'var(--color-red-text)',
             }}>
               {error}
             </div>
           )}
 
           {/* Buttons */}
-          <div style={{
-            display: 'flex', gap: 12, flexDirection: 'column',
-          }}>
+          <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
             <button
               type="submit"
-              disabled={isLoading || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim() || newPassword.length < 8 || newPassword !== confirmNewPassword}
+              disabled={isSubmitDisabled}
               style={{
                 width: '100%',
                 padding: '16px',
-                borderRadius: 14,
+                borderRadius: 'var(--radius-xl)',
                 border: 'none',
-                background: isLoading || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim() || newPassword.length < 8 || newPassword !== confirmNewPassword
-                  ? '#93c5fd'
-                  : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                color: '#fff',
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: isLoading || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim() || newPassword.length < 8 || newPassword !== confirmNewPassword
-                  ? 'not-allowed' : 'pointer',
-                boxShadow: isLoading || !currentPassword.trim() || !newPassword.trim() || !confirmNewPassword.trim() || newPassword.length < 8 || newPassword !== confirmNewPassword
-                  ? 'none' : '0 4px 16px rgba(37,99,235,0.35)',
-                transition: 'all 0.15s',
+                background: isSubmitDisabled
+                  ? 'var(--color-blue-300)'
+                  : 'var(--brand-gradient-deep)',
+                color: 'var(--text-on-brand)',
+                fontSize: 'var(--text-card-lg)',
+                fontWeight: 'var(--weight-bold)',
+                fontFamily: 'var(--font-sans)',
+                cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
+                boxShadow: isSubmitDisabled ? 'none' : 'var(--shadow-brand)',
+                transition: `all var(--dur-fast)`,
               }}
             >
               {isLoading ? '⏳ Updating…' : 'Update Password →'}
             </button>
 
-            {/* Cancel button (only for voluntary changes) */}
             {!isMandatory && (
               <button
                 type="button"
                 onClick={handleCancel}
                 disabled={isLoading}
                 style={{
-                  fontSize: 13, color: '#94a3b8', background: 'none',
-                  border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontSize: 'var(--text-card)', color: 'var(--text-muted)',
+                  background: 'none', border: 'none',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
                   textAlign: 'center', opacity: isLoading ? 0.6 : 1,
+                  fontFamily: 'var(--font-sans)',
                 }}
               >
                 ← Cancel
@@ -370,7 +342,8 @@ export default function ChangePasswordPage() {
 
         {/* Footer */}
         <p style={{
-          textAlign: 'center', fontSize: 11, color: '#cbd5e1', marginTop: 32,
+          textAlign: 'center', fontSize: 'var(--text-micro)',
+          color: 'var(--border-strong)', marginTop: 32,
         }}>
           SIMS DMS · Version 1.0
         </p>

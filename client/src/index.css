@@ -12,20 +12,26 @@
 /* ── Dark mode variant ── */
 @custom-variant dark (&:is(.dark *));
 
-/* ── Global reset ── */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* ── Tailwind v4 theme — these generate utility classes ── */
+/* ── Design system tokens — all Tailwind utilities flow from here ── */
 @theme {
-  /* Typography */
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-mono: 'DM Mono', monospace;
+  /* Typography families */
+  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'DM Mono', 'Courier New', ui-monospace, monospace;
 
-  /* Brand colors */
+  /* ── Brand blue ramp ── */
+  --color-blue-50:  #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-200: #bfdbfe;
+  --color-blue-300: #93c5fd;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+  --color-blue-800: #1e40af;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+
+  /* primary-* aliases kept for existing Tailwind classes */
   --color-primary-50:  #eff6ff;
   --color-primary-100: #dbeafe;
   --color-primary-200: #bfdbfe;
@@ -33,51 +39,246 @@
   --color-primary-600: #2563eb;
   --color-primary-700: #1d4ed8;
 
-  /* Surface/background */
-  --color-surface:     #f8fafc;
-  --color-card:        #ffffff;
+  /* ── Slate neutrals ── */
+  --color-slate-50:  #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
 
-  /* Sidebar */
-  --color-sidebar:     #0f172a;
-  --color-sidebar-hover: #1e293b;
-  --color-sidebar-border: #1e293b;
-  --color-sidebar-active: #2563eb;
-  --color-sidebar-text: #94a3b8;
+  /* ── Status color families ── */
+  --color-emerald-bg:     #f0fdf4;
+  --color-emerald-tint:   #d1fae5;
+  --color-emerald-text:   #065f46;
+  --color-emerald-solid:  #10b981;
+  --color-emerald-600:    #059669;
+  --color-emerald-700:    #047857;
+  --color-emerald-border: #bbf7d0;
+
+  --color-amber-bg:     #fffbeb;
+  --color-amber-tint:   #fde68a;
+  --color-amber-text:   #92400e;
+  --color-amber-solid:  #f59e0b;
+  --color-amber-border: #fde68a;
+
+  --color-red-bg:     #fef2f2;
+  --color-red-tint:   #fecaca;
+  --color-red-text:   #991b1b;
+  --color-red-solid:  #ef4444;
+  --color-red-600:    #dc2626;
+  --color-red-700:    #b91c1c;
+  --color-red-border: #fecaca;
+
+  --color-cyan-bg:     #ecfeff;
+  --color-cyan-tint:   #a5f3fc;
+  --color-cyan-text:   #0e7490;
+  --color-cyan-solid:  #06b6d4;
+  --color-cyan-border: #a5f3fc;
+
+  --color-purple-bg:     #f5f3ff;
+  --color-purple-tint:   #ddd6fe;
+  --color-purple-text:   #5b21b6;
+  --color-purple-solid:  #8b5cf6;
+  --color-purple-border: #ddd6fe;
+
+  --color-orange-bg:     #fff7ed;
+  --color-orange-tint:   #fed7aa;
+  --color-orange-text:   #c2410c;
+  --color-orange-solid:  #f97316;
+  --color-orange-border: #fed7aa;
+
+  /* ── Semantic surface / text tokens (generate bg-surface, text-text-primary, etc.) ── */
+  --color-surface:             #f8fafc;
+  --color-card:                #ffffff;
+  --color-sidebar:             #0f172a;
+  --color-sidebar-hover:       #1e293b;
+  --color-sidebar-border:      #1e293b;
+  --color-sidebar-active:      #2563eb;
+  --color-sidebar-text:        #94a3b8;
   --color-sidebar-text-active: #ffffff;
+  --color-border:              #e2e8f0;
+  --color-border-strong:       #cbd5e1;
+  --color-divider:             #f1f5f9;
+  --color-text-primary:        #0f172a;
+  --color-text-secondary:      #475569;
+  --color-text-muted:          #94a3b8;
+  --color-text-on-dark:        #f1f5f9;
 
-  /* Border */
-  --color-border:      #e2e8f0;
-  --color-border-strong: #cbd5e1;
+  /* Status shorthand aliases */
+  --color-success:        #10b981;
+  --color-warning:        #f59e0b;
+  --color-danger:         #ef4444;
+  --color-info:           #3b82f6;
+  --color-success-bg:     #f0fdf4;
+  --color-success-text:   #065f46;
+  --color-success-border: #bbf7d0;
+  --color-warning-bg:     #fffbeb;
+  --color-warning-text:   #92400e;
+  --color-warning-border: #fde68a;
+  --color-danger-bg:      #fef2f2;
+  --color-danger-text:    #991b1b;
+  --color-danger-border:  #fecaca;
+
+  /* ── Radius (px — aligned to DS) ──
+     rounded-xl: 14px (cards, inputs)
+     rounded-2xl: 16px (mobile containers, hero panels) */
+  --radius-sm:    6px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --radius-xl:    14px;
+  --radius-2xl:   16px;
+  --radius-3xl:   20px;
+  --radius-sheet: 28px;
+  --radius-full:  9999px;
+
+  /* ── Shadows ── */
+  --shadow-card:     0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-stat:     0 1px 3px 0 rgb(0 0 0 / 0.04);
+  --shadow-dropdown: 0 4px 16px -2px rgb(0 0 0 / 0.12), 0 2px 8px -2px rgb(0 0 0 / 0.08);
+  --shadow-toast:    0 4px 16px -2px rgb(0 0 0 / 0.10);
+  --shadow-modal:    0 20px 60px -12px rgb(0 0 0 / 0.25), 0 8px 24px -8px rgb(0 0 0 / 0.15);
+  --shadow-sheet:    0 -8px 40px rgba(0, 0, 0, 0.25);
+  --shadow-brand:    0 8px 32px rgba(59, 130, 246, 0.35);
+}
+
+/* ── Semantic aliases + non-Tailwind DS tokens ── */
+:root {
+  /* ── DS raw ramp aliases — match the design system token names exactly so
+     var(--blue-500), var(--slate-400), var(--emerald-bg) etc. all resolve ── */
+  --blue-50:  #eff6ff; --blue-100: #dbeafe; --blue-200: #bfdbfe;
+  --blue-300: #93c5fd; --blue-400: #60a5fa; --blue-500: #3b82f6;
+  --blue-600: #2563eb; --blue-700: #1d4ed8; --blue-800: #1e40af;
+  --indigo-500: #6366f1; --indigo-600: #4f46e5;
+
+  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b;
+  --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  --emerald-bg: #f0fdf4; --emerald-tint: #d1fae5; --emerald-text: #065f46;
+  --emerald-solid: #10b981; --emerald-border: #bbf7d0;
+
+  --amber-bg: #fffbeb; --amber-tint: #fde68a; --amber-text: #92400e;
+  --amber-solid: #f59e0b; --amber-border: #fde68a;
+
+  --red-bg: #fef2f2; --red-tint: #fecaca; --red-text: #991b1b;
+  --red-solid: #ef4444; --red-border: #fecaca;
+
+  --cyan-bg: #ecfeff; --cyan-tint: #a5f3fc; --cyan-text: #0e7490;
+  --cyan-solid: #06b6d4; --cyan-border: #a5f3fc;
+
+  --purple-bg: #f5f3ff; --purple-tint: #ddd6fe; --purple-text: #5b21b6;
+  --purple-solid: #8b5cf6; --purple-border: #ddd6fe;
+
+  --orange-bg: #fff7ed; --orange-tint: #fed7aa; --orange-text: #c2410c;
+  --orange-solid: #f97316; --orange-border: #fed7aa;
+
+  /* Surfaces */
+  --surface-page:          #f8fafc;
+  --surface-card:          #ffffff;
+  --surface-sunken:        #f8fafc;
+  --surface-sidebar:       #0f172a;
+  --surface-sidebar-hover: #1e293b;
 
   /* Text */
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --text-on-dark:   #f1f5f9;
+  --text-on-brand:  #ffffff;
+
+  /* Brand */
+  --brand:               #2563eb;
+  --brand-hover:         #1d4ed8;
+  --brand-active:        #1e40af;
+  --brand-ring:          rgba(59, 130, 246, 0.30);
+  --brand-gradient:      linear-gradient(135deg, #3b82f6, #6366f1);
+  --brand-gradient-deep: linear-gradient(135deg, #2563eb, #4f46e5);
+
+  /* Borders & dividers */
+  --border:        #e2e8f0;
+  --border-strong: #cbd5e1;
+  --divider:       #f1f5f9;
 
   /* Status */
-  --color-success-bg: #f0fdf4;
-  --color-success-text: #166534;
-  --color-success-border: #bbf7d0;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #3b82f6;
 
-  --color-warning-bg: #fffbeb;
-  --color-warning-text: #92400e;
-  --color-warning-border: #fde68a;
+  /* ── Typography scale ── */
+  --text-stat:       40px;
+  --text-display:    28px;
+  --text-h2:         22px;
+  --text-page-title: 18px;
+  --text-card-lg:    15px;
+  --text-body:       14px;
+  --text-card:       13px;
+  --text-small:      12px;
+  --text-micro:      11px;
+  --text-nano:       9px;
 
-  --color-danger-bg: #fef2f2;
-  --color-danger-text: #991b1b;
-  --color-danger-border: #fecaca;
+  /* Weights */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-extra:    800;
 
-  /* Radius */
-  --radius-sm:  0.375rem;
-  --radius-md:  0.5rem;
-  --radius-lg:  0.75rem;
-  --radius-xl:  1rem;
-  --radius-2xl: 1.5rem;
+  /* Line heights */
+  --leading-tight:  1.2;
+  --leading-snug:   1.4;
+  --leading-normal: 1.6;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  --shadow-modal: 0 20px 60px -12px rgb(0 0 0 / 0.25), 0 8px 24px -8px rgb(0 0 0 / 0.15);
-  --shadow-dropdown: 0 4px 16px -2px rgb(0 0 0 / 0.12), 0 2px 8px -2px rgb(0 0 0 / 0.08);
+  /* Letter spacing */
+  --tracking-label: 0.06em;
+  --tracking-wide:  0.08em;
+  --tracking-caps:  0.15em;
+  --tracking-tight: -0.02em;
+
+  /* ── Motion ── */
+  --dur-fast:      150ms;
+  --dur-sheet:     280ms;
+  --ease-standard: ease;
+  --ease-sheet:    cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Control sizing ── */
+  --control-min: 44px;
+  --control-h:   40px;
+  --control-sm:  32px;
+  --control-xs:  28px;
+  --tabbar-h:    60px;
+  --sidebar-w:   220px;
+
+  /* ── Spacing scale (4px base) ── */
+  --space-0:   0;
+  --space-1:   4px;
+  --space-2:   8px;
+  --space-3:   12px;
+  --space-3-5: 14px;
+  --space-4:   16px;
+  --space-5:   20px;
+  --space-6:   24px;
+  --space-7:   28px;
+  --space-8:   32px;
+  --space-10:  40px;
+  --space-12:  48px;
+
+  /* Selection */
+  --selection-bg:   #dbeafe;
+  --selection-text: #1e40af;
+}
+
+/* ── Global reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 /* ── Base HTML ── */
@@ -94,15 +295,15 @@ html {
 body {
   width: 100%;
   min-height: 100%;
-  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
-  color: #0f172a;
-  background-color: #f8fafc;
+  font-family: var(--font-sans);
+  font-size: var(--text-card-lg);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--surface-page);
 }
 
 code, .mono, pre {
-  font-family: 'DM Mono', 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 #root {
@@ -119,51 +320,51 @@ code, .mono, pre {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 99px;
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-muted);
 }
 
 /* ── Focus ring ── */
 :focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
 /* ── Selection ── */
 ::selection {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--selection-bg);
+  color: var(--selection-text);
 }
 
 /* ── Transition defaults ── */
 button, a, input, select, textarea {
   transition-property: color, background-color, border-color, box-shadow, opacity;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+  transition-duration: var(--dur-fast);
+  transition-timing-function: var(--ease-standard);
 }
 
 /* ── Utility — card surface ── */
 .card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-card);
 }
 
 .card-header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  background: #fafafa;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface-page);
 }
 
 /* ── Page layout helpers ── */
 .page-content {
   padding-top: max(56px, calc(env(safe-area-inset-top) + 16px));
-  padding-left: max(16px, env(safe-area-inset-left));
-  padding-right: max(16px, env(safe-area-inset-right));
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
   padding-bottom: max(96px, calc(env(safe-area-inset-bottom) + 80px));
   min-width: 0;
   min-height: 100%;
@@ -171,9 +372,9 @@ button, a, input, select, textarea {
 
 @media (min-width: 768px) {
   .page-content {
-    padding-top: 24px;
-    padding-left: 28px;
-    padding-right: 28px;
-    padding-bottom: 40px;
+    padding-top: var(--space-6);
+    padding-left: var(--space-7);
+    padding-right: var(--space-7);
+    padding-bottom: var(--space-10);
   }
 }

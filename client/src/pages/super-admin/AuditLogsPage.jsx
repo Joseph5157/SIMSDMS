@@ -11,56 +11,57 @@ export default function AuditLogsPage({ user }) {
   const { data, isLoading } = useAuditLogs({ action, page, limit: 50 });
 
   function getActionColor(act) {
-    if (!act) return '#64748b';
-    if (act.includes('DELETE') || act.includes('DEACTIVATE')) return '#ef4444';
-    if (act.includes('CREATE') || act.includes('UPLOAD')) return '#10b981';
-    if (act.includes('RESET')) return '#f59e0b';
-    if (act.includes('UPDATE') || act.includes('EDIT')) return '#3b82f6';
-    return '#64748b';
+    if (!act) return 'var(--slate-500)';
+    if (act.includes('DELETE') || act.includes('DEACTIVATE')) return 'var(--red-solid)';
+    if (act.includes('CREATE') || act.includes('UPLOAD'))     return 'var(--emerald-solid)';
+    if (act.includes('RESET'))                                return 'var(--amber-solid)';
+    if (act.includes('UPDATE') || act.includes('EDIT'))       return 'var(--blue-500)';
+    return 'var(--slate-500)';
   }
 
   return (
     <Layout user={user}>
       <PageHeader title="Audit Logs" subtitle="Immutable system-level action history" />
       <div className="mb-4">
-        <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Filter by action…" value={action} onChange={(e) => { setAction(e.target.value); setPage(1); }} />
+        <input
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-64 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
+          placeholder="Filter by action…" value={action}
+          onChange={(e) => { setAction(e.target.value); setPage(1); }}
+        />
       </div>
 
       {/* Mobile card list */}
       <div className="md:hidden" style={{
-        backgroundColor: '#fff', borderRadius: 16,
-        border: '1px solid #e2e8f0', overflow: 'hidden',
-        marginBottom: 16,
+        backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)',
+        border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16,
       }}>
-        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No logs found.</div>}
+        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No logs found.</div>}
         {data?.data?.map((log) => (
           <div key={log.id} style={{
             padding: '14px 16px',
-            borderBottom: '1px solid #f1f5f9',
-            backgroundColor: '#fff',
+            borderBottom: '1px solid var(--divider)',
+            backgroundColor: 'var(--surface-card)',
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between',
-              alignItems: 'flex-start', marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <span style={{
-                fontSize: 12, fontWeight: 700, color: '#fff',
+                fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: '#fff',
                 backgroundColor: getActionColor(log.action),
-                padding: '3px 8px', borderRadius: 6,
-                textTransform: 'uppercase', letterSpacing: '0.04em',
+                padding: '3px 8px', borderRadius: 'var(--radius-sm)',
+                textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
               }}>
                 {log.action?.replace(/_/g, ' ')}
               </span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+              <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
                 {new Date(log.created_at).toLocaleString('en-IN', {
                   day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                 })}
               </span>
             </div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', marginBottom: 2 }}>
+            <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2 }}>
               {log.actor?.name ?? 'System'}
             </p>
-            <p style={{ fontSize: 12, color: '#94a3b8' }}>
+            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
               {log.target_type} · {log.target_id?.slice(0, 8)}…
             </p>
           </div>
@@ -69,21 +70,25 @@ export default function AuditLogsPage({ user }) {
 
       {/* Desktop table */}
       <div className="hidden md:block">
-      <Table>
-        <thead><tr><Th>Actor</Th><Th>Action</Th><Th>Target</Th><Th>Timestamp</Th></tr></thead>
-        <tbody className="divide-y divide-gray-100">
-          {isLoading && <EmptyRow cols={4} message="Loading…" />}
-          {!isLoading && !data?.data?.length && <EmptyRow cols={4} />}
-          {data?.data?.map((log) => (
-            <tr key={log.id}>
-              <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>
-              <Td><span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{log.action}</span></Td>
-              <Td className="text-xs text-gray-500">{log.target_type} {log.target_id ? `· ${log.target_id.slice(0,8)}…` : ''}</Td>
-              <Td className="text-xs text-gray-400">{new Date(log.created_at).toLocaleString()}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+        <Table>
+          <thead><tr><Th>Actor</Th><Th>Action</Th><Th>Target</Th><Th>Timestamp</Th></tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {isLoading && <EmptyRow cols={4} message="Loading…" />}
+            {!isLoading && !data?.data?.length && <EmptyRow cols={4} />}
+            {data?.data?.map((log) => (
+              <tr key={log.id}>
+                <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>
+                <Td>
+                  <span className="font-mono text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                    {log.action}
+                  </span>
+                </Td>
+                <Td className="text-[11px] text-slate-500">{log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ''}</Td>
+                <Td className="text-[11px] text-slate-400">{new Date(log.created_at).toLocaleString()}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       </div>
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
     </Layout>

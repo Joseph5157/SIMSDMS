@@ -29,14 +29,11 @@ export default function LoginPage() {
       });
 
       const userData = res.data;
-      // Update React Query cache so ProtectedRoute recognizes auth immediately
       queryClient.setQueryData(['currentUser'], userData);
 
-      // If user must change password, redirect to change-password page
       if (userData.must_change_password) {
         navigate('/change-password', { replace: true });
       } else {
-        // Otherwise redirect to role-based dashboard
         if (userData.role === 'faculty') {
           navigate('/faculty/dashboard', { replace: true });
         } else {
@@ -45,10 +42,11 @@ export default function LoginPage() {
       }
     } catch {
       setIsLoading(false);
-      // Always show generic error message for security
       setError('Invalid email or password. Please try again.');
     }
   };
+
+  const isDisabled = isLoading || !email.trim() || !password.trim();
 
   return (
     <div style={{
@@ -56,12 +54,12 @@ export default function LoginPage() {
       width: '100%',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#0f172a',
+      backgroundColor: 'var(--surface-sidebar)',
       position: 'relative',
       overflow: 'hidden',
     }}>
 
-      {/* ── Background decorative circles ── */}
+      {/* ── Background glow circles ── */}
       <div style={{
         position: 'absolute', top: -80, right: -80,
         width: 260, height: 260, borderRadius: '50%',
@@ -75,7 +73,7 @@ export default function LoginPage() {
         pointerEvents: 'none',
       }} />
 
-      {/* ── Top branding area (40% of screen) ── */}
+      {/* ── Top branding area ── */}
       <div style={{
         flex: '0 0 auto',
         display: 'flex',
@@ -88,63 +86,65 @@ export default function LoginPage() {
         paddingRight: 24,
         textAlign: 'center',
       }}>
-        {/* App icon */}
+        {/* Brand mark */}
         <div style={{
           width: 72, height: 72,
-          borderRadius: 20,
-          background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
+          borderRadius: 'var(--radius-3xl)',
+          background: 'var(--brand-gradient)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 32, marginBottom: 20,
-          boxShadow: '0 8px 32px rgba(59,130,246,0.35)',
+          boxShadow: 'var(--shadow-brand)',
         }}>
           🎓
         </div>
 
         <p style={{
-          fontSize: 12, fontWeight: 700, color: '#3b82f6',
-          textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 8,
+          fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
+          color: 'var(--color-blue-500)',
+          textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)', marginBottom: 8,
         }}>
           SIMS College of Pharmacy
         </p>
 
         <h1 style={{
-          fontSize: 28, fontWeight: 800, color: '#f8fafc',
-          lineHeight: 1.2, marginBottom: 10,
+          fontSize: 'var(--text-display)', fontWeight: 'var(--weight-extra)',
+          color: 'var(--text-on-dark)',
+          lineHeight: 'var(--leading-tight)', marginBottom: 10,
         }}>
           Discipline<br />Management System
         </h1>
 
         <p style={{
-          fontSize: 14, color: '#64748b', lineHeight: 1.6, maxWidth: 280,
+          fontSize: 'var(--text-body)', color: 'var(--color-slate-500)',
+          lineHeight: 'var(--leading-normal)', maxWidth: 280,
         }}>
           Faculty duty scheduling and student violation tracking
         </p>
       </div>
 
-      {/* ── Bottom white form card (slides up) ── */}
+      {/* ── Form sheet ── */}
       <div style={{
         flex: 1,
-        backgroundColor: '#ffffff',
-        borderRadius: '28px 28px 0 0',
+        backgroundColor: 'var(--surface-card)',
+        borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
         padding: '32px 24px 48px',
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.25)',
+        boxShadow: 'var(--shadow-sheet)',
       }}>
         {/* Pull handle */}
         <div style={{
-          width: 40, height: 4, backgroundColor: '#e2e8f0',
+          width: 40, height: 4, backgroundColor: 'var(--border)',
           borderRadius: 2, margin: '0 auto 28px',
         }} />
 
-        <form onSubmit={handleLogin} style={{
-          display: 'flex', flexDirection: 'column', gap: 20,
-        }}>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
             <h2 style={{
-              fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 4,
+              fontSize: 'var(--text-h2)', fontWeight: 'var(--weight-extra)',
+              color: 'var(--text-primary)', marginBottom: 4,
             }}>
               Sign in
             </h2>
-            <p style={{ fontSize: 14, color: '#94a3b8' }}>
+            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-muted)' }}>
               Enter your email and password to access SIMS DMS
             </p>
           </div>
@@ -152,8 +152,9 @@ export default function LoginPage() {
           {/* Email field */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={{
-              fontSize: 12, fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
             }}>
               Email Address
             </label>
@@ -167,29 +168,30 @@ export default function LoginPage() {
               autoFocus
               disabled={isLoading}
               style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: 14,
+                border: '2px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
                 padding: '14px 16px',
-                fontSize: 15,
-                color: '#0f172a',
+                fontSize: 'var(--text-card-lg)',
+                color: 'var(--text-primary)',
                 outline: 'none',
                 width: '100%',
                 boxSizing: 'border-box',
-                backgroundColor: '#f8fafc',
-                transition: 'border-color 0.15s',
+                backgroundColor: 'var(--surface-page)',
+                transition: `border-color var(--dur-fast)`,
                 opacity: isLoading ? 0.6 : 1,
                 cursor: isLoading ? 'not-allowed' : 'auto',
               }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
 
           {/* Password field */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={{
-              fontSize: 12, fontWeight: 700, color: '#475569',
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
             }}>
               Password
             </label>
@@ -202,72 +204,75 @@ export default function LoginPage() {
               required
               disabled={isLoading}
               style={{
-                border: '2px solid #e2e8f0',
-                borderRadius: 14,
+                border: '2px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
                 padding: '14px 16px',
-                fontSize: 15,
-                color: '#0f172a',
+                fontSize: 'var(--text-card-lg)',
+                color: 'var(--text-primary)',
                 outline: 'none',
                 width: '100%',
                 boxSizing: 'border-box',
-                backgroundColor: '#f8fafc',
-                transition: 'border-color 0.15s',
+                backgroundColor: 'var(--surface-page)',
+                transition: `border-color var(--dur-fast)`,
                 opacity: isLoading ? 0.6 : 1,
                 cursor: isLoading ? 'not-allowed' : 'auto',
               }}
-              onFocus={e => e.target.style.borderColor = '#3b82f6'}
-              onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
             />
           </div>
 
           {/* Error message */}
           {error && (
             <div style={{
-              backgroundColor: '#fef2f2', border: '1px solid #fecaca',
-              borderRadius: 12, padding: '12px 14px',
-              fontSize: 13, color: '#dc2626',
+              backgroundColor: 'var(--color-red-bg)',
+              border: '1px solid var(--color-red-border)',
+              borderLeft: '3px solid var(--color-red-solid)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '12px 14px',
+              fontSize: 'var(--text-card)',
+              color: 'var(--color-red-text)',
             }}>
               {error}
             </div>
           )}
 
-          {/* Sign in button */}
+          {/* Sign in CTA */}
           <button
             type="submit"
-            disabled={isLoading || !email.trim() || !password.trim()}
+            disabled={isDisabled}
             style={{
               width: '100%',
               padding: '16px',
-              borderRadius: 14,
+              borderRadius: 'var(--radius-xl)',
               border: 'none',
-              background: isLoading || !email.trim() || !password.trim()
-                ? '#93c5fd'
-                : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-              color: '#fff',
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: isLoading || !email.trim() || !password.trim()
-                ? 'not-allowed' : 'pointer',
-              boxShadow: isLoading || !email.trim() || !password.trim()
-                ? 'none' : '0 4px 16px rgba(37,99,235,0.35)',
-              transition: 'all 0.15s',
+              background: isDisabled
+                ? 'var(--color-blue-300)'
+                : 'var(--brand-gradient-deep)',
+              color: 'var(--text-on-brand)',
+              fontSize: 'var(--text-card-lg)',
+              fontWeight: 'var(--weight-bold)',
+              fontFamily: 'var(--font-sans)',
+              cursor: isDisabled ? 'not-allowed' : 'pointer',
+              boxShadow: isDisabled ? 'none' : 'var(--shadow-brand)',
+              transition: `all var(--dur-fast)`,
             }}
           >
             {isLoading ? '⏳ Signing in…' : 'Sign in →'}
           </button>
 
-          {/* Password reset helper text */}
+          {/* Password reset helper */}
           <div style={{
-            backgroundColor: '#eff6ff',
-            border: '1px solid #dbeafe',
-            borderRadius: 12,
+            backgroundColor: 'var(--color-blue-50)',
+            border: '1px solid var(--color-blue-100)',
+            borderRadius: 'var(--radius-lg)',
             padding: '12px 14px',
             display: 'flex',
             gap: 10,
             alignItems: 'flex-start',
           }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>🔑</span>
-            <p style={{ fontSize: 13, color: '#1d4ed8', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-blue-700)', lineHeight: 'var(--leading-snug)' }}>
               Forgot your password? Send <strong>/resetpassword</strong> to{' '}
               <strong>@SimsPharmacybot</strong> on Telegram to receive a new temporary password.
             </p>
@@ -276,7 +281,8 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p style={{
-          textAlign: 'center', fontSize: 11, color: '#cbd5e1', marginTop: 32,
+          textAlign: 'center', fontSize: 'var(--text-micro)',
+          color: 'var(--border-strong)', marginTop: 32,
         }}>
           SIMS DMS · Version 1.0
         </p>

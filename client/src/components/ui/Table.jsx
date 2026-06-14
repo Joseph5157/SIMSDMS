@@ -1,6 +1,6 @@
 export function Table({ children, className = '' }) {
   return (
-    <div className={`overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white ${className}`}>
+    <div className={`overflow-x-auto rounded-lg border border-slate-200 shadow-card bg-white ${className}`}>
       <table className="min-w-full divide-y divide-slate-100">
         {children}
       </table>
@@ -10,7 +10,7 @@ export function Table({ children, className = '' }) {
 
 export function Th({ children, className = '' }) {
   return (
-    <th className={`text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-4 py-3 text-left whitespace-nowrap ${className}`}>
+    <th className={`text-[10px] font-bold text-slate-400 uppercase tracking-[0.08em] bg-slate-50 px-4 py-3 text-left whitespace-nowrap ${className}`}>
       {children}
     </th>
   );
@@ -18,7 +18,7 @@ export function Th({ children, className = '' }) {
 
 export function Td({ children, className = '' }) {
   return (
-    <td className={`text-[13px] text-slate-700 px-4 py-3 ${className}`}>
+    <td className={`text-[13px] text-slate-700 px-4 py-3 border-b border-divider last:border-0 ${className}`}>
       {children}
     </td>
   );
@@ -28,7 +28,7 @@ export function Tr({ children, className = '', onClick }) {
   return (
     <tr
       onClick={onClick}
-      className={`border-b border-slate-50 last:border-0 transition-colors duration-100 ${
+      className={`transition-colors duration-100 ${
         onClick ? 'cursor-pointer hover:bg-blue-50/50 active:bg-blue-50' : 'hover:bg-slate-50/50'
       } ${className}`}
     >

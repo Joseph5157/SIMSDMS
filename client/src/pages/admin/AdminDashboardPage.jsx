@@ -1,6 +1,7 @@
 import Layout, { PageHeader, Card, CardHeader, CardBody } from '../../components/Layout';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
+import Alert from '../../components/ui/Alert';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useCoverRequests } from '../../hooks/useCoverRequests';
@@ -77,36 +78,20 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Pending account approvals alert ── */}
       {pendingCount > 0 && (
-        <div
-          className="mb-3 flex items-start gap-3 rounded-xl p-3.5 cursor-pointer"
-          style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderLeft: '3px solid #f59e0b' }}
-          onClick={() => navigate(ROUTES.ADMIN_USERS)}
-        >
-          <span style={{ fontSize: 18, flexShrink: 0 }}>⏳</span>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 1 }}>
-              {pendingCount} account{pendingCount !== 1 ? 's' : ''} awaiting approval
-            </p>
-            <p style={{ fontSize: 12, color: '#b45309' }}>Tap to review and approve.</p>
-          </div>
-        </div>
+        <Alert tone="warning" icon="⏳" className="mb-3"
+          title={`${pendingCount} account${pendingCount !== 1 ? 's' : ''} awaiting approval`}
+          onClick={() => navigate(ROUTES.ADMIN_USERS)}>
+          Tap to review and approve.
+        </Alert>
       )}
 
       {/* ── Pending Telegram invites alert ── */}
       {pendingTelegramCount > 0 && (
-        <div
-          className="mb-3 flex items-start gap-3 rounded-xl p-3.5 cursor-pointer"
-          style={{ backgroundColor: '#ecfeff', border: '1px solid #a5f3fc', borderLeft: '3px solid #06b6d4' }}
-          onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending_telegram')}
-        >
-          <span style={{ fontSize: 18, flexShrink: 0 }}>📲</span>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#0e7490', marginBottom: 1 }}>
-              {pendingTelegramCount} user{pendingTelegramCount !== 1 ? 's' : ''} haven't linked Telegram yet
-            </p>
-            <p style={{ fontSize: 12, color: '#0891b2' }}>Resend invite links from the Users page.</p>
-          </div>
-        </div>
+        <Alert tone="telegram" icon="📲" className="mb-3"
+          title={`${pendingTelegramCount} user${pendingTelegramCount !== 1 ? 's' : ''} haven't linked Telegram yet`}
+          onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending_telegram')}>
+          Resend invite links from the Users page.
+        </Alert>
       )}
 
       {/* ── Today's attendance ── */}
@@ -114,19 +99,19 @@ export default function AdminDashboardPage({ user }) {
         <CardHeader>📋 Today's attendance</CardHeader>
         <CardBody className="p-0">
           {!liveSlots.length ? (
-            <p style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>No duty slots scheduled today.</p>
+            <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 12, padding: '12px 16px 8px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', gap: 12, padding: '12px 16px 8px', borderBottom: '1px solid var(--divider)' }}>
                 {[
-                  { n: checkedOut,    label: 'Out',     color: '#059669' },
-                  { n: checkedIn,     label: 'In',      color: '#2563eb' },
-                  { n: notCheckedIn,  label: 'Not in',  color: '#94a3b8' },
-                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: '#d97706' }] : []),
+                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)' },
+                  { n: checkedIn,     label: 'In',     color: 'var(--brand)' },
+                  { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)' },
+                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)' }] : []),
                 ].map((item) => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{item.n}</span>
-                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{item.label}</span>
+                    <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-extra)', color: item.color }}>{item.n}</span>
+                    <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>{item.label}</span>
                   </div>
                 ))}
               </div>
@@ -136,15 +121,15 @@ export default function AdminDashboardPage({ user }) {
                     key={s.slot_id}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '9px 16px', borderBottom: '1px solid #f8fafc',
+                      padding: '9px 16px', borderBottom: '1px solid var(--surface-page)',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {s.covering_faculty ? `${s.faculty?.name} → ${s.covering_faculty?.name}` : s.faculty?.name}
                       </p>
                     </div>
-                    <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize', marginRight: 10, flexShrink: 0 }}>
+                    <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textTransform: 'capitalize', marginRight: 10, flexShrink: 0 }}>
                       {s.session_type}
                     </span>
                     <Badge
@@ -167,7 +152,7 @@ export default function AdminDashboardPage({ user }) {
         <CardHeader>🔄 Open cover requests</CardHeader>
         <CardBody className="p-0">
           {!openCovers?.data?.length ? (
-            <p style={{ padding: '16px', fontSize: 13, color: '#94a3b8' }}>No open cover requests.</p>
+            <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No open cover requests.</p>
           ) : (
             <div style={{ maxHeight: 220, overflowY: 'auto' }}>
               {openCovers.data.slice(0, 8).map((cr) => (
@@ -175,14 +160,14 @@ export default function AdminDashboardPage({ user }) {
                   key={cr.id}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid #f8fafc', gap: 10,
+                    padding: '9px 16px', borderBottom: '1px solid var(--surface-page)', gap: 10,
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cr.requester?.name}
                     </p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 1, textTransform: 'capitalize' }}>
+                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
                       {cr.dutySlot?.session_type}
                       {cr.dutySlot?.duty_date && ` · ${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
                     </p>
@@ -206,27 +191,27 @@ export default function AdminDashboardPage({ user }) {
                   key={v.id}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid #f8fafc', gap: 10,
+                    padding: '9px 16px', borderBottom: '1px solid var(--surface-page)', gap: 10,
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ fontSize: 13, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.student?.student_name}
                     </p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
                       {v.violationType?.name}{v.flag_note ? ` · ${v.flag_note.slice(0, 40)}` : ''}
                     </p>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#d97706', flexShrink: 0 }}>
+                  <span style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-amber-text)', flexShrink: 0 }}>
                     {v.faculty?.name}
                   </span>
                 </div>
               ))}
             </div>
-            <div style={{ padding: '8px 16px', borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--divider)' }}>
               <button
                 onClick={() => navigate(ROUTES.ADMIN_VIOLATIONS + '?is_flagged=true')}
-                style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 Review all flagged violations →
               </button>
@@ -237,7 +222,7 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Quick actions ── */}
       <div>
-        <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 8 }}>
           Quick actions
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -246,16 +231,16 @@ export default function AdminDashboardPage({ user }) {
               key={item.path}
               onClick={() => navigate(item.path)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 44,
-                backgroundColor: '#fff', border: '1px solid #e2e8f0',
-                borderRadius: 12, padding: '12px 14px',
-                cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', gap: 10, minHeight: 'var(--control-min)',
+                backgroundColor: 'var(--surface-card)', border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)', padding: '12px 14px',
+                cursor: 'pointer', textAlign: 'left', transition: `all var(--dur-fast)`,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#bfdbfe')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--color-blue-200)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
             >
               <span style={{ fontSize: 20 }}>{item.emoji}</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>{item.label}</span>
+              <span style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>{item.label}</span>
             </button>
           ))}
         </div>

@@ -23,24 +23,24 @@ function SlotAttendanceCard({ slot }) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-5">
+    <div className="bg-white border border-slate-200 rounded-xl p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-semibold text-gray-900">{dateStr}</p>
-          <p className="text-sm text-gray-500 capitalize">{slot.session_type} session</p>
+          <p className="font-semibold text-slate-900">{dateStr}</p>
+          <p className="text-[13px] text-slate-500 capitalize">{slot.session_type} session</p>
         </div>
         <Badge status={slot.status} />
       </div>
 
-      {isLoading ? <p className="text-sm text-gray-400">Loading attendance…</p> : (
+      {isLoading ? <p className="text-[13px] text-slate-400">Loading attendance…</p> : (
         <div className="flex items-center gap-4">
-          <div className="text-sm">
-            <p className="text-gray-500 text-xs">Check-in</p>
+          <div className="text-[13px]">
+            <p className="text-slate-500 text-xs">Check-in</p>
             <p className="font-medium">{att?.in_time ? new Date(att.in_time).toLocaleTimeString() : '—'}</p>
             {att?.in_status && <Badge status={att.in_status} />}
           </div>
-          <div className="text-sm">
-            <p className="text-gray-500 text-xs">Check-out</p>
+          <div className="text-[13px]">
+            <p className="text-slate-500 text-xs">Check-out</p>
             <p className="font-medium">{att?.out_time ? new Date(att.out_time).toLocaleTimeString() : '—'}</p>
             {att?.auto_out && <span className="text-xs text-orange-500">Auto</span>}
           </div>
@@ -72,7 +72,7 @@ export default function AttendancePage({ user }) {
     if (!group.length) return null;
     return (
       <div className="mb-6">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">{label}</h3>
+        <h3 className="text-[13px] font-semibold text-slate-700 mb-3">{label}</h3>
         <div className="space-y-3">
           {group.map((s) => <SlotAttendanceCard key={s.id} slot={s} />)}
         </div>
@@ -86,7 +86,7 @@ export default function AttendancePage({ user }) {
       {renderGroup("Today's duty", today)}
       {renderGroup('Upcoming', upcoming)}
       {renderGroup('Past slots', past)}
-      {!slots.length && <p className="text-sm text-gray-400">No duty slots this month.</p>}
+      {!slots.length && <p className="text-[13px] text-slate-400">No duty slots this month.</p>}
     </Layout>
   );
 }

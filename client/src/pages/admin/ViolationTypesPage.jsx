@@ -43,7 +43,7 @@ export default function ViolationTypesPage({ user }) {
       />
       <Table>
         <thead><tr><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading && <EmptyRow cols={5} message="Loading…" />}
           {data?.data?.map((t) => (
             <tr key={t.id}>

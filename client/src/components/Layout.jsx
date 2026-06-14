@@ -20,7 +20,7 @@ export function PageHeader({ title, subtitle, action }) {
   return (
     <div
       className="flex items-center justify-between gap-3 mb-6 pb-4"
-      style={{ borderBottom: '1px solid #e2e8f0', minWidth: 0 }}
+      style={{ borderBottom: '1px solid var(--border)', minWidth: 0 }}
     >
       <div className="min-w-0 flex-1">
         <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">

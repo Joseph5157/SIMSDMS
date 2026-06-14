@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 const variants = {
   primary:   'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm',
   secondary: 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100',
-  danger:    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm',
+  danger:    'bg-red-solid text-white hover:bg-red-600 active:bg-red-700 shadow-sm',
   ghost:     'text-slate-600 hover:bg-slate-100 active:bg-slate-200',
-  success:   'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm',
+  success:   'bg-emerald-solid text-white hover:bg-emerald-600 active:bg-emerald-700 shadow-sm',
   outline:   'border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100',
 };
 

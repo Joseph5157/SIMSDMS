@@ -68,27 +68,27 @@ export default function StudentsPage({ user }) {
         action={<Button onClick={() => setShowUpload(true)}>↑ Upload Excel</Button>}
       />
       <div className="mb-4">
-        <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <input className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-80 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
           placeholder="Search by name or reg. number…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No students found.</div>}
+      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
+        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No students found.</div>}
         {data?.data?.map((s) => (
           <div key={s.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', backgroundColor: '#fff',
-            borderBottom: '1px solid #f1f5f9', gap: 12,
+            padding: '14px 16px', backgroundColor: 'var(--surface-card)',
+            borderBottom: '1px solid var(--divider)', gap: 12,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 15, fontWeight: 600, color: '#0f172a', marginBottom: 2,
+              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {s.student_name}
               </p>
-              <p style={{ fontSize: 12, color: '#94a3b8' }}>{s.registration_number} • {s.semester_or_year}</p>
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>{s.registration_number} • {s.semester_or_year}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <Badge status={s.status} />
@@ -101,13 +101,13 @@ export default function StudentsPage({ user }) {
       <div className="hidden md:block">
       <Table>
         <thead><tr><Th>Reg. No.</Th><Th>Name</Th><Th className="hidden sm:table-cell">Course</Th><Th>Semester/Year</Th><Th className="hidden sm:table-cell">Acad. Year</Th><Th>Status</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading && <EmptyRow cols={7} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
           {data?.data?.map((s) => (
             <tr key={s.id}>
               <Td className="font-mono text-xs">{s.registration_number}</Td>
-              <Td className="font-medium text-gray-900">{s.student_name}</Td>
+              <Td className="font-medium text-slate-900">{s.student_name}</Td>
               <Td className="hidden sm:table-cell">{s.course}</Td>
               <Td>{s.semester_or_year}</Td>
               <Td className="hidden sm:table-cell">{s.academic_year}</Td>
@@ -126,14 +126,14 @@ export default function StudentsPage({ user }) {
 
       <div style={{
         marginTop: 16, padding: '12px 16px',
-        backgroundColor: '#f8fafc', borderRadius: 12,
-        border: '1px solid #e2e8f0',
+        backgroundColor: 'var(--surface-page)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        <span style={{ fontSize: 12, color: '#64748b' }}>
+        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>
           Total students
         </span>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+        <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
           {data?.meta?.total ?? data?.data?.length ?? 0}
         </span>
       </div>

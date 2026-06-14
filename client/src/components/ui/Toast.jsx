@@ -3,10 +3,10 @@ import { createContext, useContext, useState, useCallback } from 'react';
 const ToastContext = createContext(null);
 
 const TOAST_STYLES = {
-  success: { bg: '#ecfdf5', border: '#6ee7b7', color: '#065f46', dot: '#10b981' },
-  error:   { bg: '#fef2f2', border: '#fca5a5', color: '#991b1b', dot: '#ef4444' },
-  warning: { bg: '#fffbeb', border: '#fcd34d', color: '#92400e', dot: '#f59e0b' },
-  info:    { bg: '#eff6ff', border: '#93c5fd', color: '#1e40af', dot: '#3b82f6' },
+  success: { bg: 'var(--color-emerald-bg)',  border: 'var(--color-emerald-border)', color: 'var(--color-emerald-text)', dot: 'var(--color-emerald-solid)' },
+  error:   { bg: 'var(--color-red-bg)',      border: 'var(--color-red-border)',     color: 'var(--color-red-text)',     dot: 'var(--color-red-solid)' },
+  warning: { bg: 'var(--color-amber-bg)',    border: 'var(--color-amber-border)',   color: 'var(--color-amber-text)',   dot: 'var(--color-amber-solid)' },
+  info:    { bg: 'var(--color-blue-50)',     border: 'var(--color-blue-200)',       color: 'var(--color-blue-800)',     dot: 'var(--color-blue-500)' },
 };
 
 export function ToastProvider({ children }) {
@@ -28,7 +28,7 @@ export function ToastProvider({ children }) {
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 'var(--space-2)',
         maxWidth: 340,
         pointerEvents: 'none',
       }}>
@@ -41,12 +41,13 @@ export function ToastProvider({ children }) {
                 backgroundColor: s.bg,
                 border: `1px solid ${s.border}`,
                 borderLeft: `3px solid ${s.dot}`,
-                borderRadius: 10,
+                borderRadius: 'var(--radius-lg)',
                 padding: '10px 14px',
-                fontSize: 13,
+                fontSize: 'var(--text-card)',
                 color: s.color,
-                fontWeight: 500,
-                boxShadow: '0 4px 16px -2px rgb(0 0 0 / 0.1)',
+                fontWeight: 'var(--weight-medium)',
+                fontFamily: 'var(--font-sans)',
+                boxShadow: 'var(--shadow-toast)',
                 pointerEvents: 'auto',
                 animation: 'fadeSlideIn 0.2s ease',
               }}

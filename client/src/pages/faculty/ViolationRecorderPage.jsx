@@ -60,15 +60,15 @@ function RecordModal({ open, onClose }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Student search */}
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">Student</label>
-          <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.08em]">Student</label>
+          <input className="border border-slate-200 rounded-xl px-4 h-11 text-[14px] text-slate-900 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/30 bg-white placeholder:text-slate-400"
             placeholder="Search by name or reg. number…"
             value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
           {searchResults?.data?.length > 0 && !form.student_id && (
-            <div className="border border-gray-200 rounded-lg divide-y max-h-40 overflow-y-auto">
+            <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-40 overflow-y-auto">
               {searchResults.data.map((s) => (
                 <button key={s.id} type="button"
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                  className="w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50"
                   onClick={() => { setForm(f => ({ ...f, student_id: s.id })); setStudentQ(`${s.student_name} (${s.registration_number})`); }}>
                   {s.student_name} — {s.registration_number} ({s.course} · {s.semester_or_year})
                 </button>
@@ -97,7 +97,7 @@ function RecordModal({ open, onClose }) {
 
         <div className="flex items-center gap-2">
           <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-4 h-4" />
-          <label htmlFor="warning" className="text-sm text-gray-700">Warning only (no fine)</label>
+          <label htmlFor="warning" className="text-[13px] text-slate-700">Warning only (no fine)</label>
         </div>
 
         {!form.is_warning_only && (
@@ -160,17 +160,17 @@ export default function ViolationRecorderPage({ user }) {
       />
       <Table>
         <thead><tr><Th>Student</Th><Th>Type</Th><Th>Fine</Th><Th>Date</Th><Th>Status</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading && <EmptyRow cols={6} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No violations recorded." />}
           {data?.data?.map((v) => (
             <tr key={v.id}>
               <Td>
                 <p className="font-medium">{v.student?.student_name}</p>
-                <p className="text-xs text-gray-400">{v.student?.registration_number}</p>
+                <p className="text-xs text-slate-400">{v.student?.registration_number}</p>
               </Td>
               <Td>{v.violationType?.name}</Td>
-              <Td>{v.is_warning_only ? <span className="text-xs text-gray-500">Warning</span> : `₹${v.fine_amount}`}</Td>
+              <Td>{v.is_warning_only ? <span className="text-xs text-slate-500">Warning</span> : `₹${v.fine_amount}`}</Td>
               <Td className="text-xs">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
               <Td>
                 {v.is_flagged ? <Badge status="pending" label="Flagged" /> : <Badge status={v.record_status} />}

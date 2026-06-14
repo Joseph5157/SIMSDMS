@@ -50,11 +50,11 @@ function OverrideModal({ record, onClose }) {
 // ── Stat pill ─────────────────────────────────────────────────────────────────
 function StatPill({ label, count, color }) {
   const cls = {
-    green:  'bg-green-50  text-green-700  border-green-200',
-    amber:  'bg-amber-50  text-amber-700  border-amber-200',
-    red:    'bg-red-50    text-red-700    border-red-200',
-    blue:   'bg-blue-50   text-blue-700   border-blue-200',
-    gray:   'bg-slate-50  text-slate-500  border-slate-200',
+    green:  'bg-emerald-bg  text-emerald-text  border-emerald-border',
+    amber:  'bg-amber-bg    text-amber-text     border-amber-border',
+    red:    'bg-red-bg      text-red-text       border-red-border',
+    blue:   'bg-blue-50     text-blue-700       border-blue-200',
+    gray:   'bg-slate-50    text-slate-500      border-slate-200',
   }[color] ?? 'bg-slate-50 text-slate-500 border-slate-200';
 
   return (
@@ -154,7 +154,7 @@ export default function AttendanceLivePage({ user }) {
           {/* Morning */}
           {records.filter(r => r.session_type === 'morning').length > 0 && (
             <div className="mb-6">
-              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
                 Morning duty · {records.filter(r => r.session_type === 'morning').length} faculty
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -168,7 +168,7 @@ export default function AttendanceLivePage({ user }) {
           {/* Afternoon */}
           {records.filter(r => r.session_type === 'afternoon').length > 0 && (
             <div>
-              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
                 Afternoon duty · {records.filter(r => r.session_type === 'afternoon').length} faculty
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

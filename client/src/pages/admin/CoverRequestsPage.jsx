@@ -45,7 +45,7 @@ export default function CoverRequestsPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-100 bg-white';
+  const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white';
 
   return (
     <Layout user={user}>
@@ -89,7 +89,7 @@ export default function CoverRequestsPage({ user }) {
             <Th>Reason</Th><Th>Volunteer</Th><Th>Status</Th><Th>Expires</Th><Th />
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-slate-100">
           {isLoading && <EmptyRow cols={8} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={8} />}
           {data?.data?.map((cr) => (

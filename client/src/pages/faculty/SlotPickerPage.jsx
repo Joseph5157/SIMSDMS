@@ -95,9 +95,9 @@ export default function SlotPickerPage({ user }) {
 
       {/* Window status banner */}
       {loadingAvail ? null : windowOpen ? (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6">
-          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-          <p className="text-[13px] text-green-800">
+        <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-6" style={{ background: 'var(--emerald-bg)', border: '1px solid var(--emerald-border)' }}>
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--emerald-solid)' }} />
+          <p className="text-[13px]" style={{ color: 'var(--emerald-text)' }}>
             Scheduling window is <strong>open</strong>.
             {' '}{pickedCount} of {requiredSlots} slots picked · {remainingSlots} remaining.
           </p>
@@ -114,7 +114,7 @@ export default function SlotPickerPage({ user }) {
       <div className="grid grid-cols-2 gap-6">
         {/* Left — My picked slots */}
         <div>
-          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
             My picks ({pickedCount})
           </p>
           {loadingMine ? (
@@ -144,7 +144,7 @@ export default function SlotPickerPage({ user }) {
 
         {/* Right — Available slots */}
         <div>
-          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
             Available slots
           </p>
           {loadingAvail ? (
