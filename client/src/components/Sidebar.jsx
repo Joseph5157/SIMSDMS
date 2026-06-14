@@ -96,7 +96,7 @@ export default function Sidebar({ user }) {
         className="hidden md:flex flex-col shrink-0"
         style={{
           width: 'var(--sidebar-w)',
-          height: '100vh',
+          height: '100dvh',
           position: 'sticky',
           top: 0,
           backgroundColor: 'var(--surface-sidebar)',

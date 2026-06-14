@@ -27,17 +27,24 @@ function ResolveFlagModal({ violation, onClose }) {
   }
 
   return (
-    <Modal open onClose={onClose} title="Resolve Flag" size="sm">
-      <div className="px-8 py-3 md:py-4 border-b border-slate-200 text-[13px] text-slate-600 rounded-lg" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 0 }}>
+    <Modal
+      open
+      onClose={onClose}
+      title="Resolve Flag"
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11">Cancel</Button>
+          <Button type="submit" form="resolve-form" loading={resolve.isPending} className="min-h-11">Resolve</Button>
+        </>
+      }
+    >
+      <div className="text-[13px] text-slate-600 rounded-lg p-3" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>
         <strong>Flag note:</strong> {violation.flag_note}
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
+      <form id="resolve-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <div>
           <Input label="Resolution note" value={reason} onChange={(e) => setReason(e.target.value)} required />
-        </div>
-        <div className="px-8 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={resolve.isPending}>Resolve</Button>
         </div>
       </form>
     </Modal>
@@ -48,7 +55,7 @@ function AuditModal({ violationId, onClose }) {
   const { data } = useViolationAuditLog(violationId);
   return (
     <Modal open onClose={onClose} title="Violation Audit Log" size="lg">
-      <div className="px-8 py-6 space-y-2">
+      <div className="space-y-2">
         {data?.data?.map((log) => (
           <div key={log.id} className="border border-slate-200 rounded-lg p-3 text-[13px]">
             <div className="flex justify-between text-[11px] text-slate-400 mb-1">
@@ -88,7 +95,7 @@ export default function ViolationsPage({ user }) {
     <Layout user={user}>
       <PageHeader title="Violations" subtitle="All recorded student violations" />
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <Select value={filters.record_status} onChange={(e) => setFilters(f => ({ ...f, record_status: e.target.value }))} className="w-36">
           <option value="">All status</option>
           <option value="active">Active</option>

@@ -8,9 +8,10 @@ export function useNotifications() {
   const reconnectTimeoutRef = useRef(null);
   const backoffRef = useRef(1000); // Start with 1 second
 
-  // Fetch initial notifications
+  // Notifications disabled — backend module not yet implemented
   const { data = [], isLoading } = useQuery({
     queryKey: ['notifications'],
+    enabled: false,
     queryFn: async () => {
       try {
         const res = await fetch('/api/notifications');

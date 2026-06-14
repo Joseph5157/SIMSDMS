@@ -101,7 +101,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       width: '100%',
       display: 'flex',
       flexDirection: 'column',

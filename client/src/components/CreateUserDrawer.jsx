@@ -174,7 +174,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* Step-by-step instructions */}
-                <div className="bg-blue-50 border-1.5 border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed" style={{ borderWidth: '1.5px' }}>
+                <div className="bg-blue-50 border-[1.5px] border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
                   <p className="font-bold mb-2">📋 Instructions:</p>
                   <ol className="m-0" style={{ paddingLeft: '18px' }}>
                     <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
@@ -345,7 +345,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                   type="submit"
                   disabled={loading || !form.name.trim() || !form.email.trim()}
                   onClick={handleSubmit}
-                  className="flex-2 h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 disabled:opacity-60"
+                  className="flex-[2] h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 disabled:opacity-60"
                   style={{
                     background: loading || !form.name.trim() || !form.email.trim()
                       ? '#93c5fd'

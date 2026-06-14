@@ -52,7 +52,7 @@ export default function MobileNav({ open, onClose, links, user, themeIcon }) {
           zIndex: 40,
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: `transform var(--dur-sheet) var(--ease-sheet)`,
-          maxHeight: 'calc(100vh - 100px)',
+          maxHeight: 'calc(100dvh - 100px)',
           overflowY: 'auto',
           paddingBottom: 16,
         }}

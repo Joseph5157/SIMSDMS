@@ -3,7 +3,7 @@ import NotificationBell from './NotificationBell';
 
 export default function Layout({ user, children }) {
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-dvh bg-slate-50 overflow-hidden">
       <Sidebar user={user} />
       <main
         className="flex-1 overflow-y-auto h-full relative"

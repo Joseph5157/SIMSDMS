@@ -31,9 +31,20 @@ function PostBroadcastModal({ open, onClose }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Post Need Cover Broadcast" size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Post Need Cover Broadcast"
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11">Cancel</Button>
+          <Button type="submit" form="broadcast-form" loading={create.isPending} className="min-h-11">Post</Button>
+        </>
+      }
+    >
+      <form id="broadcast-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <div className="mb-2 pb-2 border-b border-slate-200">
           <Select label="Duty slot" value={form.duty_slot_id} onChange={(e) => setForm(f => ({ ...f, duty_slot_id: e.target.value }))} required>
             <option value="">Select slot…</option>
             {mySlots.map((s) => (
@@ -41,12 +52,8 @@ function PostBroadcastModal({ open, onClose }) {
             ))}
           </Select>
         </div>
-        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
+        <div>
           <Input label="Reason (optional)" value={form.reason} onChange={(e) => setForm(f => ({ ...f, reason: e.target.value }))} />
-        </div>
-        <div className="px-8 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={create.isPending}>Post</Button>
         </div>
       </form>
     </Modal>
