@@ -61,7 +61,7 @@ function RecordModal({ open, onClose }) {
       open={open}
       onClose={onClose}
       title="Record Violation"
-      size="lg"
+      size="xl"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} className="min-h-11">
