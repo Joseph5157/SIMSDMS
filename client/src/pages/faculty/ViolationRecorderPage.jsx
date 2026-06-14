@@ -73,27 +73,31 @@ function RecordModal({ open, onClose }) {
         </>
       }
     >
-      <form id="violation-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
-        {/* Student search */}
-        <div className="flex flex-col gap-1.5 mb-2">
-          <FormLabel required>Student</FormLabel>
-          <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-            placeholder="Search by name or reg. number…"
-            value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
-          {searchResults?.data?.length > 0 && !form.student_id && (
-            <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-40 overflow-y-auto">
-              {searchResults.data.map((s) => (
-                <button key={s.id} type="button"
-                  className="w-full text-left px-3 py-2 text-[13px] hover:bg-slate-50"
-                  onClick={() => { setForm(f => ({ ...f, student_id: s.id })); setStudentQ(`${s.student_name} (${s.registration_number})`); }}>
-                  {s.student_name} — {s.registration_number} ({s.course} · {s.semester_or_year})
-                </button>
-              ))}
-            </div>
-          )}
+      <form id="violation-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+        {/* ── Section: Student ── */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Student</p>
+          <div className="flex flex-col gap-1.5">
+            <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              placeholder="Search by name or reg. number…"
+              value={studentQ} onChange={(e) => setStudentQ(e.target.value)} />
+            {searchResults?.data?.length > 0 && !form.student_id && (
+              <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-40 overflow-y-auto bg-white shadow-sm">
+                {searchResults.data.map((s) => (
+                  <button key={s.id} type="button"
+                    className="w-full text-left px-3.5 py-2.5 text-[13px] text-slate-700 hover:bg-slate-50 transition-colors"
+                    onClick={() => { setForm(f => ({ ...f, student_id: s.id })); setStudentQ(`${s.student_name} (${s.registration_number})`); }}>
+                    {s.student_name} — {s.registration_number} ({s.course} · {s.semester_or_year})
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="mb-2 pb-2 border-b border-slate-200">
+        {/* ── Section: Duty & Violation ── */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Duty & Violation</p>
           <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
             <option value="">Select duty slot…</option>
             {mySlots.map((s) => (
@@ -102,37 +106,34 @@ function RecordModal({ open, onClose }) {
               </option>
             ))}
           </Select>
-        </div>
-
-        <div className="mb-2 pb-2 border-b border-slate-200">
           <Select label="Violation type" value={form.violation_type_id} onChange={set('violation_type_id')} required>
             <option value="">Select type…</option>
             {typesData?.data?.map((t) => (
               <option key={t.id} value={t.id}>{t.name} (₹{t.default_fine})</option>
             ))}
           </Select>
-        </div>
-
-        {isOthers && (
-          <div className="mb-2 pb-2 border-b border-slate-200">
+          {isOthers && (
             <Input label="Describe violation" value={form.custom_violation} onChange={set('custom_violation')} required />
-          </div>
-        )}
-
-        <div className="mb-2 pb-2 border-b border-slate-200">
-          <label htmlFor="warning" className="flex items-center gap-3 min-h-11 cursor-pointer select-none">
-            <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-6 h-6 cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600" />
-            <span className="text-[13px] text-slate-700 leading-tight">Warning only (no fine)</span>
-          </label>
+          )}
         </div>
 
-        {!form.is_warning_only && (
-          <div className="mb-2 pb-2 border-b border-slate-200">
-            <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
+        {/* ── Section: Fine ── */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Fine</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+            <label htmlFor="warning" className="flex items-center gap-3 min-h-11 cursor-pointer select-none">
+              <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-6 h-6 cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600" />
+              <span className="text-[13px] text-slate-700 leading-tight">Warning only (no fine)</span>
+            </label>
           </div>
-        )}
+          {!form.is_warning_only && (
+            <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
+          )}
+        </div>
 
-        <div>
+        {/* ── Section: Notes ── */}
+        <div className="flex flex-col gap-3">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Notes</p>
           <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
         </div>
       </form>
