@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import OfflineBanner from './components/OfflineBanner';
 import { useCurrentUser } from './hooks/useAuth';
 import { initializeTheme } from './lib/theme';
+import { ROLES } from './utils/constants';
 
 import LoginPage          from './pages/auth/LoginPage';
 import ChangePasswordPage from './pages/auth/ChangePasswordPage';
@@ -40,7 +41,7 @@ const queryClient = new QueryClient({
 function AppRoutes() {
   const { data: user, isLoading } = useCurrentUser();
 
-  const isFaculty = user?.role === 'faculty';
+  const isFaculty = user?.role?.toLowerCase() === ROLES.FACULTY.toLowerCase();
 
   return (
     <Routes>

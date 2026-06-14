@@ -28,14 +28,14 @@ function ResolveFlagModal({ violation, onClose }) {
 
   return (
     <Modal open onClose={onClose} title="Resolve Flag" size="sm">
-      <div className="px-6 py-4 border-b border-slate-200 text-[13px] text-slate-600 rounded-lg" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 0 }}>
+      <div className="px-6 py-3 md:py-4 border-b border-slate-200 text-[13px] text-slate-600 rounded-lg" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 0 }}>
         <strong>Flag note:</strong> {violation.flag_note}
       </div>
       <form onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div className="px-6 py-4 border-b border-slate-200">
+        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
           <Input label="Resolution note" value={reason} onChange={(e) => setReason(e.target.value)} required />
         </div>
-        <div className="px-6 py-4 flex justify-end gap-2">
+        <div className="px-6 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={resolve.isPending}>Resolve</Button>
         </div>

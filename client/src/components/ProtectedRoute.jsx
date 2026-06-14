@@ -26,16 +26,20 @@ export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
     return <Navigate to="/change-password" replace />;
   }
 
-  if (requiredRoles && !requiredRoles.includes(user.role)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🔐</div>
-          <p className="text-xl font-semibold text-red-600 mb-2">Access Denied</p>
-          <p className="text-slate-500 text-sm">Your role (<span className="font-medium">{user.role}</span>) doesn't have access to this page.</p>
+  if (requiredRoles) {
+    const userRole = user.role?.toLowerCase();
+    const hasAccess = requiredRoles.some(role => role.toLowerCase() === userRole);
+    if (!hasAccess) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🔐</div>
+            <p className="text-xl font-semibold text-red-600 mb-2">Access Denied</p>
+            <p className="text-slate-500 text-sm">Your role (<span className="font-medium">{user.role}</span>) doesn't have access to this page.</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return <Outlet />;

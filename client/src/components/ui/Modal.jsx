@@ -21,7 +21,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
       <DialogContent
         className={cn(
           widths[size],
-          'max-h-[92vh] overflow-hidden flex flex-col',
+          'max-h-[calc(100vh-80px)] md:max-h-[92vh] overflow-hidden flex flex-col',
           'rounded-2xl p-0 gap-0 border border-slate-200 shadow-modal bg-white'
         )}
         showCloseButton={false}
@@ -32,7 +32,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
             {title}
           </DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-4">
+        <div className="overflow-y-auto flex-1 px-6 py-4 md:py-5 flex flex-col gap-4">
           {children}
         </div>
       </DialogContent>
