@@ -42,7 +42,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
         display: 'flex', alignItems: 'center', gap: 4,
       }}>
         {icon && <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <span style={{ lineHeight: 1.3 }}>{label}</span>
       </p>
 
       {/* Value */}
