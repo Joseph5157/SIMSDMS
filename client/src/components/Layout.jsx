@@ -19,7 +19,7 @@ export default function Layout({ user, children }) {
             display: 'flex',
             justifyContent: 'flex-end',
             backgroundColor: 'var(--surface-page)',
-            zIndex: 100,
+            zIndex: 30,
             pointerEvents: 'none',
             paddingBottom: '8px',
           }}>

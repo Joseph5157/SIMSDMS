@@ -141,14 +141,14 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           position: 'fixed', inset: 0,
           backgroundColor: 'rgba(0,0,0,0.5)',
           backdropFilter: 'blur(2px)',
-          zIndex: 50,
+          zIndex: 39,
         }} />
 
         {/* Sheet */}
         <Drawer.Content style={{
           position: 'fixed',
           bottom: 0, left: 0, right: 0,
-          zIndex: 51,
+          zIndex: 40,
           backgroundColor: '#fff',
           borderRadius: '20px 20px 0 0',
           maxHeight: '94vh',

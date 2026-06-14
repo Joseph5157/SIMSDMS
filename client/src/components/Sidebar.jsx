@@ -101,7 +101,7 @@ export default function Sidebar({ user }) {
           top: 0,
           backgroundColor: 'var(--surface-sidebar)',
           borderRight: '1px solid var(--surface-sidebar-hover)',
-          zIndex: 40,
+          zIndex: 10,
         }}
       >
         {/* Brand */}
@@ -233,7 +233,7 @@ export default function Sidebar({ user }) {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           backgroundColor: 'var(--surface-sidebar)',
           borderTop: '1px solid var(--surface-sidebar-hover)',
-          zIndex: 50,
+          zIndex: 20,
           alignItems: 'stretch',
         }}
       >

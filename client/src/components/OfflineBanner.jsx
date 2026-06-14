@@ -25,7 +25,7 @@ export default function OfflineBanner() {
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 9999,
+        zIndex: 70,
         padding: '12px 16px',
         backgroundColor: 'var(--color-amber-bg)',
         borderBottom: '1px solid var(--color-amber-border)',

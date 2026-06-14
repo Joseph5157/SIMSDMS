@@ -29,7 +29,7 @@ export default function MobileNav({ open, onClose, links, user, themeIcon }) {
             position: 'fixed',
             inset: 0,
             backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 30,
+            zIndex: 39,
             backdropFilter: 'blur(2px)',
           }}
           onClick={onClose}
