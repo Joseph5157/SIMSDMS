@@ -1,6 +1,7 @@
-import Layout, { PageHeader } from '../../components/Layout';
+import Layout, { PageHeader, Card, CardBody } from '../../components/Layout';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
+import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
@@ -83,10 +84,23 @@ export default function AttendancePage({ user }) {
   return (
     <Layout user={user}>
       <PageHeader title="My Attendance" subtitle="Check in and out for your duty sessions" />
-      {renderGroup("Today's duty", today)}
-      {renderGroup('Upcoming', upcoming)}
-      {renderGroup('Past slots', past)}
-      {!slots.length && <p className="text-[13px] text-slate-400">No duty slots this month.</p>}
+      {!slots.length ? (
+        <Card>
+          <CardBody>
+            <EmptyState
+              emoji="📋"
+              title="No duty slots this month"
+              subtitle="The admin will assign your duty slots when the scheduling window opens."
+            />
+          </CardBody>
+        </Card>
+      ) : (
+        <>
+          {renderGroup("Today's duty", today)}
+          {renderGroup('Upcoming', upcoming)}
+          {renderGroup('Past slots', past)}
+        </>
+      )}
     </Layout>
   );
 }

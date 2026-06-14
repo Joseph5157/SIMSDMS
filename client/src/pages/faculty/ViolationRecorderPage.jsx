@@ -57,9 +57,9 @@ function RecordModal({ open, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Record Violation" size="lg">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
         {/* Student search */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 px-6 py-4 border-b border-slate-200">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.08em]">Student</label>
           <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Search by name or reg. number…"
@@ -77,36 +77,50 @@ function RecordModal({ open, onClose }) {
           )}
         </div>
 
-        <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
-          <option value="">Select duty slot…</option>
-          {mySlots.map((s) => (
-            <option key={s.id} value={s.id}>
-              {new Date(s.duty_date).toLocaleDateString('en-IN')} · {s.session_type}
-            </option>
-          ))}
-        </Select>
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
+            <option value="">Select duty slot…</option>
+            {mySlots.map((s) => (
+              <option key={s.id} value={s.id}>
+                {new Date(s.duty_date).toLocaleDateString('en-IN')} · {s.session_type}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <Select label="Violation type" value={form.violation_type_id} onChange={set('violation_type_id')} required>
-          <option value="">Select type…</option>
-          {typesData?.data?.map((t) => (
-            <option key={t.id} value={t.id}>{t.name} (₹{t.default_fine})</option>
-          ))}
-        </Select>
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Select label="Violation type" value={form.violation_type_id} onChange={set('violation_type_id')} required>
+            <option value="">Select type…</option>
+            {typesData?.data?.map((t) => (
+              <option key={t.id} value={t.id}>{t.name} (₹{t.default_fine})</option>
+            ))}
+          </Select>
+        </div>
 
-        {isOthers && <Input label="Describe violation" value={form.custom_violation} onChange={set('custom_violation')} required />}
+        {isOthers && (
+          <div className="px-6 py-4 border-b border-slate-200">
+            <Input label="Describe violation" value={form.custom_violation} onChange={set('custom_violation')} required />
+          </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-4 h-4" />
-          <label htmlFor="warning" className="text-[13px] text-slate-700">Warning only (no fine)</label>
+        <div className="px-6 py-4 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-4 h-4" />
+            <label htmlFor="warning" className="text-[13px] text-slate-700">Warning only (no fine)</label>
+          </div>
         </div>
 
         {!form.is_warning_only && (
-          <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
+          <div className="px-6 py-4 border-b border-slate-200">
+            <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
+          </div>
         )}
 
-        <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
+        </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="px-6 py-4 flex justify-end gap-2">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={create.isPending}>Record</Button>
         </div>
@@ -133,9 +147,11 @@ function FlagModal({ violation, onClose }) {
 
   return (
     <Modal open onClose={onClose} title="Flag for Review" size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
-        <div className="flex justify-end gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-2">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={flag.isPending}>Flag</Button>
         </div>

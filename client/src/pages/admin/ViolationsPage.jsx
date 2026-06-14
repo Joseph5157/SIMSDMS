@@ -28,12 +28,14 @@ function ResolveFlagModal({ violation, onClose }) {
 
   return (
     <Modal open onClose={onClose} title="Resolve Flag" size="sm">
-      <div className="mb-3 text-[13px] text-slate-600 rounded-lg p-3" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>
+      <div className="px-6 py-4 border-b border-slate-200 text-[13px] text-slate-600 rounded-lg" style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 0 }}>
         <strong>Flag note:</strong> {violation.flag_note}
       </div>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Input label="Resolution note" value={reason} onChange={(e) => setReason(e.target.value)} required />
-        <div className="flex justify-end gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Input label="Resolution note" value={reason} onChange={(e) => setReason(e.target.value)} required />
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-2">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={resolve.isPending}>Resolve</Button>
         </div>
@@ -46,7 +48,7 @@ function AuditModal({ violationId, onClose }) {
   const { data } = useViolationAuditLog(violationId);
   return (
     <Modal open onClose={onClose} title="Violation Audit Log" size="lg">
-      <div className="space-y-2">
+      <div className="px-6 py-4 space-y-2">
         {data?.data?.map((log) => (
           <div key={log.id} className="border border-slate-200 rounded-lg p-3 text-[13px]">
             <div className="flex justify-between text-[11px] text-slate-400 mb-1">

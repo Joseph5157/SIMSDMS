@@ -32,15 +32,19 @@ function PostBroadcastModal({ open, onClose }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Post Need Cover Broadcast" size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Select label="Duty slot" value={form.duty_slot_id} onChange={(e) => setForm(f => ({ ...f, duty_slot_id: e.target.value }))} required>
-          <option value="">Select slot…</option>
-          {mySlots.map((s) => (
-            <option key={s.id} value={s.id}>{new Date(s.duty_date).toLocaleDateString('en-IN')} · {s.session_type}</option>
-          ))}
-        </Select>
-        <Input label="Reason (optional)" value={form.reason} onChange={(e) => setForm(f => ({ ...f, reason: e.target.value }))} />
-        <div className="flex justify-end gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-0">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Select label="Duty slot" value={form.duty_slot_id} onChange={(e) => setForm(f => ({ ...f, duty_slot_id: e.target.value }))} required>
+            <option value="">Select slot…</option>
+            {mySlots.map((s) => (
+              <option key={s.id} value={s.id}>{new Date(s.duty_date).toLocaleDateString('en-IN')} · {s.session_type}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="px-6 py-4 border-b border-slate-200">
+          <Input label="Reason (optional)" value={form.reason} onChange={(e) => setForm(f => ({ ...f, reason: e.target.value }))} />
+        </div>
+        <div className="px-6 py-4 flex justify-end gap-2">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={create.isPending}>Post</Button>
         </div>
