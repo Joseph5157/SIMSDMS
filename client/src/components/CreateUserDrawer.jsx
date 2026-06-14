@@ -6,18 +6,13 @@ import { X, User, Mail, Briefcase, Phone, Shield } from 'lucide-react';
 function Field({ label, icon: Icon, error, children }) {
   return (
     <div>
-      <label style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        fontSize: 11, fontWeight: 700, color: '#64748b',
-        letterSpacing: '0.08em',
-        marginBottom: 6,
-      }}>
+      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 tracking-[0.08em] mb-1.5">
         {Icon && <Icon size={11} strokeWidth={2.5} />}
         {label}
       </label>
       {children}
       {error && (
-        <p style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>{error}</p>
+        <p className="text-[11px] text-red-500 mt-1">{error}</p>
       )}
     </div>
   );
@@ -33,18 +28,10 @@ function TextInput({ placeholder, value, onChange, type = 'text', ...props }) {
       onChange={onChange}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
+      className="w-full h-11 px-3.5 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150"
       style={{
-        width: '100%',
-        height: 44,
-        padding: '0 14px',
-        borderRadius: 12,
         border: `1.5px solid ${focused ? '#3b82f6' : '#e2e8f0'}`,
         backgroundColor: focused ? '#fff' : '#f8fafc',
-        fontSize: 14,
-        color: '#0f172a',
-        outline: 'none',
-        boxSizing: 'border-box',
-        transition: 'border-color 0.15s, background-color 0.15s',
         boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
       }}
       {...props}
@@ -57,23 +44,16 @@ function RoleButton({ label, subtitle, selected, onClick }) {
     <button
       type="button"
       onClick={onClick}
+      className="flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer"
       style={{
-        flex: 1,
-        padding: '10px 8px',
-        borderRadius: 12,
         border: `1.5px solid ${selected ? '#3b82f6' : '#e2e8f0'}`,
         backgroundColor: selected ? '#eff6ff' : '#f8fafc',
-        cursor: 'pointer',
-        textAlign: 'center',
-        transition: 'all 0.15s',
       }}
     >
-      <p style={{
-        fontSize: 13, fontWeight: 700,
-        color: selected ? '#2563eb' : '#475569',
-        marginBottom: 1,
-      }}>{label}</p>
-      <p style={{ fontSize: 10, color: selected ? '#60a5fa' : '#94a3b8' }}>
+      <p className="text-sm font-bold mb-0.5" style={{ color: selected ? '#2563eb' : '#475569' }}>
+        {label}
+      </p>
+      <p className="text-[10px]" style={{ color: selected ? '#60a5fa' : '#94a3b8' }}>
         {subtitle}
       </p>
     </button>
@@ -159,72 +139,44 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
         }}>
 
           {/* Drag handle */}
-          <div style={{
-            width: 36, height: 4,
-            backgroundColor: '#e2e8f0',
-            borderRadius: 2,
-            margin: '12px auto 0',
-            flexShrink: 0,
-          }} />
+          <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
 
           {/* Header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px 12px',
-            borderBottom: '1px solid #f1f5f9',
-            flexShrink: 0,
-          }}>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 flex-shrink-0">
             <div>
-              <Drawer.Title style={{
-                fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0,
-              }}>
+              <Drawer.Title className="text-base font-black text-slate-900 m-0">
                 Invite user
               </Drawer.Title>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
+              <p className="text-xs text-slate-400 mt-0.5">
                 An invite link will be sent to their Telegram
               </p>
             </div>
             <button
               onClick={onClose}
-              style={{
-                width: 32, height: 32,
-                borderRadius: 10,
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', color: '#64748b',
-              }}
+              className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-100 transition-colors"
             >
               <X size={16} strokeWidth={2} />
             </button>
           </div>
 
           {/* Scrollable body — form or invite panel */}
-          <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+          <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             {inviteLink ? (
               // ── INVITE LINK PANEL ──
-              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>
+              <div className="p-5 flex flex-col gap-3.5">
+                <div className="text-center">
+                  <p className="text-sm font-bold text-slate-900 mb-1">
                     ✅ Invite created
                   </p>
-                  <p style={{ fontSize: 12, color: '#64748b' }}>
+                  <p className="text-xs text-slate-500">
                     Share instructions with {invitedName}
                   </p>
                 </div>
 
                 {/* Step-by-step instructions */}
-                <div style={{
-                  backgroundColor: '#f0f9ff',
-                  border: '1.5px solid #bfdbfe',
-                  borderRadius: 12,
-                  padding: 12,
-                  fontSize: 12,
-                  color: '#1e40af',
-                  lineHeight: 1.6,
-                }}>
-                  <p style={{ fontWeight: 700, marginBottom: 8 }}>📋 Instructions:</p>
-                  <ol style={{ margin: 0, paddingLeft: 18 }}>
+                <div className="bg-blue-50 border-1.5 border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed" style={{ borderWidth: '1.5px' }}>
+                  <p className="font-bold mb-2">📋 Instructions:</p>
+                  <ol className="m-0" style={{ paddingLeft: '18px' }}>
                     <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
                     <li>Tap "Start" when you open the bot</li>
                     <li>Copy and send this exact message:</li>
@@ -232,54 +184,24 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* Bot username highlight */}
-                <div style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1.5px solid #cbd5e1',
-                  borderRadius: 10,
-                  padding: 10,
-                  textAlign: 'center',
-                }}>
-                  <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 6px 0' }}>Bot Username</p>
-                  <p style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    fontFamily: 'monospace',
-                    margin: 0,
-                  }}>
+                <div className="bg-slate-50 rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: '#cbd5e1' }}>
+                  <p className="text-[11px] text-slate-500 m-0 mb-1.5">Bot Username</p>
+                  <p className="text-sm font-bold text-slate-900 m-0" style={{ fontFamily: 'monospace' }}>
                     @SimsPharmacybot
                   </p>
                 </div>
 
                 {/* Activation command */}
-                <div style={{
-                  backgroundColor: '#f8fafc',
-                  border: '1.5px solid #e2e8f0',
-                  borderRadius: 10,
-                  padding: 12,
-                  wordBreak: 'break-word',
-                  fontSize: 12,
-                  color: '#0f172a',
-                  fontFamily: 'monospace',
-                  fontWeight: 600,
-                }}>
+                <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-900 font-semibold" style={{ borderWidth: '1.5px', borderColor: '#e2e8f0', wordBreak: 'break-word', fontFamily: 'monospace' }}>
                   /start {extractInviteToken()}
                 </div>
 
                 {/* Copy command and quick link buttons */}
-                <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={copyCommand}
-                    style={{
-                      width: '100%',
-                      height: 44,
-                      borderRadius: 10,
-                      border: '1.5px solid #3b82f6',
-                      backgroundColor: '#eff6ff',
-                      fontSize: 13, fontWeight: 700, color: '#2563eb',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
+                    className="w-full h-11 rounded-lg font-bold text-sm text-blue-600 cursor-pointer transition-all duration-150 hover:bg-blue-100"
+                    style={{ borderWidth: '1.5px', borderColor: '#3b82f6', backgroundColor: '#eff6ff' }}
                   >
                     📋 Copy command
                   </button>
@@ -287,58 +209,33 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                     href={inviteLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: 44,
-                      borderRadius: 10,
-                      border: 'none',
-                      backgroundColor: '#0088cc',
-                      fontSize: 13, fontWeight: 700, color: '#fff',
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      transition: 'all 0.15s',
-                    }}
+                    className="flex items-center justify-center h-11 rounded-lg border-0 bg-cyan-500 text-xs font-bold text-white cursor-pointer no-underline transition-all duration-150 hover:bg-cyan-600"
                   >
                     🔗 Open Telegram
                   </a>
                   <button
                     onClick={shareOnWhatsApp}
-                    style={{
-                      width: '100%',
-                      height: 44,
-                      borderRadius: 10,
-                      border: 'none',
-                      backgroundColor: '#25d366',
-                      fontSize: 13, fontWeight: 700, color: '#fff',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
+                    className="w-full h-11 rounded-lg border-0 bg-green-500 text-xs font-bold text-white cursor-pointer transition-all duration-150 hover:bg-green-600"
                   >
                     💬 Share WhatsApp
                   </button>
                 </div>
 
                 {/* Info text */}
-                <p style={{ fontSize: 11, color: '#64748b', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
+                <p className="text-[11px] text-slate-500 text-center leading-relaxed m-0">
                   Link expires in 7 days.<br />
                   If issues with deep links, use the command method above.
                 </p>
               </div>
             ) : (
               // ── FORM ──
-              <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
+              <form onSubmit={handleSubmit} className="px-5 py-4 pb-2">
 
                 {/* ── Section: Identity ── */}
-                <p style={{
-                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                  marginBottom: 10,
-                }}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-2.5">
                   Identity
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                <div className="flex flex-col gap-3 mb-5">
                   <Field label="Full name" icon={User}>
                     <TextInput
                       placeholder="Dr. Priya Sharma"
@@ -361,14 +258,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* ── Section: Role ── */}
-                <p style={{
-                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                  marginBottom: 10,
-                }}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-2.5">
                   Role
                 </p>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <div className="flex gap-2 mb-5">
                   <RoleButton
                     label="Faculty"
                     subtitle="Records violations"
@@ -386,14 +279,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* ── Section: Department ── */}
-                <p style={{
-                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                  marginBottom: 10,
-                }}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-2.5">
                   Department
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                <div className="flex flex-col gap-3 mb-5">
                   <Field label="Department" icon={Briefcase}>
                     <TextInput
                       placeholder="Pharmacology"
@@ -411,14 +300,10 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 </div>
 
                 {/* ── Section: Contact ── */}
-                <p style={{
-                  fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                  textTransform: 'uppercase', letterSpacing: '0.12em',
-                  marginBottom: 10,
-                }}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-2.5">
                   Contact
                 </p>
-                <div style={{ marginBottom: 24 }}>
+                <div className="mb-6">
                   <Field label="Phone" icon={Phone}>
                     <TextInput
                       type="tel"
@@ -435,32 +320,13 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           </div>
 
           {/* Sticky footer */}
-          <div style={{
-            padding: '12px 20px',
-            borderTop: '1px solid #f1f5f9',
-            display: 'flex',
-            gap: 10,
-            flexShrink: 0,
-            paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-            backgroundColor: '#fff',
-            justifyContent: inviteLink ? 'center' : 'flex-start',
-          }}>
+          <div className="px-5 py-3 border-t border-slate-100 flex gap-2.5 flex-shrink-0 bg-white" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))', justifyContent: inviteLink ? 'center' : 'flex-start' }}>
             {inviteLink ? (
               // ── INVITE PANEL BUTTONS ──
               <button
                 onClick={resetAndClose}
-                style={{
-                  flex: 1,
-                  maxWidth: 200,
-                  height: 48,
-                  borderRadius: 14,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                  fontSize: 14, fontWeight: 700, color: '#fff',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-                  transition: 'all 0.15s',
-                }}
+                className="flex-1 h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer transition-all duration-150 hover:opacity-90"
+                style={{ maxWidth: '200px', background: 'linear-gradient(135deg, #2563eb, #4f46e5)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
               >
                 Done
               </button>
@@ -470,15 +336,8 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                 <button
                   type="button"
                   onClick={onClose}
-                  style={{
-                    flex: 1,
-                    height: 48,
-                    borderRadius: 14,
-                    border: '1.5px solid #e2e8f0',
-                    backgroundColor: '#f8fafc',
-                    fontSize: 14, fontWeight: 700, color: '#475569',
-                    cursor: 'pointer',
-                  }}
+                  className="flex-1 h-12 rounded-xl text-sm font-bold text-slate-700 cursor-pointer hover:bg-slate-100 transition-all duration-150"
+                  style={{ borderWidth: '1.5px', borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}
                 >
                   Cancel
                 </button>
@@ -486,19 +345,13 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
                   type="submit"
                   disabled={loading || !form.name.trim() || !form.email.trim()}
                   onClick={handleSubmit}
+                  className="flex-2 h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 disabled:opacity-60"
                   style={{
-                    flex: 2,
-                    height: 48,
-                    borderRadius: 14,
-                    border: 'none',
                     background: loading || !form.name.trim() || !form.email.trim()
                       ? '#93c5fd'
                       : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                    fontSize: 14, fontWeight: 700, color: '#fff',
                     cursor: loading ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-                    transition: 'all 0.15s',
                   }}
                 >
                   {loading ? '🔄 Sending...' : 'Send Invite'}
