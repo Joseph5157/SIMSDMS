@@ -12,11 +12,15 @@ const TOAST_STYLES = {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
+  const dismissToast = useCallback((id) => {
+    setToasts((t) => t.filter((x) => x.id !== id));
+  }, []);
+
   const toast = useCallback(({ message, type = 'success' }) => {
     const id = Date.now();
     setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
-  }, []);
+    setTimeout(() => dismissToast(id), 3500);
+  }, [dismissToast]);
 
   return (
     <ToastContext.Provider value={toast}>
@@ -37,7 +41,13 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={t.id}
+              role="alert"
+              aria-live={t.type === 'error' ? 'assertive' : 'polite'}
+              aria-atomic="true"
               style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
                 backgroundColor: s.bg,
                 border: `1px solid ${s.border}`,
                 borderLeft: `3px solid ${s.dot}`,
@@ -52,7 +62,27 @@ export function ToastProvider({ children }) {
                 animation: 'fadeSlideIn 0.2s ease',
               }}
             >
-              {t.message}
+              <span style={{ flex: 1 }}>{t.message}</span>
+              <button
+                onClick={() => dismissToast(t.id)}
+                aria-label="Dismiss notification"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: 18,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                  opacity: 0.6,
+                  transition: 'opacity 150ms',
+                }}
+                onMouseEnter={(e) => e.target.style.opacity = '1'}
+                onMouseLeave={(e) => e.target.style.opacity = '0.6'}
+              >
+                ✕
+              </button>
             </div>
           );
         })}

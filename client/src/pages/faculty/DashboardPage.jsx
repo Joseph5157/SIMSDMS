@@ -49,8 +49,8 @@ export default function DashboardPage({ user }) {
         {todaySlot ? (
           <div style={{
             borderRadius: 'var(--radius-2xl)', padding: 16,
-            background: 'linear-gradient(135deg, var(--blue-50), #eef2ff)',  /* #eef2ff = indigo-50, intentional gradient stop */
-            border: '1px solid var(--blue-200)',
+            background: 'linear-gradient(135deg, var(--color-blue-50), var(--color-indigo-100))',
+            border: '1px solid var(--color-blue-200)',
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
               <div>

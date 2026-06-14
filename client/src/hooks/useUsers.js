@@ -1,13 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
+import { getCacheKey, setCacheKey } from '../lib/cache';
 
 export function useUsers(filters = {}) {
+  // Generate cache key based on filters
+  const cacheKey = `USERS_${JSON.stringify(filters)}`;
+  const cachedData = getCacheKey(cacheKey);
+
   return useQuery({
     queryKey: ['users', filters],
     queryFn: async () => {
       const res = await api.get('/users', { params: filters });
+      // Cache the result
+      setCacheKey(cacheKey, res.data);
       return res.data;
     },
+    initialData: cachedData,
+    staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }
 

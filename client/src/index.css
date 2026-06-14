@@ -28,6 +28,9 @@
   --color-blue-600: #2563eb;
   --color-blue-700: #1d4ed8;
   --color-blue-800: #1e40af;
+  --color-blue-900: #1e3a8a;
+  --color-indigo-50:  #e0e7ff;
+  --color-indigo-100: #e0e7ff;
   --color-indigo-500: #6366f1;
   --color-indigo-600: #4f46e5;
 
@@ -64,6 +67,8 @@
   --color-amber-tint:   #fde68a;
   --color-amber-text:   #92400e;
   --color-amber-solid:  #f59e0b;
+  --color-amber-600:    #d97706;
+  --color-amber-700:    #b45309;
   --color-amber-border: #fde68a;
 
   --color-red-bg:     #fef2f2;
@@ -78,6 +83,8 @@
   --color-cyan-tint:   #a5f3fc;
   --color-cyan-text:   #0e7490;
   --color-cyan-solid:  #06b6d4;
+  --color-cyan-600:    #0891b2;
+  --color-cyan-700:    #0369a1;
   --color-cyan-border: #a5f3fc;
 
   --color-purple-bg:     #f5f3ff;
@@ -274,6 +281,119 @@
   --selection-text: #1e40af;
 }
 
+/* ── Dark mode overrides ── */
+html.dark {
+  /* Surfaces */
+  --surface-page:          #0f172a;
+  --surface-card:          #1e293b;
+  --surface-sunken:        #0f172a;
+  --surface-sidebar:       #0f172a;
+  --surface-sidebar-hover: #1e293b;
+
+  /* Text */
+  --text-primary:   #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted:     #64748b;
+  --text-on-dark:   #f1f5f9;
+  --text-on-brand:  #ffffff;
+
+  /* Colors — inverted for dark mode */
+  --color-surface:             #0f172a;
+  --color-card:                #1e293b;
+  --color-sidebar:             #0f172a;
+  --color-sidebar-hover:       #1e293b;
+  --color-sidebar-border:      #334155;
+  --color-sidebar-active:      #3b82f6;
+  --color-sidebar-text:        #94a3b8;
+  --color-sidebar-text-active: #ffffff;
+  --color-border:              #334155;
+  --color-border-strong:       #475569;
+  --color-divider:             #1e293b;
+  --color-text-primary:        #f1f5f9;
+  --color-text-secondary:      #cbd5e1;
+  --color-text-muted:          #64748b;
+  --color-text-on-dark:        #f1f5f9;
+
+  /* Status colors in dark mode */
+  --color-emerald-bg:     #0d3d2a;
+  --color-emerald-tint:   #1a5f47;
+  --color-emerald-text:   #d1fae5;
+  --color-emerald-solid:  #10b981;
+  --color-emerald-600:    #059669;
+  --color-emerald-700:    #047857;
+  --color-emerald-border: #065f46;
+
+  --color-amber-bg:     #3d2f0c;
+  --color-amber-tint:   #78350f;
+  --color-amber-text:   #fde68a;
+  --color-amber-text:   #fbbf24;
+  --color-amber-solid:  #f59e0b;
+  --color-amber-600:    #d97706;
+  --color-amber-700:    #b45309;
+  --color-amber-border: #78350f;
+
+  --color-red-bg:     #3f0f0f;
+  --color-red-tint:   #7f1d1d;
+  --color-red-text:   #fca5a5;
+  --color-red-solid:  #ef4444;
+  --color-red-600:    #dc2626;
+  --color-red-700:    #b91c1c;
+  --color-red-border: #7f1d1d;
+
+  --color-cyan-bg:     #062e37;
+  --color-cyan-tint:   #0d5a6f;
+  --color-cyan-text:   #a5f3fc;
+  --color-cyan-solid:  #06b6d4;
+  --color-cyan-600:    #0891b2;
+  --color-cyan-700:    #0369a1;
+  --color-cyan-border: #164e63;
+
+  --color-purple-bg:     #2d1b4e;
+  --color-purple-tint:   #4c1d95;
+  --color-purple-text:   #e9d5ff;
+  --color-purple-solid:  #8b5cf6;
+  --color-purple-border: #581c87;
+
+  --color-orange-bg:     #431407;
+  --color-orange-tint:   #7c2d12;
+  --color-orange-text:   #fed7aa;
+  --color-orange-solid:  #f97316;
+  --color-orange-border: #7c2d12;
+
+  /* Brands */
+  --brand:               #3b82f6;
+  --brand-hover:         #60a5fa;
+  --brand-active:        #93c5fd;
+  --brand-ring:          rgba(59, 130, 246, 0.30);
+  --brand-gradient:      linear-gradient(135deg, #1e40af, #4f46e5);
+  --brand-gradient-deep: linear-gradient(135deg, #1e3a8a, #312e81);
+
+  /* Borders & dividers */
+  --border:        #334155;
+  --border-strong: #475569;
+  --divider:       #1e293b;
+
+  /* Status in dark mode */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #3b82f6;
+
+  /* Selection in dark mode */
+  --selection-bg:   #1e40af;
+  --selection-text: #bfdbfe;
+
+  /* Scrollbar dark mode */
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-slate-700);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-600);
+}
+
 /* ── Global reset ── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -377,4 +497,41 @@ button, a, input, select, textarea {
     padding-right: var(--space-7);
     padding-bottom: var(--space-10);
   }
+}
+
+/* ── Typography hierarchy ── */
+h1, .h1 {
+  font-size: var(--text-display);    /* 28px */
+  font-weight: var(--weight-extra);  /* 800 */
+  line-height: var(--leading-tight); /* 1.2 */
+}
+
+h2, .h2 {
+  font-size: var(--text-h2);        /* 22px */
+  font-weight: var(--weight-bold);  /* 700 */
+  line-height: var(--leading-snug); /* 1.4 */
+}
+
+h3, .h3 {
+  font-size: var(--text-page-title); /* 18px */
+  font-weight: var(--weight-bold);   /* 700 */
+}
+
+.page-title {
+  font-size: var(--text-page-title); /* 18px */
+  font-weight: var(--weight-bold);   /* 700 */
+  color: var(--text-primary);
+}
+
+.card-title {
+  font-size: var(--text-card-lg);   /* 15px */
+  font-weight: var(--weight-bold);  /* 700 */
+}
+
+.section-title {
+  font-size: var(--text-card);      /* 13px */
+  font-weight: var(--weight-bold);  /* 700 */
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
 }

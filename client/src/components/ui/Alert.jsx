@@ -1,9 +1,9 @@
 const TONES = {
-  info:     { bg: 'var(--blue-50)',     border: 'var(--blue-200)',      accent: 'var(--blue-500)',     title: 'var(--blue-800)',     body: 'var(--blue-700)' },
-  success:  { bg: 'var(--emerald-bg)',  border: 'var(--emerald-border)', accent: 'var(--emerald-solid)', title: 'var(--emerald-text)', body: '#047857' },
-  warning:  { bg: 'var(--amber-bg)',    border: 'var(--amber-border)',   accent: 'var(--amber-solid)',  title: 'var(--amber-text)',   body: '#b45309' },
-  danger:   { bg: 'var(--red-bg)',      border: 'var(--red-border)',     accent: 'var(--red-solid)',    title: 'var(--red-text)',     body: '#dc2626' },
-  telegram: { bg: 'var(--cyan-bg)',     border: 'var(--cyan-border)',    accent: 'var(--cyan-solid)',   title: 'var(--cyan-text)',    body: '#0891b2' },
+  info:     { bg: 'var(--color-blue-50)',     border: 'var(--color-blue-200)',      accent: 'var(--color-blue-500)',     title: 'var(--color-blue-800)',     body: 'var(--color-blue-700)' },
+  success:  { bg: 'var(--color-emerald-bg)',  border: 'var(--color-emerald-border)', accent: 'var(--color-emerald-solid)', title: 'var(--color-emerald-text)', body: 'var(--color-emerald-700)' },
+  warning:  { bg: 'var(--color-amber-bg)',    border: 'var(--color-amber-border)',   accent: 'var(--color-amber-solid)',  title: 'var(--color-amber-text)',   body: 'var(--color-amber-700)' },
+  danger:   { bg: 'var(--color-red-bg)',      border: 'var(--color-red-border)',     accent: 'var(--color-red-solid)',    title: 'var(--color-red-text)',     body: 'var(--color-red-600)' },
+  telegram: { bg: 'var(--color-cyan-bg)',     border: 'var(--color-cyan-border)',    accent: 'var(--color-cyan-solid)',   title: 'var(--color-cyan-text)',    body: 'var(--color-cyan-600)' },
 };
 
 export default function Alert({ tone = 'info', icon, title, children, action, onClick, className = '' }) {

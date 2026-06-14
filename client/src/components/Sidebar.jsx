@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, GraduationCap, Calendar, CalendarDays,
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { ROUTES, ROLES } from '../utils/constants';
 import { useLogout } from '../hooks/useAuth';
+import { cycleTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
+import MobileNav from './MobileNav';
 
 const adminLinks = [
   { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',       icon: LayoutDashboard, emoji: '📊' },
@@ -71,6 +73,14 @@ function DesktopNavLink({ to, icon: Icon, label }) {
 export default function Sidebar({ user }) {
   const logout = useLogout();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [themeIcon, setThemeIcon] = useState('🖥️');
+
+  useEffect(() => {
+    setThemeIcon(getThemeIcon());
+    const handleThemeChange = () => setThemeIcon(getThemeIcon());
+    window.addEventListener('themechange', handleThemeChange);
+    return () => window.removeEventListener('themechange', handleThemeChange);
+  }, []);
 
   const links =
     user?.role === ROLES.FACULTY
@@ -117,7 +127,7 @@ export default function Sidebar({ user }) {
         </div>
 
         {/* Nav links */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+        <nav aria-label="Main navigation" style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
           {links.map((link) => (
             <DesktopNavLink key={link.to} {...link} />
           ))}
@@ -153,7 +163,32 @@ export default function Sidebar({ user }) {
             </div>
           </div>
           <button
+            onClick={() => cycleTheme()}
+            aria-label={`Toggle theme: currently ${getThemeLabel()}`}
+            title={`Theme: ${getThemeLabel()}`}
+            style={{
+              width: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '8px 10px',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid rgba(96,165,250,0.25)',
+              backgroundColor: 'rgba(96,165,250,0.1)',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: 'var(--color-blue-400)',
+              fontWeight: 500,
+              transition: 'all var(--dur-fast)',
+              marginBottom: 6,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(96,165,250,0.2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'rgba(96,165,250,0.1)'; }}
+          >
+            <span style={{ fontSize: 14 }}>{themeIcon}</span>
+            Theme
+          </button>
+          <button
             onClick={() => logout.mutate()}
+            aria-label="Log out from the application"
             style={{
               width: '100%',
               display: 'flex', alignItems: 'center', gap: 6,
@@ -176,139 +211,18 @@ export default function Sidebar({ user }) {
         </div>
       </aside>
 
-      {/* ── Mobile backdrop ────────────────────────── */}
-      {drawerOpen && (
-        <div
-          className="md:hidden"
-          style={{
-            position: 'fixed', inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 30,
-            backdropFilter: 'blur(2px)',
-          }}
-          onClick={() => setDrawerOpen(false)}
-        />
-      )}
-
-      {/* ── Mobile drawer ──────────────────────────── */}
-      <div
-        className="md:hidden"
-        style={{
-          position: 'fixed',
-          bottom: 60,
-          left: 0, right: 0,
-          backgroundColor: 'var(--surface-sidebar)',
-          borderRadius: 'var(--radius-3xl) var(--radius-3xl) 0 0',
-          borderTop: '1px solid var(--surface-sidebar-hover)',
-          zIndex: 40,
-          transform: drawerOpen ? 'translateY(0)' : 'translateY(100%)',
-          transition: `transform var(--dur-sheet) var(--ease-sheet)`,
-          maxHeight: 'calc(100vh - 100px)',
-          overflowY: 'auto',
-          paddingBottom: 16,
-        }}
-      >
-        {/* Handle */}
-        <div style={{
-          width: 36, height: 4, backgroundColor: 'var(--color-slate-700)',
-          borderRadius: 2, margin: '12px auto 0',
-        }} />
-
-        {/* User info */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 16px 12px',
-          borderBottom: '1px solid var(--surface-sidebar-hover)',
-          marginTop: 8,
-        }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 'var(--radius-full)',
-            background: 'var(--brand-gradient-deep)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
-          }}>
-            {getInitials(user?.name)}
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-on-dark)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.name}
-            </p>
-            <p style={{ fontSize: 11, color: 'var(--color-sidebar-text)' }}>{getRoleLabel(user?.role)}</p>
-          </div>
-          <button
-            onClick={() => setDrawerOpen(false)}
-            style={{ color: 'var(--color-sidebar-text)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 'var(--radius-sm)' }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* 3-col grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1px',
-          backgroundColor: 'var(--surface-sidebar-hover)',
-          margin: '12px 12px 0',
-          borderRadius: 'var(--radius-2xl)',
-          overflow: 'hidden',
-        }}>
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              onClick={() => setDrawerOpen(false)}
-              style={({ isActive }) => ({
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '14px 8px',
-                backgroundColor: isActive ? 'rgba(37,99,235,0.2)' : 'var(--surface-sidebar)',
-                gap: 5,
-                textDecoration: 'none',
-                borderBottom: isActive ? `2px solid var(--color-blue-500)` : '2px solid transparent',
-              })}
-            >
-              <span style={{ fontSize: 20 }}>{link.emoji}</span>
-              <span style={{
-                fontSize: 9, fontWeight: 600, color: 'var(--color-sidebar-text)',
-                textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
-                textAlign: 'center', lineHeight: 1.2,
-              }}>
-                {link.label}
-              </span>
-            </NavLink>
-          ))}
-        </div>
-
-        {/* Logout */}
-        <button
-          onClick={() => { logout.mutate(); setDrawerOpen(false); }}
-          style={{
-            width: 'calc(100% - 24px)',
-            margin: '10px 12px 0',
-            padding: '11px',
-            backgroundColor: 'var(--surface-sidebar-hover)',
-            color: 'var(--color-red-solid)',
-            borderRadius: 'var(--radius-lg)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-          }}
-        >
-          <LogOut size={14} />
-          Log out
-        </button>
-      </div>
+      {/* ── Mobile nav drawer ──────────────────────── */}
+      <MobileNav
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        links={links}
+        user={user}
+        themeIcon={themeIcon}
+      />
 
       {/* ── Mobile bottom tab bar ──────────────────── */}
       <nav
+        aria-label="Mobile navigation"
         className="md:hidden"
         style={{
           display: 'flex',

@@ -1,14 +1,19 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
+import Breadcrumb from '../../components/Breadcrumb';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Modal from '../../components/ui/Modal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Input from '../../components/ui/Input';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
+import Skeleton, { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
 import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
+import { useDebounce } from '../../hooks/useDebounce';
 import { useStudents, useUploadLogs, usePromoteStudent, useDeactivateStudent } from '../../hooks/useStudents';
+import { ROUTES } from '../../utils/constants';
 
 function PromoteModal({ open, student, onClose }) {
   const toast = useToast();
@@ -46,15 +51,17 @@ export default function StudentsPage({ user }) {
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload]   = useState(false);
   const [promoting, setPromoting]     = useState(null);
+  const [deactivating, setDeactivating] = useState(null);
 
-  const { data, isLoading } = useStudents({ search, page, limit: 20 });
+  const debouncedSearch = useDebounce(search, 500);
+  const { data, isLoading } = useStudents({ search: debouncedSearch, page, limit: 20 });
   const deactivate = useDeactivateStudent();
 
-  async function handleDeactivate(s) {
-    if (!confirm(`Deactivate ${s.student_name}?`)) return;
+  async function handleDeactivate() {
     try {
-      await deactivate.mutateAsync(s.id);
+      await deactivate.mutateAsync(deactivating.id);
       toast({ message: 'Student deactivated.' });
+      setDeactivating(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -62,6 +69,10 @@ export default function StudentsPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[
+        { label: 'Admin', href: ROUTES.ADMIN_DASHBOARD },
+        { label: 'Students' },
+      ]} />
       <PageHeader
         title="Student Management"
         subtitle="Upload Excel to sync student records"
@@ -75,7 +86,13 @@ export default function StudentsPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+        {isLoading && (
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+        )}
         {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No students found.</div>}
         {data?.data?.map((s) => (
           <div key={s.id} style={{
@@ -102,7 +119,9 @@ export default function StudentsPage({ user }) {
       <Table>
         <thead><tr><Th>Reg. No.</Th><Th>Name</Th><Th className="hidden sm:table-cell">Course</Th><Th>Semester/Year</Th><Th className="hidden sm:table-cell">Acad. Year</Th><Th>Status</Th><Th /></tr></thead>
         <tbody className="divide-y divide-slate-100">
-          {isLoading && <EmptyRow cols={7} message="Loading…" />}
+          {isLoading && Array.from({ length: 10 }).map((_, i) => (
+            <TableRowSkeleton key={i} cols={7} />
+          ))}
           {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
           {data?.data?.map((s) => (
             <tr key={s.id}>
@@ -115,7 +134,7 @@ export default function StudentsPage({ user }) {
               <Td>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setPromoting(s)}>Promote</Button>
-                  {s.status === 'active' && <Button variant="ghost" size="sm" onClick={() => handleDeactivate(s)}>Deactivate</Button>}
+                  {s.status === 'active' && <Button variant="ghost" size="sm" onClick={() => setDeactivating(s)}>Deactivate</Button>}
                 </div>
               </Td>
             </tr>
@@ -141,6 +160,18 @@ export default function StudentsPage({ user }) {
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
       <UploadStudentsDrawer open={showUpload} onClose={() => setShowUpload(false)} />
       {promoting && <PromoteModal open student={promoting} onClose={() => setPromoting(null)} />}
+      {deactivating && (
+        <ConfirmDialog
+          open
+          onConfirm={handleDeactivate}
+          onCancel={() => setDeactivating(null)}
+          title="Deactivate Student"
+          message={`Are you sure you want to deactivate ${deactivating.student_name}? This action cannot be undone.`}
+          confirmText="Deactivate"
+          isDangerous
+          isLoading={deactivate.isPending}
+        />
+      )}
     </Layout>
   );
 }

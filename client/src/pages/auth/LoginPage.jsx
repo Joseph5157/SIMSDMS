@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import api from '../../utils/api';
+import { useLogin } from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const login = useLogin();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -22,31 +20,26 @@ export default function LoginPage() {
     }
 
     try {
-      setIsLoading(true);
-      const res = await api.post('/auth/login', {
+      const res = await login.mutateAsync({
         email: email.trim(),
         password,
       });
 
-      const userData = res.data;
-      queryClient.setQueryData(['currentUser'], userData);
-
-      if (userData.must_change_password) {
+      if (res.must_change_password) {
         navigate('/change-password', { replace: true });
       } else {
-        if (userData.role === 'faculty') {
+        if (res.role === 'faculty') {
           navigate('/faculty/dashboard', { replace: true });
         } else {
           navigate('/admin/dashboard', { replace: true });
         }
       }
     } catch {
-      setIsLoading(false);
       setError('Invalid email or password. Please try again.');
     }
   };
 
-  const isDisabled = isLoading || !email.trim() || !password.trim();
+  const isDisabled = login.isPending || !email.trim() || !password.trim();
 
   return (
     <div style={{
@@ -166,7 +159,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoFocus
-              disabled={isLoading}
+              disabled={login.isPending}
               style={{
                 border: '2px solid var(--border)',
                 borderRadius: 'var(--radius-xl)',
@@ -178,8 +171,8 @@ export default function LoginPage() {
                 boxSizing: 'border-box',
                 backgroundColor: 'var(--surface-page)',
                 transition: `border-color var(--dur-fast)`,
-                opacity: isLoading ? 0.6 : 1,
-                cursor: isLoading ? 'not-allowed' : 'auto',
+                opacity: login.isPending ? 0.6 : 1,
+                cursor: login.isPending ? 'not-allowed' : 'auto',
               }}
               onFocus={e => e.target.style.borderColor = 'var(--brand)'}
               onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -202,7 +195,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              disabled={isLoading}
+              disabled={login.isPending}
               style={{
                 border: '2px solid var(--border)',
                 borderRadius: 'var(--radius-xl)',
@@ -214,8 +207,8 @@ export default function LoginPage() {
                 boxSizing: 'border-box',
                 backgroundColor: 'var(--surface-page)',
                 transition: `border-color var(--dur-fast)`,
-                opacity: isLoading ? 0.6 : 1,
-                cursor: isLoading ? 'not-allowed' : 'auto',
+                opacity: login.isPending ? 0.6 : 1,
+                cursor: login.isPending ? 'not-allowed' : 'auto',
               }}
               onFocus={e => e.target.style.borderColor = 'var(--brand)'}
               onBlur={e => e.target.style.borderColor = 'var(--border)'}
@@ -258,7 +251,7 @@ export default function LoginPage() {
               transition: `all var(--dur-fast)`,
             }}
           >
-            {isLoading ? '⏳ Signing in…' : 'Sign in →'}
+            {login.isPending ? '⏳ Signing in…' : 'Sign in →'}
           </button>
 
           {/* Password reset helper */}

@@ -1,13 +1,30 @@
 import Sidebar from './Sidebar';
+import NotificationBell from './NotificationBell';
 
 export default function Layout({ user, children }) {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar user={user} />
       <main
-        className="flex-1 overflow-y-auto h-full"
+        className="flex-1 overflow-y-auto h-full relative"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
+        {/* Header bar with notification bell */}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          right: 0,
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          backgroundColor: 'transparent',
+          zIndex: 100,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ pointerEvents: 'auto' }}>
+            <NotificationBell />
+          </div>
+        </div>
         <div className="page-content">
           {children}
         </div>

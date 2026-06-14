@@ -10,8 +10,8 @@ const variants = {
 };
 
 const sizes = {
-  xs:      'h-7 px-2.5 text-[11px] rounded-md',
-  sm:      'h-8 px-3 text-[12px] rounded-lg',
+  xs:      'min-h-[44px] sm:min-h-0 sm:h-7 px-2.5 text-[11px] rounded-md',
+  sm:      'min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-[12px] rounded-lg',
   default: 'min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-[13px] rounded-xl',
   lg:      'h-12 px-6 text-[15px] rounded-xl',
 };
@@ -23,6 +23,7 @@ function Button({
   loading,
   icon,
   className = '',
+  'aria-label': ariaLabel,
   ...props
 }) {
   return (
@@ -37,6 +38,7 @@ function Button({
         className
       )}
       disabled={loading || props.disabled}
+      aria-label={ariaLabel}
       {...props}
     >
       {loading ? (

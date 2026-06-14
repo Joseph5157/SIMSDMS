@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
+import OfflineBanner from './components/OfflineBanner';
 import { useCurrentUser } from './hooks/useAuth';
+import { initializeTheme } from './lib/theme';
 
 import LoginPage          from './pages/auth/LoginPage';
 import ChangePasswordPage from './pages/auth/ChangePasswordPage';
@@ -25,6 +28,7 @@ import ViolationRecorderPage  from './pages/faculty/ViolationRecorderPage';
 import FacultyCoverRequestsPage from './pages/faculty/CoverRequestsPage';
 
 import MessagesPage     from './pages/shared/MessagesPage';
+import NotificationsPage from './pages/NotificationsPage';
 import SuperAdminDashboardPage from './pages/super-admin/SuperAdminDashboardPage';
 import SessionResetPage from './pages/super-admin/SessionResetPage';
 import AuditLogsPage    from './pages/super-admin/AuditLogsPage';
@@ -54,6 +58,11 @@ function AppRoutes() {
       {/* Change password route — authenticated users only */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
         <Route path="/change-password" element={<ChangePasswordPage />} />
+      </Route>
+
+      {/* Shared authenticated routes */}
+      <Route element={<ProtectedRoute user={user} isLoading={isLoading} />}>
+        <Route path="/notifications"          element={<NotificationsPage user={user} />} />
       </Route>
 
       {/* Admin routes — Admin and Super Admin only */}
@@ -94,10 +103,29 @@ function AppRoutes() {
 }
 
 export default function App() {
+  useEffect(() => {
+    initializeTheme();
+  }, []);
+
+  // Register service worker for PWA offline support
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then((reg) => {
+          console.log('Service Worker registered:', reg);
+        })
+        .catch((err) => {
+          console.warn('Service Worker registration failed:', err);
+        });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <ErrorBoundary>
+          <OfflineBanner />
           <BrowserRouter>
             <AppRoutes />
           </BrowserRouter>
