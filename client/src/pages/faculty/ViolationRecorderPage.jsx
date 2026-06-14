@@ -60,7 +60,7 @@ function RecordModal({ open, onClose }) {
     <Modal open={open} onClose={onClose} title="Record Violation" size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-0">
         {/* Student search */}
-        <div className="flex flex-col gap-1.5 px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="flex flex-col gap-1.5 px-8 py-3 md:py-4 border-b border-slate-200">
           <FormLabel required>Student</FormLabel>
           <input className="h-11 w-full rounded-xl border bg-white px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
             placeholder="Search by name or reg. number…"
@@ -78,7 +78,7 @@ function RecordModal({ open, onClose }) {
           )}
         </div>
 
-        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
           <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
             <option value="">Select duty slot…</option>
             {mySlots.map((s) => (
@@ -89,7 +89,7 @@ function RecordModal({ open, onClose }) {
           </Select>
         </div>
 
-        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
           <Select label="Violation type" value={form.violation_type_id} onChange={set('violation_type_id')} required>
             <option value="">Select type…</option>
             {typesData?.data?.map((t) => (
@@ -99,12 +99,12 @@ function RecordModal({ open, onClose }) {
         </div>
 
         {isOthers && (
-          <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+          <div className="px-8 py-3 md:py-4 border-b border-slate-200">
             <Input label="Describe violation" value={form.custom_violation} onChange={set('custom_violation')} required />
           </div>
         )}
 
-        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
           <label htmlFor="warning" className="flex items-center gap-3 min-h-11 cursor-pointer select-none">
             <input type="checkbox" id="warning" checked={form.is_warning_only} onChange={set('is_warning_only')} className="w-6 h-6 cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600" />
             <span className="text-[13px] text-slate-700 leading-tight">Warning only (no fine)</span>
@@ -112,16 +112,16 @@ function RecordModal({ open, onClose }) {
         </div>
 
         {!form.is_warning_only && (
-          <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+          <div className="px-8 py-3 md:py-4 border-b border-slate-200">
             <Input label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`} type="number" min="0" step="0.01" value={form.fine_amount} onChange={set('fine_amount')} placeholder={selectedType?.default_fine ?? ''} />
           </div>
         )}
 
-        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
           <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
         </div>
 
-        <div className="px-6 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
+        <div className="px-8 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={create.isPending}>Record</Button>
         </div>
@@ -149,10 +149,10 @@ function FlagModal({ violation, onClose }) {
   return (
     <Modal open onClose={onClose} title="Flag for Review" size="sm">
       <form onSubmit={handleSubmit} className="flex flex-col gap-0">
-        <div className="px-6 py-3 md:py-4 border-b border-slate-200">
+        <div className="px-8 py-3 md:py-4 border-b border-slate-200">
           <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
         </div>
-        <div className="px-6 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
+        <div className="px-8 py-3 md:py-4 flex justify-end gap-2 border-t border-slate-200">
           <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
           <Button type="submit" loading={flag.isPending}>Flag</Button>
         </div>

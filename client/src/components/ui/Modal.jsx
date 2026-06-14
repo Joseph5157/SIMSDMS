@@ -30,7 +30,7 @@ export default function Modal({ open, onClose, title, description, size = 'md', 
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
       >
-        <DialogHeader className="px-6 py-5 border-b border-slate-200 shrink-0">
+        <DialogHeader className="px-8 py-6 border-b border-slate-200 shrink-0">
           <DialogTitle id={titleId} className="text-[15px] font-bold text-slate-900">
             {title}
           </DialogTitle>
@@ -38,7 +38,7 @@ export default function Modal({ open, onClose, title, description, size = 'md', 
             {description || title}
           </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 px-6 py-4 md:py-5 flex flex-col gap-4">
+        <div className="overflow-y-auto flex-1 px-8 py-6 flex flex-col gap-4">
           {children}
         </div>
       </DialogContent>
