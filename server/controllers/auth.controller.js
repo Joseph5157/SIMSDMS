@@ -22,6 +22,16 @@ async function login(req, res) {
       });
     }
 
+    // Safety check: ensure role exists
+    if (!user.role) {
+      logger.error(`[AUTH] User ${user.id} has no role assigned`);
+      return res.status(500).json({
+        error: true,
+        code: 'INVALID_USER_STATE',
+        message: 'User account configuration error. Please contact administrator.',
+      });
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
@@ -54,7 +64,7 @@ async function login(req, res) {
       metadata: { email },
     });
 
-    res.json({
+    const response = {
       id: user.id,
       name: user.name,
       email: user.email,
@@ -67,7 +77,11 @@ async function login(req, res) {
       must_change_password: user.must_change_password,
       approved_at: user.approved_at,
       created_at: user.created_at,
-    });
+    };
+
+    logger.info(`[AUTH] Login successful: user=${user.id}, email=${email}, role=${user.role}`);
+
+    res.json(response);
   } catch (err) {
     logger.error(`login error: ${err.message}`);
     res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });
