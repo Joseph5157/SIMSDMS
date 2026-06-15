@@ -1,11 +1,23 @@
-export default function EmptyState({ emoji, title, subtitle }) {
+import { Stack, Text, Center } from '@mantine/core';
+
+/**
+ * EmptyState — "no data" placeholder. emoji + title + message + optional action.
+ * Use inside tables or as a standalone block.
+ */
+export default function EmptyState({ emoji = '📭', title, subtitle, message, action }) {
+  const body = message ?? subtitle;
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-12">
-      {emoji && <span style={{ fontSize: 48 }}>{emoji}</span>}
-      <div className="text-center">
-        <p className="text-[15px] font-semibold text-slate-900 mb-1">{title}</p>
-        {subtitle && <p className="text-[13px] text-slate-500 max-w-sm">{subtitle}</p>}
-      </div>
-    </div>
+    <Center py={48} px="md">
+      <Stack align="center" gap="xs">
+        <Text style={{ fontSize: 32, opacity: 0.4, lineHeight: 1 }}>{emoji}</Text>
+        {title && (
+          <Text size="sm" fw={600} c="dimmed">{title}</Text>
+        )}
+        {body && (
+          <Text size="sm" c="dimmed" ta="center">{body}</Text>
+        )}
+        {action}
+      </Stack>
+    </Center>
   );
 }
