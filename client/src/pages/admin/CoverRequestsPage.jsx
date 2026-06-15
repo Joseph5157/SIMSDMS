@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button } from '@mantine/core';
+import { Button, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
@@ -9,10 +9,10 @@ import { useCoverRequests, useConfirmCover } from '../../hooks/useCoverRequests'
 import { useUsers } from '../../hooks/useUsers';
 
 const MONTHS = [
-  { v: 1,  l: 'January' },  { v: 2,  l: 'February' }, { v: 3,  l: 'March' },
-  { v: 4,  l: 'April' },    { v: 5,  l: 'May' },       { v: 6,  l: 'June' },
-  { v: 7,  l: 'July' },     { v: 8,  l: 'August' },    { v: 9,  l: 'September' },
-  { v: 10, l: 'October' },  { v: 11, l: 'November' },  { v: 12, l: 'December' },
+  { v: '1',  l: 'January' },  { v: '2',  l: 'February' }, { v: '3',  l: 'March' },
+  { v: '4',  l: 'April' },    { v: '5',  l: 'May' },       { v: '6',  l: 'June' },
+  { v: '7',  l: 'July' },     { v: '8',  l: 'August' },    { v: '9',  l: 'September' },
+  { v: '10', l: 'October' },  { v: '11', l: 'November' },  { v: '12', l: 'December' },
 ];
 
 export default function CoverRequestsPage({ user }) {
@@ -45,71 +45,126 @@ export default function CoverRequestsPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white';
+  const rows = data?.data ?? [];
 
   return (
     <Layout user={user}>
       <PageHeader title="Cover Requests" subtitle="Manage Need Cover broadcasts" />
 
-      {/* Filter bar — native selects; no Mantine Select needed (no broken import, works fine) */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls}>
-          <option value="">All statuses</option>
-          <option value="open">Open</option>
-          <option value="covered">Covered</option>
-          <option value="expired">Expired</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-
-        <select value={facultyId} onChange={(e) => { setFacultyId(e.target.value); setPage(1); }} className={selectCls}>
-          <option value="">All faculty</option>
-          {facultyData?.data?.map((f) => (
-            <option key={f.id} value={f.id}>{f.name}</option>
-          ))}
-        </select>
-
-        <select value={month} onChange={(e) => { setMonth(e.target.value); setPage(1); }} className={selectCls}>
-          <option value="">All months</option>
-          {MONTHS.map((m) => <option key={m.v} value={m.v}>{m.l}</option>)}
-        </select>
-
+      {/* Filter bar — Mantine Select */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Select
+          w={150}
+          placeholder="All statuses"
+          clearable
+          value={status || null}
+          onChange={(v) => { setStatus(v ?? ''); setPage(1); }}
+          data={[
+            { value: 'open',      label: 'Open' },
+            { value: 'covered',   label: 'Covered' },
+            { value: 'expired',   label: 'Expired' },
+            { value: 'cancelled', label: 'Cancelled' },
+          ]}
+        />
+        <Select
+          w={170}
+          placeholder="All faculty"
+          clearable
+          searchable
+          value={facultyId || null}
+          onChange={(v) => { setFacultyId(v ?? ''); setPage(1); }}
+          data={(facultyData?.data ?? []).map((f) => ({ value: String(f.id), label: f.name }))}
+        />
+        <Select
+          w={140}
+          placeholder="All months"
+          clearable
+          value={month || null}
+          onChange={(v) => { setMonth(v ?? ''); setPage(1); }}
+          data={MONTHS.map((m) => ({ value: m.v, label: m.l }))}
+        />
         {month && (
-          <select value={year} onChange={(e) => { setYear(+e.target.value); setPage(1); }} className={selectCls}>
-            {[now.getFullYear() - 1, now.getFullYear()].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <Select
+            w={100}
+            value={String(year)}
+            onChange={(v) => { setYear(Number(v)); setPage(1); }}
+            data={[now.getFullYear() - 1, now.getFullYear()].map((y) => ({ value: String(y), label: String(y) }))}
+          />
         )}
       </div>
 
-      <Table>
-        <thead>
-          <tr>
-            <Th>Faculty</Th><Th>Slot date</Th><Th>Session</Th>
-            <Th>Reason</Th><Th>Volunteer</Th><Th>Status</Th><Th>Expires</Th><Th />
-          </tr>
-        </thead>
-        <tbody>
-          {isLoading && <EmptyRow cols={8} message="Loading…" />}
-          {!isLoading && !data?.data?.length && <EmptyRow cols={8} />}
-          {data?.data?.map((cr) => (
-            <tr key={cr.id}>
-              <Td className="font-medium">{cr.requester?.name}</Td>
-              <Td>{cr.dutySlot ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}</Td>
-              <Td className="capitalize">{cr.dutySlot?.session_type ?? '—'}</Td>
-              <Td className="max-w-xs truncate text-slate-500 text-[12px]">{cr.reason ?? '—'}</Td>
-              <Td>{cr.volunteer?.name ?? <span className="text-slate-400 text-[12px]">No volunteer yet</span>}</Td>
-              <Td><Badge status={cr.status} /></Td>
-              <Td className="text-[12px] text-slate-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
-              <Td>
-                {cr.status === 'open' && cr.volunteer_id && (
-                  <Button size="xs" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>
-                )}
-              </Td>
+      {/* Mobile card list */}
+      <div className="md:hidden" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+        {isLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>Loading…</p>}
+        {!isLoading && !rows.length && (
+          <div style={{ padding: '24px 16px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 14 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>No cover requests found.</p>
+          </div>
+        )}
+        {rows.map((cr) => (
+          <div key={cr.id} style={{
+            background: 'var(--surface-card)', border: '1px solid var(--border)',
+            borderRadius: 14, padding: 14,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{cr.requester?.name}</p>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, textTransform: 'capitalize' }}>
+                  {cr.dutySlot?.session_type ?? '—'}
+                  {cr.dutySlot?.duty_date && ` · ${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
+                </p>
+              </div>
+              <Badge status={cr.status} />
+            </div>
+            {cr.reason && (
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.4 }}>{cr.reason}</p>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                {cr.volunteer?.name
+                  ? <>Volunteer: <strong style={{ color: 'var(--text-secondary)' }}>{cr.volunteer.name}</strong></>
+                  : 'No volunteer yet'}
+              </span>
+              {cr.status === 'open' && cr.volunteer_id && (
+                <Button size="xs" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block">
+        <Table>
+          <thead>
+            <tr>
+              <Th>Faculty</Th><Th>Slot date</Th><Th>Session</Th>
+              <Th>Reason</Th><Th>Volunteer</Th><Th>Status</Th><Th>Expires</Th><Th />
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {isLoading && <EmptyRow cols={8} message="Loading…" />}
+            {!isLoading && !rows.length && <EmptyRow cols={8} />}
+            {rows.map((cr) => (
+              <tr key={cr.id}>
+                <Td className="font-medium">{cr.requester?.name}</Td>
+                <Td>{cr.dutySlot ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}</Td>
+                <Td className="capitalize">{cr.dutySlot?.session_type ?? '—'}</Td>
+                <Td className="max-w-xs truncate text-slate-500 text-[12px]">{cr.reason ?? '—'}</Td>
+                <Td>{cr.volunteer?.name ?? <span className="text-slate-400 text-[12px]">No volunteer yet</span>}</Td>
+                <Td><Badge status={cr.status} /></Td>
+                <Td className="text-[12px] text-slate-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
+                <Td>
+                  {cr.status === 'open' && cr.volunteer_id && (
+                    <Button size="xs" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>
+                  )}
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
     </Layout>
   );

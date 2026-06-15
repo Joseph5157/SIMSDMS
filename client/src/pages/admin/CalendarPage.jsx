@@ -163,15 +163,19 @@ export default function CalendarPage({ user }) {
       <PageHeader title="Duty Calendar" subtitle="Manage scheduling window and blocked dates" />
 
       {/* Month picker */}
-      <div className="flex items-center gap-3 mb-6">
-        <select value={year} onChange={(e) => setYear(+e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
-          {[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => <option key={y}>{y}</option>)}
-        </select>
-        <select value={month} onChange={(e) => setMonth(+e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
-          {MONTHS.map((m, i) => <option key={i+1} value={i+1}>{m}</option>)}
-        </select>
+      <div className="flex items-center gap-2 mb-6">
+        <Select
+          w={100}
+          value={String(year)}
+          onChange={(v) => setYear(Number(v))}
+          data={[now.getFullYear()-1, now.getFullYear(), now.getFullYear()+1].map(y => ({ value: String(y), label: String(y) }))}
+        />
+        <Select
+          w={120}
+          value={String(month)}
+          onChange={(v) => setMonth(Number(v))}
+          data={MONTHS.map((m, i) => ({ value: String(i+1), label: m }))}
+        />
       </div>
 
       {isLoading ? <p className="text-slate-400 text-[13px]">Loading…</p> : (
