@@ -52,6 +52,28 @@ function getLinks(role) {
   return adminLinks;
 }
 
+// ── Bottom tab bar (mobile only) ───────────────────────────────────────────────
+
+const facultyBottomTabs = [
+  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Home',       Icon: IconLayoutDashboard },
+  { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',      Icon: IconCalendarEvent },
+  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attend',     Icon: IconClipboardCheck },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover',      Icon: IconArrowsLeftRight },
+];
+
+const adminBottomTabs = [
+  { to: ROUTES.ADMIN_DASHBOARD,    label: 'Home',       Icon: IconLayoutDashboard },
+  { to: ROUTES.ADMIN_STUDENTS,     label: 'Students',   Icon: IconSchool },
+  { to: ROUTES.ADMIN_VIOLATIONS,   label: 'Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_ATTENDANCE,   label: 'Live',       Icon: IconClipboardCheck },
+];
+
+function getBottomTabs(role) {
+  if (role === ROLES.FACULTY) return facultyBottomTabs;
+  return adminBottomTabs;
+}
+
 function getRoleLabel(role) {
   if (role === ROLES.SUPER_ADMIN) return 'Super Admin';
   if (role === ROLES.ADMIN)       return 'Admin Panel';
@@ -86,7 +108,8 @@ function NavItem({ to, label, Icon, onClick }) {
 export default function Layout({ user, children }) {
   const [opened, { toggle, close }] = useDisclosure(false);
   const logout = useLogout();
-  const links = getLinks(user?.role);
+  const links      = getLinks(user?.role);
+  const bottomTabs = getBottomTabs(user?.role);
 
   const sidebar = (
     <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
@@ -139,6 +162,7 @@ export default function Layout({ user, children }) {
     <AppShell
       navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       header={{ height: 52, collapsed: { desktop: true } }}
+      footer={{ height: 60, collapsed: { desktop: true } }}
       padding={0}
     >
       {/* Mobile-only header */}
@@ -154,6 +178,40 @@ export default function Layout({ user, children }) {
       <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
         {sidebar}
       </AppShell.Navbar>
+
+      {/* Bottom tab bar — mobile only */}
+      <AppShell.Footer
+        hiddenFrom="sm"
+        style={{
+          backgroundColor: 'var(--surface-sidebar)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          display: 'flex',
+        }}
+      >
+        {bottomTabs.map((tab) => (
+          <RouterNavLink
+            key={tab.to}
+            to={tab.to}
+            style={{ flex: 1, textDecoration: 'none' }}
+          >
+            {({ isActive }) => (
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                height: 60, gap: 3,
+                color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
+                transition: 'color 0.15s',
+              }}>
+                <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
+                <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
+                  {tab.label}
+                </span>
+              </div>
+            )}
+          </RouterNavLink>
+        ))}
+      </AppShell.Footer>
 
       {/* Main content */}
       <AppShell.Main
