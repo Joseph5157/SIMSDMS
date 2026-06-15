@@ -20,18 +20,14 @@ export function useMonthSlots(year, month) {
 }
 
 export function useAvailableSlots(year, month) {
-  const cacheKey = `AVAILABLE_SLOTS_${year}_${month}`;
-  const cachedData = getCacheKey(cacheKey);
-
   return useQuery({
     queryKey: ['availableSlots', year, month],
     queryFn: async () => {
       const res = await api.get(`/duty-slots/available/${year}/${month}`);
-      setCacheKey(cacheKey, res.data);
       return res.data;
     },
-    initialData: cachedData,
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 0,          // always re-fetch — slot availability changes as others pick
+    retry: false,          // 409 WINDOW_CLOSED is not a network error, don't retry
     enabled: !!year && !!month,
   });
 }
