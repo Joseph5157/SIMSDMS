@@ -94,6 +94,7 @@ export default function SessionResetPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No locked sessions." />}
             {data?.data?.map((u) => (
               <tr key={u.id}>
                 <Td className="font-medium">{u.name}</Td>

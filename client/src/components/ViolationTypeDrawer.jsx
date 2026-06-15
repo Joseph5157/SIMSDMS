@@ -1,90 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Drawer } from 'vaul';
-import { X, Tag, IndianRupee } from 'lucide-react';
+import { X } from 'lucide-react';
+import { TextInput, NumberInput } from '@mantine/core';
 import { useCreateViolationType, useUpdateViolationType } from '../hooks/useViolationTypes';
 import { useToast } from './ui/Toast';
-
-function Field({ label, icon: Icon, children }) {
-  return (
-    <div>
-      <label style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        fontSize: 11, fontWeight: 700, color: '#64748b',
-        textTransform: 'uppercase', letterSpacing: '0.08em',
-        marginBottom: 6,
-      }}>
-        {Icon && <Icon size={11} strokeWidth={2.5} />}
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function TextInput({ placeholder, value, onChange, ...props }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <input
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
-      style={{
-        width: '100%', height: 44,
-        padding: '0 14px', borderRadius: 12,
-        border: `1.5px solid ${focused ? '#3b82f6' : '#e2e8f0'}`,
-        backgroundColor: focused ? '#fff' : '#f8fafc',
-        fontSize: 14, color: '#0f172a', outline: 'none',
-        boxSizing: 'border-box',
-        transition: 'border-color 0.15s, background-color 0.15s',
-        boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
-      }}
-      {...props}
-    />
-  );
-}
-
-function FineInput({ value, onChange }) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div style={{ position: 'relative' }}>
-      <span style={{
-        position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-        fontSize: 14, fontWeight: 600, pointerEvents: 'none',
-        color: focused ? '#3b82f6' : '#64748b',
-        transition: 'color 0.15s',
-      }}>₹</span>
-      <input
-        type="number"
-        min="0"
-        step="0.01"
-        placeholder="0.00"
-        value={value}
-        onChange={onChange}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={{
-          width: '100%', height: 44,
-          paddingLeft: 28, paddingRight: 14, borderRadius: 12,
-          border: `1.5px solid ${focused ? '#3b82f6' : '#e2e8f0'}`,
-          backgroundColor: focused ? '#fff' : '#f8fafc',
-          fontSize: 14, color: '#0f172a', outline: 'none',
-          boxSizing: 'border-box',
-          transition: 'border-color 0.15s, background-color 0.15s',
-          boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
-        }}
-      />
-    </div>
-  );
-}
 
 export default function ViolationTypeDrawer({ open, editing, onClose }) {
   const toast = useToast();
   const create = useCreateViolationType();
   const update = useUpdateViolationType();
-  const [form, setForm] = useState({ name: editing?.name ?? '', default_fine: editing?.default_fine ?? '' });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const [form, setForm] = useState({
+    name: editing?.name ?? '',
+    default_fine: editing?.default_fine ?? '',
+  });
+
+  useEffect(() => {
+    setForm({
+      name: editing?.name ?? '',
+      default_fine: editing?.default_fine ?? '',
+    });
+  }, [editing?.id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -159,26 +94,27 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
 
           {/* Scrollable body */}
           <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-            <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px' }}>
-
+            <form id="vtype-form" onSubmit={handleSubmit} style={{ padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <p style={{
                 fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
+                textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: -4,
               }}>Details</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-                <Field label="Name" icon={Tag}>
-                  <TextInput
-                    placeholder="Late arrival"
-                    value={form.name}
-                    onChange={set('name')}
-                    required
-                  />
-                </Field>
-                <Field label="Default fine (₹)" icon={IndianRupee}>
-                  <FineInput value={form.default_fine} onChange={set('default_fine')} />
-                </Field>
-              </div>
-
+              <TextInput
+                label="Name"
+                placeholder="Late arrival"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                required
+              />
+              <NumberInput
+                label="Default fine (₹)"
+                leftSection={<span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>₹</span>}
+                min={0}
+                decimalScale={2}
+                placeholder="0.00"
+                value={form.default_fine === '' ? '' : Number(form.default_fine)}
+                onChange={(value) => setForm(f => ({ ...f, default_fine: value }))}
+              />
             </form>
           </div>
 
@@ -197,8 +133,9 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
               fontSize: 14, fontWeight: 700, color: '#475569', cursor: 'pointer',
             }}>Cancel</button>
             <button
+              type="submit"
+              form="vtype-form"
               disabled={isPending || !canSubmit}
-              onClick={handleSubmit}
               style={{
                 flex: 2, height: 48, borderRadius: 14, border: 'none',
                 background: (isPending || !canSubmit)

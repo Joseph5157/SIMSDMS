@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
+import { Button, TextInput, Select, Checkbox } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
-import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
+import FormModal from '../../components/ui/FormModal';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useMyViolations, useCreateViolation, useFlagViolation } from '../../hooks/useViolations';
@@ -36,10 +34,14 @@ function RecordModal({ open, onClose }) {
   const { data: searchResults } = useStudentSearch(studentQ);
   const create = useCreateViolation();
 
+  // set() works for TextInput (e.target.value) and Checkbox (e.target.checked)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
-  const selectedType = typesData?.data?.find(t => t.id === form.violation_type_id);
+  // selectedType: compare as strings since Mantine Select returns string values
+  const selectedType = typesData?.data?.find(t => String(t.id) === form.violation_type_id);
   const isOthers = selectedType?.name?.toLowerCase() === 'others';
+
+  const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -61,26 +63,18 @@ function RecordModal({ open, onClose }) {
     }
   }
 
-  const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
-
   return (
-    <Modal
-      open={open}
+    <FormModal
+      opened={open}
       onClose={onClose}
       title="Record Violation"
       size="xl"
-      footer={
-        <>
-          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11 px-5">
-            Cancel
-          </Button>
-          <Button type="submit" form="violation-form" loading={create.isPending} className="min-h-11 px-6">
-            Record Violation
-          </Button>
-        </>
-      }
+      onSubmit={handleSubmit}
+      submitLabel="Record Violation"
+      loading={create.isPending}
     >
-      <form id="violation-form" onSubmit={handleSubmit} className="flex flex-col gap-0">
+      {/* Single child so FormModal's Stack gap doesn't double-space sections */}
+      <div className="flex flex-col">
 
         {/* ── Student ── */}
         <div className="flex flex-col gap-3 pb-6">
@@ -119,22 +113,35 @@ function RecordModal({ open, onClose }) {
         {/* ── Duty & Violation ── */}
         <div className="flex flex-col gap-4 py-6">
           <SectionLabel>Duty & Violation</SectionLabel>
-          <Select label="Duty slot" value={form.duty_slot_id} onChange={set('duty_slot_id')} required>
-            <option value="">Select duty slot…</option>
-            {mySlots.map((s) => (
-              <option key={s.id} value={s.id}>
-                {new Date(s.duty_date).toLocaleDateString('en-IN')} · {s.session_type}
-              </option>
-            ))}
-          </Select>
-          <Select label="Violation type" value={form.violation_type_id} onChange={set('violation_type_id')} required>
-            <option value="">Select type…</option>
-            {typesData?.data?.map((t) => (
-              <option key={t.id} value={t.id}>{t.name} (₹{t.default_fine})</option>
-            ))}
-          </Select>
+          <Select
+            label="Duty slot"
+            placeholder="Select duty slot…"
+            value={form.duty_slot_id || null}
+            onChange={(value) => setForm(f => ({ ...f, duty_slot_id: value ?? '' }))}
+            required
+            data={mySlots.map(s => ({
+              value: String(s.id),
+              label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
+            }))}
+          />
+          <Select
+            label="Violation type"
+            placeholder="Select type…"
+            value={form.violation_type_id || null}
+            onChange={(value) => setForm(f => ({ ...f, violation_type_id: value ?? '' }))}
+            required
+            data={(typesData?.data ?? []).map(t => ({
+              value: String(t.id),
+              label: `${t.name} (₹${t.default_fine})`,
+            }))}
+          />
           {isOthers && (
-            <Input label="Describe violation" value={form.custom_violation} onChange={set('custom_violation')} required />
+            <TextInput
+              label="Describe violation"
+              value={form.custom_violation}
+              onChange={set('custom_violation')}
+              required
+            />
           )}
         </div>
 
@@ -143,28 +150,21 @@ function RecordModal({ open, onClose }) {
         {/* ── Fine ── */}
         <div className="flex flex-col gap-4 py-6">
           <SectionLabel>Fine</SectionLabel>
-          <label htmlFor="warning" className="flex items-center gap-3.5 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-4 cursor-pointer select-none hover:border-slate-300 transition-colors">
-            <input
-              type="checkbox"
-              id="warning"
-              checked={form.is_warning_only}
-              onChange={set('is_warning_only')}
-              className="w-[18px] h-[18px] cursor-pointer flex-shrink-0 rounded border-slate-300 accent-blue-600"
-            />
-            <div className="flex flex-col">
-              <span className="text-[13.5px] font-medium text-slate-700">Warning only</span>
-              <span className="text-[11px] text-slate-400">No fine will be charged</span>
-            </div>
-          </label>
+          <Checkbox
+            checked={form.is_warning_only}
+            onChange={set('is_warning_only')}
+            label="Warning only"
+            description="No fine will be charged"
+          />
           {!form.is_warning_only && (
-            <Input
+            <TextInput
               label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`}
               type="number"
               min="0"
               step="0.01"
               value={form.fine_amount}
               onChange={set('fine_amount')}
-              placeholder={selectedType?.default_fine ?? ''}
+              placeholder={String(selectedType?.default_fine ?? '')}
             />
           )}
         </div>
@@ -174,11 +174,15 @@ function RecordModal({ open, onClose }) {
         {/* ── Notes ── */}
         <div className="flex flex-col gap-3 pt-6">
           <SectionLabel>Notes</SectionLabel>
-          <Input label="Remarks (optional)" value={form.remarks} onChange={set('remarks')} />
+          <TextInput
+            label="Remarks (optional)"
+            value={form.remarks}
+            onChange={set('remarks')}
+          />
         </div>
 
-      </form>
-    </Modal>
+      </div>
+    </FormModal>
   );
 }
 
@@ -199,32 +203,27 @@ function FlagModal({ violation, onClose }) {
   }
 
   return (
-    <Modal
-      open
+    <FormModal
+      opened={!!violation}
       onClose={onClose}
       title="Flag for Review"
-      description="This violation will be sent to an admin for review."
       size="sm"
-      footer={
-        <>
-          <Button variant="secondary" type="button" onClick={onClose} className="min-h-11 px-5">
-            Cancel
-          </Button>
-          <Button type="submit" form="flag-form" loading={flag.isPending} className="min-h-11 px-6">
-            Flag
-          </Button>
-        </>
-      }
+      onSubmit={handleSubmit}
+      submitLabel="Flag"
+      loading={flag.isPending}
     >
-      <form id="flag-form" onSubmit={handleSubmit}>
-        <Input label="Reason for flagging" value={note} onChange={(e) => setNote(e.target.value)} required />
-      </form>
-    </Modal>
+      <TextInput
+        label="Reason for flagging"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        required
+      />
+    </FormModal>
   );
 }
 
 export default function ViolationRecorderPage({ user }) {
-  const [page, setPage]       = useState(1);
+  const [page, setPage]             = useState(1);
   const [showRecord, setShowRecord] = useState(false);
   const [flagging,   setFlagging]   = useState(null);
 
@@ -235,11 +234,15 @@ export default function ViolationRecorderPage({ user }) {
       <PageHeader
         title="Violations"
         subtitle="Violations you've recorded"
-        action={<Button onClick={() => setShowRecord(true)}>+ Record Violation</Button>}
+        action={<Button size="sm" onClick={() => setShowRecord(true)}>+ Record Violation</Button>}
       />
       <Table>
-        <thead><tr><Th>Student</Th><Th>Type</Th><Th>Fine</Th><Th>Date</Th><Th>Status</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <thead>
+          <tr>
+            <Th>Student</Th><Th>Type</Th><Th>Fine</Th><Th>Date</Th><Th>Status</Th><Th />
+          </tr>
+        </thead>
+        <tbody>
           {isLoading && <EmptyRow cols={6} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No violations recorded." />}
           {data?.data?.map((v) => (
@@ -256,7 +259,7 @@ export default function ViolationRecorderPage({ user }) {
               </Td>
               <Td>
                 {!v.is_flagged && v.record_status === 'active' && (
-                  <Button variant="ghost" size="sm" onClick={() => setFlagging(v)}>Flag</Button>
+                  <Button variant="subtle" size="xs" onClick={() => setFlagging(v)}>Flag</Button>
                 )}
               </Td>
             </tr>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
+import { TextInput } from '@mantine/core';
 import { useAuditLogs } from '../../hooks/useUsers';
 
 export default function AuditLogsPage({ user }) {
@@ -24,10 +25,11 @@ export default function AuditLogsPage({ user }) {
       <PageHeader title="Audit Logs" subtitle="Immutable system-level action history" />
 
       <div className="mb-4">
-        <input
-          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-64 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
-          placeholder="Filter by action…" value={action}
+        <TextInput
+          placeholder="Filter by action…"
+          value={action}
           onChange={(e) => { setAction(e.target.value); setPage(1); }}
+          w={256}
         />
       </div>
 

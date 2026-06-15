@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
+import { Button, Skeleton } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
 
@@ -72,7 +72,6 @@ export default function SlotPickerPage({ user }) {
   const windowOpen      = available && !available?.error;
   const remainingSlots  = available?.slots_remaining ?? 0;
   const pickedCount     = mySlots?.data?.length ?? 0;
-  // How many are required — infer from remaining + picked if available gives us slots_per_faculty
   const requiredSlots   = available?.slots_per_faculty ?? (pickedCount + remainingSlots);
 
   const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 bg-white';
@@ -81,7 +80,7 @@ export default function SlotPickerPage({ user }) {
     <Layout user={user}>
       <PageHeader title="My Duty Slots" subtitle="Pick your slots for the month" />
 
-      {/* Month selector */}
+      {/* Month selector — native selects, no broken import */}
       <div className="flex items-center gap-3 mb-5">
         <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
           {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
@@ -98,8 +97,10 @@ export default function SlotPickerPage({ user }) {
         <div className="flex items-center gap-3 rounded-xl px-4 py-3 mb-6" style={{ background: 'var(--emerald-bg)', border: '1px solid var(--emerald-border)' }}>
           <span className="w-2 h-2 rounded-full shrink-0" style={{ background: 'var(--emerald-solid)' }} />
           <p className="text-[13px]" style={{ color: 'var(--emerald-text)' }}>
-            Scheduling window is <strong>open</strong>.
-            {' '}{pickedCount} of {requiredSlots} slots picked · {remainingSlots} remaining.
+            Scheduling window is <strong>open</strong>.{' '}
+            {loadingMine
+              ? <Skeleton display="inline-block" w={120} h={13} radius="sm" />
+              : <>{pickedCount} of {requiredSlots} slots picked · {remainingSlots} remaining.</>}
           </p>
         </div>
       ) : (
@@ -131,7 +132,7 @@ export default function SlotPickerPage({ user }) {
                   slot={s}
                   action={
                     s.status === 'scheduled' ? (
-                      <Button variant="ghost" size="sm" onClick={() => handleUnpick(s.id)}>
+                      <Button variant="subtle" size="sm" onClick={() => handleUnpick(s.id)}>
                         Unpick
                       </Button>
                     ) : null

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import ViolationTypeDrawer from '../../components/ViolationTypeDrawer';
@@ -39,7 +39,7 @@ export default function ViolationTypesPage({ user }) {
     <Layout user={user}>
       <PageHeader
         title="Violation Types"
-        action={<Button onClick={() => { setEditing(null); setShowModal(true); }}>+ New Type</Button>}
+        action={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true); }}>+ New Type</Button>}
       />
       <Table>
         <thead><tr><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr></thead>
@@ -53,12 +53,12 @@ export default function ViolationTypesPage({ user }) {
               <Td>{t.is_system && <Badge status="pending" label="System" />}</Td>
               <Td>
                 <div className="flex flex-wrap gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => { setEditing(t); setShowModal(true); }}>Edit</Button>
+                  <Button variant="subtle" size="xs" onClick={() => { setEditing(t); setShowModal(true); }}>Edit</Button>
                   {!t.is_system && t.is_active && (
-                    <Button variant="ghost" size="sm" onClick={() => handleDeactivate(t)}>Deactivate</Button>
+                    <Button variant="subtle" size="xs" onClick={() => handleDeactivate(t)}>Deactivate</Button>
                   )}
                   {!t.is_system && (
-                    <Button variant="ghost" size="sm" onClick={() => handleDelete(t)}>Delete</Button>
+                    <Button variant="subtle" color="red" size="xs" onClick={() => handleDelete(t)}>Delete</Button>
                   )}
                 </div>
               </Td>

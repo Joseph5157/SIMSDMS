@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
@@ -9,10 +9,10 @@ import { useCoverRequests, useConfirmCover } from '../../hooks/useCoverRequests'
 import { useUsers } from '../../hooks/useUsers';
 
 const MONTHS = [
-  { v: 1, l: 'January' }, { v: 2, l: 'February' }, { v: 3, l: 'March' },
-  { v: 4, l: 'April' },   { v: 5, l: 'May' },       { v: 6, l: 'June' },
-  { v: 7, l: 'July' },    { v: 8, l: 'August' },    { v: 9, l: 'September' },
-  { v: 10, l: 'October' },{ v: 11, l: 'November' }, { v: 12, l: 'December' },
+  { v: 1,  l: 'January' },  { v: 2,  l: 'February' }, { v: 3,  l: 'March' },
+  { v: 4,  l: 'April' },    { v: 5,  l: 'May' },       { v: 6,  l: 'June' },
+  { v: 7,  l: 'July' },     { v: 8,  l: 'August' },    { v: 9,  l: 'September' },
+  { v: 10, l: 'October' },  { v: 11, l: 'November' },  { v: 12, l: 'December' },
 ];
 
 export default function CoverRequestsPage({ user }) {
@@ -51,7 +51,7 @@ export default function CoverRequestsPage({ user }) {
     <Layout user={user}>
       <PageHeader title="Cover Requests" subtitle="Manage Need Cover broadcasts" />
 
-      {/* Filter bar */}
+      {/* Filter bar — native selects; no Mantine Select needed (no broken import, works fine) */}
       <div className="flex flex-wrap gap-3 mb-4">
         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls}>
           <option value="">All statuses</option>
@@ -89,7 +89,7 @@ export default function CoverRequestsPage({ user }) {
             <Th>Reason</Th><Th>Volunteer</Th><Th>Status</Th><Th>Expires</Th><Th />
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody>
           {isLoading && <EmptyRow cols={8} message="Loading…" />}
           {!isLoading && !data?.data?.length && <EmptyRow cols={8} />}
           {data?.data?.map((cr) => (
@@ -103,7 +103,7 @@ export default function CoverRequestsPage({ user }) {
               <Td className="text-[12px] text-slate-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
               <Td>
                 {cr.status === 'open' && cr.volunteer_id && (
-                  <Button size="sm" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>
+                  <Button size="xs" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>
                 )}
               </Td>
             </tr>

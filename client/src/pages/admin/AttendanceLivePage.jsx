@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
-import Modal from '../../components/ui/Modal';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
+import FormModal from '../../components/ui/FormModal';
+import { Button, Select, TextInput } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useLiveAttendance, useOverrideAttendance } from '../../hooks/useAttendance';
 
@@ -16,7 +14,6 @@ function OverrideModal({ record, onClose }) {
     in_status:       record?.in_status ?? 'normal',
     override_reason: '',
   });
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -30,20 +27,32 @@ function OverrideModal({ record, onClose }) {
   }
 
   return (
-    <Modal open onClose={onClose} title={`Override — ${record?.faculty?.name}`} size="sm">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <Select label="In status" value={form.in_status} onChange={set('in_status')}>
-          <option value="normal">Normal</option>
-          <option value="late">Late</option>
-          <option value="absent">Absent</option>
-        </Select>
-        <Input label="Reason (required)" value={form.override_reason} onChange={set('override_reason')} required />
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={override.isPending}>Save</Button>
-        </div>
-      </form>
-    </Modal>
+    <FormModal
+      opened={!!record}
+      onClose={onClose}
+      title={`Override — ${record?.faculty?.name}`}
+      size="sm"
+      onSubmit={handleSubmit}
+      submitLabel="Save"
+      loading={override.isPending}
+    >
+      <Select
+        label="In status"
+        value={form.in_status}
+        onChange={(value) => setForm((f) => ({ ...f, in_status: value ?? 'normal' }))}
+        data={[
+          { value: 'normal', label: 'Normal' },
+          { value: 'late',   label: 'Late' },
+          { value: 'absent', label: 'Absent' },
+        ]}
+      />
+      <TextInput
+        label="Reason (required)"
+        value={form.override_reason}
+        onChange={(e) => setForm((f) => ({ ...f, override_reason: e.target.value }))}
+        required
+      />
+    </FormModal>
   );
 }
 
@@ -67,7 +76,6 @@ function StatPill({ label, count, color }) {
 
 // ── Faculty card ──────────────────────────────────────────────────────────────
 function FacultyCard({ record, onOverride }) {
-  // Determine left-border colour from attendance status + in_status
   const borderCls =
     record.attendance_status === 'checked_in'  && record.in_status === 'late'    ? 'border-l-amber-500' :
     record.attendance_status === 'checked_in'  || record.attendance_status === 'checked_out' ? 'border-l-green-500' :
@@ -118,7 +126,7 @@ export default function AttendanceLivePage({ user }) {
   const { data, isLoading, dataUpdatedAt } = useLiveAttendance();
   const [overriding, setOverriding] = useState(null);
 
-  const records  = data?.data ?? [];
+  const records      = data?.data ?? [];
   const checkedIn    = records.filter(r => r.attendance_status === 'checked_in').length;
   const checkedOut   = records.filter(r => r.attendance_status === 'checked_out').length;
   const lateCount    = records.filter(r => r.in_status === 'late').length;
@@ -138,11 +146,11 @@ export default function AttendanceLivePage({ user }) {
 
       {/* Stat pills */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <StatPill label="Checked in"    count={checkedIn}  color="green" />
-        <StatPill label="Checked out"   count={checkedOut} color="blue"  />
-        <StatPill label="Late arrivals" count={lateCount}  color="amber" />
-        <StatPill label="Not checked in" count={notIn}     color="red"   />
-        <StatPill label="Auto clock-out" count={autoOut}   color="gray"  />
+        <StatPill label="Checked in"     count={checkedIn}  color="green" />
+        <StatPill label="Checked out"    count={checkedOut} color="blue"  />
+        <StatPill label="Late arrivals"  count={lateCount}  color="amber" />
+        <StatPill label="Not checked in" count={notIn}      color="red"   />
+        <StatPill label="Auto clock-out" count={autoOut}    color="gray"  />
       </div>
 
       {isLoading ? (
@@ -151,7 +159,6 @@ export default function AttendanceLivePage({ user }) {
         <div className="text-center py-16 text-slate-400 text-[13px]">No duty slots scheduled today.</div>
       ) : (
         <>
-          {/* Morning */}
           {records.filter(r => r.session_type === 'morning').length > 0 && (
             <div className="mb-6">
               <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
@@ -165,7 +172,6 @@ export default function AttendanceLivePage({ user }) {
             </div>
           )}
 
-          {/* Afternoon */}
           {records.filter(r => r.session_type === 'afternoon').length > 0 && (
             <div>
               <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">

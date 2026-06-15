@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
@@ -123,55 +124,62 @@ export default function UsersPage({ user }) {
   const [search,     setSearch]     = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
+  // Confirm-dialog states (replaces window.confirm)
+  const [deactivatingUser,  setDeactivatingUser]  = useState(null);
+  const [reactivatingUser,  setReactivatingUser]  = useState(null);
+  const [deletingUser,      setDeletingUser]      = useState(null);
+  const [cancellingInvite,  setCancellingInvite]  = useState(null);
+  const [resettingTelegram, setResettingTelegram] = useState(null);
+
   const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
   const { data: invitesData, isLoading: invitesLoading } = useInvites();
 
-  const createInvite         = useCreateInvite();
-  const deactivate           = useDeactivateUser();
-  const reactivate           = useReactivateUser();
-  const resetUserLogin       = useResetUserLogin();
-  const regenerateInvite     = useRegenerateInvite();
-  const cancelInvite         = useCancelInvite();
-  const deleteUser           = useDeleteUser();
+  const createInvite     = useCreateInvite();
+  const deactivate       = useDeactivateUser();
+  const reactivate       = useReactivateUser();
+  const resetUserLogin   = useResetUserLogin();
+  const regenerateInvite = useRegenerateInvite();
+  const cancelInvite     = useCancelInvite();
+  const deleteUser       = useDeleteUser();
 
-  async function handleDeactivate(u) {
-    if (!confirm(`Deactivate ${u.name}?`)) return;
+  async function handleDeactivate() {
     try {
-      await deactivate.mutateAsync(u.id);
-      toast({ message: `${u.name} deactivated.` });
+      await deactivate.mutateAsync(deactivatingUser.id);
+      toast({ message: `${deactivatingUser.name} deactivated.` });
+      setDeactivatingUser(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
   }
 
-  async function handleReactivate(u) {
-    if (!confirm(`Reactivate ${u.name}?`)) return;
+  async function handleReactivate() {
     try {
-      await reactivate.mutateAsync(u.id);
-      toast({ message: `${u.name} reactivated.` });
+      await reactivate.mutateAsync(reactivatingUser.id);
+      toast({ message: `${reactivatingUser.name} reactivated.` });
+      setReactivatingUser(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
   }
 
-  async function handleResetTelegram(u) {
-    if (!confirm(`Reset Telegram for ${u.name}? They will need to re-link via a new link.`)) return;
+  async function doResetTelegram() {
     try {
-      const response = await resetUserLogin.mutateAsync(u.id);
+      const response = await resetUserLogin.mutateAsync(resettingTelegram.id);
       if (response.data?.relink_link) {
         navigator.clipboard.writeText(response.data.relink_link).catch(() => {});
       }
-      toast({ message: `Relink link generated for ${u.name}. Copied to clipboard.` });
+      toast({ message: `Relink link generated for ${resettingTelegram.name}. Copied to clipboard.` });
+      setResettingTelegram(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
   }
 
-  async function handleDelete(u) {
-    if (!confirm(`Delete ${u.name}? This action cannot be undone.`)) return;
+  async function handleDelete() {
     try {
-      await deleteUser.mutateAsync(u.id);
-      toast({ message: `${u.name} deleted.` });
+      await deleteUser.mutateAsync(deletingUser.id);
+      toast({ message: `${deletingUser.name} deleted.` });
+      setDeletingUser(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed to delete user.', type: 'error' });
     }
@@ -189,11 +197,11 @@ export default function UsersPage({ user }) {
     }
   }
 
-  async function handleCancelInvite(inv) {
-    if (!confirm(`Cancel invite for ${inv.name}?`)) return;
+  async function handleCancelInvite() {
     try {
-      await cancelInvite.mutateAsync(inv.id);
-      toast({ message: `Invite for ${inv.name} cancelled.` });
+      await cancelInvite.mutateAsync(cancellingInvite.id);
+      toast({ message: `Invite for ${cancellingInvite.name} cancelled.` });
+      setCancellingInvite(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -206,7 +214,7 @@ export default function UsersPage({ user }) {
       <PageHeader
         title="User Management"
         subtitle="Manage faculty and admin accounts"
-        action={<Button onClick={() => setShowCreate(true)}>+ Invite User</Button>}
+        action={<Button size="sm" onClick={() => setShowCreate(true)}>+ Invite User</Button>}
       />
 
       {/* Filter bar */}
@@ -269,7 +277,7 @@ export default function UsersPage({ user }) {
               <Th />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {isLoading && <EmptyRow cols={6} message="Loading…" />}
             {!isLoading && !data?.data?.length && <EmptyRow cols={6} />}
             {data?.data?.map((u) => (
@@ -290,10 +298,10 @@ export default function UsersPage({ user }) {
                   <RowMenu
                     user={u}
                     userRole={user.role}
-                    onDeactivate={handleDeactivate}
-                    onReactivate={handleReactivate}
-                    onResetTelegram={handleResetTelegram}
-                    onDelete={handleDelete}
+                    onDeactivate={setDeactivatingUser}
+                    onReactivate={setReactivatingUser}
+                    onResetTelegram={setResettingTelegram}
+                    onDelete={setDeletingUser}
                   />
                 </Td>
               </tr>
@@ -308,9 +316,7 @@ export default function UsersPage({ user }) {
         border: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>
-          Active users
-        </span>
+        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Active users</span>
         <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
           {data?.data?.length ?? 0}
         </span>
@@ -337,14 +343,12 @@ export default function UsersPage({ user }) {
               <Th />
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {invitesLoading && <EmptyRow cols={5} message="Loading…" />}
             {!invitesLoading && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
             {invitesData?.data?.map((inv) => (
               <tr key={inv.id}>
-                <Td>
-                  <p className="font-medium text-slate-900">{inv.name}</p>
-                </Td>
+                <Td><p className="font-medium text-slate-900">{inv.name}</p></Td>
                 <Td>{inv.email}</Td>
                 <Td><Badge status={inv.role} label={inv.role.replace(/_/g, ' ')} /></Td>
                 <Td className="hidden sm:table-cell text-[12px] text-slate-600">
@@ -354,7 +358,7 @@ export default function UsersPage({ user }) {
                   <InviteRowMenu
                     invite={inv}
                     onRegenerate={handleRegenerateInvite}
-                    onCancel={handleCancelInvite}
+                    onCancel={setCancellingInvite}
                   />
                 </Td>
               </tr>
@@ -378,6 +382,65 @@ export default function UsersPage({ user }) {
         }}
         loading={createInvite.isPending}
       />
+
+      {deactivatingUser && (
+        <ConfirmDialog
+          open
+          title="Deactivate User"
+          message={`Deactivate ${deactivatingUser.name}?`}
+          confirmText="Deactivate"
+          isDangerous
+          isLoading={deactivate.isPending}
+          onConfirm={handleDeactivate}
+          onCancel={() => setDeactivatingUser(null)}
+        />
+      )}
+      {reactivatingUser && (
+        <ConfirmDialog
+          open
+          title="Reactivate User"
+          message={`Reactivate ${reactivatingUser.name}?`}
+          confirmText="Reactivate"
+          isLoading={reactivate.isPending}
+          onConfirm={handleReactivate}
+          onCancel={() => setReactivatingUser(null)}
+        />
+      )}
+      {deletingUser && (
+        <ConfirmDialog
+          open
+          title="Delete User"
+          message={`Delete ${deletingUser.name}? This action cannot be undone.`}
+          confirmText="Delete"
+          isDangerous
+          isLoading={deleteUser.isPending}
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingUser(null)}
+        />
+      )}
+      {cancellingInvite && (
+        <ConfirmDialog
+          open
+          title="Cancel Invite"
+          message={`Cancel invite for ${cancellingInvite.name}?`}
+          confirmText="Cancel Invite"
+          isDangerous
+          isLoading={cancelInvite.isPending}
+          onConfirm={handleCancelInvite}
+          onCancel={() => setCancellingInvite(null)}
+        />
+      )}
+      {resettingTelegram && (
+        <ConfirmDialog
+          open
+          title="Reset Telegram Login"
+          message={`Generate a new activation link for ${resettingTelegram.name}? They will need to re-link their Telegram account.`}
+          confirmText="Reset & Copy Link"
+          isLoading={resetUserLogin.isPending}
+          onConfirm={doResetTelegram}
+          onCancel={() => setResettingTelegram(null)}
+        />
+      )}
     </Layout>
   );
 }

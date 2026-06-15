@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
+import { Button } from '@mantine/core';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
@@ -64,11 +64,11 @@ export default function DashboardPage({ user }) {
               <Badge status={todaySlot.status} />
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Button size="default" icon={<span>📋</span>} onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}>
+              <Button size="md" leftSection={<span>📋</span>} onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}>
                 Check In / Out
               </Button>
               {canDoViolation && (
-                <Button variant="secondary" size="default" icon={<span>⚠️</span>} onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}>
+                <Button variant="default" size="md" leftSection={<span>⚠️</span>} onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}>
                   Record Violation
                 </Button>
               )}
@@ -113,7 +113,6 @@ export default function DashboardPage({ user }) {
 
       {/* ── 4. Upcoming duties + recent messages ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Upcoming duties */}
         <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', padding: 16 }}>
           <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 10 }}>
             Upcoming duties
@@ -135,7 +134,6 @@ export default function DashboardPage({ user }) {
             )}
         </div>
 
-        {/* Recent messages */}
         <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)' }}>
