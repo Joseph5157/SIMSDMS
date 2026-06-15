@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -106,6 +108,7 @@ function AppRoutes() {
 export default function App() {
   useEffect(() => {
     initializeTheme();
+    console.log('SIMS DMS build: mantine-migration -', new Date().toISOString());
   }, []);
 
   // Service worker disabled during active development to prevent stale cache issues
@@ -124,15 +127,21 @@ export default function App() {
   // }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ErrorBoundary>
-          <OfflineBanner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ErrorBoundary>
-      </ToastProvider>
-    </QueryClientProvider>
+    <MantineProvider
+      defaultColorScheme="light"
+      theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
+    >
+      <Notifications position="bottom-right" zIndex={9999} />
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <ErrorBoundary>
+            <OfflineBanner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </ErrorBoundary>
+        </ToastProvider>
+      </QueryClientProvider>
+    </MantineProvider>
   );
 }
