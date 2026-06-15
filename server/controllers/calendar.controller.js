@@ -24,6 +24,18 @@ function lastDayOfMonth(year, month) {
   return new Date(year, month, 0, 23, 59, 59, 999); // month is 1-based; day 0 = last day of prev month
 }
 
+// Derive working_days as every calendar date in the month minus blocked holidays
+function deriveWorkingDays(year, month, blockedDates) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const blocked = new Set(Array.isArray(blockedDates) ? blockedDates : []);
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (!blocked.has(dateStr)) days.push(dateStr);
+  }
+  return days;
+}
+
 // Find or create a CalendarConfig row — never leave the caller with null
 async function getOrCreateConfig(year, month) {
   const existing = await prisma.calendarConfig.findUnique({
@@ -82,6 +94,8 @@ async function openWindow(req, res) {
     });
   }
 
+  const workingDays = deriveWorkingDays(year, month, config.blocked_dates);
+
   config = await prisma.calendarConfig.update({
     where: { id: config.id },
     data: {
@@ -89,6 +103,7 @@ async function openWindow(req, res) {
       opened_by: req.user.id,
       opened_at: new Date(),
       closes_at: lastDayOfMonth(year, month),
+      working_days: workingDays,
     },
   });
 
@@ -158,9 +173,12 @@ async function updateBlockedDates(req, res) {
 
   const config = await getOrCreateConfig(year, month);
 
+  const newBlocked = req.body.blocked_dates;
+  const workingDays = deriveWorkingDays(year, month, newBlocked);
+
   const updated = await prisma.calendarConfig.update({
     where: { id: config.id },
-    data: { blocked_dates: req.body.blocked_dates },
+    data: { blocked_dates: newBlocked, working_days: workingDays },
   });
 
   await logAction({
