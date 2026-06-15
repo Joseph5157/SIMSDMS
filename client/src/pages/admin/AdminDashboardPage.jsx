@@ -10,10 +10,10 @@ import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
 
 const QUICK_ACTIONS = [
-  { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE },
-  { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS },
-  { label: 'Violations',      emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS },
-  { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS },
+  { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE,      tint: '#f0fdf4', ink: '#065f46' },
+  { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS,  tint: '#eff6ff', ink: '#1e40af' },
+  { label: 'Violations',      emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,      tint: '#fef2f2', ink: '#991b1b' },
+  { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: '#f5f3ff', ink: '#5b21b6' },
 ];
 
 export default function AdminDashboardPage({ user }) {
@@ -87,16 +87,18 @@ export default function AdminDashboardPage({ user }) {
             <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 12, padding: '12px 16px 8px', borderBottom: '1px solid var(--divider)' }}>
+              <div style={{ display: 'flex', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--divider)' }}>
                 {[
-                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)' },
-                  { n: checkedIn,     label: 'In',     color: 'var(--brand)' },
-                  { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)' },
-                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)' }] : []),
+                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: '#f0fdf4' },
+                  { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: '#eff6ff' },
+                  { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
+                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: '#fffbeb' }] : []),
                 ].map((item) => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-extra)', color: item.color }}>{item.n}</span>
-                    <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>{item.label}</span>
+                  <div key={item.label} style={{
+                    flex: 1, background: item.tint, borderRadius: 12, padding: '10px 8px', textAlign: 'center',
+                  }}>
+                    <p style={{ fontSize: 22, fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 4 }}>{item.label}</p>
                   </div>
                 ))}
               </div>
@@ -207,25 +209,31 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Quick actions ── */}
       <div>
-        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 8 }}>
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 10 }}>
           Quick actions
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {QUICK_ACTIONS.map((item) => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, minHeight: 'var(--control-min)',
+                display: 'flex', alignItems: 'center', gap: 12, minHeight: 'var(--control-min)',
                 backgroundColor: 'var(--surface-card)', border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)', padding: '12px 14px',
+                borderRadius: 16, padding: '14px 14px',
                 cursor: 'pointer', textAlign: 'left', transition: `all var(--dur-fast)`,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--color-blue-200)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-blue-200)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >
-              <span style={{ fontSize: 20 }}>{item.emoji}</span>
-              <span style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-secondary)' }}>{item.label}</span>
+              <span style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: item.tint, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 19,
+              }}>
+                {item.emoji}
+              </span>
+              <span style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>{item.label}</span>
             </button>
           ))}
         </div>
