@@ -1,5 +1,5 @@
 import Layout, { PageHeader, Card, CardBody } from '../../components/Layout';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
 import { useToast } from '../../components/ui/Toast';
@@ -50,7 +50,7 @@ function SlotAttendanceCard({ slot }) {
               <Button size="sm" onClick={handleIn} loading={checkIn.isPending}>Check In</Button>
             )}
             {att?.in_time && !att?.out_time && (
-              <Button size="sm" variant="secondary" onClick={handleOut} loading={checkOut.isPending}>Check Out</Button>
+              <Button size="sm" variant="default" onClick={handleOut} loading={checkOut.isPending}>Check Out</Button>
             )}
           </div>
         </div>
@@ -64,10 +64,10 @@ export default function AttendancePage({ user }) {
   const { data } = useMonthSlots(now.getFullYear(), now.getMonth() + 1);
   const slots = data?.data ?? [];
 
-  const todayStr = now.toISOString().slice(0,10);
-  const today    = slots.filter(s => new Date(s.duty_date).toISOString().slice(0,10) === todayStr);
+  const todayStr = now.toISOString().slice(0, 10);
+  const today    = slots.filter(s => new Date(s.duty_date).toISOString().slice(0, 10) === todayStr);
   const upcoming = slots.filter(s => new Date(s.duty_date) > now);
-  const past     = slots.filter(s => new Date(s.duty_date) < now && new Date(s.duty_date).toISOString().slice(0,10) !== todayStr);
+  const past     = slots.filter(s => new Date(s.duty_date) < now && new Date(s.duty_date).toISOString().slice(0, 10) !== todayStr);
 
   function renderGroup(label, group) {
     if (!group.length) return null;

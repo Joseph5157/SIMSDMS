@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import Button from '../../components/ui/Button';
+import { Button, TextInput, Select, NumberInput } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
-import Modal from '../../components/ui/Modal';
-import Input from '../../components/ui/Input';
+import FormModal from '../../components/ui/FormModal';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import { useCalendar, useOpenWindow, useCloseWindow, useUpdateBlockedDates, useUpdateSessionsPerFaculty, useUnassignedFaculty, useAssignSlots } from '../../hooks/useCalendar';
@@ -14,23 +14,110 @@ function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+function AssignSlotsModal({ faculty, year, month, onClose }) {
+  const toast = useToast();
+  const assign = useAssignSlots(year, month);
+  const [slots, setSlots] = useState([{ duty_date: '', session_type: 'morning' }]);
+
+  function addSlot() { setSlots((s) => [...s, { duty_date: '', session_type: 'morning' }]); }
+  function updateSlot(i, k, v) { setSlots((s) => s.map((x, j) => j === i ? { ...x, [k]: v } : x)); }
+  function removeSlot(i) { setSlots((s) => s.filter((_, j) => j !== i)); }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    try {
+      const res = await assign.mutateAsync({ facultyId: faculty.id, slots });
+      toast({ message: `${res.data.created_count} slot(s) assigned.` });
+      onClose();
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  return (
+    <FormModal
+      opened={!!faculty}
+      onClose={onClose}
+      title={`Assign Slots — ${faculty?.name}`}
+      onSubmit={handleSubmit}
+      submitLabel="Assign"
+      loading={assign.isPending}
+    >
+      {slots.map((s, i) => (
+        <div key={i} className="flex gap-2 items-end">
+          <TextInput
+            label={i === 0 ? 'Date' : ''}
+            type="date"
+            value={s.duty_date}
+            onChange={(e) => updateSlot(i, 'duty_date', e.target.value)}
+            required
+            style={{ flex: 1 }}
+          />
+          <Select
+            label={i === 0 ? 'Session' : ''}
+            value={s.session_type}
+            onChange={(value) => updateSlot(i, 'session_type', value ?? 'morning')}
+            data={[
+              { value: 'morning',   label: 'Morning' },
+              { value: 'afternoon', label: 'Afternoon' },
+            ]}
+            style={{ flex: 1 }}
+          />
+          {slots.length > 1 && (
+            <Button type="button" variant="subtle" size="xs" onClick={() => removeSlot(i)}
+              style={{ marginBottom: 1 }}>✕</Button>
+          )}
+        </div>
+      ))}
+      <Button type="button" variant="subtle" size="sm" onClick={addSlot}>+ Add slot</Button>
+    </FormModal>
+  );
+}
+
+function SetSessionsModal({ currentValue, onClose, onSave, loading }) {
+  const [value, setValue] = useState(typeof currentValue === 'number' ? currentValue : 3);
+  return (
+    <FormModal
+      opened
+      onClose={onClose}
+      title="Sessions Per Faculty"
+      size="xs"
+      onSubmit={(e) => { e.preventDefault(); onSave(typeof value === 'number' ? value : 3); }}
+      submitLabel="Save"
+      loading={loading}
+    >
+      <NumberInput
+        label="Sessions per faculty"
+        description="Duty slots each faculty must pick this month"
+        min={1}
+        max={20}
+        allowDecimal={false}
+        value={value}
+        onChange={(v) => setValue(v)}
+        required
+      />
+    </FormModal>
+  );
+}
+
 export default function CalendarPage({ user }) {
   const toast = useToast();
   const now = new Date();
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [showAssign, setShowAssign] = useState(null);
+  const [showAssign,      setShowAssign]      = useState(null);
+  const [closingWindow,   setClosingWindow]   = useState(false);
+  const [showSetSessions, setShowSetSessions] = useState(false);
 
   const { data: config, isLoading } = useCalendar(year, month);
   const { data: unassigned }        = useUnassignedFaculty(year, month);
 
-  const openWindow   = useOpenWindow(year, month);
-  const closeWindow  = useCloseWindow(year, month);
-  const updateDates  = useUpdateBlockedDates(year, month);
+  const openWindow     = useOpenWindow(year, month);
+  const closeWindow    = useCloseWindow(year, month);
+  const updateDates    = useUpdateBlockedDates(year, month);
   const updateSessions = useUpdateSessionsPerFaculty(year, month);
 
   const blocked = Array.isArray(config?.blocked_dates) ? config.blocked_dates : [];
-  const working = Array.isArray(config?.working_days)  ? config.working_days  : [];
 
   function fmtDate(d) {
     return `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -44,24 +131,29 @@ export default function CalendarPage({ user }) {
     });
   }
 
-  function toggleWorking(d) {
-    const key = fmtDate(d);
-    const updated = working.includes(key) ? working.filter(x => x !== key) : [...working, key];
-    // working_days uses blocked-dates endpoint but for working_days we need a separate call
-    // actually they're separate fields — but we don't have a working_days update endpoint.
-    // Working days are set via blocked-dates toggle — let's just track blocked only per the schema.
-    toast({ message: 'Working days are managed via the blocked dates. Toggle blocked to exclude a day.', type: 'error' });
-  }
-
   async function handleOpen() {
     try { await openWindow.mutateAsync(); toast({ message: 'Window opened. Faculty notified via Telegram.' }); }
     catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
   }
 
-  async function handleClose() {
-    if (!confirm('Close the scheduling window?')) return;
-    try { await closeWindow.mutateAsync(); toast({ message: 'Window closed.' }); }
-    catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
+  async function doClose() {
+    try {
+      await closeWindow.mutateAsync();
+      toast({ message: 'Window closed.' });
+      setClosingWindow(false);
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  async function handleSetSessions(value) {
+    try {
+      await updateSessions.mutateAsync(value);
+      toast({ message: 'Updated.' });
+      setShowSetSessions(false);
+    } catch {
+      toast({ message: 'Failed.', type: 'error' });
+    }
   }
 
   const days = Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1);
@@ -97,11 +189,8 @@ export default function CalendarPage({ user }) {
             <div className="flex gap-2 ml-auto">
               {!config?.is_window_open
                 ? <Button size="sm" onClick={handleOpen} loading={openWindow.isPending}>Open Window</Button>
-                : <Button size="sm" variant="danger" onClick={handleClose} loading={closeWindow.isPending}>Close Window</Button>}
-              <Button size="sm" variant="secondary" onClick={() => {
-                const n = prompt('Sessions per faculty:', config?.sessions_per_faculty ?? 3);
-                if (n && !isNaN(n)) updateSessions.mutate(+n, { onSuccess: () => toast({ message: 'Updated.' }), onError: () => toast({ message: 'Failed.', type: 'error' }) });
-              }}>Set Sessions</Button>
+                : <Button size="sm" color="red" onClick={() => setClosingWindow(true)}>Close Window</Button>}
+              <Button size="sm" variant="default" onClick={() => setShowSetSessions(true)}>Set Sessions</Button>
             </div>
           </div>
 
@@ -159,18 +248,22 @@ export default function CalendarPage({ user }) {
 
           {/* Unassigned faculty */}
           {unassigned?.data?.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 mt-6">
               <p className="text-sm font-medium text-slate-700 mb-3">Unassigned faculty ({unassigned.total})</p>
               <Table>
-                <thead><tr><Th>Name</Th><Th>Dept.</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr></thead>
-                <tbody className="divide-y divide-slate-100">
+                <thead>
+                  <tr><Th>Name</Th><Th>Dept.</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr>
+                </thead>
+                <tbody>
                   {unassigned.data.map((f) => (
                     <tr key={f.id}>
                       <Td className="font-medium">{f.name}</Td>
                       <Td>{f.department ?? '—'}</Td>
                       <Td>{f.slots_picked}</Td>
                       <Td>{f.slots_required}</Td>
-                      <Td><Button size="sm" variant="secondary" onClick={() => setShowAssign(f)}>Assign Slots</Button></Td>
+                      <Td>
+                        <Button size="xs" variant="default" onClick={() => setShowAssign(f)}>Assign Slots</Button>
+                      </Td>
                     </tr>
                   ))}
                 </tbody>
@@ -187,50 +280,28 @@ export default function CalendarPage({ user }) {
           onClose={() => setShowAssign(null)}
         />
       )}
+
+      {closingWindow && (
+        <ConfirmDialog
+          open
+          title="Close Scheduling Window"
+          message="Faculty will no longer be able to pick or change duty slots for this month."
+          confirmText="Close Window"
+          isDangerous
+          isLoading={closeWindow.isPending}
+          onConfirm={doClose}
+          onCancel={() => setClosingWindow(false)}
+        />
+      )}
+
+      {showSetSessions && (
+        <SetSessionsModal
+          currentValue={config?.sessions_per_faculty ?? 3}
+          onClose={() => setShowSetSessions(false)}
+          onSave={handleSetSessions}
+          loading={updateSessions.isPending}
+        />
+      )}
     </Layout>
-  );
-}
-
-function AssignSlotsModal({ faculty, year, month, onClose }) {
-  const toast = useToast();
-  const assign = useAssignSlots(year, month);
-  const [slots, setSlots] = useState([{ duty_date: '', session_type: 'morning' }]);
-
-  function addSlot() { setSlots((s) => [...s, { duty_date: '', session_type: 'morning' }]); }
-  function updateSlot(i, k, v) { setSlots((s) => s.map((x, j) => j === i ? { ...x, [k]: v } : x)); }
-  function removeSlot(i) { setSlots((s) => s.filter((_, j) => j !== i)); }
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      const res = await assign.mutateAsync({ facultyId: faculty.id, slots });
-      toast({ message: `${res.data.created_count} slot(s) assigned.` });
-      onClose();
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    }
-  }
-
-  return (
-    <Modal open onClose={onClose} title={`Assign Slots — ${faculty.name}`}>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        {slots.map((s, i) => (
-          <div key={i} className="flex gap-2 items-end">
-            <Input label={i === 0 ? 'Date' : ''} type="date" value={s.duty_date} onChange={(e) => updateSlot(i, 'duty_date', e.target.value)} required />
-            <select value={s.session_type} onChange={(e) => updateSlot(i, 'session_type', e.target.value)}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white">
-              <option value="morning">Morning</option>
-              <option value="afternoon">Afternoon</option>
-            </select>
-            {slots.length > 1 && <Button type="button" variant="ghost" size="sm" onClick={() => removeSlot(i)}>✕</Button>}
-          </div>
-        ))}
-        <Button type="button" variant="ghost" size="sm" onClick={addSlot}>+ Add slot</Button>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
-          <Button type="submit" loading={assign.isPending}>Assign</Button>
-        </div>
-      </form>
-    </Modal>
   );
 }

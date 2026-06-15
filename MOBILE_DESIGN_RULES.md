@@ -1,3 +1,22 @@
+⚠️  ARCHIVED — SUPERSEDED BY MANTINE MIGRATION (June 2026)
+════════════════════════════════════════════════════════════
+This document described the pre-Mantine Tailwind-only UI system.
+ALL patterns below are obsolete:
+  - MobileCard with inline styles → use Mantine's Card or the established
+    md:hidden card-list / md:block table split (already in every page)
+  - Bottom tab bar (pb-20, 60px) → removed; Mantine AppShell sidebar handles nav
+  - Hardcoded colors (#2563eb, #0f172a, etc.) → use CSS variables (var(--text-primary) etc.)
+    or Mantine's theme tokens
+  - Custom Button/Input/Table/Modal components → replaced by @mantine/core equivalents
+  - window.confirm / window.prompt → replaced by ConfirmDialog / FormModal from ui/
+  - SectionHeader / EmptyState function components → use Mantine Text + EmptyState from ui/
+
+Current patterns live in:
+  - client/src/components/ui/   (FormModal, ConfirmDialog, Table, Badge, etc.)
+  - client/src/components/Layout.jsx  (AppShell, PageHeader, Card, CardBody)
+  - Phase 2–3d migration history in git log on branch mantine-migration
+════════════════════════════════════════════════════════════
+
 Before making any frontend changes, read and follow these rules:
 
 RULE 1 — MOBILE LAYOUT PRIORITY

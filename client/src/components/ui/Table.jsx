@@ -1,51 +1,92 @@
-export function Table({ children, className = '' }) {
+/**
+ * Table — thin Mantine wrappers with same export names as the deleted Table.jsx.
+ * This is the reference pattern for all Phase 3 page migrations.
+ *
+ * Mobile strategy: Table.ScrollContainer for horizontal scroll (the default for
+ * pages with no explicit card-list layout). Pages that already have a
+ * md:hidden / md:block card-list split can keep that — wrap only the desktop
+ * table half with this Table component.
+ *
+ * Exports: Table, Th, Td, Tr, EmptyRow  (same names as before)
+ */
+import { Table as MTable, Paper, Text, Center, Stack } from '@mantine/core';
+
+/** Outer card shell + horizontal scroll container. */
+export function Table({ children, minWidth = 500 }) {
   return (
-    <div className={`overflow-x-auto rounded-lg border border-slate-200 shadow-card bg-white ${className}`}>
-      <table className="min-w-full divide-y divide-slate-100">
-        {children}
-      </table>
-    </div>
+    <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
+      <MTable.ScrollContainer minWidth={minWidth}>
+        <MTable striped={false} highlightOnHover={false} withRowBorders={false}>
+          {children}
+        </MTable>
+      </MTable.ScrollContainer>
+    </Paper>
   );
 }
 
-export function Th({ children, className = '' }) {
+/** Header cell — 10px uppercase, muted, slate-50 background. */
+export function Th({ children, className }) {
   return (
-    <th className={`text-[10px] font-bold text-slate-400 uppercase tracking-[0.08em] bg-slate-50 px-4 py-3 text-left whitespace-nowrap ${className}`}>
-      {children}
-    </th>
-  );
-}
-
-export function Td({ children, className = '' }) {
-  return (
-    <td className={`text-[13px] text-slate-700 px-4 py-3 border-b border-divider last:border-0 ${className}`}>
-      {children}
-    </td>
-  );
-}
-
-export function Tr({ children, className = '', onClick }) {
-  return (
-    <tr
-      onClick={onClick}
-      className={`transition-colors duration-100 ${
-        onClick ? 'cursor-pointer hover:bg-blue-50/50 active:bg-blue-50' : 'hover:bg-slate-50/50'
-      } ${className}`}
+    <MTable.Th
+      className={className}
+      style={{
+        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+        letterSpacing: '0.08em', color: 'var(--slate-400)',
+        backgroundColor: 'var(--surface-page)', whiteSpace: 'nowrap',
+        padding: '10px 16px',
+      }}
     >
       {children}
-    </tr>
+    </MTable.Th>
   );
 }
 
-export function EmptyRow({ cols, message = 'No records found.' }) {
+/** Data cell — 13px slate-700, bottom border for row dividers. */
+export function Td({ children, className }) {
   return (
-    <tr>
-      <td colSpan={cols} className="py-14 text-center">
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-3xl opacity-40">📭</span>
-          <span className="text-[13px] text-slate-400">{message}</span>
-        </div>
-      </td>
-    </tr>
+    <MTable.Td
+      className={className}
+      style={{
+        fontSize: 13, color: 'var(--slate-700)',
+        padding: '10px 16px',
+        borderBottom: '1px solid var(--divider)',
+      }}
+    >
+      {children}
+    </MTable.Td>
   );
 }
+
+/** Row — use for clickable rows (passes onClick + cursor). */
+export function Tr({ children, onClick, className }) {
+  return (
+    <MTable.Tr
+      onClick={onClick}
+      className={className}
+      style={{
+        cursor: onClick ? 'pointer' : undefined,
+        transition: onClick ? 'background-color 100ms' : undefined,
+      }}
+    >
+      {children}
+    </MTable.Tr>
+  );
+}
+
+/** Empty / loading row — centred 📭 + message, spans all columns. */
+export function EmptyRow({ cols, message = 'No records found.' }) {
+  return (
+    <MTable.Tr>
+      <MTable.Td colSpan={cols} style={{ padding: 0, borderBottom: 'none' }}>
+        <Center py="xl">
+          <Stack align="center" gap="xs">
+            <Text style={{ fontSize: 32, opacity: 0.4, lineHeight: 1 }}>📭</Text>
+            <Text size="sm" c="dimmed">{message}</Text>
+          </Stack>
+        </Center>
+      </MTable.Td>
+    </MTable.Tr>
+  );
+}
+
+export default Table;

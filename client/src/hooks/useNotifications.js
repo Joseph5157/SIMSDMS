@@ -90,6 +90,7 @@ export function useMarkAsRead() {
 
   const markAsRead = async (notificationId) => {
     try {
+      // TODO: backend route doesn't exist yet — /api/notifications/:id/read (PATCH)
       await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PATCH',
       });
@@ -117,6 +118,7 @@ export function useDeleteNotification() {
 
   const deleteNotification = async (notificationId) => {
     try {
+      // TODO: backend route doesn't exist yet — /api/notifications/:id (DELETE)
       await fetch(`/api/notifications/${notificationId}`, {
         method: 'DELETE',
       });

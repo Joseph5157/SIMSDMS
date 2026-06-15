@@ -1,80 +1,223 @@
-import Sidebar from './Sidebar';
-import NotificationBell from './NotificationBell';
+import { useState } from 'react';
+import { NavLink as RouterNavLink } from 'react-router-dom';
+import {
+  AppShell, Burger, Group, Box, Text, Stack, Divider,
+  UnstyledButton, Avatar, Title, Paper,
+} from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
+import {
+  IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
+  IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
+  IconTag, IconArrowsLeftRight, IconMail, IconChartBar,
+  IconBolt, IconKey, IconFileText, IconLogout,
+} from '@tabler/icons-react';
+import { useLogout } from '../hooks/useAuth';
+import { ROUTES, ROLES } from '../utils/constants';
+import classes from './Layout.module.css';
 
-export default function Layout({ user, children }) {
+// ── Nav link definitions ───────────────────────────────────────────────────────
+
+const adminLinks = [
+  { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',       Icon: IconLayoutDashboard },
+  { to: ROUTES.ADMIN_USERS,           label: 'Users',           Icon: IconUsers },
+  { to: ROUTES.ADMIN_STUDENTS,        label: 'Students',        Icon: IconSchool },
+  { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',        Icon: IconCalendar },
+  { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',      Icon: IconCalendarEvent },
+  { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',      Icon: IconClipboardCheck },
+  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Violations',      Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Viol. Types',     Icon: IconTag },
+  { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',  Icon: IconArrowsLeftRight },
+  { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',        Icon: IconMail },
+  { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',         Icon: IconChartBar },
+];
+
+const facultyLinks = [
+  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',      Icon: IconLayoutDashboard },
+  { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',       Icon: IconCalendarEvent },
+  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',     Icon: IconClipboardCheck },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations',     Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests', Icon: IconArrowsLeftRight },
+  { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',       Icon: IconMail },
+];
+
+const superAdminExtra = [
+  { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard', Icon: IconBolt },
+  { to: ROUTES.SUPER_ADMIN_SESSIONS,  label: 'Sessions',     Icon: IconKey },
+  { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',   Icon: IconFileText },
+];
+
+function getLinks(role) {
+  if (role === ROLES.FACULTY)     return facultyLinks;
+  if (role === ROLES.SUPER_ADMIN) return [...adminLinks, ...superAdminExtra];
+  return adminLinks;
+}
+
+function getRoleLabel(role) {
+  if (role === ROLES.SUPER_ADMIN) return 'Super Admin';
+  if (role === ROLES.ADMIN)       return 'Admin Panel';
+  if (role === ROLES.FACULTY)     return 'Faculty Portal';
+  return '';
+}
+
+function getInitials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+// ── Sidebar nav link ───────────────────────────────────────────────────────────
+
+function NavItem({ to, label, Icon, onClick }) {
   return (
-    <div className="flex h-dvh bg-slate-50 overflow-hidden">
-      <Sidebar user={user} />
-      <main
-        className="flex-1 overflow-y-auto h-full relative"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div className="page-content">
-          {/* Header bar with notification bell - inline with content */}
-          <div style={{
-            position: 'sticky',
-            top: 0,
-            right: 0,
-            marginBottom: '12px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            backgroundColor: 'var(--surface-page)',
-            zIndex: 30,
-            pointerEvents: 'none',
-            paddingBottom: '8px',
-          }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <NotificationBell />
-            </div>
-          </div>
-          {children}
-        </div>
-      </main>
-    </div>
+    <RouterNavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `${classes.navItem} ${isActive ? classes.navItemActive : ''}`
+      }
+    >
+      <Icon size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      <span>{label}</span>
+    </RouterNavLink>
   );
 }
+
+// ── Layout ─────────────────────────────────────────────────────────────────────
+
+export default function Layout({ user, children }) {
+  const [opened, { toggle, close }] = useDisclosure(false);
+  const logout = useLogout();
+  const links = getLinks(user?.role);
+
+  const sidebar = (
+    <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
+      {/* Brand */}
+      <Box className={classes.brand}>
+        <Group gap={8} wrap="nowrap">
+          <Box className={classes.brandMark}>🎓</Box>
+          <Text fw={700} size="sm" c="white" style={{ letterSpacing: '-0.01em' }}>
+            SIMS DMS
+          </Text>
+        </Group>
+        <Text size="xs" c="dimmed" mt={2} pl={36}>
+          {getRoleLabel(user?.role)}
+        </Text>
+      </Box>
+
+      <Divider color="rgba(255,255,255,0.08)" />
+
+      {/* Nav links */}
+      <Stack gap={2} p={8} style={{ flex: 1, overflowY: 'auto' }}>
+        {links.map((link) => (
+          <NavItem key={link.to} {...link} onClick={close} />
+        ))}
+      </Stack>
+
+      <Divider color="rgba(255,255,255,0.08)" />
+
+      {/* User block */}
+      <Box p={10}>
+        <Group gap={8} mb={6} px={4}>
+          <Avatar size={28} radius="xl" color="blue" style={{ flexShrink: 0 }}>
+            {getInitials(user?.name)}
+          </Avatar>
+          <Text size="xs" fw={600} c="gray.3" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.name}
+          </Text>
+        </Group>
+        <UnstyledButton
+          onClick={() => logout.mutate()}
+          className={classes.logoutBtn}
+        >
+          <IconLogout size={13} strokeWidth={2} />
+          Log out
+        </UnstyledButton>
+      </Box>
+    </Stack>
+  );
+
+  return (
+    <AppShell
+      navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+      header={{ height: 52, collapsed: { desktop: true } }}
+      padding={0}
+    >
+      {/* Mobile-only header */}
+      <AppShell.Header hiddenFrom="sm" style={{ backgroundColor: 'var(--surface-sidebar)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <Group h="100%" px="md" gap="sm">
+          <Burger opened={opened} onClick={toggle} size="sm" color="white" />
+          <Box className={classes.brandMark} style={{ width: 24, height: 24, fontSize: 12 }}>🎓</Box>
+          <Text fw={700} size="sm" c="white">SIMS DMS</Text>
+        </Group>
+      </AppShell.Header>
+
+      {/* Sidebar */}
+      <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+        {sidebar}
+      </AppShell.Navbar>
+
+      {/* Main content */}
+      <AppShell.Main
+        style={{
+          backgroundColor: 'var(--surface-page)',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          minHeight: '100dvh',
+        }}
+      >
+        <div className="page-content">
+          {children}
+        </div>
+      </AppShell.Main>
+    </AppShell>
+  );
+}
+
+// ── Shared layout exports (backward-compat for unmigrated pages) ───────────────
 
 export function PageHeader({ title, subtitle, action }) {
   return (
-    <div
-      className="flex items-center justify-between gap-3 mb-6 pb-4"
+    <Group justify="space-between" align="flex-start" mb="lg" pb="md"
       style={{ borderBottom: '1px solid var(--border)', minWidth: 0 }}
     >
-      <div className="min-w-0 flex-1">
-        <h1 className="text-lg font-bold text-slate-900 truncate leading-tight">
+      <Box style={{ minWidth: 0, flex: 1 }}>
+        <Title order={2} style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3 }} lineClamp={1}>
           {title}
-        </h1>
+        </Title>
         {subtitle && (
-          <p className="text-xs text-slate-400 mt-0.5 truncate">{subtitle}</p>
+          <Text size="xs" c="dimmed" mt={2} lineClamp={1}>{subtitle}</Text>
         )}
-      </div>
-      {action && <div className="shrink-0">{action}</div>}
-    </div>
+      </Box>
+      {action && <Box style={{ flexShrink: 0 }}>{action}</Box>}
+    </Group>
   );
 }
 
-/* ── Section card ── */
 export function Card({ children, className = '' }) {
   return (
-    <div className={`card overflow-hidden ${className}`}>
+    <Paper withBorder radius="md" style={{ overflow: 'hidden' }} className={className}>
       {children}
-    </div>
+    </Paper>
   );
 }
 
 export function CardHeader({ children, action }) {
   return (
-    <div className="card-header flex items-center justify-between gap-2">
-      <p className="text-[13px] font-semibold text-slate-700">{children}</p>
-      {action}
-    </div>
+    <Box
+      px="md" py="sm"
+      style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-page)' }}
+    >
+      <Group justify="space-between" gap="sm">
+        <Text size="sm" fw={600} c="gray.7">{children}</Text>
+        {action}
+      </Group>
+    </Box>
   );
 }
 
 export function CardBody({ children, className = '' }) {
   return (
-    <div className={`p-4 ${className}`}>
+    <Box p="md" className={className}>
       {children}
-    </div>
+    </Box>
   );
 }

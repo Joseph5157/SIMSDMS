@@ -1,6 +1,22 @@
 # SIMS DMS — Mobile UI Fixes
 # Based on actual mobile screenshots (June 8, 2026)
 
+⚠️  APPLIED & ARCHIVED — All 10 fixes incorporated during Mantine migration (Phase 2–3d, June 2026)
+════════════════════════════════════════════════════════════
+Fix status:
+  Fix 1  (hamburger / PageHeader overlap)  → APPLIED — PageHeader now uses Mantine Group+Title
+  Fix 2  (table cell padding / whitespace)  → APPLIED — Table.jsx rebuilt on Mantine; scroll handled by Table.ScrollContainer
+  Fix 3  (UsersPage column hiding)         → APPLIED — hidden sm:table-cell / hidden md:table-cell already in UsersPage
+  Fix 4  (StudentsPage column hiding)      → APPLIED — same pattern applied
+  Fix 5  (ViolationsPage Faculty column)   → APPLIED — hidden md:table-cell in ViolationsPage
+  Fix 6  (DutySlotsPage UUID bug)          → APPLIED — coveredBy?.name with fallback already in DutySlotsPage
+  Fix 7  (ViolationTypes flex-wrap)        → APPLIED — flex flex-wrap gap-1 on action buttons
+  Fix 8  (AttendanceLivePage grid)         → APPLIED — grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+  Fix 9  (LoginPage vertical centering)   → needs verification against current LoginPage
+  Fix 10 (Sidebar.jsx mt-8 → mt-10)       → REPLACED — Sidebar.jsx deleted; AppShell handles nav
+════════════════════════════════════════════════════════════
+
+
 ---
 
 ## What to tell Claude Code (paste this entire message):

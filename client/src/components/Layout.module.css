@@ -1,0 +1,67 @@
+/* ── Brand mark tile ── */
+.brandMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--brand-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.brand {
+  padding: 14px 12px 12px;
+}
+
+/* ── Sidebar nav link ── */
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8; /* --color-sidebar-text */
+  text-decoration: none;
+  transition: background-color 150ms ease, color 150ms ease;
+  line-height: 1;
+}
+
+.navItem:hover {
+  background-color: #1e293b; /* --surface-sidebar-hover */
+  color: #f1f5f9;
+}
+
+.navItemActive {
+  background-color: #2563eb; /* --brand */
+  color: #ffffff !important;
+}
+
+.navItemActive:hover {
+  background-color: #1d4ed8; /* --brand-hover */
+}
+
+/* ── Logout button ── */
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fecaca; /* --color-red-tint */
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  transition: background-color 150ms ease, color 150ms ease;
+  cursor: pointer;
+}
+
+.logoutBtn:hover {
+  background-color: #ef4444;
+  color: #ffffff;
+}
