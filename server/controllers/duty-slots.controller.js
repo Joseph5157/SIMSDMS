@@ -81,7 +81,13 @@ async function getAvailableSlots(req, res) {
   const workingDays = Array.isArray(config.working_days) ? config.working_days : [];
 
   if (workingDays.length === 0) {
-    return res.json({ data: [], total: 0 });
+    return res.json({
+      data: [],
+      total: 0,
+      sessions_per_faculty: config.sessions_per_faculty,
+      slots_picked: 0,
+      slots_remaining: config.sessions_per_faculty,
+    });
   }
 
   const takenSlots = await prisma.dutySlot.findMany({
