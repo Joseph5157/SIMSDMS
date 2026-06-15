@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { NavLink as RouterNavLink } from 'react-router-dom';
 import {
-  AppShell, Burger, Group, Box, Text, Stack, Divider,
+  AppShell, Drawer, Group, Box, Text, Stack, Divider,
   UnstyledButton, Avatar, Title, Paper,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -9,7 +8,7 @@ import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
   IconTag, IconArrowsLeftRight, IconMail, IconChartBar,
-  IconBolt, IconKey, IconFileText, IconLogout,
+  IconBolt, IconKey, IconFileText, IconLogout, IconMenu2,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
 import { ROUTES, ROLES } from '../utils/constants';
@@ -52,27 +51,28 @@ function getLinks(role) {
   return adminLinks;
 }
 
-// ── Bottom tab bar (mobile only) ───────────────────────────────────────────────
+// ── Bottom tab bar (mobile only) — 4 pinned routes + Menu ─────────────────────
 
 const facultyBottomTabs = [
-  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Home',       Icon: IconLayoutDashboard },
-  { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',      Icon: IconCalendarEvent },
-  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attend',     Icon: IconClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations', Icon: IconAlertTriangle },
-  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover',      Icon: IconArrowsLeftRight },
+  { to: ROUTES.FACULTY_DASHBOARD,  label: 'Home',    Icon: IconLayoutDashboard },
+  { to: ROUTES.FACULTY_SLOTS,      label: 'Slots',   Icon: IconCalendarEvent },
+  { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attend',  Icon: IconClipboardCheck },
+  { to: ROUTES.FACULTY_VIOLATIONS, label: 'Violat.', Icon: IconAlertTriangle },
 ];
 
 const adminBottomTabs = [
-  { to: ROUTES.ADMIN_DASHBOARD,    label: 'Home',       Icon: IconLayoutDashboard },
-  { to: ROUTES.ADMIN_STUDENTS,     label: 'Students',   Icon: IconSchool },
-  { to: ROUTES.ADMIN_VIOLATIONS,   label: 'Violations', Icon: IconAlertTriangle },
-  { to: ROUTES.ADMIN_ATTENDANCE,   label: 'Live',       Icon: IconClipboardCheck },
+  { to: ROUTES.ADMIN_DASHBOARD,   label: 'Home',       Icon: IconLayoutDashboard },
+  { to: ROUTES.ADMIN_STUDENTS,    label: 'Students',   Icon: IconSchool },
+  { to: ROUTES.ADMIN_VIOLATIONS,  label: 'Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_ATTENDANCE,  label: 'Live',       Icon: IconClipboardCheck },
 ];
 
 function getBottomTabs(role) {
   if (role === ROLES.FACULTY) return facultyBottomTabs;
   return adminBottomTabs;
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function getRoleLabel(role) {
   if (role === ROLES.SUPER_ADMIN) return 'Super Admin';
@@ -106,12 +106,12 @@ function NavItem({ to, label, Icon, onClick }) {
 // ── Layout ─────────────────────────────────────────────────────────────────────
 
 export default function Layout({ user, children }) {
-  const [opened, { toggle, close }] = useDisclosure(false);
-  const logout = useLogout();
+  const [navOpened, { open: openNav, close: closeNav }] = useDisclosure(false);
+  const logout     = useLogout();
   const links      = getLinks(user?.role);
   const bottomTabs = getBottomTabs(user?.role);
 
-  const sidebar = (
+  const sidebarContent = (
     <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
       {/* Brand */}
       <Box className={classes.brand}>
@@ -131,7 +131,7 @@ export default function Layout({ user, children }) {
       {/* Nav links */}
       <Stack gap={2} p={8} style={{ flex: 1, overflowY: 'auto' }}>
         {links.map((link) => (
-          <NavItem key={link.to} {...link} onClick={close} />
+          <NavItem key={link.to} {...link} onClick={closeNav} />
         ))}
       </Stack>
 
@@ -159,78 +159,102 @@ export default function Layout({ user, children }) {
   );
 
   return (
-    <AppShell
-      navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-      header={{ height: 52, collapsed: { desktop: true } }}
-      footer={{ height: 60, collapsed: { desktop: true } }}
-      padding={0}
-    >
-      {/* Mobile-only header */}
-      <AppShell.Header hiddenFrom="sm" style={{ backgroundColor: 'var(--surface-sidebar)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <Group h="100%" px="md" gap="sm">
-          <Burger opened={opened} onClick={toggle} size="sm" color="white" />
-          <Box className={classes.brandMark} style={{ width: 24, height: 24, fontSize: 12 }}>🎓</Box>
-          <Text fw={700} size="sm" c="white">SIMS DMS</Text>
-        </Group>
-      </AppShell.Header>
-
-      {/* Sidebar */}
-      <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
-        {sidebar}
-      </AppShell.Navbar>
-
-      {/* Bottom tab bar — mobile only */}
-      <AppShell.Footer
+    <>
+      {/* Mobile nav drawer — triggered by Menu tab in bottom bar */}
+      <Drawer
+        opened={navOpened}
+        onClose={closeNav}
+        position="left"
+        size={240}
+        withCloseButton={false}
+        padding={0}
         hiddenFrom="sm"
-        style={{
-          backgroundColor: 'var(--surface-sidebar)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          display: 'flex',
+        styles={{
+          content: { backgroundColor: 'var(--surface-sidebar)' },
+          body:    { padding: 0, height: '100%' },
         }}
       >
-        {bottomTabs.map((tab) => (
-          <RouterNavLink
-            key={tab.to}
-            to={tab.to}
-            style={{ flex: 1, textDecoration: 'none' }}
-          >
-            {({ isActive }) => (
-              <div style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                height: 60, gap: 3,
-                color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
-                transition: 'color 0.15s',
-              }}>
-                <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
-                <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
-                  {tab.label}
-                </span>
-              </div>
-            )}
-          </RouterNavLink>
-        ))}
-      </AppShell.Footer>
+        {sidebarContent}
+      </Drawer>
 
-      {/* Main content */}
-      <AppShell.Main
-        style={{
-          backgroundColor: 'var(--surface-page)',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
-          minHeight: '100dvh',
-        }}
+      <AppShell
+        navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: true } }}
+        footer={{ height: 60, collapsed: { desktop: true } }}
+        padding={0}
       >
-        <div className="page-content">
-          {children}
-        </div>
-      </AppShell.Main>
-    </AppShell>
+        {/* Sidebar — desktop only */}
+        <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+          {sidebarContent}
+        </AppShell.Navbar>
+
+        {/* Bottom tab bar — mobile only */}
+        <AppShell.Footer
+          hiddenFrom="sm"
+          style={{
+            backgroundColor: 'var(--surface-sidebar)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            display: 'flex',
+          }}
+        >
+          {bottomTabs.map((tab) => (
+            <RouterNavLink
+              key={tab.to}
+              to={tab.to}
+              style={{ flex: 1, textDecoration: 'none' }}
+            >
+              {({ isActive }) => (
+                <div style={{
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  height: 60, gap: 3,
+                  color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
+                  transition: 'color 0.15s',
+                }}>
+                  <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
+                  <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
+                    {tab.label}
+                  </span>
+                </div>
+              )}
+            </RouterNavLink>
+          ))}
+
+          {/* Menu button — opens full nav drawer */}
+          <button
+            onClick={openNav}
+            style={{
+              flex: 1, border: 'none', background: 'none', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              height: 60, gap: 3,
+              color: 'rgba(255,255,255,0.45)',
+            }}
+          >
+            <IconMenu2 size={22} strokeWidth={1.5} />
+            <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.01em' }}>Menu</span>
+          </button>
+        </AppShell.Footer>
+
+        {/* Main content */}
+        <AppShell.Main
+          style={{
+            backgroundColor: 'var(--surface-page)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            minHeight: '100dvh',
+          }}
+        >
+          <div className="page-content">
+            {children}
+          </div>
+        </AppShell.Main>
+      </AppShell>
+    </>
   );
 }
 
-// ── Shared layout exports (backward-compat for unmigrated pages) ───────────────
+// ── Shared layout exports ──────────────────────────────────────────────────────
 
 export function PageHeader({ title, subtitle, action }) {
   return (
