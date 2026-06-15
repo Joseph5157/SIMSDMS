@@ -51,7 +51,7 @@ function getLinks(role) {
   return adminLinks;
 }
 
-// ── Bottom tab bar (mobile only) — 4 pinned routes + Menu ─────────────────────
+// ── Bottom tab bar — 4 pinned routes per role ──────────────────────────────────
 
 const facultyBottomTabs = [
   { to: ROUTES.FACULTY_DASHBOARD,  label: 'Home',    Icon: IconLayoutDashboard },
@@ -113,7 +113,6 @@ export default function Layout({ user, children }) {
 
   const sidebarContent = (
     <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
-      {/* Brand */}
       <Box className={classes.brand}>
         <Group gap={8} wrap="nowrap">
           <Box className={classes.brandMark}>🎓</Box>
@@ -128,7 +127,6 @@ export default function Layout({ user, children }) {
 
       <Divider color="rgba(255,255,255,0.08)" />
 
-      {/* Nav links */}
       <Stack gap={2} p={8} style={{ flex: 1, overflowY: 'auto' }}>
         {links.map((link) => (
           <NavItem key={link.to} {...link} onClick={closeNav} />
@@ -137,7 +135,6 @@ export default function Layout({ user, children }) {
 
       <Divider color="rgba(255,255,255,0.08)" />
 
-      {/* User block */}
       <Box p={10}>
         <Group gap={8} mb={6} px={4}>
           <Avatar size={28} radius="xl" color="blue" style={{ flexShrink: 0 }}>
@@ -147,10 +144,7 @@ export default function Layout({ user, children }) {
             {user?.name}
           </Text>
         </Group>
-        <UnstyledButton
-          onClick={() => logout.mutate()}
-          className={classes.logoutBtn}
-        >
+        <UnstyledButton onClick={() => logout.mutate()} className={classes.logoutBtn}>
           <IconLogout size={13} strokeWidth={2} />
           Log out
         </UnstyledButton>
@@ -160,7 +154,7 @@ export default function Layout({ user, children }) {
 
   return (
     <>
-      {/* Mobile nav drawer — triggered by Menu tab in bottom bar */}
+      {/* Mobile nav drawer — slides in from left when Menu is tapped */}
       <Drawer
         opened={navOpened}
         onClose={closeNav}
@@ -168,73 +162,23 @@ export default function Layout({ user, children }) {
         size={240}
         withCloseButton={false}
         padding={0}
-        hiddenFrom="sm"
         styles={{
           content: { backgroundColor: 'var(--surface-sidebar)' },
           body:    { padding: 0, height: '100%' },
         }}
+        hiddenFrom="sm"
       >
         {sidebarContent}
       </Drawer>
 
       <AppShell
         navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: true } }}
-        footer={{ height: 60, collapsed: { desktop: true } }}
         padding={0}
       >
-        {/* Sidebar — desktop only */}
+        {/* Sidebar — desktop only (≥ 640px) */}
         <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
           {sidebarContent}
         </AppShell.Navbar>
-
-        {/* Bottom tab bar — mobile only */}
-        <AppShell.Footer
-          hiddenFrom="sm"
-          style={{
-            backgroundColor: 'var(--surface-sidebar)',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            display: 'flex',
-          }}
-        >
-          {bottomTabs.map((tab) => (
-            <RouterNavLink
-              key={tab.to}
-              to={tab.to}
-              style={{ flex: 1, textDecoration: 'none' }}
-            >
-              {({ isActive }) => (
-                <div style={{
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  height: 60, gap: 3,
-                  color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
-                  transition: 'color 0.15s',
-                }}>
-                  <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
-                  <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
-                    {tab.label}
-                  </span>
-                </div>
-              )}
-            </RouterNavLink>
-          ))}
-
-          {/* Menu button — opens full nav drawer */}
-          <button
-            onClick={openNav}
-            style={{
-              flex: 1, border: 'none', background: 'none', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              height: 60, gap: 3,
-              color: 'rgba(255,255,255,0.45)',
-            }}
-          >
-            <IconMenu2 size={22} strokeWidth={1.5} />
-            <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.01em' }}>Menu</span>
-          </button>
-        </AppShell.Footer>
 
         {/* Main content */}
         <AppShell.Main
@@ -245,11 +189,56 @@ export default function Layout({ user, children }) {
             minHeight: '100dvh',
           }}
         >
-          <div className="page-content">
+          <div className={classes.pageContent}>
             {children}
           </div>
         </AppShell.Main>
       </AppShell>
+
+      {/* ── Bottom tab bar — fixed, mobile only (hidden ≥ 640px via CSS) ── */}
+      <div className={classes.bottomBar}>
+        {bottomTabs.map((tab) => (
+          <RouterNavLink
+            key={tab.to}
+            to={tab.to}
+            style={{ flex: 1, textDecoration: 'none' }}
+          >
+            {({ isActive }) => (
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                height: '100%', gap: 3, padding: '0 2px',
+                color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
+                borderTop: isActive ? '2px solid #60a5fa' : '2px solid transparent',
+                transition: 'color 0.15s',
+              }}>
+                <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
+                <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
+                  {tab.label}
+                </span>
+              </div>
+            )}
+          </RouterNavLink>
+        ))}
+
+        {/* Menu button — opens full nav drawer */}
+        <button
+          onClick={openNav}
+          style={{
+            flex: 1, border: 'none', background: 'none', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            height: '100%', gap: 3, padding: '0 2px',
+            color: 'rgba(255,255,255,0.45)',
+            borderTop: '2px solid transparent',
+          }}
+        >
+          <IconMenu2 size={22} strokeWidth={1.5} />
+          <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.01em', color: 'inherit', fontFamily: 'inherit' }}>
+            Menu
+          </span>
+        </button>
+      </div>
     </>
   );
 }

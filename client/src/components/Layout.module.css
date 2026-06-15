@@ -44,6 +44,31 @@
   background-color: #1d4ed8; /* --brand-hover */
 }
 
+/* ── Bottom tab bar ── */
+.bottomBar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  z-index: 100;
+  display: flex;
+  background-color: #0f172a; /* --surface-sidebar */
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide on desktop (sm = 640px) */
+@media (min-width: 640px) {
+  .bottomBar { display: none; }
+}
+
+/* Give page content room to breathe above the bar on mobile */
+.pageContent {
+  padding: 0;
+}
+@media (max-width: 639px) {
+  .pageContent { padding-bottom: 72px; }
+}
+
 /* ── Logout button ── */
 .logoutBtn {
   display: flex;
