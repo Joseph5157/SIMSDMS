@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
 import { useUsers, useResetUserLogin } from '../../hooks/useUsers';
@@ -29,9 +29,13 @@ export default function SessionResetPage({ user }) {
   return (
     <Layout user={user}>
       <PageHeader title="Telegram Relink" subtitle="Reset users' Telegram connection and generate relink links" />
+
       <div className="mb-4">
-        <input className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-80 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
-          placeholder="Search user…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-80 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
+          placeholder="Search user…" value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Mobile card list */}
@@ -62,42 +66,60 @@ export default function SessionResetPage({ user }) {
                 <Badge status={u.status} />
               </div>
             </div>
-            <button
+            <Button
+              variant="light"
+              color="red"
+              size="xs"
               onClick={() => handleReset(u)}
-              style={{
-                flexShrink: 0, padding: '8px 14px',
-                backgroundColor: 'var(--red-bg)', color: 'var(--red-600)',
-                border: '1px solid var(--red-border)', borderRadius: 'var(--radius-lg)',
-                fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
-                cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)',
-              }}
+              loading={reset.isPending}
             >
               Reset
-            </button>
+            </Button>
           </div>
         ))}
       </div>
 
       {/* Desktop table */}
       <div className="hidden md:block">
-      <Table>
-        <thead><tr><Th>Name</Th><Th>Email</Th><Th>Role</Th><Th>Status</Th><Th>Telegram</Th><Th /></tr></thead>
-        <tbody className="divide-y divide-slate-100">
-          {isLoading && <EmptyRow cols={6} message="Loading…" />}
-          {data?.data?.map((u) => (
-            <tr key={u.id}>
-              <Td className="font-medium">{u.name}</Td>
-              <Td>{u.email}</Td>
-              <Td><Badge status={u.role} label={u.role.replace('_',' ')} /></Td>
-              <Td><Badge status={u.status} /></Td>
-              <Td>{u.telegram_verified ? <Badge status="active" label="Verified" /> : <Badge status="inactive" label="Not set" />}</Td>
-              <Td>
-                <Button variant="ghost" size="sm" onClick={() => handleReset(u)} loading={reset.isPending}>Reset</Button>
-              </Td>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Name</Th>
+              <Th>Email</Th>
+              <Th>Role</Th>
+              <Th>Status</Th>
+              <Th>Telegram</Th>
+              <Th />
             </tr>
-          ))}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {data?.data?.map((u) => (
+              <tr key={u.id}>
+                <Td className="font-medium">{u.name}</Td>
+                <Td>{u.email}</Td>
+                <Td><Badge status={u.role} label={u.role.replace('_', ' ')} /></Td>
+                <Td><Badge status={u.status} /></Td>
+                <Td>
+                  {u.telegram_verified
+                    ? <Badge status="active" label="Verified" />
+                    : <Badge status="inactive" label="Not set" />}
+                </Td>
+                <Td>
+                  <Button
+                    variant="subtle"
+                    color="gray"
+                    size="xs"
+                    onClick={() => handleReset(u)}
+                    loading={reset.isPending}
+                  >
+                    Reset
+                  </Button>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       </div>
     </Layout>
   );

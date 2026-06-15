@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import Button from '../../components/ui/Button';
+import { Button } from '@mantine/core';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import ComposeDrawer from '../../components/ComposeDrawer';
@@ -81,7 +81,7 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
 
       {/* Footer */}
       <div className="px-4 sm:px-5 py-3 border-t border-slate-200 flex justify-end">
-        <Button variant="danger" size="sm" onClick={handleDelete} loading={deleteMsg.isPending}>
+        <Button color="red" size="sm" onClick={handleDelete} loading={deleteMsg.isPending}>
           Delete
         </Button>
       </div>
@@ -133,7 +133,7 @@ export default function MessagesPage({ user }) {
     <Layout user={user}>
       <PageHeader
         title="Messages"
-        action={<Button onClick={() => setCompose(true)}>+ Compose</Button>}
+        action={<Button onClick={() => setCompose(true)} size="sm">+ Compose</Button>}
       />
 
       {/*

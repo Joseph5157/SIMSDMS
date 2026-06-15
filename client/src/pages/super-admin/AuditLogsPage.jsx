@@ -22,6 +22,7 @@ export default function AuditLogsPage({ user }) {
   return (
     <Layout user={user}>
       <PageHeader title="Audit Logs" subtitle="Immutable system-level action history" />
+
       <div className="mb-4">
         <input
           className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] w-64 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white placeholder:text-slate-400"
@@ -71,25 +72,41 @@ export default function AuditLogsPage({ user }) {
       {/* Desktop table */}
       <div className="hidden md:block">
         <Table>
-          <thead><tr><Th>Actor</Th><Th>Action</Th><Th>Target</Th><Th>Timestamp</Th></tr></thead>
-          <tbody className="divide-y divide-slate-100">
+          <thead>
+            <tr>
+              <Th>Actor</Th>
+              <Th>Action</Th>
+              <Th>Target</Th>
+              <Th>Timestamp</Th>
+            </tr>
+          </thead>
+          <tbody>
             {isLoading && <EmptyRow cols={4} message="Loading…" />}
             {!isLoading && !data?.data?.length && <EmptyRow cols={4} />}
             {data?.data?.map((log) => (
               <tr key={log.id}>
                 <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>
                 <Td>
-                  <span className="font-mono text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                  <span style={{
+                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    backgroundColor: 'var(--color-slate-100)', color: 'var(--color-slate-600)',
+                    padding: '2px 6px', borderRadius: 4,
+                  }}>
                     {log.action}
                   </span>
                 </Td>
-                <Td className="text-[11px] text-slate-500">{log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ''}</Td>
-                <Td className="text-[11px] text-slate-400">{new Date(log.created_at).toLocaleString()}</Td>
+                <Td style={{ fontSize: 11, color: 'var(--color-slate-500)' }}>
+                  {log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ''}
+                </Td>
+                <Td style={{ fontSize: 11, color: 'var(--color-slate-400)' }}>
+                  {new Date(log.created_at).toLocaleString()}
+                </Td>
               </tr>
             ))}
           </tbody>
         </Table>
       </div>
+
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
     </Layout>
   );
