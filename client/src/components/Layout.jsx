@@ -1,5 +1,6 @@
 import Sidebar from './Sidebar';
-import NotificationBell from './NotificationBell';
+// NotificationBell hidden — backend notifications module not yet implemented
+// TODO: restore <NotificationBell /> here once /api/notifications routes exist
 
 export default function Layout({ user, children }) {
   return (
@@ -10,23 +11,6 @@ export default function Layout({ user, children }) {
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="page-content">
-          {/* Header bar with notification bell - inline with content */}
-          <div style={{
-            position: 'sticky',
-            top: 0,
-            right: 0,
-            marginBottom: '12px',
-            display: 'flex',
-            justifyContent: 'flex-end',
-            backgroundColor: 'var(--surface-page)',
-            zIndex: 30,
-            pointerEvents: 'none',
-            paddingBottom: '8px',
-          }}>
-            <div style={{ pointerEvents: 'auto' }}>
-              <NotificationBell />
-            </div>
-          </div>
           {children}
         </div>
       </main>
