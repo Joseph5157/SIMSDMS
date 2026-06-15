@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import { Button, Skeleton } from '@mantine/core';
@@ -25,6 +25,15 @@ export default function SlotPickerPage({ user }) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selected, setSelected] = useState(null); // dateStr of tapped cell
   const [pickingId, setPickingId] = useState(null);
+  const panelRef = useRef(null);
+
+  // When a date is selected, scroll its session panel into view so the
+  // Pick buttons clear the fixed bottom nav bar.
+  useEffect(() => {
+    if (selected && panelRef.current) {
+      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selected]);
 
   const { data: available, isLoading: loadingAvail } = useAvailableSlots(year, month);
   const { data: mySlots,   isLoading: loadingMine }  = useMonthSlots(year, month);
@@ -247,9 +256,10 @@ export default function SlotPickerPage({ user }) {
           const d            = new Date(selected);
 
           return (
-            <div style={{
+            <div ref={panelRef} style={{
               marginTop: 14, padding: 14,
               background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12,
+              scrollMarginTop: 80, scrollMarginBottom: 80,
             }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 10px' }}>
                 {DAY_LABELS_FULL[d.getDay()]}, {d.getDate()} {MONTH_NAMES[d.getMonth()]}
@@ -268,7 +278,7 @@ export default function SlotPickerPage({ user }) {
                   <Button
                     size="md" fullWidth
                     loading={pickingId === `${selected}|morning`}
-                    disabled={remainingSlots <= 0 || !!pickingId}
+                    disabled={!!pickingId && pickingId !== `${selected}|morning`}
                     onClick={() => handlePick(selected, 'morning')}
                     leftSection={<span style={{ fontSize: 11, background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AM</span>}
                   >
@@ -288,7 +298,7 @@ export default function SlotPickerPage({ user }) {
                   <Button
                     size="md" fullWidth variant="default"
                     loading={pickingId === `${selected}|afternoon`}
-                    disabled={remainingSlots <= 0 || !!pickingId}
+                    disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
                     onClick={() => handlePick(selected, 'afternoon')}
                     style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' }}
                     leftSection={<span style={{ fontSize: 11, background: '#fed7aa', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>PM</span>}

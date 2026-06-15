@@ -1,20 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
-import { getCacheKey, setCacheKey } from '../lib/cache';
 
 export function useMonthSlots(year, month) {
-  const cacheKey = `DUTY_SLOTS_${year}_${month}`;
-  const cachedData = getCacheKey(cacheKey);
-
   return useQuery({
     queryKey: ['dutySlots', year, month],
     queryFn: async () => {
       const res = await api.get(`/duty-slots/${year}/${month}`);
-      setCacheKey(cacheKey, res.data);
       return res.data;
     },
-    initialData: cachedData,
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 0, // picks must reflect immediately after pick/unpick
     enabled: !!year && !!month,
   });
 }
