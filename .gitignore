@@ -24,9 +24,10 @@ Thumbs.db
 *.png
 *.jpg
 *.jpeg
-# ...but PWA app icons are deployable source assets, not screenshots
+# ...but source assets are deployable
 !client/public/icons/
 !client/public/icons/*.png
+!client/src/assets/*.png
 
 # IDE
 .vscode/
