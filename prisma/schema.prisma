@@ -163,11 +163,18 @@ model Student {
   id                  String    @id @default(uuid())
   registration_number String    @unique @db.VarChar(50)
   student_name        String    @db.VarChar(150)
-  course              String    @db.VarChar(50)
-  semester_or_year    String    @db.VarChar(20)
-  academic_year       String    @db.VarChar(10)
-  institution         String    @db.VarChar(150)
+  course              String    @db.VarChar(20)   // b_pharm | pharm_d | m_pharm
+  year                Int                          // 1–4 (b_pharm/m_pharm) | 1–6 (pharm_d)
+  semester            Int                          // 1–8 (b_pharm) | 1–12 (pharm_d)
+  section             String?   @db.VarChar(5)    // A | B | C
+  batch_year          Int                          // admission year e.g. 2023
+  gender              String?   @db.VarChar(10)   // male | female | other
+  phone               String?   @db.VarChar(20)
+  academic_year       String    @db.VarChar(10)   // e.g. 2025-26
   status              String    @default("active") @db.VarChar(10)
+  // Legacy fields — kept nullable for backward compat
+  semester_or_year    String?   @db.VarChar(20)
+  institution         String?   @db.VarChar(150)
   deleted_at          DateTime?
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt

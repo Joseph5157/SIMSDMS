@@ -5,12 +5,19 @@ import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
 
 const REQUIRED_COLUMNS = [
-  'Registration Number',
-  'Student Name',
-  'Course',
-  'Semester/Year',
-  'Academic Year',
-  'Institution',
+  { name: 'Registration Number', note: 'unique student ID' },
+  { name: 'Student Name',        note: null },
+  { name: 'Course',              note: 'b_pharm / pharm_d / m_pharm' },
+  { name: 'Year',                note: '1–6' },
+  { name: 'Semester',            note: '1–12' },
+  { name: 'Batch Year',          note: 'e.g. 2023' },
+  { name: 'Academic Year',       note: 'e.g. 2025-26' },
+];
+
+const OPTIONAL_COLUMNS = [
+  { name: 'Section', note: 'A / B / C' },
+  { name: 'Gender',  note: 'male / female / other' },
+  { name: 'Phone',   note: 'for notifications' },
 ];
 
 export default function UploadStudentsDrawer({ open, onClose }) {
@@ -101,22 +108,32 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                 textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
               }}>Required columns</p>
               <div style={{
-                backgroundColor: '#f0f9ff',
-                border: '1px solid #bae6fd',
-                borderRadius: 12,
-                padding: '12px 14px',
-                marginBottom: 20,
+                backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
+                borderRadius: 12, padding: '12px 14px', marginBottom: 12,
               }}>
                 {REQUIRED_COLUMNS.map((col, i) => (
-                  <div key={col} style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    paddingTop: i > 0 ? 6 : 0,
-                  }}>
-                    <div style={{
-                      width: 4, height: 4, borderRadius: '50%',
-                      backgroundColor: '#0ea5e9', flexShrink: 0,
-                    }} />
-                    <span style={{ fontSize: 13, color: '#0369a1', fontWeight: 500 }}>{col}</span>
+                  <div key={col.name} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: i > 0 ? 6 : 0 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#0ea5e9', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: '#0369a1', fontWeight: 600 }}>{col.name}</span>
+                    {col.note && <span style={{ fontSize: 11, color: '#64748b' }}>— {col.note}</span>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Optional columns */}
+              <p style={{
+                fontSize: 10, fontWeight: 800, color: '#94a3b8',
+                textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
+              }}>Optional columns</p>
+              <div style={{
+                backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                borderRadius: 12, padding: '12px 14px', marginBottom: 20,
+              }}>
+                {OPTIONAL_COLUMNS.map((col, i) => (
+                  <div key={col.name} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: i > 0 ? 6 : 0 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#94a3b8', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>{col.name}</span>
+                    {col.note && <span style={{ fontSize: 11, color: '#94a3b8' }}>— {col.note}</span>}
                   </div>
                 ))}
               </div>

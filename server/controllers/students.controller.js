@@ -3,26 +3,30 @@ const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
 const logger = require('../lib/logger');
 
+const VALID_COURSES = ['b_pharm', 'pharm_d', 'm_pharm'];
+
 // Expected Excel column headers (case-insensitive, trimmed)
 const COLUMN_MAP = {
   'registration number': 'registration_number',
   'registration_number': 'registration_number',
-  'student name': 'student_name',
-  'student_name': 'student_name',
-  'name': 'student_name',
-  'course': 'course',
-  'semester or year': 'semester_or_year',
-  'semester_or_year': 'semester_or_year',
-  'semester/year': 'semester_or_year',
-  'academic year': 'academic_year',
-  'academic_year': 'academic_year',
-  'institution': 'institution',
+  'student name':        'student_name',
+  'student_name':        'student_name',
+  'name':                'student_name',
+  'course':              'course',
+  'year':                'year',
+  'semester':            'semester',
+  'section':             'section',
+  'batch year':          'batch_year',
+  'batch_year':          'batch_year',
+  'gender':              'gender',
+  'phone':               'phone',
+  'academic year':       'academic_year',
+  'academic_year':       'academic_year',
 };
 
-const REQUIRED_FIELDS = ['registration_number', 'student_name', 'course', 'semester_or_year', 'academic_year', 'institution'];
+const REQUIRED_FIELDS = ['registration_number', 'student_name', 'course', 'year', 'semester', 'academic_year', 'batch_year'];
 
 // Parses the uploaded workbook into validated rows and a list of row errors.
-// Returns { uniqueRows, errors, scopeConditions } — does not touch the DB.
 function parseWorkbook(workbook) {
   const sheet = workbook.worksheets[0];
   if (!sheet) return { sheet: null };
@@ -38,37 +42,63 @@ function parseWorkbook(workbook) {
   if (missingHeaders.length > 0) return { missingHeaders };
 
   const validRows = [];
-  const errors = [];
+  const errors    = [];
 
   sheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) return;
 
     const get = (field) => {
-      const val = row.getCell(colIndexMap[field]).value;
+      const col = colIndexMap[field];
+      if (!col) return '';
+      const val = row.getCell(col).value;
       return val !== null && val !== undefined ? String(val).trim() : '';
     };
 
-    const reg         = get('registration_number');
-    const name        = get('student_name');
-    const course      = get('course');
-    const semYear     = get('semester_or_year');
-    const acYear      = get('academic_year');
-    const institution = get('institution');
+    const reg          = get('registration_number');
+    const name         = get('student_name');
+    const course       = get('course').toLowerCase();
+    const yearRaw      = get('year');
+    const semesterRaw  = get('semester');
+    const acYear       = get('academic_year');
+    const batchYearRaw = get('batch_year');
+    const section      = get('section') || null;
+    const gender       = get('gender')  || null;
+    const phone        = get('phone')   || null;
+
+    const year       = parseInt(yearRaw, 10);
+    const semester   = parseInt(semesterRaw, 10);
+    const batch_year = parseInt(batchYearRaw, 10);
 
     const rowErrors = [];
-    if (!reg)         rowErrors.push('registration_number is empty');
-    if (!name)        rowErrors.push('student_name is empty');
-    if (!course)      rowErrors.push('course is empty');
-    if (!semYear)     rowErrors.push('semester_or_year is empty');
-    if (!acYear)      rowErrors.push('academic_year is empty');
-    if (!institution) rowErrors.push('institution is empty');
+    if (!reg)                                rowErrors.push('registration_number is empty');
+    if (!name)                               rowErrors.push('student_name is empty');
+    if (!VALID_COURSES.includes(course))     rowErrors.push(`course must be one of: ${VALID_COURSES.join(', ')}`);
+    if (!yearRaw || isNaN(year) || year < 1 || year > 6)
+                                             rowErrors.push('year must be a number 1–6');
+    if (!semesterRaw || isNaN(semester) || semester < 1 || semester > 12)
+                                             rowErrors.push('semester must be a number 1–12');
+    if (!acYear)                             rowErrors.push('academic_year is empty');
+    if (!batchYearRaw || isNaN(batch_year) || batch_year < 2000 || batch_year > 2100)
+                                             rowErrors.push('batch_year must be a valid year e.g. 2023');
 
     if (rowErrors.length > 0) {
       errors.push({ row: rowNumber, registration_number: reg || null, reasons: rowErrors });
       return;
     }
 
-    validRows.push({ registration_number: reg, student_name: name, course, semester_or_year: semYear, academic_year: acYear, institution });
+    validRows.push({
+      registration_number: reg,
+      student_name:        name,
+      course,
+      year,
+      semester,
+      semester_or_year:    `Year ${year} Sem ${semester}`,
+      section,
+      batch_year,
+      gender,
+      phone,
+      academic_year:       acYear,
+    });
   });
 
   // Deduplicate within the file — keep last occurrence
@@ -76,18 +106,12 @@ function parseWorkbook(workbook) {
   for (const r of validRows) rowMap.set(r.registration_number, r);
   const uniqueRows = Array.from(rowMap.values());
 
-  // Build scoped deactivation conditions from every course+semester_or_year+academic_year
-  // combination present in the file so that only students within those groups are
-  // candidates for deactivation.
+  // Build scoped deactivation conditions from every course+year+academic_year combination
   const scopeKeys = new Map();
   for (const r of uniqueRows) {
-    const key = `${r.course}|${r.semester_or_year}|${r.academic_year}`;
+    const key = `${r.course}|${r.year}|${r.academic_year}`;
     if (!scopeKeys.has(key)) {
-      scopeKeys.set(key, {
-        course:           r.course,
-        semester_or_year: r.semester_or_year,
-        academic_year:    r.academic_year,
-      });
+      scopeKeys.set(key, { course: r.course, year: r.year, academic_year: r.academic_year });
     }
   }
   const scopeConditions = Array.from(scopeKeys.values());
@@ -96,17 +120,9 @@ function parseWorkbook(workbook) {
 }
 
 // ─── POST /students/upload ─────────────────────────────────────────────────────
-//
-// Query params:
-//   dry_run=true            — validate & compute counts, no writes to DB
-//   deactivate_missing=true — deactivate in-scope students absent from the file
-//
-// Deactivation is always scoped to the course+semester_or_year+academic_year
-// combinations present in the file. A file containing only Year-1 students
-// will never deactivate Year-2 or Year-3 students.
 
 async function uploadStudents(req, res) {
-  const dryRun           = req.query.dry_run           === 'true';
+  const dryRun            = req.query.dry_run            === 'true';
   const deactivateMissing = req.query.deactivate_missing === 'true';
 
   if (!req.file) {
@@ -127,8 +143,7 @@ async function uploadStudents(req, res) {
   }
   if (parsed.missingHeaders) {
     return res.status(422).json({
-      error: true,
-      code: 'MISSING_COLUMNS',
+      error: true, code: 'MISSING_COLUMNS',
       message: `Missing required columns: ${parsed.missingHeaders.join(', ')}`,
     });
   }
@@ -136,52 +151,39 @@ async function uploadStudents(req, res) {
   const { uniqueRows, errors, scopeConditions } = parsed;
   const uploadedRegNums = uniqueRows.map((r) => r.registration_number);
 
-  // Hard block: never deactivate when no valid rows were found.
   if (uniqueRows.length === 0 && deactivateMissing) {
     return res.status(422).json({
-      error: true,
-      code: 'NO_VALID_ROWS',
+      error: true, code: 'NO_VALID_ROWS',
       message: 'No valid rows were found in the file. Deactivation is blocked to prevent accidental mass-deactivation.',
-      valid_rows:    0,
-      invalid_rows:  errors.length,
-      errors,
+      valid_rows: 0, invalid_rows: errors.length, errors,
     });
   }
 
   const deactivateWhere =
     deactivateMissing && scopeConditions.length > 0
       ? {
-          status:              'active',
-          deleted_at:          null,
+          status: 'active', deleted_at: null,
           registration_number: { notIn: uploadedRegNums },
-          OR:                  scopeConditions,
+          OR: scopeConditions,
         }
       : null;
 
-  // ── Dry-run: compute counts, no writes ────────────────────────────────────────
+  // ── Dry-run ────────────────────────────────────────────────────────────────
   if (dryRun) {
     try {
       const existingInFile = await prisma.student.findMany({
         where:  { registration_number: { in: uploadedRegNums } },
         select: { registration_number: true },
       });
-      const existingSet  = new Set(existingInFile.map((s) => s.registration_number));
-      const wouldAdd     = uniqueRows.filter((r) => !existingSet.has(r.registration_number)).length;
-      const wouldUpdate  = uniqueRows.filter((r) =>  existingSet.has(r.registration_number)).length;
-      const wouldDeactivate = deactivateWhere
-        ? await prisma.student.count({ where: deactivateWhere })
-        : 0;
+      const existingSet     = new Set(existingInFile.map((s) => s.registration_number));
+      const wouldAdd        = uniqueRows.filter((r) => !existingSet.has(r.registration_number)).length;
+      const wouldUpdate     = uniqueRows.filter((r) =>  existingSet.has(r.registration_number)).length;
+      const wouldDeactivate = deactivateWhere ? await prisma.student.count({ where: deactivateWhere }) : 0;
 
       return res.json({
-        dry_run:           true,
-        valid_rows:        uniqueRows.length,
-        invalid_rows:      errors.length,
-        would_add:         wouldAdd,
-        would_update:      wouldUpdate,
-        would_deactivate:  wouldDeactivate,
-        deactivate_missing: deactivateMissing,
-        scope:             scopeConditions,
-        errors,
+        dry_run: true, valid_rows: uniqueRows.length, invalid_rows: errors.length,
+        would_add: wouldAdd, would_update: wouldUpdate, would_deactivate: wouldDeactivate,
+        deactivate_missing: deactivateMissing, scope: scopeConditions, errors,
       });
     } catch (err) {
       logger.error(`uploadStudents dry_run error: ${err.message}`);
@@ -189,19 +191,13 @@ async function uploadStudents(req, res) {
     }
   }
 
-  // ── Actual import (transactional) ─────────────────────────────────────────────
-  let added_count       = 0;
-  let updated_count     = 0;
-  let deactivated_count = 0;
-  let log;
+  // ── Actual import ──────────────────────────────────────────────────────────
+  let added_count = 0, updated_count = 0, deactivated_count = 0, log;
 
   try {
     await prisma.$transaction(async (tx) => {
       for (const row of uniqueRows) {
-        const existing = await tx.student.findUnique({
-          where: { registration_number: row.registration_number },
-        });
-
+        const existing = await tx.student.findUnique({ where: { registration_number: row.registration_number } });
         if (existing) {
           await tx.student.update({
             where: { registration_number: row.registration_number },
@@ -215,22 +211,14 @@ async function uploadStudents(req, res) {
       }
 
       if (deactivateWhere) {
-        const result = await tx.student.updateMany({
-          where: deactivateWhere,
-          data:  { status: 'inactive' },
-        });
+        const result = await tx.student.updateMany({ where: deactivateWhere, data: { status: 'inactive' } });
         deactivated_count = result.count;
       }
 
-      // Save upload log inside the same transaction so it commits or rolls back together.
       log = await tx.studentUploadLog.create({
         data: {
-          uploaded_by:       req.user.id,
-          filename:          req.file.originalname,
-          added_count,
-          updated_count,
-          deactivated_count,
-          errors,
+          uploaded_by: req.user.id, filename: req.file.originalname,
+          added_count, updated_count, deactivated_count, errors,
         },
       });
     });
@@ -239,35 +227,20 @@ async function uploadStudents(req, res) {
     return res.status(500).json({ error: true, code: 'SERVER_ERROR', message: 'Something went wrong. Please try again.' });
   }
 
-  // Audit log is outside the transaction (it's an append-only record; a failure here
-  // does not need to undo the import).
   logAction({
-    actorId:    req.user.id,
-    action:     'STUDENT_UPLOAD',
-    targetId:   log.id,
-    targetType: 'student_upload_log',
-    metadata:   {
-      filename:          req.file.originalname,
-      added_count,
-      updated_count,
-      deactivated_count,
-      error_count:       errors.length,
-      deactivate_missing: deactivateMissing,
+    actorId: req.user.id, action: 'STUDENT_UPLOAD', targetId: log.id, targetType: 'student_upload_log',
+    metadata: {
+      filename: req.file.originalname, added_count, updated_count,
+      deactivated_count, error_count: errors.length, deactivate_missing: deactivateMissing,
     },
   }).catch((err) => logger.error('Failed to log STUDENT_UPLOAD action', err));
 
   res.status(200).json({
-    log_id:            log.id,
-    filename:          req.file.originalname,
-    valid_rows:        uniqueRows.length,
-    invalid_rows:      errors.length,
-    added_count,
-    updated_count,
-    deactivated_count,
-    error_count:       errors.length,
-    deactivate_missing: deactivateMissing,
-    scope:             scopeConditions,
-    errors,
+    log_id: log.id, filename: req.file.originalname,
+    valid_rows: uniqueRows.length, invalid_rows: errors.length,
+    added_count, updated_count, deactivated_count,
+    error_count: errors.length, deactivate_missing: deactivateMissing,
+    scope: scopeConditions, errors,
   });
 }
 
@@ -294,18 +267,19 @@ async function getUploadLogs(req, res) {
 // ─── GET /students ─────────────────────────────────────────────────────────────
 
 async function listStudents(req, res) {
-  const { course, semester_or_year, status, search, page = '1', limit = '20' } = req.query;
+  const { course, year, section, status, search, page = '1', limit = '20' } = req.query;
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
   const where = { deleted_at: null };
-  if (course)           where.course           = course;
-  if (semester_or_year) where.semester_or_year = semester_or_year;
-  if (status)           where.status           = status;
+  if (course)  where.course  = course;
+  if (year)    where.year    = parseInt(year, 10);
+  if (section) where.section = section;
+  if (status)  where.status  = status;
   if (search) {
     where.OR = [
-      { student_name:         { contains: search, mode: 'insensitive' } },
-      { registration_number:  { contains: search, mode: 'insensitive' } },
+      { student_name:        { contains: search, mode: 'insensitive' } },
+      { registration_number: { contains: search, mode: 'insensitive' } },
     ];
   }
 
@@ -313,7 +287,7 @@ async function listStudents(req, res) {
     prisma.student.count({ where }),
     prisma.student.findMany({
       where,
-      orderBy: { student_name: 'asc' },
+      orderBy: [{ year: 'asc' }, { semester: 'asc' }, { student_name: 'asc' }],
       skip:    (pageNum - 1) * pageSize,
       take:    pageSize,
     }),
@@ -332,8 +306,7 @@ async function searchStudents(req, res) {
 
   const students = await prisma.student.findMany({
     where: {
-      deleted_at: null,
-      status: 'active',
+      deleted_at: null, status: 'active',
       OR: [
         { student_name:        { contains: q, mode: 'insensitive' } },
         { registration_number: { contains: q, mode: 'insensitive' } },
@@ -341,7 +314,8 @@ async function searchStudents(req, res) {
     },
     select: {
       id: true, registration_number: true, student_name: true,
-      course: true, semester_or_year: true, academic_year: true, institution: true,
+      course: true, year: true, semester: true, section: true,
+      batch_year: true, academic_year: true, gender: true,
     },
     orderBy: { student_name: 'asc' },
     take: 20,
@@ -358,19 +332,20 @@ async function promoteStudent(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student not found.' });
   }
 
-  const data = { semester_or_year: req.body.semester_or_year };
+  const data = {
+    year:             req.body.year,
+    semester:         req.body.semester,
+    semester_or_year: `Year ${req.body.year} Sem ${req.body.semester}`,
+  };
   if (req.body.academic_year) data.academic_year = req.body.academic_year;
 
   const updated = await prisma.student.update({ where: { id: req.params.id }, data });
 
   await logAction({
-    actorId:    req.user.id,
-    action:     'PROMOTE_STUDENT',
-    targetId:   student.id,
-    targetType: 'student',
+    actorId: req.user.id, action: 'PROMOTE_STUDENT', targetId: student.id, targetType: 'student',
     metadata: {
-      from: { semester_or_year: student.semester_or_year, academic_year: student.academic_year },
-      to:   { semester_or_year: data.semester_or_year, academic_year: data.academic_year ?? student.academic_year },
+      from: { year: student.year, semester: student.semester, academic_year: student.academic_year },
+      to:   { year: data.year,    semester: data.semester,    academic_year: data.academic_year ?? student.academic_year },
     },
   });
 
