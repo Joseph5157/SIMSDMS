@@ -372,6 +372,62 @@ async function deactivateStudent(req, res) {
   res.json(updated);
 }
 
+// ─── GET /students/upload-template ────────────────────────────────────────────
+
+async function downloadTemplate(req, res) {
+  const workbook = new ExcelJS.Workbook();
+  const sheet    = workbook.addWorksheet('Students');
+
+  // Header row
+  sheet.columns = [
+    { header: 'Registration Number', key: 'registration_number', width: 22 },
+    { header: 'Student Name',        key: 'student_name',        width: 24 },
+    { header: 'Course',              key: 'course',              width: 12 },
+    { header: 'Year',                key: 'year',                width: 8  },
+    { header: 'Semester',            key: 'semester',            width: 10 },
+    { header: 'Batch Year',          key: 'batch_year',          width: 12 },
+    { header: 'Academic Year',       key: 'academic_year',       width: 14 },
+    { header: 'Section',             key: 'section',             width: 10 },
+    { header: 'Gender',              key: 'gender',              width: 10 },
+    { header: 'Phone',               key: 'phone',               width: 14 },
+  ];
+
+  // Style header row
+  sheet.getRow(1).eachCell((cell) => {
+    cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border    = {
+      bottom: { style: 'thin', color: { argb: 'FF1D4ED8' } },
+    };
+  });
+  sheet.getRow(1).height = 22;
+
+  // Sample rows
+  sheet.addRow({ registration_number: 'BP2023001', student_name: 'Anjali Sharma',   course: 'b_pharm', year: 1, semester: 1, batch_year: 2023, academic_year: '2025-26', section: 'A', gender: 'female', phone: '9876543210' });
+  sheet.addRow({ registration_number: 'PD2022001', student_name: 'Rahul Verma',     course: 'pharm_d', year: 2, semester: 3, batch_year: 2022, academic_year: '2025-26', section: 'B', gender: 'male',   phone: '' });
+  sheet.addRow({ registration_number: 'MP2024001', student_name: 'Priya Nair',      course: 'm_pharm', year: 1, semester: 2, batch_year: 2024, academic_year: '2025-26', section: '',  gender: 'female', phone: '' });
+
+  // Light stripe on sample rows
+  [2, 3, 4].forEach((n) => {
+    sheet.getRow(n).eachCell({ includeEmpty: true }, (cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: n % 2 === 0 ? 'FFDBEAFE' : 'FFEFF6FF' } };
+    });
+  });
+
+  // Notes row
+  const notesRow = sheet.addRow(['↑ Replace sample rows above. Keep headers exactly as shown.']);
+  notesRow.getCell(1).font      = { italic: true, color: { argb: 'FF64748B' }, size: 9 };
+  notesRow.getCell(1).alignment = { horizontal: 'left' };
+  sheet.mergeCells(`A${notesRow.number}:J${notesRow.number}`);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  res.setHeader('Content-Type',        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="students-upload-template.xlsx"');
+  res.send(buffer);
+}
+
 module.exports = {
-  uploadStudents, getUploadLogs, listStudents, searchStudents, promoteStudent, deactivateStudent,
+  uploadStudents, getUploadLogs, listStudents, searchStudents,
+  promoteStudent, deactivateStudent, downloadTemplate,
 };

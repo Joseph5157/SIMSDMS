@@ -44,6 +44,9 @@ router.post(
   asyncHandler(ctrl.uploadStudents),
 );
 
+// GET /students/upload-template — Admin only (returns .xlsx sample file)
+router.get('/upload-template', authorize('admin', 'super_admin'), asyncHandler(ctrl.downloadTemplate));
+
 // GET /students/upload-logs — Admin only
 router.get('/upload-logs', authorize('admin', 'super_admin'), asyncHandler(ctrl.getUploadLogs));
 

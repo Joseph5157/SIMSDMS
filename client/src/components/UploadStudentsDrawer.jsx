@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Drawer } from 'vaul';
-import { X, FileText } from 'lucide-react';
+import { X, FileText, Download } from 'lucide-react';
 import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
+import api from '../utils/api';
 
 const REQUIRED_COLUMNS = [
   { name: 'Registration Number', note: 'unique student ID' },
@@ -25,6 +26,24 @@ export default function UploadStudentsDrawer({ open, onClose }) {
   const upload = useUploadStudents();
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownloadTemplate() {
+    setDownloading(true);
+    try {
+      const res = await api.get('/students/upload-template', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = 'students-upload-template.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ message: 'Could not download template.', type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   function handleFileChange(e) {
     setFile(e.target.files[0] || null);
@@ -137,6 +156,23 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                   </div>
                 ))}
               </div>
+
+              {/* Download template */}
+              <button
+                onClick={handleDownloadTemplate}
+                disabled={downloading}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: 7, padding: '10px 16px', marginBottom: 20,
+                  border: '1.5px dashed #93c5fd', borderRadius: 12,
+                  backgroundColor: '#eff6ff', cursor: downloading ? 'not-allowed' : 'pointer',
+                  fontSize: 13, fontWeight: 700, color: downloading ? '#93c5fd' : '#2563eb',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Download size={15} strokeWidth={2} />
+                {downloading ? 'Downloading…' : 'Download sample template (.xlsx)'}
+              </button>
 
               {/* File picker */}
               <p style={{
