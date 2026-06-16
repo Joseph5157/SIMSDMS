@@ -14,7 +14,7 @@ export default function PageHeader({ title, subtitle, action }) {
           {title}
         </Title>
         {subtitle && (
-          <Text size="xs" c="dimmed" mt={2} lineClamp={1}>{subtitle}</Text>
+          <Text size="xs" c="dimmed" mt={5} lineClamp={1}>{subtitle}</Text>
         )}
       </Box>
       {action && <Box style={{ flexShrink: 0 }}>{action}</Box>}

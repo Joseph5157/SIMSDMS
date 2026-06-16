@@ -21,7 +21,8 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
       minHeight: 96,
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
+      gap: 8,
       boxShadow: 'var(--shadow-stat)',
       fontFamily: 'var(--font-sans)',
     }}>
