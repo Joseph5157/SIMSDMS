@@ -2,6 +2,7 @@
   "name": "SIMS Discipline Management System",
   "short_name": "SIMS DMS",
   "description": "SIMS College of Pharmacy Discipline Management System",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

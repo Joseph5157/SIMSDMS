@@ -17,6 +17,10 @@ export default defineConfig({
       registerType: 'prompt',  // show update prompt; never auto-reload (faculty may be mid check-in)
       manifest: false,         // we manage our own public/manifest.json
       includeAssets: ['favicon.svg', 'icons/*.png'],
+      devOptions: {
+        enabled: true,   // activate SW in dev so the install prompt works during local testing
+        type: 'module',
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
