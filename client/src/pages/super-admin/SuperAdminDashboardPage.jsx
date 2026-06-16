@@ -74,7 +74,7 @@ export default function SuperAdminDashboardPage({ user }) {
             logs.map((entry, i) => (
               <div key={entry.id} style={{
                 padding: '12px 16px',
-                borderBottom: i < logs.length - 1 ? '1px solid var(--surface-page)' : 'none',
+                borderBottom: i < logs.length - 1 ? '1px solid var(--divider)' : 'none',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>

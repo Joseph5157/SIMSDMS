@@ -48,7 +48,7 @@ export default function SessionResetPage({ user }) {
         {data?.data?.map((u) => (
           <div key={u.id} style={{
             padding: '14px 16px',
-            borderBottom: '1px solid var(--divider)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             gap: 12, backgroundColor: 'var(--surface-card)',
           }}>

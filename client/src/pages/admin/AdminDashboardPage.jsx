@@ -87,7 +87,7 @@ export default function AdminDashboardPage({ user }) {
             <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--divider)' }}>
+              <div style={{ display: 'flex', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
                 {[
                   { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: '#f0fdf4' },
                   { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: '#eff6ff' },
@@ -108,7 +108,7 @@ export default function AdminDashboardPage({ user }) {
                     key={s.slot_id}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '9px 16px', borderBottom: '1px solid var(--surface-page)',
+                      padding: '9px 16px', borderBottom: '1px solid var(--divider)',
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -147,7 +147,7 @@ export default function AdminDashboardPage({ user }) {
                   key={cr.id}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid var(--surface-page)', gap: 10,
+                    padding: '9px 16px', borderBottom: '1px solid var(--divider)', gap: 10,
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -178,7 +178,7 @@ export default function AdminDashboardPage({ user }) {
                   key={v.id}
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid var(--surface-page)', gap: 10,
+                    padding: '9px 16px', borderBottom: '1px solid var(--divider)', gap: 10,
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>

@@ -127,7 +127,7 @@ export default function ViolationsPage({ user }) {
           <div key={v.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--divider)', gap: 12,
+            borderBottom: '1px solid var(--border)', gap: 12,
             opacity: v.record_status === 'hidden' ? 0.6 : 1,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>

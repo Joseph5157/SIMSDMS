@@ -108,7 +108,7 @@ export default function StudentsPage({ user }) {
           <div key={s.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--divider)', gap: 12,
+            borderBottom: '1px solid var(--border)', gap: 12,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,

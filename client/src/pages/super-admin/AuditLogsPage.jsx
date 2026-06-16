@@ -43,7 +43,7 @@ export default function AuditLogsPage({ user }) {
         {data?.data?.map((log) => (
           <div key={log.id} style={{
             padding: '14px 16px',
-            borderBottom: '1px solid var(--divider)',
+            borderBottom: '1px solid var(--border)',
             backgroundColor: 'var(--surface-card)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
