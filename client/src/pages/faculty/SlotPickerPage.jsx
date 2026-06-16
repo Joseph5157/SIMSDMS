@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import Layout, { PageHeader } from '../../components/Layout';
+import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
-import { Button, Skeleton } from '@mantine/core';
+import { Button, Skeleton, Modal, Text, Group } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
 
@@ -25,6 +25,8 @@ export default function SlotPickerPage({ user }) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selected, setSelected] = useState(null); // dateStr of tapped cell
   const [pickingId, setPickingId] = useState(null);
+  const [unpickTarget, setUnpickTarget] = useState(null); // slot to confirm unpick
+  const [unpicking, setUnpicking] = useState(false);
   const panelRef = useRef(null);
 
   // When a date is selected, scroll its session panel into view so the
@@ -55,13 +57,17 @@ export default function SlotPickerPage({ user }) {
     }
   }
 
-  async function handleUnpick(slot) {
-    if (!confirm('Unpick this slot?')) return;
+  async function confirmUnpick() {
+    if (!unpickTarget) return;
+    setUnpicking(true);
     try {
-      await unpick.mutateAsync(slot.id);
+      await unpick.mutateAsync(unpickTarget.id);
       toast({ message: 'Slot unpicked.' });
+      setUnpickTarget(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    } finally {
+      setUnpicking(false);
     }
   }
 
@@ -82,7 +88,7 @@ export default function SlotPickerPage({ user }) {
   const windowOpen     = !!available && !available?.error;
   const pickedCount    = mySlots?.data?.length ?? 0;
   const remainingSlots = available?.slots_remaining ?? 0;
-  const requiredSlots  = available?.slots_per_faculty ?? 3;
+  const requiredSlots  = available?.sessions_per_faculty ?? 3;
 
   // ── Calendar grid ──────────────────────────────────────────────────────────
   const firstWeekday  = new Date(year, month - 1, 1).getDay(); // 0=Sun
@@ -112,7 +118,10 @@ export default function SlotPickerPage({ user }) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Layout user={user}>
-      <PageHeader title="My Duty Slots" subtitle="Pick your duty slots for the month" />
+      <div style={{ textAlign: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>My Duty Slots</h2>
+        <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0 0' }}>Pick your duty slots for the month</p>
+      </div>
 
       {/* ── Window status ── */}
       {loadingAvail ? (
@@ -187,25 +196,27 @@ export default function SlotPickerPage({ user }) {
             {cells.map((dateStr, i) => {
               if (!dateStr) return <div key={i} />;
 
-              const isPast      = dateStr < todayStr;
-              const isToday     = dateStr === todayStr;
-              const avail       = availMap[dateStr] ?? [];
-              const picked      = pickedMap[dateStr] ?? {};
-              const hasMorn     = avail.includes('morning');
-              const hasAftern   = avail.includes('afternoon');
-              const pickedMorn  = !!picked.morning;
-              const pickedAftern= !!picked.afternoon;
-              const isSelected  = selected === dateStr;
-              const hasAnything = avail.length > 0 || pickedMorn || pickedAftern;
-              const isClickable = !isPast && hasAnything && windowOpen;
+              const isPast       = dateStr < todayStr;
+              const isToday      = dateStr === todayStr;
+              const avail        = availMap[dateStr] ?? [];
+              const picked       = pickedMap[dateStr] ?? {};
+              const hasMorn      = avail.includes('morning');
+              const hasAftern    = avail.includes('afternoon');
+              const pickedMorn   = !!picked.morning;
+              const pickedAftern = !!picked.afternoon;
+              const isPastPicked = isPast && (pickedMorn || pickedAftern);
+              const isSelected   = selected === dateStr;
+              const hasAnything  = avail.length > 0 || pickedMorn || pickedAftern;
+              const isClickable  = !isPast && hasAnything && windowOpen;
 
               const d = parseInt(dateStr.slice(8), 10);
 
               let bg = 'transparent', border = 'none', color = '#94a3b8';
-              if (isToday)    { border = '2px solid #2563eb'; color = '#2563eb'; }
-              if (isPast)     { color = '#cbd5e1'; }
-              if (isSelected) { bg = '#eff6ff'; border = '2px solid #2563eb'; }
-              if (pickedMorn || pickedAftern) { color = '#0f172a'; }
+              if (isToday)      { border = '2px solid #2563eb'; color = '#2563eb'; }
+              if (isPast)       { color = '#cbd5e1'; }
+              if (isPastPicked) { bg = '#f1f5f9'; color = '#94a3b8'; }
+              if (isSelected)   { bg = '#eff6ff'; border = '2px solid #2563eb'; }
+              if (!isPast && (pickedMorn || pickedAftern)) { color = '#0f172a'; }
 
               return (
                 <button
@@ -229,13 +240,13 @@ export default function SlotPickerPage({ user }) {
                     {(hasMorn || pickedMorn) && (
                       <span style={{
                         width: 5, height: 5, borderRadius: '50%',
-                        background: pickedMorn ? '#10b981' : '#3b82f6',
+                        background: pickedMorn ? (isPast ? '#94a3b8' : '#10b981') : '#3b82f6',
                       }} />
                     )}
                     {(hasAftern || pickedAftern) && (
                       <span style={{
                         width: 5, height: 5, borderRadius: '50%',
-                        background: pickedAftern ? '#10b981' : '#f97316',
+                        background: pickedAftern ? (isPast ? '#94a3b8' : '#10b981') : '#f97316',
                       }} />
                     )}
                   </div>
@@ -271,7 +282,7 @@ export default function SlotPickerPage({ user }) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Morning picked</span>
                     {picked.morning?.status === 'scheduled' && (
-                      <button onClick={() => handleUnpick(picked.morning)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
+                      <button onClick={() => setUnpickTarget(picked.morning)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
                     )}
                   </div>
                 ) : hasMorn ? (
@@ -291,7 +302,7 @@ export default function SlotPickerPage({ user }) {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Afternoon picked</span>
                     {picked.afternoon?.status === 'scheduled' && (
-                      <button onClick={() => handleUnpick(picked.afternoon)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
+                      <button onClick={() => setUnpickTarget(picked.afternoon)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
                     )}
                   </div>
                 ) : hasAftern ? (
@@ -330,6 +341,10 @@ export default function SlotPickerPage({ user }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
             <span style={{ fontSize: 10, color: '#64748b' }}>Picked</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
+            <span style={{ fontSize: 10, color: '#64748b' }}>Past</span>
           </div>
         </div>
 
@@ -382,6 +397,40 @@ export default function SlotPickerPage({ user }) {
           </div>
         )}
       </div>
+      {/* ── Unpick confirmation modal ── */}
+      <Modal
+        opened={!!unpickTarget}
+        onClose={() => !unpicking && setUnpickTarget(null)}
+        title="Unpick this slot?"
+        centered
+        size="sm"
+        withCloseButton={!unpicking}
+      >
+        {unpickTarget && (
+          <>
+            <Text size="sm" c="dimmed" mb="lg">
+              You are about to remove your{' '}
+              <strong style={{ textTransform: 'capitalize' }}>{unpickTarget.session_type}</strong>{' '}
+              slot on{' '}
+              <strong>
+                {(() => {
+                  const d = new Date(String(unpickTarget.duty_date).slice(0, 10));
+                  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+                })()}
+              </strong>
+              . This slot will be released and available for others to pick.
+            </Text>
+            <Group justify="flex-end" gap="sm">
+              <Button variant="default" onClick={() => setUnpickTarget(null)} disabled={unpicking}>
+                Cancel
+              </Button>
+              <Button color="red" onClick={confirmUnpick} loading={unpicking}>
+                Unpick
+              </Button>
+            </Group>
+          </>
+        )}
+      </Modal>
     </Layout>
   );
 }
