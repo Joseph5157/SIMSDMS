@@ -13,11 +13,51 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // PWA disabled during active development — selfDestroying unregisters
-    // any previously installed SW and clears its caches on next visit.
-    // TODO: Re-enable with full config when layout/styling changes stabilize.
     VitePWA({
-      selfDestroying: true,
+      registerType: 'prompt',  // show update prompt; never auto-reload (faculty may be mid check-in)
+      manifest: false,         // we manage our own public/manifest.json
+      includeAssets: ['favicon.svg', 'icons/*.png'],
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        runtimeCaching: [
+          // API routes — network-first so data stays fresh; fall back to cache on failure
+          {
+            urlPattern: ({ url }) => {
+              const api = ['/auth', '/users', '/admin', '/students', '/calendar',
+                           '/duty-slots', '/attendance', '/violations', '/violation-types',
+                           '/cover-requests', '/messages', '/reports', '/health', '/invites'];
+              return api.some(p => url.pathname.startsWith(p));
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'sims-api',
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 64, maxAgeSeconds: 300 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          // Google Fonts stylesheet
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-sheet',
+              expiration: { maxEntries: 4, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          // Google Fonts binaries (woff2)
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-files',
+              expiration: { maxEntries: 16, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
     }),
   ],
   server: {

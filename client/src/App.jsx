@@ -7,6 +7,7 @@ import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import OfflineBanner from './components/OfflineBanner';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import { useCurrentUser } from './hooks/useAuth';
 import { initializeTheme } from './lib/theme';
 import { ROLES } from './utils/constants';
@@ -108,23 +109,7 @@ function AppRoutes() {
 export default function App() {
   useEffect(() => {
     initializeTheme();
-    console.log('SIMS DMS build: mantine-migration -', new Date().toISOString());
   }, []);
-
-  // Service worker disabled during active development to prevent stale cache issues
-  // TODO: Re-enable after layout/styling changes stabilize
-  // useEffect(() => {
-  //   if ('serviceWorker' in navigator) {
-  //     navigator.serviceWorker
-  //       .register('/service-worker.js')
-  //       .then((reg) => {
-  //         console.log('Service Worker registered:', reg);
-  //       })
-  //       .catch((err) => {
-  //         console.warn('Service Worker registration failed:', err);
-  //       });
-  //   }
-  // }, []);
 
   return (
     <MantineProvider
@@ -132,6 +117,7 @@ export default function App() {
       theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
     >
       <Notifications position="bottom-right" zIndex={9999} />
+      <PWAUpdatePrompt />
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <ErrorBoundary>
