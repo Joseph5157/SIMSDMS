@@ -1,4 +1,5 @@
 import { NavLink as RouterNavLink } from 'react-router-dom';
+import simsLogo from '../assets/sims-logo.png';
 import {
   AppShell, Drawer, Group, Box, Text, Stack, Divider,
   UnstyledButton, Avatar, Title, Paper,
@@ -115,7 +116,7 @@ export default function Layout({ user, children }) {
     <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
       <Box className={classes.brand}>
         <Group gap={8} wrap="nowrap">
-          <Box className={classes.brandMark}>🎓</Box>
+          <img src={simsLogo} alt="SIMS" className={classes.brandMark} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           <Text fw={700} size="sm" c="white" style={{ letterSpacing: '-0.01em' }}>
             SIMS DMS
           </Text>

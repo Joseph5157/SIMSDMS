@@ -7,7 +7,6 @@ import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import OfflineBanner from './components/OfflineBanner';
-import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import { useCurrentUser } from './hooks/useAuth';
 import { initializeTheme } from './lib/theme';
 import { ROLES } from './utils/constants';
@@ -117,7 +116,6 @@ export default function App() {
       theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
     >
       <Notifications position="bottom-right" zIndex={9999} />
-      <PWAUpdatePrompt />
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <ErrorBoundary>

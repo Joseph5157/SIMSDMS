@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
+import simsLogo from '../../assets/sims-logo.png';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -101,16 +102,11 @@ export default function LoginPage() {
         textAlign: 'center',
       }}>
         {/* Brand mark */}
-        <div style={{
-          width: 72, height: 72,
-          borderRadius: 'var(--radius-3xl)',
-          background: 'var(--brand-gradient)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, marginBottom: 20,
-          boxShadow: 'var(--shadow-brand)',
-        }}>
-          🎓
-        </div>
+        <img
+          src={simsLogo}
+          alt="SIMS College of Pharmacy"
+          style={{ width: 96, height: 96, objectFit: 'contain', marginBottom: 20 }}
+        />
 
         <p style={{
           fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
