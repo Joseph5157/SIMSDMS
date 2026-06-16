@@ -343,7 +343,7 @@ export default function ChangePasswordPage() {
         {/* Footer */}
         <p style={{
           textAlign: 'center', fontSize: 'var(--text-micro)',
-          color: 'var(--border-strong)', marginTop: 32,
+          color: 'var(--text-muted)', marginTop: 32,
         }}>
           SIMS DMS · Version 1.0
         </p>

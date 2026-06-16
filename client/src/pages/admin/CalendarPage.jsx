@@ -242,7 +242,7 @@ export default function CalendarPage({ user }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--surface-page)', border: '1px solid var(--border)',
+                  backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-strong)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 'var(--text-small)', color: 'var(--text-secondary)', fontWeight: 'var(--weight-bold)' }}>3</div>
                 <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Default — normal working day</span>

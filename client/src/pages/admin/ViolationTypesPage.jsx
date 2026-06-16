@@ -68,7 +68,7 @@ export default function ViolationTypesPage({ user }) {
                 {t.is_system && <Badge status="pending" label="System" />}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid var(--divider)', paddingTop: 10 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
               <Button variant="light" size="xs" onClick={() => { setEditing(t); setShowModal(true); }}>Edit</Button>
               {!t.is_system && t.is_active && (
                 <Button variant="subtle" color="gray" size="xs" onClick={() => handleDeactivate(t)}>Deactivate</Button>
