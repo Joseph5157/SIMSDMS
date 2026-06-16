@@ -118,7 +118,7 @@ export default function SlotPickerPage({ user }) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Layout user={user}>
-      <div style={{ textAlign: 'center', marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid var(--border-strong)' }}>
+      <div style={{ textAlign: 'center', paddingTop: 16, paddingBottom: 10, marginBottom: 12, borderBottom: '1px solid var(--border-strong)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>My Duty Slots</h2>
         <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0' }}>Pick your duty slots for the month</p>
       </div>

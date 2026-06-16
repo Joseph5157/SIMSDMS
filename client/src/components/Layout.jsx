@@ -248,19 +248,17 @@ export default function Layout({ user, children }) {
 
 export function PageHeader({ title, subtitle, action }) {
   return (
-    <Group justify="space-between" align="flex-start" mb="lg" pb="md"
-      style={{ borderBottom: '1px solid var(--border)', minWidth: 0 }}
+    <Stack align="center" gap={4} py="lg" mb="md"
+      style={{ borderBottom: '1px solid var(--border)', textAlign: 'center' }}
     >
-      <Box style={{ minWidth: 0, flex: 1 }}>
-        <Title order={2} style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3 }} lineClamp={1}>
-          {title}
-        </Title>
-        {subtitle && (
-          <Text size="xs" c="dimmed" mt={5} lineClamp={1}>{subtitle}</Text>
-        )}
-      </Box>
-      {action && <Box style={{ flexShrink: 0 }}>{action}</Box>}
-    </Group>
+      <Title order={2} style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3 }}>
+        {title}
+      </Title>
+      {subtitle && (
+        <Text size="xs" c="dimmed">{subtitle}</Text>
+      )}
+      {action && <Box mt={6}>{action}</Box>}
+    </Stack>
   );
 }
 
