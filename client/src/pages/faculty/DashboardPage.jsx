@@ -26,11 +26,11 @@ export default function DashboardPage({ user }) {
   const { data: violationsData } = useMyViolations({ limit: 5 });
   const { data: inboxData }      = useInbox({ limit: 5 });
   const { data: coverData }      = useMyCoverRequests();
-  const { data: attData }        = useAttendance(todaySlot?.id);
 
   const slots    = slotsData?.data ?? [];
   const today    = todayIST();
   const todaySlot = slots.find((s) => new Date(s.duty_date).toISOString().slice(0, 10) === today);
+  const { data: attData }        = useAttendance(todaySlot?.id);
   const upcoming  = slots.filter((s) => new Date(s.duty_date).toISOString().slice(0, 10) > today).slice(0, 3);
   const unread    = inboxData?.data?.filter((m) => !m.is_read).length ?? 0;
 
