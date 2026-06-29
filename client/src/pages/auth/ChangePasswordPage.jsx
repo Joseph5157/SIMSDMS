@@ -4,27 +4,19 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
 
-/* Shared field style for this auth screen */
-const fieldStyle = (isLoading) => ({
-  border: '2px solid var(--border)',
-  borderRadius: 'var(--radius-xl)',
-  padding: '14px 16px',
-  fontSize: 'var(--text-card-lg)',
-  color: 'var(--text-primary)',
-  outline: 'none',
-  width: '100%',
-  boxSizing: 'border-box',
-  backgroundColor: 'var(--surface-page)',
-  transition: `border-color var(--dur-fast)`,
-  opacity: isLoading ? 0.6 : 1,
-  cursor: isLoading ? 'not-allowed' : 'auto',
-});
+/* Shared Tailwind class string for password/text inputs */
+const fieldClass = (isLoading) => [
+  'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
+  'text-[length:var(--text-card-lg)] text-[var(--text-primary)]',
+  'outline-none w-full bg-[var(--surface-page)]',
+  'transition-[border-color] duration-[var(--dur-fast)]',
+  'focus:border-[var(--brand)]',
+  isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-auto',
+].join(' ');
 
-const labelStyle = {
-  fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
-  color: 'var(--text-secondary)',
-  textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
-};
+/* Shared Tailwind class string for labels */
+const labelClass =
+  'text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)]';
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate();
@@ -100,129 +92,88 @@ export default function ChangePasswordPage() {
     || newPassword.length < 8 || newPassword !== confirmNewPassword;
 
   return (
-    <div style={{
-      minHeight: '100dvh',
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'var(--surface-sidebar)',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
+    <div className="min-h-dvh w-full flex flex-col bg-[var(--surface-sidebar)] relative overflow-hidden">
 
       {/* ── Background glow circles ── */}
-      <div style={{
-        position: 'absolute', top: -80, right: -80,
-        width: 260, height: 260, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: 200, left: -60,
-        width: 200, height: 200, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+      <div
+        className="absolute pointer-events-none rounded-full"
+        style={{
+          top: -80, right: -80, width: 260, height: 260,
+          background: 'radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%)',
+        }}
+      />
+      <div
+        className="absolute pointer-events-none rounded-full"
+        style={{
+          bottom: 200, left: -60, width: 200, height: 200,
+          background: 'radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%)',
+        }}
+      />
 
       {/* ── Top branding area ── */}
-      <div style={{
-        flex: '0 0 auto',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: 72,
-        paddingBottom: 40,
-        paddingLeft: 24,
-        paddingRight: 24,
-        textAlign: 'center',
-      }}>
+      <div className="flex-none flex flex-col items-center justify-center pt-[72px] pb-10 px-6 text-center">
         {/* Brand mark */}
-        <div style={{
-          width: 72, height: 72,
-          borderRadius: 'var(--radius-3xl)',
-          background: 'var(--brand-gradient)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 32, marginBottom: 20,
-          boxShadow: 'var(--shadow-brand)',
-        }}>
+        <div
+          className="w-[72px] h-[72px] rounded-[var(--radius-3xl)] flex items-center justify-center text-[32px] mb-5"
+          style={{
+            background: 'var(--brand-gradient)',
+            boxShadow: 'var(--shadow-brand)',
+          }}
+        >
           🔐
         </div>
 
-        <p style={{
-          fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)',
-          color: 'var(--color-blue-500)',
-          textTransform: 'uppercase', letterSpacing: 'var(--tracking-caps)', marginBottom: 8,
-        }}>
+        <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2">
           SIMS College of Pharmacy
         </p>
 
-        <h1 style={{
-          fontSize: 'var(--text-display)', fontWeight: 'var(--weight-extra)',
-          color: 'var(--text-on-dark)',
-          lineHeight: 'var(--leading-tight)', marginBottom: 10,
-        }}>
+        <h1 className="text-[length:var(--text-display)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2.5">
           Change Password
         </h1>
 
-        <p style={{
-          fontSize: 'var(--text-body)', color: 'var(--color-slate-500)',
-          lineHeight: 'var(--leading-normal)', maxWidth: 280,
-        }}>
+        <p className="text-[length:var(--text-body)] text-[var(--color-slate-500)] leading-[var(--leading-normal)] max-w-[280px]">
           Secure your account with a new password
         </p>
       </div>
 
       {/* ── Form sheet ── */}
-      <div style={{
-        flex: 1,
-        backgroundColor: 'var(--surface-card)',
-        borderRadius: 'var(--radius-sheet) var(--radius-sheet) 0 0',
-        padding: '32px 24px 48px',
-        boxShadow: 'var(--shadow-sheet)',
-      }}>
+      <div
+        className="flex-1 bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] px-6 pt-8 pb-12"
+        style={{ boxShadow: 'var(--shadow-sheet)' }}
+      >
         {/* Pull handle */}
-        <div style={{
-          width: 40, height: 4, backgroundColor: 'var(--border)',
-          borderRadius: 2, margin: '0 auto 28px',
-        }} />
+        <div className="w-10 h-1 bg-[var(--border)] rounded-full mx-auto mb-7" />
 
         {/* Mandatory change banner */}
         {isMandatory && (
-          <div style={{
-            backgroundColor: 'var(--color-amber-bg)',
-            border: '1px solid var(--color-amber-border)',
-            borderLeft: '3px solid var(--color-amber-solid)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '12px 14px',
-            marginBottom: 20,
-            display: 'flex',
-            gap: 10,
-            alignItems: 'flex-start',
-          }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>⚠️</span>
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-amber-text)', lineHeight: 'var(--leading-snug)', margin: 0 }}>
+          <div
+            className="rounded-[var(--radius-lg)] px-3.5 py-3 mb-5 flex gap-2.5 items-start"
+            style={{
+              backgroundColor: 'var(--color-amber-bg)',
+              border: '1px solid var(--color-amber-border)',
+              borderLeft: '3px solid var(--color-amber-solid)',
+            }}
+          >
+            <span className="text-base shrink-0">⚠️</span>
+            <p className="text-[length:var(--text-card)] text-[var(--color-amber-text)] leading-[var(--leading-snug)] m-0">
               You must set a new password before continuing to access the system.
             </p>
           </div>
         )}
 
-        <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <form onSubmit={handleChangePassword} className="flex flex-col gap-5">
           <div>
-            <h2 style={{
-              fontSize: 'var(--text-h2)', fontWeight: 'var(--weight-extra)',
-              color: 'var(--text-primary)', marginBottom: 4,
-            }}>
+            <h2 className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
               Update your password
             </h2>
-            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-muted)' }}>
+            <p className="text-[length:var(--text-body)] text-[var(--text-muted)]">
               Enter your current password and choose a new one
             </p>
           </div>
 
           {/* Current password */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={labelStyle}>Current Password</label>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>Current Password</label>
             <input
               type="password"
               autoComplete="current-password"
@@ -231,15 +182,13 @@ export default function ChangePasswordPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={fieldStyle(isLoading)}
-              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
+              className={fieldClass(isLoading)}
             />
           </div>
 
           {/* New password */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={labelStyle}>New Password</label>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>New Password</label>
             <input
               type="password"
               autoComplete="new-password"
@@ -248,20 +197,18 @@ export default function ChangePasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={fieldStyle(isLoading)}
-              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
+              className={fieldClass(isLoading)}
             />
             {newPassword.length > 0 && newPassword.length < 8 && (
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-red-solid)', margin: 0 }}>
+              <p className="text-[length:var(--text-small)] text-[var(--color-red-solid)] m-0">
                 Password must be at least 8 characters
               </p>
             )}
           </div>
 
           {/* Confirm password */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={labelStyle}>Confirm New Password</label>
+          <div className="flex flex-col gap-1.5">
+            <label className={labelClass}>Confirm New Password</label>
             <input
               type="password"
               autoComplete="new-password"
@@ -270,12 +217,10 @@ export default function ChangePasswordPage() {
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={fieldStyle(isLoading)}
-              onFocus={e => e.target.style.borderColor = 'var(--brand)'}
-              onBlur={e => e.target.style.borderColor = 'var(--border)'}
+              className={fieldClass(isLoading)}
             />
             {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-red-solid)', margin: 0 }}>
+              <p className="text-[length:var(--text-small)] text-[var(--color-red-solid)] m-0">
                 Passwords do not match
               </p>
             )}
@@ -283,40 +228,40 @@ export default function ChangePasswordPage() {
 
           {/* Error message */}
           {error && (
-            <div style={{
-              backgroundColor: 'var(--color-red-bg)',
-              border: '1px solid var(--color-red-border)',
-              borderLeft: '3px solid var(--color-red-solid)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '12px 14px',
-              fontSize: 'var(--text-card)',
-              color: 'var(--color-red-text)',
-            }}>
+            <div
+              className="rounded-[var(--radius-lg)] px-3.5 py-3 text-[length:var(--text-card)] text-[var(--color-red-text)]"
+              style={{
+                backgroundColor: 'var(--color-red-bg)',
+                border: '1px solid var(--color-red-border)',
+                borderLeft: '3px solid var(--color-red-solid)',
+              }}
+            >
               {error}
             </div>
           )}
 
           {/* Buttons */}
-          <div style={{ display: 'flex', gap: 12, flexDirection: 'column' }}>
+          <div className="flex flex-col gap-3">
             <button
               type="submit"
               disabled={isSubmitDisabled}
-              style={{
-                width: '100%',
-                padding: '16px',
-                borderRadius: 'var(--radius-xl)',
-                border: 'none',
-                background: isSubmitDisabled
-                  ? 'var(--color-blue-300)'
-                  : 'var(--brand-gradient-deep)',
-                color: 'var(--text-on-brand)',
-                fontSize: 'var(--text-card-lg)',
-                fontWeight: 'var(--weight-bold)',
-                fontFamily: 'var(--font-sans)',
-                cursor: isSubmitDisabled ? 'not-allowed' : 'pointer',
-                boxShadow: isSubmitDisabled ? 'none' : 'var(--shadow-brand)',
-                transition: `all var(--dur-fast)`,
-              }}
+              className={[
+                'w-full py-4 rounded-[var(--radius-xl)] border-none',
+                'text-[length:var(--text-card-lg)] font-[var(--weight-bold)] font-[var(--font-sans)]',
+                'text-[var(--text-on-brand)]',
+                'transition-all duration-[var(--dur-fast)]',
+                isSubmitDisabled
+                  ? 'bg-[var(--color-blue-300)] cursor-not-allowed shadow-none'
+                  : 'cursor-pointer',
+              ].join(' ')}
+              style={
+                isSubmitDisabled
+                  ? undefined
+                  : {
+                      background: 'var(--brand-gradient-deep)',
+                      boxShadow: 'var(--shadow-brand)',
+                    }
+              }
             >
               {isLoading ? '⏳ Updating…' : 'Update Password →'}
             </button>
@@ -326,13 +271,11 @@ export default function ChangePasswordPage() {
                 type="button"
                 onClick={handleCancel}
                 disabled={isLoading}
-                style={{
-                  fontSize: 'var(--text-card)', color: 'var(--text-muted)',
-                  background: 'none', border: 'none',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  textAlign: 'center', opacity: isLoading ? 0.6 : 1,
-                  fontFamily: 'var(--font-sans)',
-                }}
+                className={[
+                  'text-[length:var(--text-card)] text-[var(--text-muted)]',
+                  'bg-transparent border-none text-center font-[var(--font-sans)]',
+                  isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+                ].join(' ')}
               >
                 ← Cancel
               </button>
@@ -341,10 +284,7 @@ export default function ChangePasswordPage() {
         </form>
 
         {/* Footer */}
-        <p style={{
-          textAlign: 'center', fontSize: 'var(--text-micro)',
-          color: 'var(--text-muted)', marginTop: 32,
-        }}>
+        <p className="text-center text-[length:var(--text-micro)] text-[var(--text-muted)] mt-8">
           SIMS DMS · Version 1.0
         </p>
       </div>

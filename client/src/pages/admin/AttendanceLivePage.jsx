@@ -5,6 +5,7 @@ import FormModal from '../../components/ui/FormModal';
 import { Button, Select, TextInput } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useLiveAttendance, useOverrideAttendance } from '../../hooks/useAttendance';
+import Breadcrumb from '../../components/Breadcrumb';
 
 // ── Override modal ────────────────────────────────────────────────────────────
 function OverrideModal({ record, onClose }) {
@@ -139,6 +140,7 @@ export default function AttendanceLivePage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Attendance' }]} />
       <PageHeader
         title="Live Attendance"
         subtitle={`Today · Refreshes every 30s · Last updated ${lastUpdate}`}

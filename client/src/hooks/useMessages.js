@@ -37,7 +37,11 @@ export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/messages', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sent'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['messages'] });
+      qc.invalidateQueries({ queryKey: ['inbox'] });
+      qc.invalidateQueries({ queryKey: ['sent'] });
+    },
   });
 }
 

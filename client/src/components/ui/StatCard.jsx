@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react';
+
 const ACCENTS = {
   green:   { bar: 'var(--color-emerald-solid)', bg: 'var(--color-emerald-bg)',  text: 'var(--color-emerald-text)', border: 'var(--color-emerald-tint)' },
   yellow:  { bar: 'var(--color-amber-solid)',   bg: 'var(--color-amber-bg)',    text: 'var(--color-amber-text)',   border: 'var(--color-amber-tint)' },
@@ -9,6 +11,21 @@ const ACCENTS = {
 
 export default function StatCard({ label, value, sub, accent = 'default', icon }) {
   const c = ACCENTS[accent] ?? ACCENTS.default;
+  const isNumber = typeof value === 'number';
+  const [display, setDisplay] = useState(isNumber ? 0 : value);
+
+  useEffect(() => {
+    if (!isNumber || value === 0) { setDisplay(value ?? '—'); return; }
+    const duration = 600;
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      setDisplay(Math.round(eased * value));
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }, [value, isNumber]);
 
   return (
     <div style={{
@@ -38,7 +55,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
       {/* Label */}
       <p style={{
         margin: 0,
-        fontSize: 11, fontWeight: 600, color: 'var(--color-slate-400)',
+        fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--color-slate-400)',
         textTransform: 'uppercase', letterSpacing: '0.06em',
         display: 'flex', alignItems: 'center', gap: 4,
       }}>
@@ -49,15 +66,15 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
       {/* Value */}
       <p style={{
         margin: 0,
-        fontSize: 36, fontWeight: 800, color: c.text,
+        fontSize: 'var(--text-stat)', fontWeight: 800, color: c.text,
         lineHeight: 1, letterSpacing: 'var(--tracking-tight)',
       }}>
-        {value ?? '—'}
+        {display}
       </p>
 
       {/* Sub */}
       {sub && (
-        <p style={{ margin: 0, fontSize: 11, color: c.text, opacity: 0.65, marginTop: 2 }}>
+        <p style={{ margin: 0, fontSize: 'var(--text-micro)', color: c.text, opacity: 0.65, marginTop: 2 }}>
           {sub}
         </p>
       )}

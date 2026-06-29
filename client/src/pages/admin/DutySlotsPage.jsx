@@ -4,6 +4,7 @@ import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import { Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useMonthSlots } from '../../hooks/useDutySlots';
+import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -20,6 +21,7 @@ export default function DutySlotsPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Duty Slots' }]} />
       <PageHeader title="Duty Slots" subtitle="Monthly slot assignments" />
 
       <div className="flex items-center gap-2 mb-6">

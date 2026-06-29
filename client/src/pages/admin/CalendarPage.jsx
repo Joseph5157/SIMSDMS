@@ -7,6 +7,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import { useToast } from '../../components/ui/Toast';
 import { useCalendar, useOpenWindow, useCloseWindow, useUpdateBlockedDates, useUpdateSessionsPerFaculty, useUnassignedFaculty, useAssignSlots } from '../../hooks/useCalendar';
+import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -160,6 +161,7 @@ export default function CalendarPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Calendar' }]} />
       <PageHeader title="Duty Calendar" subtitle="Manage scheduling window and blocked dates" />
 
       {/* Month picker */}
@@ -207,6 +209,8 @@ export default function CalendarPage({ user }) {
                 const isBlocked = blocked.includes(key);
                 return (
                   <button key={d} onClick={() => toggleBlocked(d)}
+                    aria-label={`${new Date(year, month - 1, d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isBlocked ? ' — blocked' : ' — available'}`}
+                    aria-pressed={isBlocked}
                     className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}>
                     {d}
                   </button>

@@ -130,9 +130,9 @@ export default function SlotPickerPage({ user }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#f0fdf4', border: '1px solid #bbf7d0',
-          borderRadius: 12, padding: '10px 14px', marginBottom: 16,
+          borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: '#10b981', flexShrink: 0 }} />
           <p style={{ fontSize: 13, color: '#065f46', margin: 0 }}>
             Window <strong>open</strong> ·{' '}
             {loadingMine
@@ -144,9 +144,9 @@ export default function SlotPickerPage({ user }) {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           background: '#f8fafc', border: '1px solid #e2e8f0',
-          borderRadius: 12, padding: '10px 14px', marginBottom: 16,
+          borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#94a3b8', flexShrink: 0 }} />
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: '#94a3b8', flexShrink: 0 }} />
           <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
             Scheduling window is <strong>closed</strong>.
           </p>
@@ -155,13 +155,13 @@ export default function SlotPickerPage({ user }) {
 
       {/* ── Calendar ── */}
       <div style={{
-        background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0',
+        background: '#fff', borderRadius: 'var(--radius-2xl)', border: '1px solid #e2e8f0',
         padding: '16px', marginBottom: 20,
       }}>
         {/* Month nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={prevMonth} style={{
-            width: 32, height: 32, borderRadius: 8, border: '1px solid #e2e8f0',
+            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0',
             background: '#f8fafc', cursor: 'pointer', fontSize: 16, color: '#334155',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>‹</button>
@@ -169,10 +169,30 @@ export default function SlotPickerPage({ user }) {
             {MONTH_NAMES[month - 1]} {year}
           </p>
           <button onClick={nextMonth} style={{
-            width: 32, height: 32, borderRadius: 8, border: '1px solid #e2e8f0',
+            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0',
             background: '#f8fafc', cursor: 'pointer', fontSize: 16, color: '#334155',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>›</button>
+        </div>
+
+        {/* Legend — above grid */}
+        <div style={{ display: 'flex', gap: 14, marginBottom: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#3b82f6', display: 'inline-block' }} />
+            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Morning</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#f97316', display: 'inline-block' }} />
+            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Afternoon</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#10b981', display: 'inline-block' }} />
+            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Picked</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#94a3b8', display: 'inline-block' }} />
+            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Past</span>
+          </div>
         </div>
 
         {/* Day-of-week headers */}
@@ -218,35 +238,48 @@ export default function SlotPickerPage({ user }) {
               if (isSelected)   { bg = '#eff6ff'; border = '2px solid #2563eb'; }
               if (!isPast && (pickedMorn || pickedAftern)) { color = '#0f172a'; }
 
+              // Build accessible label
+              const dateObj = new Date(year, month - 1, d);
+              const fullDateLabel = dateObj.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              const stateLabel = isPast ? 'past' : (pickedMorn || pickedAftern) ? 'picked' : hasAnything ? 'available' : 'no sessions';
+              const ariaLabel = `${fullDateLabel} — ${stateLabel}`;
+
               return (
                 <button
                   key={i}
                   onClick={() => isClickable && setSelected(isSelected ? null : dateStr)}
                   disabled={!isClickable}
+                  aria-label={ariaLabel}
+                  aria-pressed={isSelected}
+                  aria-disabled={!isClickable}
                   style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 8,
+                    width: '100%', aspectRatio: '1', borderRadius: 'var(--radius-md)',
                     border: border || '1px solid transparent',
                     background: bg, cursor: isClickable ? 'pointer' : 'default',
                     display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
                     padding: 2, gap: 2,
+                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                    transition: 'transform 0.15s ease, background-color 0.15s ease',
                   }}
                 >
                   <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color, lineHeight: 1 }}>
                     {d}
                   </span>
                   {/* Session dots */}
-                  <div style={{ display: 'flex', gap: 2, minHeight: 5 }}>
+                  <div style={{ display: 'flex', gap: 3, minHeight: 8 }}>
                     {(hasMorn || pickedMorn) && (
                       <span style={{
-                        width: 5, height: 5, borderRadius: '50%',
+                        width: 8, height: 8, borderRadius: 'var(--radius-full)',
                         background: pickedMorn ? (isPast ? '#94a3b8' : '#10b981') : '#3b82f6',
+                        flexShrink: 0,
                       }} />
                     )}
                     {(hasAftern || pickedAftern) && (
                       <span style={{
-                        width: 5, height: 5, borderRadius: '50%',
+                        width: 8, height: 8, borderRadius: 'var(--radius-full)',
                         background: pickedAftern ? (isPast ? '#94a3b8' : '#10b981') : '#f97316',
+                        flexShrink: 0,
                       }} />
                     )}
                   </div>
@@ -269,7 +302,7 @@ export default function SlotPickerPage({ user }) {
           return (
             <div ref={panelRef} style={{
               marginTop: 14, padding: 14,
-              background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12,
+              background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-lg)',
               scrollMarginTop: 80, scrollMarginBottom: 80,
             }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 10px' }}>
@@ -279,7 +312,7 @@ export default function SlotPickerPage({ user }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Morning */}
                 {pickedMorn ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Morning picked</span>
                     {picked.morning?.status === 'scheduled' && (
                       <button onClick={() => setUnpickTarget(picked.morning)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
@@ -291,7 +324,7 @@ export default function SlotPickerPage({ user }) {
                     loading={pickingId === `${selected}|morning`}
                     disabled={!!pickingId && pickingId !== `${selected}|morning`}
                     onClick={() => handlePick(selected, 'morning')}
-                    leftSection={<span style={{ fontSize: 11, background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AM</span>}
+                    leftSection={<span style={{ fontSize: 11, background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>AM</span>}
                   >
                     Pick Morning (9:00 AM)
                   </Button>
@@ -299,7 +332,7 @@ export default function SlotPickerPage({ user }) {
 
                 {/* Afternoon */}
                 {pickedAftern ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Afternoon picked</span>
                     {picked.afternoon?.status === 'scheduled' && (
                       <button onClick={() => setUnpickTarget(picked.afternoon)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
@@ -312,7 +345,7 @@ export default function SlotPickerPage({ user }) {
                     disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
                     onClick={() => handlePick(selected, 'afternoon')}
                     style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' }}
-                    leftSection={<span style={{ fontSize: 11, background: '#fed7aa', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>PM</span>}
+                    leftSection={<span style={{ fontSize: 11, background: '#fed7aa', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>PM</span>}
                   >
                     Pick Afternoon (2:00 PM)
                   </Button>
@@ -328,31 +361,11 @@ export default function SlotPickerPage({ user }) {
           );
         })()}
 
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, color: '#64748b' }}>Morning available</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, color: '#64748b' }}>Afternoon available</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, color: '#64748b' }}>Picked</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, color: '#64748b' }}>Past</span>
-          </div>
-        </div>
-
         {/* No slots message when window is open but empty */}
         {windowOpen && !loadingAvail && (available?.data ?? []).length === 0 && (
           <div style={{
             marginTop: 16, padding: '12px 14px',
-            background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10,
+            background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--radius-lg)',
           }}>
             <p style={{ fontSize: 12, color: '#92400e', margin: 0 }}>
               ⚠️ No slots set up for this month yet. Ask your Admin to configure working days on the Duty Calendar page.
@@ -380,11 +393,11 @@ export default function SlotPickerPage({ user }) {
               return (
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0',
+                  background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0',
                   padding: '10px 14px',
                 }}>
                   <span style={{
-                    width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                    width: 8, height: 8, borderRadius: 'var(--radius-full)', flexShrink: 0,
                     background: s.session_type === 'morning' ? '#3b82f6' : '#f97316',
                   }} />
                   <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0, textTransform: 'capitalize' }}>

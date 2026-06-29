@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Drawer } from 'vaul';
-import { X } from 'lucide-react';
 import { TextInput } from '@mantine/core';
+import BottomDrawer, { cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 
 function RoleButton({ label, subtitle, selected, onClick }) {
   return (
@@ -10,14 +9,14 @@ function RoleButton({ label, subtitle, selected, onClick }) {
       onClick={onClick}
       className="flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer"
       style={{
-        border: `1.5px solid ${selected ? '#3b82f6' : '#e2e8f0'}`,
-        backgroundColor: selected ? '#eff6ff' : '#f8fafc',
+        border: `1.5px solid ${selected ? '#3b82f6' : 'var(--border)'}`,
+        backgroundColor: selected ? '#eff6ff' : 'var(--surface-page)',
       }}
     >
-      <p className="text-sm font-bold mb-0.5" style={{ color: selected ? '#2563eb' : '#475569' }}>
+      <p className="text-sm font-bold mb-0.5" style={{ color: selected ? '#2563eb' : 'var(--text-secondary)' }}>
         {label}
       </p>
-      <p className="text-[10px]" style={{ color: selected ? '#60a5fa' : '#94a3b8' }}>
+      <p style={{ fontSize: 'var(--text-micro)', color: selected ? '#60a5fa' : 'var(--text-muted)' }}>
         {subtitle}
       </p>
     </button>
@@ -56,8 +55,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
 
   function shareOnWhatsApp() {
     const message = `Hi ${invitedName}, tap this link to activate your SIMS account: ${inviteLink}`;
-    const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   }
 
   function extractInviteToken() {
@@ -70,225 +68,121 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
   }
 
   return (
-    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground>
-      <Drawer.Portal>
-        <Drawer.Overlay style={{
-          position: 'fixed', inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(2px)',
-          zIndex: 39,
-        }} />
-
-        <Drawer.Content style={{
-          position: 'fixed',
-          bottom: 0, left: 0, right: 0,
-          zIndex: 40,
-          backgroundColor: '#fff',
-          borderRadius: '20px 20px 0 0',
-          maxHeight: '94vh',
-          display: 'flex',
-          flexDirection: 'column',
-          outline: 'none',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-        }}>
-
-          {/* Drag handle */}
-          <div className="w-9 h-1 bg-slate-200 rounded-full mx-auto mt-3 mb-0 flex-shrink-0" />
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 flex-shrink-0">
-            <div>
-              <Drawer.Title className="text-base font-black text-slate-900 m-0">
-                Invite user
-              </Drawer.Title>
-              <p className="text-xs text-slate-400 mt-0.5">
-                An invite link will be sent to their Telegram
-              </p>
-            </div>
+    <BottomDrawer
+      open={open}
+      onClose={inviteLink ? resetAndClose : onClose}
+      title={inviteLink ? 'Invite created' : 'Invite user'}
+      subtitle={inviteLink ? `Share with ${invitedName}` : 'An invite link will be sent to their Telegram'}
+      footer={
+        inviteLink ? (
+          <button
+            onClick={resetAndClose}
+            data-primary=""
+            style={{ ...primaryBtnStyle(false), flex: 1, maxWidth: 200, margin: '0 auto' }}
+          >
+            Done
+          </button>
+        ) : (
+          <>
+            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
             <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center cursor-pointer text-slate-500 hover:bg-slate-100 transition-colors"
+              type="submit"
+              disabled={loading || !form.name.trim() || !form.email.trim()}
+              onClick={handleSubmit}
+              data-primary=""
+              style={primaryBtnStyle(loading || !form.name.trim() || !form.email.trim())}
             >
-              <X size={16} strokeWidth={2} />
+              {loading ? '🔄 Sending...' : 'Send Invite'}
+            </button>
+          </>
+        )
+      }
+    >
+      {inviteLink ? (
+        // ── INVITE LINK PANEL ──
+        <div className="p-5 flex flex-col gap-3.5">
+          <div className="bg-blue-50 border-[1.5px] border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+            <p className="font-bold mb-2">📋 Instructions:</p>
+            <ol className="m-0" style={{ paddingLeft: '18px' }}>
+              <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
+              <li>Tap "Start" when you open the bot</li>
+              <li>Copy and send this exact message:</li>
+            </ol>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: 'var(--border)' }}>
+            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', margin: '0 0 6px' }}>Bot Username</p>
+            <p className="text-sm font-bold text-slate-900 m-0" style={{ fontFamily: 'monospace' }}>
+              @SimsPharmacybot
+            </p>
+          </div>
+
+          <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-900 font-semibold" style={{ borderWidth: '1.5px', borderColor: 'var(--border)', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+            /start {extractInviteToken()}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={copyCommand}
+              className="w-full h-11 rounded-lg font-bold text-sm text-blue-600 cursor-pointer transition-all duration-150 hover:bg-blue-100"
+              style={{ borderWidth: '1.5px', borderColor: '#3b82f6', backgroundColor: '#eff6ff' }}
+            >
+              📋 Copy command
+            </button>
+            <a
+              href={inviteLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center h-11 rounded-lg border-0 bg-cyan-500 text-xs font-bold text-white cursor-pointer no-underline transition-all duration-150 hover:bg-cyan-600"
+            >
+              🔗 Open Telegram
+            </a>
+            <button
+              onClick={shareOnWhatsApp}
+              className="w-full h-11 rounded-lg border-0 bg-green-500 text-xs font-bold text-white cursor-pointer transition-all duration-150 hover:bg-green-600"
+            >
+              💬 Share WhatsApp
             </button>
           </div>
 
-          {/* Scrollable body — form or invite panel */}
-          <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {inviteLink ? (
-              // ── INVITE LINK PANEL ──
-              <div className="p-5 flex flex-col gap-3.5">
-                <div className="text-center">
-                  <p className="text-sm font-bold text-slate-900 mb-1">✅ Invite created</p>
-                  <p className="text-xs text-slate-500">Share instructions with {invitedName}</p>
-                </div>
+          <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+            Link expires in 7 days.<br />
+            If issues with deep links, use the command method above.
+          </p>
+        </div>
+      ) : (
+        // ── FORM ──
+        <form onSubmit={handleSubmit} className="px-5 py-4 pb-2 flex flex-col gap-4">
 
-                <div className="bg-blue-50 border-[1.5px] border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
-                  <p className="font-bold mb-2">📋 Instructions:</p>
-                  <ol className="m-0" style={{ paddingLeft: '18px' }}>
-                    <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
-                    <li>Tap "Start" when you open the bot</li>
-                    <li>Copy and send this exact message:</li>
-                  </ol>
-                </div>
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Identity
+          </p>
+          <TextInput label="Full name" placeholder="Dr. Priya Sharma" value={form.name} onChange={set('name')} required autoComplete="name" />
+          <TextInput label="Email" type="email" placeholder="priya@sims.edu.in" value={form.email} onChange={set('email')} required autoComplete="email" />
 
-                <div className="bg-slate-50 rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: '#cbd5e1' }}>
-                  <p className="text-[11px] text-slate-500 m-0 mb-1.5">Bot Username</p>
-                  <p className="text-sm font-bold text-slate-900 m-0" style={{ fontFamily: 'monospace' }}>
-                    @SimsPharmacybot
-                  </p>
-                </div>
-
-                <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-900 font-semibold" style={{ borderWidth: '1.5px', borderColor: '#e2e8f0', wordBreak: 'break-word', fontFamily: 'monospace' }}>
-                  /start {extractInviteToken()}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={copyCommand}
-                    className="w-full h-11 rounded-lg font-bold text-sm text-blue-600 cursor-pointer transition-all duration-150 hover:bg-blue-100"
-                    style={{ borderWidth: '1.5px', borderColor: '#3b82f6', backgroundColor: '#eff6ff' }}
-                  >
-                    📋 Copy command
-                  </button>
-                  <a
-                    href={inviteLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center h-11 rounded-lg border-0 bg-cyan-500 text-xs font-bold text-white cursor-pointer no-underline transition-all duration-150 hover:bg-cyan-600"
-                  >
-                    🔗 Open Telegram
-                  </a>
-                  <button
-                    onClick={shareOnWhatsApp}
-                    className="w-full h-11 rounded-lg border-0 bg-green-500 text-xs font-bold text-white cursor-pointer transition-all duration-150 hover:bg-green-600"
-                  >
-                    💬 Share WhatsApp
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-slate-500 text-center leading-relaxed m-0">
-                  Link expires in 7 days.<br />
-                  If issues with deep links, use the command method above.
-                </p>
-              </div>
-            ) : (
-              // ── FORM ──
-              <form onSubmit={handleSubmit} className="px-5 py-4 pb-2 flex flex-col gap-4">
-
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-0">
-                  Identity
-                </p>
-                <TextInput
-                  label="Full name"
-                  placeholder="Dr. Priya Sharma"
-                  value={form.name}
-                  onChange={set('name')}
-                  required
-                  autoComplete="name"
-                />
-                <TextInput
-                  label="Email"
-                  type="email"
-                  placeholder="priya@sims.edu.in"
-                  value={form.email}
-                  onChange={set('email')}
-                  required
-                  autoComplete="email"
-                />
-
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-0">
-                  Role
-                </p>
-                <div className="flex gap-2">
-                  <RoleButton
-                    label="Faculty"
-                    subtitle="Records violations"
-                    selected={form.role === 'faculty'}
-                    onClick={() => setRole('faculty')}
-                  />
-                  {actorRole === 'super_admin' && (
-                    <RoleButton
-                      label="Admin"
-                      subtitle="Manages system"
-                      selected={form.role === 'admin'}
-                      onClick={() => setRole('admin')}
-                    />
-                  )}
-                </div>
-
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-0">
-                  Department
-                </p>
-                <TextInput
-                  label="Department"
-                  placeholder="Pharmacology"
-                  value={form.department}
-                  onChange={set('department')}
-                />
-                <TextInput
-                  label="Designation"
-                  placeholder="Assistant Professor"
-                  value={form.designation}
-                  onChange={set('designation')}
-                />
-
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] mb-0">
-                  Contact
-                </p>
-                <TextInput
-                  label="Phone"
-                  type="tel"
-                  placeholder="+91 98765 43210"
-                  value={form.phone}
-                  onChange={set('phone')}
-                  autoComplete="tel"
-                />
-
-              </form>
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Role
+          </p>
+          <div className="flex gap-2">
+            <RoleButton label="Faculty" subtitle="Records violations" selected={form.role === 'faculty'} onClick={() => setRole('faculty')} />
+            {actorRole === 'super_admin' && (
+              <RoleButton label="Admin" subtitle="Manages system" selected={form.role === 'admin'} onClick={() => setRole('admin')} />
             )}
           </div>
 
-          {/* Sticky footer */}
-          <div className="px-5 py-3 border-t border-slate-100 flex gap-2.5 flex-shrink-0 bg-white" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))', justifyContent: inviteLink ? 'center' : 'flex-start' }}>
-            {inviteLink ? (
-              <button
-                onClick={resetAndClose}
-                className="flex-1 h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer transition-all duration-150 hover:opacity-90"
-                style={{ maxWidth: '200px', background: 'linear-gradient(135deg, #2563eb, #4f46e5)', boxShadow: '0 4px 14px rgba(37,99,235,0.3)' }}
-              >
-                Done
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 h-12 rounded-xl text-sm font-bold text-slate-700 cursor-pointer hover:bg-slate-100 transition-all duration-150"
-                  style={{ borderWidth: '1.5px', borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !form.name.trim() || !form.email.trim()}
-                  onClick={handleSubmit}
-                  className="flex-[2] h-12 rounded-xl border-0 text-sm font-bold text-white cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-150 disabled:opacity-60"
-                  style={{
-                    background: loading || !form.name.trim() || !form.email.trim()
-                      ? '#93c5fd'
-                      : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-                  }}
-                >
-                  {loading ? '🔄 Sending...' : 'Send Invite'}
-                </button>
-              </>
-            )}
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Department
+          </p>
+          <TextInput label="Department" placeholder="Pharmacology" value={form.department} onChange={set('department')} />
+          <TextInput label="Designation" placeholder="Assistant Professor" value={form.designation} onChange={set('designation')} />
+
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+            Contact
+          </p>
+          <TextInput label="Phone" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} autoComplete="tel" />
+
+        </form>
+      )}
+    </BottomDrawer>
   );
 }

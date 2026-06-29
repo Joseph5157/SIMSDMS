@@ -64,10 +64,16 @@
 
 /* Give page content room to breathe above the bar on mobile */
 .pageContent {
-  padding: 0;
+  padding: var(--space-3) var(--space-4) 0;
+  animation: fadeIn 0.15s ease;
 }
 @media (max-width: 639px) {
   .pageContent { padding-bottom: 72px; }
+}
+@media (min-width: 640px) {
+  .pageContent {
+    padding: var(--space-6) var(--space-7) var(--space-10);
+  }
 }
 
 /* ── Logout button ── */

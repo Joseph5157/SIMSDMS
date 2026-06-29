@@ -2,6 +2,7 @@ import Layout, { PageHeader, Card, CardBody } from '../../components/Layout';
 import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import EmptyState from '../../components/ui/EmptyState';
+import { ClipboardList } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
@@ -15,11 +16,11 @@ function SlotAttendanceCard({ slot }) {
   const dateStr = new Date(slot.duty_date).toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' });
 
   async function handleIn() {
-    try { await checkIn.mutateAsync(slot.id); toast({ message: 'Checked in!' }); }
+    try { await checkIn.mutateAsync(slot.id); toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
     catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
   }
   async function handleOut() {
-    try { await checkOut.mutateAsync(slot.id); toast({ message: 'Checked out.' }); }
+    try { await checkOut.mutateAsync(slot.id); toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
     catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
   }
 
@@ -88,7 +89,7 @@ export default function AttendancePage({ user }) {
         <Card>
           <CardBody>
             <EmptyState
-              emoji="📋"
+              icon={ClipboardList}
               title="No duty slots this month"
               subtitle="The admin will assign your duty slots when the scheduling window opens."
             />

@@ -8,32 +8,35 @@ import {
   useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useCoverRequestSummary,
   useCompletionRate, useUploadHistory, useActiveStudents,
 } from '../../hooks/useReports';
+import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // ── Report card definitions ────────────────────────────────────────────────────
 const REPORTS = [
   // Attendance group
-  { id: 'monthly-attendance',   emoji: '📊', color: 'bg-blue-100',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
-  { id: 'late-arrivals',        emoji: '⏰', color: 'bg-amber-100',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
-  { id: 'absent-faculty',       emoji: '❌', color: 'bg-red-100',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
-  { id: 'auto-clockout',        emoji: '🕓', color: 'bg-orange-100', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
+  { id: 'monthly-attendance',   group: 'Attendance',      emoji: '📊', color: 'bg-blue-100',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
+  { id: 'late-arrivals',        group: 'Attendance',      emoji: '⏰', color: 'bg-amber-100',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
+  { id: 'absent-faculty',       group: 'Attendance',      emoji: '❌', color: 'bg-red-100',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
+  { id: 'auto-clockout',        group: 'Attendance',      emoji: '🕓', color: 'bg-orange-100', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
   // Violations group
-  { id: 'faculty-activity',     emoji: '👤', color: 'bg-purple-100', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
-  { id: 'violation-types',      emoji: '🏷', color: 'bg-indigo-100', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
-  { id: 'pending-fines',        emoji: '💰', color: 'bg-yellow-100', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
-  { id: 'flagged-violations',   emoji: '⚑',  color: 'bg-amber-100',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
+  { id: 'faculty-activity',     group: 'Violations',      emoji: '👤', color: 'bg-purple-100', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
+  { id: 'violation-types',      group: 'Violations',      emoji: '🏷', color: 'bg-indigo-100', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
+  { id: 'pending-fines',        group: 'Violations',      emoji: '💰', color: 'bg-yellow-100', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
+  { id: 'flagged-violations',   group: 'Violations',      emoji: '⚑',  color: 'bg-amber-100',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
-  { id: 'duty-coverage',        emoji: '📅', color: 'bg-green-100',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
-  { id: 'unassigned-faculty',   emoji: '👥', color: 'bg-slate-100',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
-  { id: 'cover-requests',       emoji: '🔄', color: 'bg-cyan-100',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
-  { id: 'completion-rate',      emoji: '📈', color: 'bg-teal-100',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
+  { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-green-100',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
+  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-slate-100',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
+  { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-cyan-100',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
+  { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-teal-100',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
-  { id: 'attendance-overrides', emoji: '✏️', color: 'bg-pink-100',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
-  { id: 'upload-history',       emoji: '📤', color: 'bg-blue-100',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
-  { id: 'active-students',      emoji: '🎓', color: 'bg-green-100',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
-  { id: 'student-violations',   emoji: '⚠️', color: 'bg-red-100',   label: 'Student Violations',    desc: 'All violations by student' },
+  { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-pink-100',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
+  { id: 'upload-history',       group: 'Students',        emoji: '📤', color: 'bg-blue-100',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
+  { id: 'active-students',      group: 'Students',        emoji: '🎓', color: 'bg-green-100',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
+  { id: 'student-violations',   group: 'Students',        emoji: '⚠️', color: 'bg-red-100',   label: 'Student Violations',    desc: 'All violations by student' },
 ];
+
+const REPORT_GROUPS = ['Attendance', 'Violations', 'Duty & Coverage', 'Students'];
 
 // ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
@@ -365,28 +368,43 @@ export default function ReportsPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Reports' }]} />
       <PageHeader title="Reports" subtitle="16 system reports" />
 
-      {/* 4-column card grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {REPORTS.map((r) => (
-          <button
-            key={r.id}
-            onClick={() => setActive(active === r.id ? null : r.id)}
-            className={`text-left rounded-xl border p-4 transition-all ${
-              active === r.id
-                ? 'border-blue-500 bg-blue-50 shadow-sm'
-                : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
-            }`}
-          >
-            <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[18px] mb-3`}>
-              {r.emoji}
-            </div>
-            <p className="text-[13px] font-semibold text-slate-900 leading-snug">{r.label}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{r.desc}</p>
-          </button>
-        ))}
-      </div>
+      {/* Grouped report cards */}
+      {REPORT_GROUPS.map((group) => (
+        <div key={group} className="mb-6">
+          <p style={{
+            fontSize: 'var(--text-micro)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: 'var(--tracking-wide)',
+            color: 'var(--text-muted)',
+            marginBottom: 8,
+          }}>
+            {group}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {REPORTS.filter((r) => r.group === group).map((r) => (
+              <button
+                key={r.id}
+                onClick={() => setActive(active === r.id ? null : r.id)}
+                className={`text-left rounded-xl border p-4 transition-all ${
+                  active === r.id
+                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[18px] mb-3`}>
+                  {r.emoji}
+                </div>
+                <p className="text-[13px] font-semibold text-slate-900 leading-snug">{r.label}</p>
+                <p style={{ fontSize: 'var(--text-micro)' }} className="text-slate-400 mt-0.5 leading-snug">{r.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {/* Result panel */}
       {active && (

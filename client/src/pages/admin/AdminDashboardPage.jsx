@@ -5,8 +5,9 @@ import Alert from '../../components/ui/Alert';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useCoverRequests } from '../../hooks/useCoverRequests';
-import { useFlaggedViolations } from '../../hooks/useReports';
+import { useFlaggedViolations, useCompletionRate } from '../../hooks/useReports';
 import { useNavigate } from 'react-router-dom';
+import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
 
 const QUICK_ACTIONS = [
@@ -23,12 +24,20 @@ export default function AdminDashboardPage({ user }) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  const { data: allUsers }           = useUsers({ status: 'active' });
+  const { data: allUsers, isLoading }  = useUsers({ status: 'active' });
   const { data: pendingUsers }       = useUsers({ status: 'pending' });
   const { data: pendingTelegramUsers } = useUsers({ status: 'pending_telegram' });
   const { data: liveData }           = useLiveAttendance();
   const { data: openCovers }         = useCoverRequests({ status: 'open' });
   const { data: flagged }            = useFlaggedViolations();
+
+  // Completion rate trend (this month vs last month)
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const { data: crThis } = useCompletionRate({ year: now.getFullYear(), month: now.getMonth() + 1 });
+  const { data: crLast } = useCompletionRate({ year: lastMonthDate.getFullYear(), month: lastMonthDate.getMonth() + 1 });
+  const rateThis = crThis?.data?.completion_rate ?? null;
+  const rateLast = crLast?.data?.completion_rate ?? null;
+  const rateDelta = rateThis !== null && rateLast !== null ? Math.round(rateThis - rateLast) : null;
 
   const activeFaculty       = allUsers?.data?.filter((u) => u.role === 'faculty').length ?? 0;
   const pendingCount        = pendingUsers?.meta?.total  ?? pendingUsers?.data?.length ?? 0;
@@ -51,15 +60,28 @@ export default function AdminDashboardPage({ user }) {
         subtitle={dateStr}
       />
 
+      {/* ── Loading skeleton ── */}
+      {isLoading && (
+        <>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} height="96px" className="rounded-xl" />)}
+          </div>
+          <Skeleton height="140px" className="rounded-xl mb-3" />
+          <Skeleton height="140px" className="rounded-xl" />
+        </>
+      )}
+
       {/* ── KPI grid ── */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <StatCard label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
-        <StatCard label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
-          sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-        <StatCard label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
-        <StatCard label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
-          sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
-      </div>
+      {!isLoading && (
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <StatCard label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
+          <StatCard label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
+            sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
+          <StatCard label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
+          <StatCard label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
+            sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
+        </div>
+      )}
 
       {/* ── Pending account approvals alert ── */}
       {pendingCount > 0 && (
@@ -81,42 +103,56 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Today's attendance ── */}
       <Card className="mb-3">
-        <CardHeader>📋 Today's attendance</CardHeader>
+        <CardHeader action={rateDelta !== null ? (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 2,
+            fontSize: 'var(--text-micro)', fontWeight: 700,
+            padding: '2px 6px', borderRadius: 'var(--radius-md)',
+            ...(rateDelta > 0
+              ? { background: '#dcfce7', color: '#15803d' }
+              : rateDelta < 0
+              ? { background: '#fee2e2', color: '#dc2626' }
+              : { background: 'var(--surface-page)', color: 'var(--text-muted)' }),
+          }}>
+            {rateDelta > 0 ? '▲' : rateDelta < 0 ? '▼' : '—'}
+            {rateDelta !== 0 ? ` ${Math.abs(rateDelta)}%` : null}
+            {' vs last mo'}
+          </span>
+        ) : null}>
+          📋 Today's attendance
+        </CardHeader>
         <CardBody className="p-0">
           {!liveSlots.length ? (
             <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: 8, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+              <div className="flex gap-2 px-4 py-[14px] border-b border-[var(--border)]">
                 {[
                   { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: '#f0fdf4' },
                   { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: '#eff6ff' },
                   { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
                   ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: '#fffbeb' }] : []),
                 ].map((item) => (
-                  <div key={item.label} style={{
-                    flex: 1, background: item.tint, borderRadius: 12, padding: '10px 8px', textAlign: 'center',
-                  }}>
-                    <p style={{ fontSize: 22, fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
-                    <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 4 }}>{item.label}</p>
+                  <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-[10px] text-center"
+                    style={{ background: item.tint }}>
+                    <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
+                    <p style={{ fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 4 }}>{item.label}</p>
                   </div>
                 ))}
               </div>
-              <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+              <div className="max-h-[200px] overflow-y-auto">
                 {liveSlots.map((s) => (
                   <div
                     key={s.slot_id}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '9px 16px', borderBottom: '1px solid var(--divider)',
-                    }}
+                    className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)]"
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex-1 min-w-0">
                       <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {s.covering_faculty ? `${s.faculty?.name} → ${s.covering_faculty?.name}` : s.faculty?.name}
                       </p>
                     </div>
-                    <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textTransform: 'capitalize', marginRight: 10, flexShrink: 0 }}>
+                    <span className="shrink-0 mr-[10px]"
+                      style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
                       {s.session_type}
                     </span>
                     <Badge
@@ -141,16 +177,13 @@ export default function AdminDashboardPage({ user }) {
           {!openCovers?.data?.length ? (
             <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No open cover requests.</p>
           ) : (
-            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+            <div className="max-h-[220px] overflow-y-auto">
               {openCovers.data.slice(0, 8).map((cr) => (
                 <div
                   key={cr.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid var(--divider)', gap: 10,
-                  }}
+                  className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)] gap-[10px]"
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="min-w-0 flex-1">
                     <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {cr.requester?.name}
                     </p>
@@ -172,16 +205,13 @@ export default function AdminDashboardPage({ user }) {
         <Card className="mb-4">
           <CardHeader>⚑ Flagged violations — needs review</CardHeader>
           <CardBody className="p-0">
-            <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            <div className="max-h-[200px] overflow-y-auto">
               {pendingFlaggedViolations.map((v) => (
                 <div
                   key={v.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '9px 16px', borderBottom: '1px solid var(--divider)', gap: 10,
-                  }}
+                  className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)] gap-[10px]"
                 >
-                  <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="min-w-0 flex-1">
                     <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.student?.student_name}
                     </p>
@@ -189,13 +219,14 @@ export default function AdminDashboardPage({ user }) {
                       {v.violationType?.name}{v.flag_note ? ` · ${v.flag_note.slice(0, 40)}` : ''}
                     </p>
                   </div>
-                  <span style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-amber-text)', flexShrink: 0 }}>
+                  <span className="shrink-0"
+                    style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-amber-text)' }}>
                     {v.faculty?.name}
                   </span>
                 </div>
               ))}
             </div>
-            <div style={{ padding: '8px 16px', borderTop: '1px solid var(--divider)' }}>
+            <div className="px-4 py-2 border-t border-[var(--divider)]">
               <button
                 onClick={() => navigate(ROUTES.ADMIN_VIOLATIONS + '?is_flagged=true')}
                 style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -212,25 +243,16 @@ export default function AdminDashboardPage({ user }) {
         <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 10 }}>
           Quick actions
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-[10px]">
           {QUICK_ACTIONS.map((item) => (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, minHeight: 'var(--control-min)',
-                backgroundColor: 'var(--surface-card)', border: '1px solid var(--border)',
-                borderRadius: 16, padding: '14px 14px',
-                cursor: 'pointer', textAlign: 'left', transition: `all var(--dur-fast)`,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-blue-200)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-2xl)] px-[14px] py-[14px] cursor-pointer text-left transition-all hover:border-blue-500 hover:-translate-y-px"
+              style={{ minHeight: 'var(--control-min)' }}
             >
-              <span style={{
-                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: item.tint, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 19,
-              }}>
+              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center text-[19px]"
+                style={{ background: item.tint }}>
                 {item.emoji}
               </span>
               <span style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>{item.label}</span>

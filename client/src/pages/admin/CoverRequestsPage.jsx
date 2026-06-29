@@ -7,6 +7,7 @@ import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useCoverRequests, useConfirmCover } from '../../hooks/useCoverRequests';
 import { useUsers } from '../../hooks/useUsers';
+import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = [
   { v: '1',  l: 'January' },  { v: '2',  l: 'February' }, { v: '3',  l: 'March' },
@@ -49,6 +50,7 @@ export default function CoverRequestsPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Cover Requests' }]} />
       <PageHeader title="Cover Requests" subtitle="Manage Need Cover broadcasts" />
 
       {/* Filter bar — Mantine Select */}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useNotifications, useMarkAsRead } from '../hooks/useNotifications';
 
 function formatTime(isoString) {
@@ -39,6 +39,7 @@ export default function NotificationBell() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const navigate = useNavigate();
   const { notifications, unreadCount, isConnected } = useNotifications();
   const markAsRead = useMarkAsRead();
 
@@ -67,7 +68,13 @@ export default function NotificationBell() {
       {/* Bell button */}
       <button
         ref={buttonRef}
-        onClick={() => setDropdownOpen(!dropdownOpen)}
+        onClick={() => {
+          if (window.innerWidth < 640) {
+            navigate('/notifications');
+            return;
+          }
+          setDropdownOpen(!dropdownOpen);
+        }}
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
         aria-pressed={dropdownOpen}
         title={`${unreadCount} unread notifications`}
@@ -98,7 +105,7 @@ export default function NotificationBell() {
               borderRadius: 'var(--radius-full)',
               backgroundColor: 'var(--color-red-solid)',
               color: 'white',
-              fontSize: 11,
+              fontSize: 'var(--text-micro)',
               fontWeight: 'bold',
               display: 'flex',
               alignItems: 'center',
@@ -154,7 +161,7 @@ export default function NotificationBell() {
             {!isConnected && (
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 'var(--text-micro)',
                   color: 'var(--color-amber-text)',
                   backgroundColor: 'var(--color-amber-bg)',
                   padding: '2px 6px',

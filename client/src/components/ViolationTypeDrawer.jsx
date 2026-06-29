@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Drawer } from 'vaul';
-import { X } from 'lucide-react';
 import { TextInput, NumberInput } from '@mantine/core';
+import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 import { useCreateViolationType, useUpdateViolationType } from '../hooks/useViolationTypes';
 import { useToast } from './ui/Toast';
 
@@ -42,126 +41,49 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
   const canSubmit = form.name.trim() && form.default_fine !== '';
 
   return (
-    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground>
-      <Drawer.Portal>
-        <Drawer.Overlay style={{
-          position: 'fixed', inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(2px)',
-          zIndex: 39,
-        }} />
-        <Drawer.Content style={{
-          position: 'fixed',
-          bottom: 0, left: 0, right: 0,
-          zIndex: 40,
-          backgroundColor: '#fff',
-          borderRadius: '20px 20px 0 0',
-          maxHeight: '94vh',
-          display: 'flex', flexDirection: 'column',
-          outline: 'none',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-        }}>
-          {/* Drag handle */}
-          <div style={{
-            width: 36, height: 4,
-            backgroundColor: '#e2e8f0', borderRadius: 2,
-            margin: '12px auto 0', flexShrink: 0,
-          }} />
-
-          {/* Header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px 12px',
-            borderBottom: '1px solid #f1f5f9', flexShrink: 0,
-          }}>
-            <div>
-              <Drawer.Title style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                {editing ? 'Edit violation type' : 'New violation type'}
-              </Drawer.Title>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
-                {editing ? 'Update name or fine amount' : 'Define a new disciplinary category'}
-              </p>
-            </div>
-            <button onClick={onClose} style={{
-              width: 32, height: 32, borderRadius: 10,
-              border: '1px solid #e2e8f0', backgroundColor: '#f8fafc',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#64748b',
-            }}>
-              <X size={16} strokeWidth={2} />
-            </button>
-          </div>
-
-          {/* Scrollable body */}
-          <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
-            <form id="vtype-form" onSubmit={handleSubmit} style={{ padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <p style={{
-                fontSize: 10, fontWeight: 800, color: '#94a3b8',
-                textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: -4,
-              }}>Details</p>
-              <TextInput
-                label="Name"
-                placeholder="Late arrival"
-                value={form.name}
-                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                required
-              />
-              <NumberInput
-                label="Default fine (₹)"
-                leftSection={<span style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>₹</span>}
-                min={0}
-                decimalScale={2}
-                placeholder="0.00"
-                value={form.default_fine === '' ? '' : Number(form.default_fine)}
-                onChange={(value) => setForm(f => ({ ...f, default_fine: value }))}
-              />
-            </form>
-          </div>
-
-          {/* Sticky footer */}
-          <div style={{
-            padding: '12px 20px',
-            borderTop: '1px solid #f1f5f9',
-            display: 'flex', gap: 10,
-            flexShrink: 0,
-            paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-            backgroundColor: '#fff',
-          }}>
-            <button type="button" onClick={onClose} style={{
-              flex: 1, height: 48, borderRadius: 14,
-              border: '1.5px solid #e2e8f0', backgroundColor: '#f8fafc',
-              fontSize: 14, fontWeight: 700, color: '#475569', cursor: 'pointer',
-            }}>Cancel</button>
-            <button
-              type="submit"
-              form="vtype-form"
-              disabled={isPending || !canSubmit}
-              style={{
-                flex: 2, height: 48, borderRadius: 14, border: 'none',
-                background: (isPending || !canSubmit)
-                  ? '#93c5fd'
-                  : 'linear-gradient(135deg, #2563eb, #4f46e5)',
-                fontSize: 14, fontWeight: 700, color: '#fff',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-                transition: 'all 0.15s',
-              }}
-            >
-              {isPending && (
-                <span style={{
-                  width: 14, height: 14,
-                  border: '2px solid rgba(255,255,255,0.4)',
-                  borderTopColor: '#fff', borderRadius: '50%',
-                  animation: 'spin 0.7s linear infinite',
-                }} />
-              )}
-              {isPending ? 'Saving…' : editing ? 'Save' : 'Create'}
-            </button>
-          </div>
-
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+    <BottomDrawer
+      open={open}
+      onClose={onClose}
+      title={editing ? 'Edit violation type' : 'New violation type'}
+      subtitle={editing ? 'Update name or fine amount' : 'Define a new disciplinary category'}
+      footer={
+        <>
+          <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+          <button
+            type="submit"
+            form="vtype-form"
+            disabled={isPending || !canSubmit}
+            data-primary=""
+            style={primaryBtnStyle(isPending || !canSubmit)}
+          >
+            {isPending && <DrawerSpinner />}
+            {isPending ? 'Saving…' : editing ? 'Save' : 'Create'}
+          </button>
+        </>
+      }
+    >
+      <form id="vtype-form" onSubmit={handleSubmit} style={{ padding: '20px 20px 8px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <p style={{
+          fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: -4,
+        }}>Details</p>
+        <TextInput
+          label="Name"
+          placeholder="Late arrival"
+          value={form.name}
+          onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+          required
+        />
+        <NumberInput
+          label="Default fine (₹)"
+          leftSection={<span style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-secondary)' }}>₹</span>}
+          min={0}
+          decimalScale={2}
+          placeholder="0.00"
+          value={form.default_fine === '' ? '' : Number(form.default_fine)}
+          onChange={(value) => setForm(f => ({ ...f, default_fine: value }))}
+        />
+      </form>
+    </BottomDrawer>
   );
 }

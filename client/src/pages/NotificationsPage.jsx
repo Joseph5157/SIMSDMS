@@ -80,7 +80,7 @@ export default function NotificationsPage({ user }) {
           justifyContent: 'center', minHeight: 400, gap: 16, padding: '48px 24px', textAlign: 'center',
         }}>
           <div style={{ fontSize: 48 }}>🔔</div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+          <h2 style={{ fontSize: 'var(--text-h2)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
             Notifications Not Yet Available
           </h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: 400, margin: 0 }}>
@@ -216,7 +216,7 @@ export default function NotificationsPage({ user }) {
               <Td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--slate-600)' }}>
                 {notif.message}
               </Td>
-              <Td style={{ fontSize: 11, color: 'var(--slate-500)' }}>{formatDate(notif.createdAt)}</Td>
+              <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--slate-500)' }}>{formatDate(notif.createdAt)}</Td>
               <Td>
                 <span style={{
                   display: 'inline-block', padding: '4px 8px', borderRadius: 'var(--radius-md)',

@@ -1,4 +1,5 @@
-import { NavLink as RouterNavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import simsLogo from '../assets/sims-logo.png';
 import {
   AppShell, Drawer, Group, Box, Text, Stack, Divider,
@@ -12,6 +13,7 @@ import {
   IconBolt, IconKey, IconFileText, IconLogout, IconMenu2,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
+import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
 import { ROUTES, ROLES } from '../utils/constants';
 import classes from './Layout.module.css';
 
@@ -108,7 +110,15 @@ function NavItem({ to, label, Icon, onClick }) {
 
 export default function Layout({ user, children }) {
   const [navOpened, { open: openNav, close: closeNav }] = useDisclosure(false);
-  const logout     = useLogout();
+  const location = useLocation();
+  const logout   = useLogout();
+  const [theme, setThemeState] = useState(() => getTheme());
+
+  useEffect(() => {
+    function handleThemeChange() { setThemeState(getTheme()); }
+    window.addEventListener('themechange', handleThemeChange);
+    return () => window.removeEventListener('themechange', handleThemeChange);
+  }, []);
   const links      = getLinks(user?.role);
   const bottomTabs = getBottomTabs(user?.role);
 
@@ -145,6 +155,22 @@ export default function Layout({ user, children }) {
             {user?.name}
           </Text>
         </Group>
+        <UnstyledButton
+          onClick={cycleTheme}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            width: '100%', padding: '7px 10px',
+            borderRadius: 7, fontSize: 12, fontWeight: 500,
+            color: '#94a3b8', background: 'none', border: 'none',
+            cursor: 'pointer', marginBottom: 6,
+            transition: 'background-color 150ms ease, color 150ms ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1e293b'; e.currentTarget.style.color = '#f1f5f9'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#94a3b8'; }}
+        >
+          <span style={{ fontSize: 13 }}>{getThemeIcon()}</span>
+          {getThemeLabel()} mode
+        </UnstyledButton>
         <UnstyledButton onClick={() => logout.mutate()} className={classes.logoutBtn}>
           <IconLogout size={13} strokeWidth={2} />
           Log out
@@ -190,7 +216,7 @@ export default function Layout({ user, children }) {
             minHeight: '100dvh',
           }}
         >
-          <div className={classes.pageContent}>
+          <div key={location.pathname} className={classes.pageContent}>
             {children}
           </div>
         </AppShell.Main>
@@ -209,12 +235,12 @@ export default function Layout({ user, children }) {
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
                 height: '100%', gap: 3, padding: '0 2px',
-                color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.45)',
-                borderTop: isActive ? '2px solid #60a5fa' : '2px solid transparent',
+                color: isActive ? 'var(--brand)' : 'rgba(255,255,255,0.45)',
+                borderTop: isActive ? '2px solid var(--brand)' : '2px solid transparent',
                 transition: 'color 0.15s',
               }}>
-                <tab.Icon size={22} strokeWidth={isActive ? 2 : 1.5} />
-                <span style={{ fontSize: 10, fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
+                <tab.Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                <span style={{ fontSize: 'var(--text-micro)', fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
                   {tab.label}
                 </span>
               </div>
@@ -235,7 +261,7 @@ export default function Layout({ user, children }) {
           }}
         >
           <IconMenu2 size={22} strokeWidth={1.5} />
-          <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.01em', color: 'inherit', fontFamily: 'inherit' }}>
+          <span style={{ fontSize: 'var(--text-micro)', fontWeight: 400, letterSpacing: '0.01em', color: 'inherit', fontFamily: 'inherit' }}>
             Menu
           </span>
         </button>
@@ -251,7 +277,7 @@ export function PageHeader({ title, subtitle, action }) {
     <Stack align="center" gap={4} py="lg" mb="md"
       style={{ borderBottom: '1px solid var(--border)', textAlign: 'center' }}
     >
-      <Title order={2} style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3 }}>
+      <Title order={2} style={{ fontSize: 'var(--text-h2)', fontWeight: 700, lineHeight: 1.3 }}>
         {title}
       </Title>
       {subtitle && (

@@ -37,7 +37,7 @@ export default function Badge({ status, label, className = '' }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${cls} ${className}`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[12px] font-semibold whitespace-nowrap ${cls} ${className}`}
       style={{ letterSpacing: '0.02em' }}
     >
       {displayLabel}

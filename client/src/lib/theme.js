@@ -22,8 +22,7 @@ export function getSystemPreference() {
  */
 export function getTheme() {
   if (typeof window === 'undefined') return THEMES.LIGHT;
-  // Dark mode disabled - always return light for now
-  return THEMES.LIGHT;
+  return localStorage.getItem(STORAGE_KEY) ?? THEMES.SYSTEM;
 }
 
 /**

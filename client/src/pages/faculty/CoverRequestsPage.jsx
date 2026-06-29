@@ -87,9 +87,13 @@ export default function FacultyCoverRequestsPage({ user }) {
         action={<Button size="sm" onClick={() => setShowPost(true)}>+ Post Broadcast</Button>}
       />
 
-      <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-lg w-fit" role="tablist">
         {['open', 'my'].map((t) => (
           <button key={t} onClick={() => setTab(t)}
+            role="tab"
+            id={`tab-${t}`}
+            aria-selected={tab === t}
+            tabIndex={tab === t ? 0 : -1}
             className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors ${tab === t ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>
             {t === 'open' ? 'Open broadcasts' : 'My requests'}
           </button>

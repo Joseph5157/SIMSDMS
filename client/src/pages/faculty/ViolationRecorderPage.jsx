@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button, TextInput, Select, Checkbox } from '@mantine/core';
+import { Button, TextInput, Select, Checkbox, Switch } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
 import Pagination from '../../components/ui/Pagination';
@@ -30,34 +30,63 @@ function RecordModal({ open, onClose }) {
     student_id: '', duty_slot_id: '', violation_type_id: '',
     custom_violation: '', fine_amount: '', is_warning_only: false, remarks: '',
   });
-  const [studentQ, setStudentQ] = useState('');
-  const { data: searchResults } = useStudentSearch(studentQ);
+  const [studentQ, setStudentQ]   = useState('');
+  const [showRemarks, setShowRemarks] = useState(false);
+  const [quickAdd, setQuickAdd]   = useState(false);
+  const studentInputRef = useRef(null);
+  const { data: searchResults }   = useStudentSearch(studentQ);
   const create = useCreateViolation();
 
-  // set() works for TextInput (e.target.value) and Checkbox (e.target.checked)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
-  // selectedType: compare as strings since Mantine Select returns string values
   const selectedType = typesData?.data?.find(t => String(t.id) === form.violation_type_id);
-  const isOthers = selectedType?.name?.toLowerCase() === 'others';
+  const isOthers     = selectedType?.name?.toLowerCase() === 'others';
 
+  // Auto-select today's duty slot when data loads
   const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const todaySlots = mySlots.filter(s => String(s.duty_date).slice(0, 10) === todayStr);
+  // Guess session from time of day
+  const currentSession = now.getHours() < 12 ? 'morning' : 'afternoon';
+  const autoSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
+
+  // Pre-fill duty slot if not yet set and auto-slot available
+  const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
+
+  // Auto-fill fine when type changes
+  function handleTypeChange(value) {
+    const type = typesData?.data?.find(t => String(t.id) === value);
+    setForm(f => ({
+      ...f,
+      violation_type_id: value ?? '',
+      fine_amount: type ? String(type.default_fine) : f.fine_amount,
+    }));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     const payload = {
       student_id: form.student_id,
-      duty_slot_id: form.duty_slot_id,
+      duty_slot_id: effectiveDutySlotId,
       violation_type_id: form.violation_type_id,
       is_warning_only: form.is_warning_only,
       remarks: form.remarks || undefined,
       ...(isOthers && { custom_violation: form.custom_violation }),
       ...(!form.is_warning_only && form.fine_amount && { fine_amount: parseFloat(form.fine_amount) }),
     };
+    const studentName = studentQ.split(' (')[0];
     try {
       await create.mutateAsync(payload);
-      toast({ message: 'Violation recorded.' });
-      onClose();
+      if (quickAdd) {
+        toast({ message: `Recorded for ${studentName}. Add next.` });
+        setStudentQ('');
+        setForm(f => ({ ...f, student_id: '', fine_amount: '', violation_type_id: '', custom_violation: '', remarks: '' }));
+        setShowRemarks(false);
+        setTimeout(() => studentInputRef.current?.focus(), 50);
+      } else {
+        toast({ message: 'Violation recorded.' });
+        onClose();
+      }
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -73,18 +102,59 @@ function RecordModal({ open, onClose }) {
       submitLabel="Record Violation"
       loading={create.isPending}
     >
-      {/* Single child so FormModal's Stack gap doesn't double-space sections */}
       <div className="flex flex-col">
 
-        {/* ── Student ── */}
+        {/* ── Quick-add toggle ── */}
+        <div className="flex items-center justify-between pb-4">
+          <div>
+            <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Quick-add mode</p>
+            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>Stay open to record multiple violations</p>
+          </div>
+          <Switch checked={quickAdd} onChange={(e) => setQuickAdd(e.currentTarget.checked)} size="md" />
+        </div>
+
+        <div className="border-t border-slate-100 mb-6" />
+
+        {/* ── Duty slot (auto-selected label or dropdown) ── */}
         <div className="flex flex-col gap-3 pb-6">
+          <SectionLabel>Duty slot</SectionLabel>
+          {autoSlot && todaySlots.length === 1 ? (
+            <div style={{
+              padding: '10px 14px', background: 'var(--color-blue-50)',
+              border: '1px solid var(--color-blue-200)',
+              borderRadius: 'var(--radius-lg)',
+              fontSize: 'var(--text-card)', color: 'var(--color-blue-700)',
+              fontWeight: 600,
+            }}>
+              Recording for: {currentSession === 'morning' ? 'Morning' : 'Afternoon'} session ·{' '}
+              {new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+            </div>
+          ) : (
+            <Select
+              placeholder="Select duty slot…"
+              value={effectiveDutySlotId || null}
+              onChange={(value) => setForm(f => ({ ...f, duty_slot_id: value ?? '' }))}
+              required
+              data={mySlots.map(s => ({
+                value: String(s.id),
+                label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
+              }))}
+            />
+          )}
+        </div>
+
+        <div className="border-t border-slate-100" />
+
+        {/* ── Student ── */}
+        <div className="flex flex-col gap-3 py-6">
           <SectionLabel>Student</SectionLabel>
           <div className="relative">
             <input
+              ref={studentInputRef}
               className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 hover:border-slate-300 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Search by name or reg. number…"
               value={studentQ}
-              onChange={(e) => setStudentQ(e.target.value)}
+              onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); }}
             />
             {searchResults?.data?.length > 0 && !form.student_id && (
               <div className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-44 overflow-y-auto bg-white shadow-lg">
@@ -110,25 +180,14 @@ function RecordModal({ open, onClose }) {
 
         <div className="border-t border-slate-100" />
 
-        {/* ── Duty & Violation ── */}
+        {/* ── Violation type + Fine ── */}
         <div className="flex flex-col gap-4 py-6">
-          <SectionLabel>Duty & Violation</SectionLabel>
-          <Select
-            label="Duty slot"
-            placeholder="Select duty slot…"
-            value={form.duty_slot_id || null}
-            onChange={(value) => setForm(f => ({ ...f, duty_slot_id: value ?? '' }))}
-            required
-            data={mySlots.map(s => ({
-              value: String(s.id),
-              label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
-            }))}
-          />
+          <SectionLabel>Violation</SectionLabel>
           <Select
             label="Violation type"
             placeholder="Select type…"
             value={form.violation_type_id || null}
-            onChange={(value) => setForm(f => ({ ...f, violation_type_id: value ?? '' }))}
+            onChange={handleTypeChange}
             required
             data={(typesData?.data ?? []).map(t => ({
               value: String(t.id),
@@ -143,13 +202,6 @@ function RecordModal({ open, onClose }) {
               required
             />
           )}
-        </div>
-
-        <div className="border-t border-slate-100" />
-
-        {/* ── Fine ── */}
-        <div className="flex flex-col gap-4 py-6">
-          <SectionLabel>Fine</SectionLabel>
           <Checkbox
             checked={form.is_warning_only}
             onChange={set('is_warning_only')}
@@ -158,27 +210,42 @@ function RecordModal({ open, onClose }) {
           />
           {!form.is_warning_only && (
             <TextInput
-              label={`Fine amount (₹) — default: ₹${selectedType?.default_fine ?? 0}`}
+              label="Fine amount (₹)"
               type="number"
               min="0"
               step="0.01"
               value={form.fine_amount}
               onChange={set('fine_amount')}
               placeholder={String(selectedType?.default_fine ?? '')}
+              description={selectedType ? `Default: ₹${selectedType.default_fine}` : undefined}
             />
           )}
         </div>
 
         <div className="border-t border-slate-100" />
 
-        {/* ── Notes ── */}
-        <div className="flex flex-col gap-3 pt-6">
-          <SectionLabel>Notes</SectionLabel>
-          <TextInput
-            label="Remarks (optional)"
-            value={form.remarks}
-            onChange={set('remarks')}
-          />
+        {/* ── Notes (collapsible) ── */}
+        <div className="pt-4">
+          {!showRemarks ? (
+            <button
+              type="button"
+              onClick={() => setShowRemarks(true)}
+              style={{
+                fontSize: 'var(--text-card)', color: 'var(--color-blue-600)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 0, fontWeight: 500,
+              }}
+            >
+              + Add notes (optional)
+            </button>
+          ) : (
+            <TextInput
+              label="Remarks (optional)"
+              value={form.remarks}
+              onChange={set('remarks')}
+              autoFocus
+            />
+          )}
         </div>
 
       </div>

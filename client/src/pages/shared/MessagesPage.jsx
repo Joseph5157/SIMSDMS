@@ -74,7 +74,21 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
               ? 'bg-blue-600 text-white rounded-br-sm'
               : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
           }`}>
+            <p style={{
+              fontSize: 'var(--text-small)', fontWeight: 600,
+              color: isSent ? 'rgba(255,255,255,0.75)' : 'var(--text-secondary)',
+              marginBottom: 2,
+            }}>
+              {isSent ? 'You' : data.sender?.name}
+            </p>
             <p className="text-[13px] whitespace-pre-wrap leading-relaxed">{data.body}</p>
+            <p style={{
+              fontSize: 'var(--text-micro)',
+              color: isSent ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)',
+              marginTop: 4,
+            }}>
+              {new Date(data.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </p>
           </div>
         </div>
       </div>
@@ -153,11 +167,15 @@ export default function MessagesPage({ user }) {
           ].join(' ')}
         >
           {/* Tab bar */}
-          <div className="flex border-b border-slate-200">
+          <div className="flex border-b border-slate-200" role="tablist">
             {['inbox', 'sent'].map((t) => (
               <button
                 key={t}
                 onClick={() => handleTabSwitch(t)}
+                role="tab"
+                id={`tab-${t}`}
+                aria-selected={tab === t}
+                tabIndex={tab === t ? 0 : -1}
                 className={`flex-1 py-3 text-[13px] font-medium capitalize transition-colors ${
                   tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
                 }`}
@@ -168,7 +186,7 @@ export default function MessagesPage({ user }) {
           </div>
 
           {/* Messages list */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto" role="tabpanel" aria-labelledby={`tab-${tab}`}>
             {isLoading && (
               <p className="text-[13px] text-slate-400 text-center py-8">Loading…</p>
             )}

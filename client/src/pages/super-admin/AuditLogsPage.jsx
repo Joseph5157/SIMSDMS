@@ -90,17 +90,17 @@ export default function AuditLogsPage({ user }) {
                 <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>
                 <Td>
                   <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 11,
+                    fontFamily: 'var(--font-mono)', fontSize: 'var(--text-micro)',
                     backgroundColor: 'var(--color-slate-100)', color: 'var(--color-slate-600)',
-                    padding: '2px 6px', borderRadius: 4,
+                    padding: '2px 6px', borderRadius: 'var(--radius-sm)',
                   }}>
                     {log.action}
                   </span>
                 </Td>
-                <Td style={{ fontSize: 11, color: 'var(--color-slate-500)' }}>
+                <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--color-slate-500)' }}>
                   {log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ''}
                 </Td>
-                <Td style={{ fontSize: 11, color: 'var(--color-slate-400)' }}>
+                <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--color-slate-400)' }}>
                   {new Date(log.created_at).toLocaleString()}
                 </Td>
               </tr>

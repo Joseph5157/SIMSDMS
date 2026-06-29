@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button } from '@mantine/core';
+import { Button, Menu, ActionIcon } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
@@ -9,109 +9,56 @@ import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
 import { useUsers, useDeactivateUser, useReactivateUser, useDeleteUser, useResetUserLogin } from '../../hooks/useUsers';
 import { useInvites, useCreateInvite, useRegenerateInvite, useCancelInvite } from '../../hooks/useInvites';
+import Breadcrumb from '../../components/Breadcrumb';
 
 // ── Row menu for users ──────────────────────────────────────────────────────
 function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetTelegram, onDelete }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
   if (u.role === 'super_admin') return null;
   const isSuperAdmin = userRole === 'super_admin';
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors text-[16px]"
-      >
-        ···
-      </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]">
-          {u.status === 'active' ? (
-            <button
-              onClick={() => { setOpen(false); onDeactivate(u); }}
-              className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
-            >
-              Deactivate
-            </button>
-          ) : u.status === 'pending_telegram' ? (
-            isSuperAdmin && (
-              <button
-                onClick={() => { setOpen(false); onResetTelegram(u); }}
-                className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
-              >
-                Reset Telegram
-              </button>
-            )
-          ) : (
-            <button
-              onClick={() => { setOpen(false); onReactivate(u); }}
-              className="w-full text-left px-4 py-2 text-[13px] text-green-700 hover:bg-green-50 transition-colors"
-            >
-              Reactivate
-            </button>
-          )}
-          {isSuperAdmin && (
-            <>
-              <div className="border-t border-slate-100 my-1"></div>
-              <button
-                onClick={() => { setOpen(false); onDelete(u); }}
-                className="w-full text-left px-4 py-2 text-[13px] text-red-700 hover:bg-red-50 transition-colors"
-              >
-                Delete User
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
+    <Menu shadow="md" width={180} position="bottom-end" withinPortal>
+      <Menu.Target>
+        <ActionIcon variant="subtle" color="gray" size="sm" aria-label="User actions">
+          ···
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        {u.status === 'active' && (
+          <Menu.Item color="red" onClick={() => onDeactivate(u)}>Deactivate</Menu.Item>
+        )}
+        {u.status === 'pending_telegram' && isSuperAdmin && (
+          <Menu.Item onClick={() => onResetTelegram(u)}>Reset Telegram</Menu.Item>
+        )}
+        {u.status === 'inactive' && (
+          <Menu.Item color="green" onClick={() => onReactivate(u)}>Reactivate</Menu.Item>
+        )}
+        {isSuperAdmin && (
+          <>
+            <Menu.Divider />
+            <Menu.Item color="red" onClick={() => onDelete(u)}>Delete User</Menu.Item>
+          </>
+        )}
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
 // ── Row menu for pending invites ────────────────────────────────────────────
 function InviteRowMenu({ invite, onRegenerate, onCancel }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors text-[16px]"
-      >
-        ···
-      </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[140px]">
-          <button
-            onClick={() => { setOpen(false); onRegenerate(invite); }}
-            className="w-full text-left px-4 py-2 text-[13px] text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            Regenerate
-          </button>
-          <div className="border-t border-slate-100 my-1"></div>
-          <button
-            onClick={() => { setOpen(false); onCancel(invite); }}
-            className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-    </div>
+    <Menu shadow="md" width={160} position="bottom-end" withinPortal>
+      <Menu.Target>
+        <ActionIcon variant="subtle" color="gray" size="sm" aria-label="Invite actions">
+          ···
+        </ActionIcon>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Menu.Item onClick={() => onRegenerate(invite)}>Regenerate</Menu.Item>
+        <Menu.Divider />
+        <Menu.Item color="red" onClick={() => onCancel(invite)}>Cancel</Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }
 
@@ -211,6 +158,7 @@ export default function UsersPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Users' }]} />
       <PageHeader
         title="User Management"
         subtitle="Manage faculty and admin accounts"

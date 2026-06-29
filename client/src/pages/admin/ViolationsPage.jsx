@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useViolations, useHideViolation, useResolveFlag, useViolationAuditLog } from '../../hooks/useViolations';
+import Breadcrumb from '../../components/Breadcrumb';
 
 function ResolveFlagModal({ violation, onClose }) {
   const toast = useToast();
@@ -92,6 +93,7 @@ export default function ViolationsPage({ user }) {
 
   return (
     <Layout user={user}>
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Violations' }]} />
       <PageHeader title="Violations" subtitle="All recorded student violations" />
 
       <div className="flex flex-wrap gap-3 mb-4">

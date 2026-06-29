@@ -58,35 +58,33 @@ export default function SuperAdminDashboardPage({ user }) {
       </div>
 
       {/* Recent activity */}
-      <div style={{ marginTop: 16 }}>
-        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)',
-          marginBottom: 8, paddingLeft: 4 }}>
+      <div className="mt-4">
+        <p className="text-[length:var(--text-micro)] font-bold text-[var(--text-muted)] uppercase tracking-[var(--tracking-wide)] mb-2 pl-1">
           Recent system activity
         </p>
-        <div style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)',
-          border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
           {!logs.length ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
+            <div className="px-4 py-10 text-center"
+              style={{ color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
               No audit log entries yet.
             </div>
           ) : (
             logs.map((entry, i) => (
-              <div key={entry.id} style={{
-                padding: '12px 16px',
-                borderBottom: i < logs.length - 1 ? '1px solid var(--divider)' : 'none',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div key={entry.id}
+                className="flex justify-between items-center gap-3 px-4 py-3"
+                style={{ borderBottom: i < logs.length - 1 ? '1px solid var(--divider)' : 'none' }}>
+                <div className="flex-1 min-w-0">
+                  <p className="overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>
                     {fmtAction(entry.action)}
                   </p>
-                  <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
+                  <p className="mt-[2px]"
+                    style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
                     by {entry.actor?.name ?? 'System'} · {entry.target_type}
                   </p>
                 </div>
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', flexShrink: 0 }}>
+                <p className="shrink-0"
+                  style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
                   {new Date(entry.created_at).toLocaleDateString('en-IN', {
                     day: '2-digit', month: 'short',
                   })}
