@@ -11,10 +11,10 @@ import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
 
 const QUICK_ACTIONS = [
-  { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE,      tint: '#f0fdf4', ink: '#065f46' },
-  { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS,  tint: '#eff6ff', ink: '#1e40af' },
-  { label: 'Violations',      emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,      tint: '#fef2f2', ink: '#991b1b' },
-  { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: '#f5f3ff', ink: '#5b21b6' },
+  { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE,      tint: 'var(--color-emerald-bg)', ink: 'var(--color-emerald-text)' },
+  { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS,  tint: 'var(--color-blue-50)',    ink: 'var(--color-blue-800)' },
+  { label: 'Violations',      emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,      tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
+  { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
 ];
 
 export default function AdminDashboardPage({ user }) {
@@ -109,9 +109,9 @@ export default function AdminDashboardPage({ user }) {
             fontSize: 'var(--text-micro)', fontWeight: 700,
             padding: '2px 6px', borderRadius: 'var(--radius-md)',
             ...(rateDelta > 0
-              ? { background: '#dcfce7', color: '#15803d' }
+              ? { background: 'var(--color-emerald-bg)', color: 'var(--color-emerald-text)' }
               : rateDelta < 0
-              ? { background: '#fee2e2', color: '#dc2626' }
+              ? { background: 'var(--color-red-bg)', color: 'var(--color-red-text)' }
               : { background: 'var(--surface-page)', color: 'var(--text-muted)' }),
           }}>
             {rateDelta > 0 ? '▲' : rateDelta < 0 ? '▼' : '—'}
@@ -128,10 +128,10 @@ export default function AdminDashboardPage({ user }) {
             <>
               <div className="flex gap-2 px-4 py-[14px] border-b border-[var(--border)]">
                 {[
-                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: '#f0fdf4' },
-                  { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: '#eff6ff' },
+                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: 'var(--color-emerald-bg)' },
+                  { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: 'var(--color-blue-50)' },
                   { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
-                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: '#fffbeb' }] : []),
+                  ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: 'var(--color-amber-bg)' }] : []),
                 ].map((item) => (
                   <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-[10px] text-center"
                     style={{ background: item.tint }}>

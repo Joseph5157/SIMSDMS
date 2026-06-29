@@ -36,7 +36,7 @@ function ResolveFlagModal({ violation, onClose }) {
       submitLabel="Resolve"
       loading={resolve.isPending}
     >
-      <div className="text-[13px] text-slate-600 rounded-lg p-3"
+      <div className="text-[13px] text-[var(--text-secondary)] rounded-lg p-3"
         style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>
         <strong>Flag note:</strong> {violation?.flag_note}
       </div>
@@ -56,15 +56,15 @@ function AuditModal({ violationId, onClose }) {
     <Modal opened={!!violationId} onClose={onClose} title="Violation Audit Log" size="lg" centered>
       <div className="space-y-2">
         {data?.data?.map((log) => (
-          <div key={log.id} className="border border-slate-200 rounded-lg p-3 text-[13px]">
-            <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+          <div key={log.id} className="border border-[var(--border)] rounded-lg p-3 text-[13px]">
+            <div className="flex justify-between text-[11px] text-[var(--text-muted)] mb-1">
               <span>{log.changedBy?.name} · <Badge status={log.change_type} label={log.change_type} /></span>
               <span>{new Date(log.created_at).toLocaleString()}</span>
             </div>
-            {log.reason && <p className="text-slate-600">{log.reason}</p>}
+            {log.reason && <p className="text-[var(--text-secondary)]">{log.reason}</p>}
           </div>
         ))}
-        {!data?.data?.length && <p className="text-slate-400 text-[13px]">No audit entries.</p>}
+        {!data?.data?.length && <p className="text-[var(--text-muted)] text-[13px]">No audit entries.</p>}
       </div>
     </Modal>
   );
@@ -164,15 +164,15 @@ export default function ViolationsPage({ user }) {
             {data?.data?.map((v) => (
               <tr key={v.id} className={v.is_flagged ? 'bg-amber-50' : v.record_status === 'hidden' ? 'opacity-50' : ''}>
                 <Td>
-                  <p className="font-medium text-slate-900">{v.student?.student_name}</p>
-                  <p className="text-xs text-slate-400">{v.student?.registration_number}</p>
+                  <p className="font-medium text-[var(--text-primary)]">{v.student?.student_name}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{v.student?.registration_number}</p>
                 </Td>
                 <Td className="hidden md:table-cell">{v.faculty?.name}</Td>
                 <Td>
                   {v.violationType?.name}
-                  {v.custom_violation && <p className="text-xs text-slate-400">{v.custom_violation}</p>}
+                  {v.custom_violation && <p className="text-xs text-[var(--text-muted)]">{v.custom_violation}</p>}
                 </Td>
-                <Td>{v.is_warning_only ? <span className="text-xs text-slate-500">Warning only</span> : `₹${v.fine_amount}`}</Td>
+                <Td>{v.is_warning_only ? <span className="text-xs text-[var(--text-muted)]">Warning only</span> : `₹${v.fine_amount}`}</Td>
                 <Td><Badge status={v.record_status} /></Td>
                 <Td>{v.is_flagged && <Badge status="pending" label="Flagged" />}</Td>
                 <Td>

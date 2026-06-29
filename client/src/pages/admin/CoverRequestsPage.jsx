@@ -152,10 +152,10 @@ export default function CoverRequestsPage({ user }) {
                 <Td className="font-medium">{cr.requester?.name}</Td>
                 <Td>{cr.dutySlot ? new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}</Td>
                 <Td className="capitalize">{cr.dutySlot?.session_type ?? '—'}</Td>
-                <Td className="max-w-xs truncate text-slate-500 text-[12px]">{cr.reason ?? '—'}</Td>
-                <Td>{cr.volunteer?.name ?? <span className="text-slate-400 text-[12px]">No volunteer yet</span>}</Td>
+                <Td className="max-w-xs truncate text-[var(--text-muted)] text-[12px]">{cr.reason ?? '—'}</Td>
+                <Td>{cr.volunteer?.name ?? <span className="text-[var(--text-muted)] text-[12px]">No volunteer yet</span>}</Td>
                 <Td><Badge status={cr.status} /></Td>
-                <Td className="text-[12px] text-slate-400">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
+                <Td className="text-[12px] text-[var(--text-muted)]">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
                 <Td>
                   {cr.status === 'open' && cr.volunteer_id && (
                     <Button size="xs" onClick={() => handleConfirm(cr)} loading={confirm.isPending}>Confirm</Button>

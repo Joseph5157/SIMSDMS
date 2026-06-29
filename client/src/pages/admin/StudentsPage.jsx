@@ -86,7 +86,7 @@ function PromoteModal({ open, student, onClose }) {
         onChange={(e) => setForm((f) => ({ ...f, academic_year: e.target.value }))}
         style={{
           marginTop: 12, width: '100%', padding: '8px 12px',
-          border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
           fontSize: 13, outline: 'none',
         }}
       />
@@ -153,15 +153,15 @@ export default function StudentsPage({ user }) {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           style={{
             flex: '1 1 180px', minWidth: 160,
-            border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
             padding: '7px 12px', fontSize: 13, outline: 'none',
-            backgroundColor: '#fff',
+            backgroundColor: 'var(--surface-card)',
           }}
         />
         <select
           value={filterCourse}
           onChange={(e) => { setFilterCourse(e.target.value); setPage(1); }}
-          style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: '#fff', color: filterCourse ? '#0f172a' : '#94a3b8' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterCourse ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All courses</option>
           <option value="b_pharm">B.Pharm</option>
@@ -171,7 +171,7 @@ export default function StudentsPage({ user }) {
         <select
           value={filterYear}
           onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
-          style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: '#fff', color: filterYear ? '#0f172a' : '#94a3b8' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterYear ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All years</option>
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
@@ -179,13 +179,13 @@ export default function StudentsPage({ user }) {
         <select
           value={filterSection}
           onChange={(e) => { setFilterSection(e.target.value); setPage(1); }}
-          style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: '#fff', color: filterSection ? '#0f172a' : '#94a3b8' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterSection ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All sections</option>
           {['A','B','C','D'].map((s) => <option key={s} value={s}>Section {s}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={resetFilters} style={{ fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}>
+          <button onClick={resetFilters} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}>
             Clear
           </button>
         )}
@@ -238,7 +238,7 @@ export default function StudentsPage({ user }) {
             {data?.data?.map((s) => (
               <tr key={s.id}>
                 <Td className="font-mono text-xs">{s.registration_number}</Td>
-                <Td className="font-medium text-slate-900">{s.student_name}</Td>
+                <Td className="font-medium text-[var(--text-primary)]">{s.student_name}</Td>
                 <Td>{COURSE_LABELS[s.course] ?? s.course}</Td>
                 <Td>{s.year} / {s.semester}</Td>
                 <Td>{s.section ?? '—'}</Td>

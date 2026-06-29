@@ -180,16 +180,16 @@ export default function CalendarPage({ user }) {
         />
       </div>
 
-      {isLoading ? <p className="text-slate-400 text-[13px]">Loading…</p> : (
+      {isLoading ? <p className="text-[var(--text-muted)] text-[13px]">Loading…</p> : (
         <>
           {/* Status bar */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex items-center gap-6">
+          <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6 flex items-center gap-6">
             <div>
-              <p className="text-xs text-slate-500 mb-1">Window status</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">Window status</p>
               <Badge status={config?.is_window_open ? 'active' : 'inactive'} label={config?.is_window_open ? 'Open' : 'Closed'} />
             </div>
             <div>
-              <p className="text-xs text-slate-500 mb-1">Sessions per faculty</p>
+              <p className="text-xs text-[var(--text-muted)] mb-1">Sessions per faculty</p>
               <p className="text-sm font-semibold">{config?.sessions_per_faculty ?? 3}</p>
             </div>
             <div className="flex gap-2 ml-auto">
@@ -201,8 +201,8 @@ export default function CalendarPage({ user }) {
           </div>
 
           {/* Days grid */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-            <p className="text-sm font-medium text-slate-700 mb-3">Blocked dates (click to toggle)</p>
+          <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6">
+            <p className="text-sm font-medium text-[var(--text-secondary)] mb-3">Blocked dates (click to toggle)</p>
             <div className="flex flex-wrap gap-2">
               {days.map((d) => {
                 const key = fmtDate(d);
@@ -211,13 +211,13 @@ export default function CalendarPage({ user }) {
                   <button key={d} onClick={() => toggleBlocked(d)}
                     aria-label={`${new Date(year, month - 1, d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isBlocked ? ' — blocked' : ' — available'}`}
                     aria-pressed={isBlocked}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'}`}>
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`}>
                     {d}
                   </button>
                 );
               })}
             </div>
-            <p className="text-xs text-slate-400 mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
+            <p className="text-xs text-[var(--text-muted)] mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
           </div>
 
           {/* Calendar legend */}
@@ -256,8 +256,8 @@ export default function CalendarPage({ user }) {
 
           {/* Unassigned faculty */}
           {unassigned?.data?.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-4 mt-6">
-              <p className="text-sm font-medium text-slate-700 mb-3">Unassigned faculty ({unassigned.total})</p>
+            <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mt-6">
+              <p className="text-sm font-medium text-[var(--text-secondary)] mb-3">Unassigned faculty ({unassigned.total})</p>
               <Table>
                 <thead>
                   <tr><Th>Name</Th><Th>Dept.</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr>

@@ -26,7 +26,7 @@ const REPORTS = [
   { id: 'flagged-violations',   group: 'Violations',      emoji: '⚑',  color: 'bg-amber-100',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
   { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-green-100',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
-  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-slate-100',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
+  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--surface-page)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
   { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-cyan-100',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
   { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-teal-100',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
@@ -41,7 +41,7 @@ const REPORT_GROUPS = ['Attendance', 'Violations', 'Duty & Coverage', 'Students'
 // ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
   const now = new Date();
-  const cls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-white';
+  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-[var(--surface-card)]';
   return (
     <div className="flex gap-2 mb-5">
       <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls}>
@@ -56,14 +56,14 @@ function MonthFilter({ year, month, setYear, setMonth }) {
 
 // ── Report result content ──────────────────────────────────────────────────────
 function ReportSection({ id, data, isLoading }) {
-  if (isLoading) return <p className="text-[13px] text-slate-400">Loading…</p>;
+  if (isLoading) return <p className="text-[13px] text-[var(--text-muted)]">Loading…</p>;
   if (!data)     return null;
 
   switch (id) {
     case 'monthly-attendance': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Total</Th><Th>Completed</Th><Th>Absent</Th><Th>Late</Th><Th>Auto-out</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -79,7 +79,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'late-arrivals': case 'auto-clockout': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Session</Th><Th>In time</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r) => (
             <tr key={r.id}>
@@ -96,7 +96,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'absent-faculty': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Status</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={3} />}
           {data.data?.map((s) => (
             <tr key={s.id}>
@@ -112,14 +112,14 @@ function ReportSection({ id, data, isLoading }) {
     case 'attendance-overrides': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Overridden by</Th><Th>Reason</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r) => (
             <tr key={r.id}>
               <Td>{r.faculty?.name}</Td>
               <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
               <Td>{r.overriddenBy?.name}</Td>
-              <Td className="text-[12px] text-slate-500 max-w-xs truncate">{r.override_reason}</Td>
+              <Td className="text-[12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
             </tr>
           ))}
         </tbody>
@@ -129,7 +129,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'faculty-activity': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -146,7 +146,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'violation-types': return (
       <Table>
         <thead><tr><Th>Type</Th><Th>Count</Th><Th>Total Fines (₹)</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={3} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
@@ -161,12 +161,12 @@ function ReportSection({ id, data, isLoading }) {
 
     case 'pending-fines': return (
       <>
-        <p className="text-[13px] font-semibold text-slate-700 mb-3">
+        <p className="text-[13px] font-semibold text-[var(--text-secondary)] mb-3">
           Total outstanding: ₹{data.total_fine_amount} across {data.total} violations
         </p>
         <Table>
           <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--divider)]">
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td className="font-medium">{v.student?.student_name}</Td>
@@ -189,13 +189,13 @@ function ReportSection({ id, data, isLoading }) {
         </div>
         <Table>
           <thead><tr><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--divider)]">
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td>{v.student?.student_name}</Td>
                 <Td>{v.faculty?.name}</Td>
                 <Td>{v.violationType?.name}</Td>
-                <Td className="text-[12px] text-slate-500 max-w-xs truncate">{v.flag_note}</Td>
+                <Td className="text-[12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
                 <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
               </tr>
             ))}
@@ -210,9 +210,9 @@ function ReportSection({ id, data, isLoading }) {
           ['Cover pending', data.cover_pending], ['Covered', data.covered], ['Scheduled', data.scheduled],
           ['Morning', data.morning], ['Afternoon', data.afternoon], ['Completion rate', `${data.completion_rate}%`],
         ].map(([label, value]) => (
-          <div key={label} className="bg-slate-50 rounded-xl p-4">
-            <p className="text-[11px] text-slate-500">{label}</p>
-            <p className="text-[20px] font-bold text-slate-900 mt-1">{value}</p>
+          <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
+            <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+            <p className="text-[20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -221,7 +221,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'unassigned-faculty': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} message="All faculty have picked their slots." />}
           {data.data?.map((f) => (
             <tr key={f.id}>
@@ -240,9 +240,9 @@ function ReportSection({ id, data, isLoading }) {
         {[['Total', data.total], ['Open', data.open], ['Covered', data.covered],
           ['Expired', data.expired], ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`],
         ].map(([label, value]) => (
-          <div key={label} className="bg-slate-50 rounded-xl p-4">
-            <p className="text-[11px] text-slate-500">{label}</p>
-            <p className="text-[20px] font-bold text-slate-900 mt-1">{value}</p>
+          <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
+            <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+            <p className="text-[20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -251,7 +251,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'completion-rate': return (
       <Table>
         <thead><tr><Th>Month</Th><Th>Total slots</Th><Th>Completed</Th><Th>Rate</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {data.data?.map((r) => (
             <tr key={`${r.year}-${r.month}`}>
               <Td className="font-medium">{MONTHS[r.month - 1]} {r.year}</Td>
@@ -271,7 +271,7 @@ function ReportSection({ id, data, isLoading }) {
     case 'upload-history': return (
       <Table>
         <thead><tr><Th>Filename</Th><Th>Uploaded by</Th><Th>Added</Th><Th>Updated</Th><Th>Deactivated</Th><Th>Errors</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((log) => (
             <tr key={log.id}>
@@ -290,19 +290,19 @@ function ReportSection({ id, data, isLoading }) {
       <>
         <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(data.breakdown ?? {}).map(([key, count]) => (
-            <span key={key} className="bg-blue-50 text-blue-700 text-[12px] px-3 py-1 rounded-full">
+            <span key={key} className="bg-[var(--color-blue-50)] text-[var(--brand)] text-[12px] px-3 py-1 rounded-full">
               {key}: {count}
             </span>
           ))}
         </div>
-        <p className="text-[13px] text-slate-500">Total: <strong>{data.total}</strong> active students</p>
+        <p className="text-[13px] text-[var(--text-muted)]">Total: <strong>{data.total}</strong> active students</p>
       </>
     );
 
     case 'student-violations': return (
       <Table>
         <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Fine</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={6} />}
           {data.data?.map((v) => (
             <tr key={v.id}>
@@ -318,7 +318,7 @@ function ReportSection({ id, data, isLoading }) {
       </Table>
     );
 
-    default: return <pre className="text-[12px] text-slate-500 overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
+    default: return <pre className="text-[12px] text-[var(--text-muted)] overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
   }
 }
 
@@ -391,15 +391,15 @@ export default function ReportsPage({ user }) {
                 onClick={() => setActive(active === r.id ? null : r.id)}
                 className={`text-left rounded-xl border p-4 transition-all ${
                   active === r.id
-                    ? 'border-blue-500 bg-blue-50 shadow-sm'
-                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                    ? 'border-blue-500 bg-[var(--color-blue-50)] shadow-sm'
+                    : 'border-[var(--border)] bg-[var(--surface-card)] hover:border-blue-300 hover:bg-[var(--surface-page)]'
                 }`}
               >
                 <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[18px] mb-3`}>
                   {r.emoji}
                 </div>
-                <p className="text-[13px] font-semibold text-slate-900 leading-snug">{r.label}</p>
-                <p style={{ fontSize: 'var(--text-micro)' }} className="text-slate-400 mt-0.5 leading-snug">{r.desc}</p>
+                <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{r.label}</p>
+                <p style={{ fontSize: 'var(--text-micro)' }} className="text-[var(--text-muted)] mt-0.5 leading-snug">{r.desc}</p>
               </button>
             ))}
           </div>
@@ -408,14 +408,14 @@ export default function ReportsPage({ user }) {
 
       {/* Result panel */}
       {active && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-semibold text-slate-900">
+            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">
               {activeReport?.emoji} {activeReport?.label}
             </h2>
             <button
               onClick={() => setActive(null)}
-              className="text-slate-400 hover:text-slate-600 text-[18px] leading-none"
+              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[18px] leading-none"
             >
               ✕
             </button>

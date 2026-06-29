@@ -113,7 +113,7 @@ function RecordModal({ open, onClose }) {
           <Switch checked={quickAdd} onChange={(e) => setQuickAdd(e.currentTarget.checked)} size="md" />
         </div>
 
-        <div className="border-t border-slate-100 mb-6" />
+        <div className="border-t border-[var(--divider)] mb-6" />
 
         {/* ── Duty slot (auto-selected label or dropdown) ── */}
         <div className="flex flex-col gap-3 pb-6">
@@ -143,7 +143,7 @@ function RecordModal({ open, onClose }) {
           )}
         </div>
 
-        <div className="border-t border-slate-100" />
+        <div className="border-t border-[var(--divider)]" />
 
         {/* ── Student ── */}
         <div className="flex flex-col gap-3 py-6">
@@ -151,26 +151,26 @@ function RecordModal({ open, onClose }) {
           <div className="relative">
             <input
               ref={studentInputRef}
-              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-[14px] text-slate-900 placeholder:text-slate-400 outline-none transition-all duration-150 hover:border-slate-300 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
               placeholder="Search by name or reg. number…"
               value={studentQ}
               onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); }}
             />
             {searchResults?.data?.length > 0 && !form.student_id && (
-              <div className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-slate-200 rounded-xl divide-y divide-slate-100 max-h-44 overflow-y-auto bg-white shadow-lg">
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-[var(--border)] rounded-xl divide-y divide-[var(--divider)] max-h-44 overflow-y-auto bg-[var(--surface-card)] shadow-lg">
                 {searchResults.data.map((s) => (
                   <button
                     key={s.id}
                     type="button"
-                    className="w-full text-left px-4 py-3 text-[13px] text-slate-700 hover:bg-blue-50/60 transition-colors"
+                    className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--color-blue-50)] transition-colors"
                     onClick={() => {
                       setForm(f => ({ ...f, student_id: s.id }));
                       setStudentQ(`${s.student_name} (${s.registration_number})`);
                     }}
                   >
-                    <span className="font-medium text-slate-900">{s.student_name}</span>
-                    <span className="text-slate-400"> — {s.registration_number}</span>
-                    <span className="block text-[11px] text-slate-400 mt-0.5">{s.course} · {s.semester_or_year}</span>
+                    <span className="font-medium text-[var(--text-primary)]">{s.student_name}</span>
+                    <span className="text-[var(--text-muted)]"> — {s.registration_number}</span>
+                    <span className="block text-[11px] text-[var(--text-muted)] mt-0.5">{s.course} · {s.semester_or_year}</span>
                   </button>
                 ))}
               </div>
@@ -178,7 +178,7 @@ function RecordModal({ open, onClose }) {
           </div>
         </div>
 
-        <div className="border-t border-slate-100" />
+        <div className="border-t border-[var(--divider)]" />
 
         {/* ── Violation type + Fine ── */}
         <div className="flex flex-col gap-4 py-6">
@@ -222,7 +222,7 @@ function RecordModal({ open, onClose }) {
           )}
         </div>
 
-        <div className="border-t border-slate-100" />
+        <div className="border-t border-[var(--divider)]" />
 
         {/* ── Notes (collapsible) ── */}
         <div className="pt-4">
@@ -316,10 +316,10 @@ export default function ViolationRecorderPage({ user }) {
             <tr key={v.id}>
               <Td>
                 <p className="font-medium">{v.student?.student_name}</p>
-                <p className="text-xs text-slate-400">{v.student?.registration_number}</p>
+                <p className="text-xs text-[var(--text-muted)]">{v.student?.registration_number}</p>
               </Td>
               <Td>{v.violationType?.name}</Td>
-              <Td>{v.is_warning_only ? <span className="text-xs text-slate-500">Warning</span> : `₹${v.fine_amount}`}</Td>
+              <Td>{v.is_warning_only ? <span className="text-xs text-[var(--text-muted)]">Warning</span> : `₹${v.fine_amount}`}</Td>
               <Td className="text-xs">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
               <Td>
                 {v.is_flagged ? <Badge status="pending" label="Flagged" /> : <Badge status={v.record_status} />}

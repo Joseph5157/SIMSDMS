@@ -94,7 +94,7 @@ export default function DashboardPage({ user }) {
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button size="md" color="dark" leftSection={<span>📋</span>} onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}
-                  style={{ background: '#fff', color: '#2563eb', fontWeight: 700 }}>
+                  style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
                   Check In / Out
                 </Button>
                 {canDoViolation && (

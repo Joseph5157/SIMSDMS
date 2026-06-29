@@ -63,9 +63,9 @@ function StatPill({ label, count, color }) {
     green:  'bg-emerald-bg  text-emerald-text  border-emerald-border',
     amber:  'bg-amber-bg    text-amber-text     border-amber-border',
     red:    'bg-red-bg      text-red-text       border-red-border',
-    blue:   'bg-blue-50     text-blue-700       border-blue-200',
-    gray:   'bg-slate-50    text-slate-500      border-slate-200',
-  }[color] ?? 'bg-slate-50 text-slate-500 border-slate-200';
+    blue:   'bg-[var(--color-blue-50)]   text-[var(--brand)]         border-[var(--color-blue-200)]',
+    gray:   'bg-[var(--surface-page)]    text-[var(--text-muted)]    border-[var(--border)]',
+  }[color] ?? 'bg-[var(--surface-page)] text-[var(--text-muted)] border-[var(--border)]';
 
   return (
     <div className={`flex items-center gap-2.5 border rounded-lg px-4 py-2 ${cls}`}>
@@ -81,7 +81,7 @@ function FacultyCard({ record, onOverride }) {
     record.attendance_status === 'checked_in'  && record.in_status === 'late'    ? 'border-l-amber-500' :
     record.attendance_status === 'checked_in'  || record.attendance_status === 'checked_out' ? 'border-l-green-500' :
     record.in_status === 'absent'              ? 'border-l-red-500' :
-    'border-l-slate-300';
+    'border-l-[var(--border)]';
 
   const statusBadge =
     record.attendance_status === 'checked_out' ? 'completed' :
@@ -98,13 +98,13 @@ function FacultyCard({ record, onOverride }) {
 
   return (
     <div
-      className={`bg-white border border-slate-200 border-l-4 ${borderCls} rounded-xl p-4 cursor-pointer hover:shadow-sm transition-shadow`}
+      className={`bg-[var(--surface-card)] border border-[var(--border)] border-l-4 ${borderCls} rounded-xl p-4 cursor-pointer hover:shadow-sm transition-shadow`}
       onClick={() => onOverride(record)}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-slate-900 truncate">{record.faculty?.name}</p>
-          <p className="text-[11px] text-slate-400 truncate">{record.faculty?.department}</p>
+          <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{record.faculty?.name}</p>
+          <p className="text-[11px] text-[var(--text-muted)] truncate">{record.faculty?.department}</p>
         </div>
         <Badge
           status={record.session_type === 'morning' ? 'scheduled' : 'open'}
@@ -113,7 +113,7 @@ function FacultyCard({ record, onOverride }) {
       </div>
       <div className="flex items-center justify-between">
         <Badge status={statusBadge} />
-        <span className="text-[11px] text-slate-400 font-mono">{timeLabel}</span>
+        <span className="text-[11px] text-[var(--text-muted)] font-mono">{timeLabel}</span>
       </div>
       {record.auto_out && (
         <p className="text-[11px] text-orange-500 mt-1.5">Auto clocked-out</p>
@@ -156,14 +156,14 @@ export default function AttendanceLivePage({ user }) {
       </div>
 
       {isLoading ? (
-        <p className="text-[13px] text-slate-400">Loading…</p>
+        <p className="text-[13px] text-[var(--text-muted)]">Loading…</p>
       ) : !records.length ? (
-        <div className="text-center py-16 text-slate-400 text-[13px]">No duty slots scheduled today.</div>
+        <div className="text-center py-16 text-[var(--text-muted)] text-[13px]">No duty slots scheduled today.</div>
       ) : (
         <>
           {records.filter(r => r.session_type === 'morning').length > 0 && (
             <div className="mb-6">
-              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
+              <p className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
                 Morning duty · {records.filter(r => r.session_type === 'morning').length} faculty
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -176,7 +176,7 @@ export default function AttendanceLivePage({ user }) {
 
           {records.filter(r => r.session_type === 'afternoon').length > 0 && (
             <div>
-              <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-[0.08em] mb-3">
+              <p className="text-[12px] font-semibold text-[var(--text-muted)] uppercase tracking-[0.08em] mb-3">
                 Afternoon duty · {records.filter(r => r.session_type === 'afternoon').length} faculty
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

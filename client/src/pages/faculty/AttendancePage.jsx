@@ -25,24 +25,24 @@ function SlotAttendanceCard({ slot }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5">
+    <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="font-semibold text-slate-900">{dateStr}</p>
-          <p className="text-[13px] text-slate-500 capitalize">{slot.session_type} session</p>
+          <p className="font-semibold text-[var(--text-primary)]">{dateStr}</p>
+          <p className="text-[13px] text-[var(--text-muted)] capitalize">{slot.session_type} session</p>
         </div>
         <Badge status={slot.status} />
       </div>
 
-      {isLoading ? <p className="text-[13px] text-slate-400">Loading attendance…</p> : (
+      {isLoading ? <p className="text-[13px] text-[var(--text-muted)]">Loading attendance…</p> : (
         <div className="flex items-center gap-4">
           <div className="text-[13px]">
-            <p className="text-slate-500 text-xs">Check-in</p>
+            <p className="text-[var(--text-muted)] text-xs">Check-in</p>
             <p className="font-medium">{att?.in_time ? new Date(att.in_time).toLocaleTimeString() : '—'}</p>
             {att?.in_status && <Badge status={att.in_status} />}
           </div>
           <div className="text-[13px]">
-            <p className="text-slate-500 text-xs">Check-out</p>
+            <p className="text-[var(--text-muted)] text-xs">Check-out</p>
             <p className="font-medium">{att?.out_time ? new Date(att.out_time).toLocaleTimeString() : '—'}</p>
             {att?.auto_out && <span className="text-xs text-orange-500">Auto</span>}
           </div>
@@ -74,7 +74,7 @@ export default function AttendancePage({ user }) {
     if (!group.length) return null;
     return (
       <div className="mb-6">
-        <h3 className="text-[13px] font-semibold text-slate-700 mb-3">{label}</h3>
+        <h3 className="text-[13px] font-semibold text-[var(--text-secondary)] mb-3">{label}</h3>
         <div className="space-y-3">
           {group.map((s) => <SlotAttendanceCard key={s.id} slot={s} />)}
         </div>

@@ -154,7 +154,7 @@ export default function UsersPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-slate-200 rounded-lg px-3 py-2 text-[13px] text-slate-700 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-white';
+  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] text-[var(--text-secondary)] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-[var(--surface-card)]';
 
   return (
     <Layout user={user}>
@@ -168,7 +168,7 @@ export default function UsersPage({ user }) {
       {/* Filter bar */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
-          className="border border-slate-200 rounded-lg px-3 py-2 text-[13px] flex-1 min-w-[200px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 placeholder:text-slate-400 bg-white"
+          className="border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] flex-1 min-w-[200px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)]"
           placeholder="Search by name or Telegram ID…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -231,13 +231,13 @@ export default function UsersPage({ user }) {
             {data?.data?.map((u) => (
               <tr key={u.id}>
                 <Td>
-                  <p className="font-medium text-slate-900">{u.name}</p>
-                  <p className="text-[11px] text-slate-400">{u.email}</p>
+                  <p className="font-medium text-[var(--text-primary)]">{u.name}</p>
+                  <p className="text-[11px] text-[var(--text-muted)]">{u.email}</p>
                 </Td>
                 <Td><Badge status={u.role} label={u.role.replace(/_/g, ' ')} /></Td>
                 <Td className="hidden sm:table-cell">{u.department ?? '—'}</Td>
                 <Td className="hidden md:table-cell">
-                  <span className="font-mono text-[12px] text-slate-600">
+                  <span className="font-mono text-[12px] text-[var(--text-secondary)]">
                     {u.telegram_id ?? '—'}
                   </span>
                 </Td>
@@ -296,10 +296,10 @@ export default function UsersPage({ user }) {
             {!invitesLoading && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
             {invitesData?.data?.map((inv) => (
               <tr key={inv.id}>
-                <Td><p className="font-medium text-slate-900">{inv.name}</p></Td>
+                <Td><p className="font-medium text-[var(--text-primary)]">{inv.name}</p></Td>
                 <Td>{inv.email}</Td>
                 <Td><Badge status={inv.role} label={inv.role.replace(/_/g, ' ')} /></Td>
-                <Td className="hidden sm:table-cell text-[12px] text-slate-600">
+                <Td className="hidden sm:table-cell text-[12px] text-[var(--text-secondary)]">
                   {new Date(inv.invite_expires_at).toLocaleDateString()}
                 </Td>
                 <Td>

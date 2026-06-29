@@ -93,13 +93,13 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10,
         }}>Required columns</p>
         <div style={{
-          backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
+          backgroundColor: 'var(--color-blue-50)', border: '1px solid var(--color-blue-200)',
           borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 12,
         }}>
           {REQUIRED_COLUMNS.map((col, i) => (
             <div key={col.name} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: i > 0 ? 6 : 0 }}>
-              <div style={{ width: 4, height: 4, borderRadius: 'var(--radius-full)', backgroundColor: '#0ea5e9', flexShrink: 0 }} />
-              <span style={{ fontSize: 'var(--text-card)', color: '#0369a1', fontWeight: 600 }}>{col.name}</span>
+              <div style={{ width: 4, height: 4, borderRadius: 'var(--radius-full)', backgroundColor: 'var(--color-cyan-solid)', flexShrink: 0 }} />
+              <span style={{ fontSize: 'var(--text-card)', color: 'var(--color-cyan-text)', fontWeight: 600 }}>{col.name}</span>
               {col.note && <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>— {col.note}</span>}
             </div>
           ))}
@@ -130,8 +130,8 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 7, padding: '10px 16px', marginBottom: 20,
-            border: '1.5px dashed #93c5fd', borderRadius: 'var(--radius-lg)',
-            backgroundColor: '#eff6ff', cursor: downloading ? 'not-allowed' : 'pointer',
+            border: '1.5px dashed var(--color-blue-200)', borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--color-blue-50)', cursor: downloading ? 'not-allowed' : 'pointer',
             fontSize: 'var(--text-card)', fontWeight: 700,
             color: downloading ? '#93c5fd' : 'var(--brand)',
             transition: 'all 0.15s', fontFamily: 'inherit',
@@ -151,16 +151,16 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           alignItems: 'center', justifyContent: 'center',
           gap: 8,
           width: '100%', minHeight: 100,
-          border: `2px dashed ${file ? '#3b82f6' : 'var(--border)'}`,
+          border: `2px dashed ${file ? 'var(--brand)' : 'var(--border)'}`,
           borderRadius: 'var(--radius-xl)',
-          backgroundColor: file ? '#eff6ff' : 'var(--surface-page)',
+          backgroundColor: file ? 'var(--color-blue-50)' : 'var(--surface-page)',
           cursor: 'pointer',
           padding: '16px 20px',
           boxSizing: 'border-box',
           transition: 'all 0.15s',
           marginBottom: 20,
         }}>
-          <FileText size={22} strokeWidth={1.5} color={file ? '#3b82f6' : 'var(--text-muted)'} />
+          <FileText size={22} strokeWidth={1.5} color={file ? 'var(--brand)' : 'var(--text-muted)'} />
           <span style={{
             fontSize: 'var(--text-card)', fontWeight: 600, textAlign: 'center',
             color: file ? 'var(--brand)' : 'var(--text-secondary)',
@@ -181,16 +181,16 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         {/* Result */}
         {result && (
           <div style={{
-            backgroundColor: '#f0fdf4',
-            border: '1px solid #bbf7d0',
+            backgroundColor: 'var(--color-emerald-bg)',
+            border: '1px solid var(--color-emerald-border)',
             borderRadius: 'var(--radius-lg)',
             padding: '12px 14px',
             marginBottom: 20,
           }}>
-            <p style={{ fontSize: 'var(--text-card)', color: '#15803d', fontWeight: 600, marginBottom: 4 }}>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-emerald-text)', fontWeight: 600, marginBottom: 4 }}>
               Upload complete
             </p>
-            <p style={{ fontSize: 'var(--text-small)', color: '#166534' }}>
+            <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-emerald-text)' }}>
               Added: {result.added_count} · Updated: {result.updated_count} · Deactivated: {result.deactivated_count}
             </p>
             {result.error_count > 0 && (
@@ -198,7 +198,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                 <button
                   onClick={() => setShowErrors(s => !s)}
                   style={{
-                    fontSize: 'var(--text-small)', color: '#dc2626',
+                    fontSize: 'var(--text-small)', color: 'var(--color-red-solid)',
                     background: 'none', border: 'none', cursor: 'pointer',
                     padding: 0, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
                     fontFamily: 'inherit',
@@ -207,7 +207,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                   {showErrors ? '▲' : '▼'} {showErrors ? 'Hide' : 'Show'} {result.error_count} error{result.error_count > 1 ? 's' : ''}
                 </button>
                 {showErrors && Array.isArray(result.errors) && (
-                  <div style={{ marginTop: 8, borderTop: '1px solid #fca5a5', paddingTop: 8 }}>
+                  <div style={{ marginTop: 8, borderTop: '1px solid var(--color-red-border)', paddingTop: 8 }}>
                     {result.errors.map((err, i) => (
                       <div key={i} style={{
                         display: 'flex', justifyContent: 'space-between',
@@ -215,7 +215,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                         fontSize: 'var(--text-small)',
                       }}>
                         <span style={{ color: 'var(--text-secondary)', flexShrink: 0, marginRight: 12 }}>Row {err.row}</span>
-                        <span style={{ color: '#dc2626', textAlign: 'right' }}>{err.reason}</span>
+                        <span style={{ color: 'var(--color-red-solid)', textAlign: 'right' }}>{err.reason}</span>
                       </div>
                     ))}
                   </div>

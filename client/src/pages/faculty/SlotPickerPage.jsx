@@ -120,7 +120,7 @@ export default function SlotPickerPage({ user }) {
     <Layout user={user}>
       <div style={{ textAlign: 'center', paddingTop: 16, paddingBottom: 10, marginBottom: 12, borderBottom: '1px solid var(--border-strong)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>My Duty Slots</h2>
-        <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0' }}>Pick your duty slots for the month</p>
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Pick your duty slots for the month</p>
       </div>
 
       {/* ── Window status ── */}
@@ -129,11 +129,11 @@ export default function SlotPickerPage({ user }) {
       ) : windowOpen ? (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: '#f0fdf4', border: '1px solid #bbf7d0',
+          background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)',
           borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: '#10b981', flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: '#065f46', margin: 0 }}>
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: 'var(--color-emerald-solid)', flexShrink: 0 }} />
+          <p style={{ fontSize: 13, color: 'var(--color-emerald-text)', margin: 0 }}>
             Window <strong>open</strong> ·{' '}
             {loadingMine
               ? <Skeleton display="inline-block" w={80} h={12} radius={4} />
@@ -143,11 +143,11 @@ export default function SlotPickerPage({ user }) {
       ) : (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: '#f8fafc', border: '1px solid #e2e8f0',
+          background: 'var(--surface-page)', border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
         }}>
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: '#94a3b8', flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: 'var(--text-muted)', flexShrink: 0 }} />
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
             Scheduling window is <strong>closed</strong>.
           </p>
         </div>
@@ -155,22 +155,22 @@ export default function SlotPickerPage({ user }) {
 
       {/* ── Calendar ── */}
       <div style={{
-        background: '#fff', borderRadius: 'var(--radius-2xl)', border: '1px solid #e2e8f0',
+        background: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
         padding: '16px', marginBottom: 20,
       }}>
         {/* Month nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={prevMonth} style={{
-            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0',
-            background: '#f8fafc', cursor: 'pointer', fontSize: 16, color: '#334155',
+            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+            background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>‹</button>
-          <p style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', margin: 0 }}>
+          <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>
             {MONTH_NAMES[month - 1]} {year}
           </p>
           <button onClick={nextMonth} style={{
-            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0',
-            background: '#f8fafc', cursor: 'pointer', fontSize: 16, color: '#334155',
+            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+            background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>›</button>
         </div>
@@ -198,7 +198,7 @@ export default function SlotPickerPage({ user }) {
         {/* Day-of-week headers */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
           {DAY_LABELS.map((d, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: '#94a3b8', padding: '4px 0' }}>
+            <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', padding: '4px 0' }}>
               {d}
             </div>
           ))}
@@ -231,12 +231,12 @@ export default function SlotPickerPage({ user }) {
 
               const d = parseInt(dateStr.slice(8), 10);
 
-              let bg = 'transparent', border = 'none', color = '#94a3b8';
-              if (isToday)      { border = '2px solid #2563eb'; color = '#2563eb'; }
-              if (isPast)       { color = '#cbd5e1'; }
-              if (isPastPicked) { bg = '#f1f5f9'; color = '#94a3b8'; }
-              if (isSelected)   { bg = '#eff6ff'; border = '2px solid #2563eb'; }
-              if (!isPast && (pickedMorn || pickedAftern)) { color = '#0f172a'; }
+              let bg = 'transparent', border = 'none', color = 'var(--text-muted)';
+              if (isToday)      { border = '2px solid var(--brand)'; color = 'var(--brand)'; }
+              if (isPast)       { color = 'var(--text-muted)'; }
+              if (isPastPicked) { bg = 'var(--surface-page)'; color = 'var(--text-muted)'; }
+              if (isSelected)   { bg = 'var(--color-blue-50)'; border = '2px solid var(--brand)'; }
+              if (!isPast && (pickedMorn || pickedAftern)) { color = 'var(--text-primary)'; }
 
               // Build accessible label
               const dateObj = new Date(year, month - 1, d);
@@ -302,20 +302,20 @@ export default function SlotPickerPage({ user }) {
           return (
             <div ref={panelRef} style={{
               marginTop: 14, padding: 14,
-              background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 'var(--radius-lg)',
+              background: 'var(--surface-page)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
               scrollMarginTop: 80, scrollMarginBottom: 80,
             }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 10px' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>
                 {DAY_LABELS_FULL[d.getDay()]}, {d.getDate()} {MONTH_NAMES[d.getMonth()]}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Morning */}
                 {pickedMorn ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
-                    <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Morning picked</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
+                    <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Morning picked</span>
                     {picked.morning?.status === 'scheduled' && (
-                      <button onClick={() => setUnpickTarget(picked.morning)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
+                      <button onClick={() => setUnpickTarget(picked.morning)} style={{ fontSize: 12, color: 'var(--color-red-solid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
                     )}
                   </div>
                 ) : hasMorn ? (
@@ -332,10 +332,10 @@ export default function SlotPickerPage({ user }) {
 
                 {/* Afternoon */}
                 {pickedAftern ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
-                    <span style={{ fontSize: 13, color: '#065f46', fontWeight: 600 }}>✅ Afternoon picked</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
+                    <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Afternoon picked</span>
                     {picked.afternoon?.status === 'scheduled' && (
-                      <button onClick={() => setUnpickTarget(picked.afternoon)} style={{ fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
+                      <button onClick={() => setUnpickTarget(picked.afternoon)} style={{ fontSize: 12, color: 'var(--color-red-solid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
                     )}
                   </div>
                 ) : hasAftern ? (
@@ -344,15 +344,15 @@ export default function SlotPickerPage({ user }) {
                     loading={pickingId === `${selected}|afternoon`}
                     disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
                     onClick={() => handlePick(selected, 'afternoon')}
-                    style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' }}
-                    leftSection={<span style={{ fontSize: 11, background: '#fed7aa', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>PM</span>}
+                    style={{ background: 'var(--color-orange-bg)', color: 'var(--color-orange-solid)', border: '1px solid var(--color-orange-border)' }}
+                    leftSection={<span style={{ fontSize: 11, background: 'var(--color-orange-border)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>PM</span>}
                   >
                     Pick Afternoon (2:00 PM)
                   </Button>
                 ) : null}
 
                 {remainingSlots <= 0 && !pickedMorn && !pickedAftern && (
-                  <p style={{ fontSize: 12, color: '#92400e', margin: 0, textAlign: 'center' }}>
+                  <p style={{ fontSize: 12, color: 'var(--color-amber-text)', margin: 0, textAlign: 'center' }}>
                     You've reached your {requiredSlots}-slot limit. Unpick a slot to choose a different one.
                   </p>
                 )}
@@ -365,9 +365,9 @@ export default function SlotPickerPage({ user }) {
         {windowOpen && !loadingAvail && (available?.data ?? []).length === 0 && (
           <div style={{
             marginTop: 16, padding: '12px 14px',
-            background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 'var(--radius-lg)',
+            background: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 'var(--radius-lg)',
           }}>
-            <p style={{ fontSize: 12, color: '#92400e', margin: 0 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-amber-text)', margin: 0 }}>
               ⚠️ No slots set up for this month yet. Ask your Admin to configure working days on the Duty Calendar page.
             </p>
           </div>
@@ -376,13 +376,13 @@ export default function SlotPickerPage({ user }) {
 
       {/* ── My Picks summary ── */}
       <div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
           My picks · {pickedCount} / {requiredSlots} required
         </p>
         {loadingMine ? (
           <Skeleton height={52} radius={12} />
         ) : !mySlots?.data?.length ? (
-          <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '16px 0' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
             Tap a highlighted date above to pick your slots.
           </p>
         ) : (
@@ -393,14 +393,14 @@ export default function SlotPickerPage({ user }) {
               return (
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  background: '#fff', borderRadius: 'var(--radius-lg)', border: '1px solid #e2e8f0',
+                  background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
                   padding: '10px 14px',
                 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: 'var(--radius-full)', flexShrink: 0,
                     background: s.session_type === 'morning' ? '#3b82f6' : '#f97316',
                   }} />
-                  <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0, textTransform: 'capitalize' }}>
+                  <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, textTransform: 'capitalize' }}>
                     {s.session_type} · {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
                   </p>
                   <Badge status={s.status} />

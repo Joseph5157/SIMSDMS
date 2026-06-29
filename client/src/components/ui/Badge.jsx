@@ -30,8 +30,8 @@ const STATUS_LABELS = {
 export default function Badge({ status, label, className = '' }) {
   const isRole = status === 'super_admin' || status === 'admin' || status === 'faculty';
   const cls = isRole
-    ? (ROLE_COLORS[status] ?? 'bg-slate-100 text-slate-500')
-    : (STATUS_COLORS[status] ?? 'bg-slate-100 text-slate-500');
+    ? (ROLE_COLORS[status] ?? 'bg-[var(--surface-page)] text-[var(--text-muted)]')
+    : (STATUS_COLORS[status] ?? 'bg-[var(--surface-page)] text-[var(--text-muted)]');
 
   const displayLabel = label ?? STATUS_LABELS[status] ?? status;
 

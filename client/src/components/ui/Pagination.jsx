@@ -31,7 +31,7 @@ export default function Pagination({ meta, page, onPage }) {
           onClick={() => onPage(page - 1)}
           style={{
             ...btnBase,
-            background: page <= 1 ? 'var(--color-slate-50)' : 'white',
+            background: page <= 1 ? 'var(--surface-page)' : 'var(--surface-card)',
             color: page <= 1 ? 'var(--text-muted)' : 'var(--text-secondary)',
             cursor: page <= 1 ? 'default' : 'pointer',
           }}
@@ -55,7 +55,7 @@ export default function Pagination({ meta, page, onPage }) {
                 onClick={() => onPage(p)}
                 style={{
                   ...btnBase,
-                  background: p === page ? 'var(--brand)' : 'white',
+                  background: p === page ? 'var(--brand)' : 'var(--surface-card)',
                   color: p === page ? 'white' : 'var(--text-secondary)',
                   borderColor: p === page ? 'var(--brand)' : 'var(--border)',
                   fontWeight: p === page ? 700 : 500,
@@ -71,7 +71,7 @@ export default function Pagination({ meta, page, onPage }) {
           onClick={() => onPage(page + 1)}
           style={{
             ...btnBase,
-            background: page >= meta.pages ? 'var(--color-slate-50)' : 'white',
+            background: page >= meta.pages ? 'var(--surface-page)' : 'var(--surface-card)',
             color: page >= meta.pages ? 'var(--text-muted)' : 'var(--text-secondary)',
             cursor: page >= meta.pages ? 'default' : 'pointer',
           }}

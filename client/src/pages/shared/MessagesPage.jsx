@@ -31,7 +31,7 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
   }
 
   if (!data) return (
-    <div className="flex-1 flex items-center justify-center text-[13px] text-slate-400 w-full">
+    <div className="flex-1 flex items-center justify-center text-[13px] text-[var(--text-muted)] w-full">
       Loading…
     </div>
   );
@@ -39,13 +39,13 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
   const isSent = data.sender?.id === currentUser?.id;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 w-full sm:border-l sm:border-slate-200">
+    <div className="flex-1 flex flex-col min-w-0 w-full sm:border-l sm:border-[var(--border)]">
       {/* Header — back button on mobile, close ✕ on desktop */}
-      <div className="px-4 sm:px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+      <div className="px-4 sm:px-5 py-4 border-b border-[var(--border)] flex items-center gap-3">
         {/* Mobile back button */}
         <button
           onClick={onClose}
-          className="sm:hidden flex items-center gap-1 text-[13px] text-blue-600 font-medium mr-1"
+          className="sm:hidden flex items-center gap-1 text-[13px] text-[var(--brand)] font-medium mr-1"
           aria-label="Back to messages"
         >
           ← Back
@@ -53,15 +53,15 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
 
         {/* Subject + meta */}
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-slate-900 truncate">{data.subject}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p className="text-[14px] font-semibold text-[var(--text-primary)] truncate">{data.subject}</p>
+          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
             {isSent ? `To: ${data.receiver?.name}` : `From: ${data.sender?.name}`}
             {' · '}{fmtDate(data.created_at)}
           </p>
         </div>
 
         {/* Desktop close */}
-        <button onClick={onClose} className="hidden sm:block text-slate-400 hover:text-slate-600 text-[18px] leading-none flex-shrink-0">
+        <button onClick={onClose} className="hidden sm:block text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[18px] leading-none flex-shrink-0">
           ✕
         </button>
       </div>
@@ -72,7 +72,7 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
           <div className={`max-w-[80%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
             isSent
               ? 'bg-blue-600 text-white rounded-br-sm'
-              : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm'
+              : 'bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm'
           }`}>
             <p style={{
               fontSize: 'var(--text-small)', fontWeight: 600,
@@ -94,7 +94,7 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 sm:px-5 py-3 border-t border-slate-200 flex justify-end">
+      <div className="px-4 sm:px-5 py-3 border-t border-[var(--border)] flex justify-end">
         <Button color="red" size="sm" onClick={handleDelete} loading={deleteMsg.isPending}>
           Delete
         </Button>
@@ -109,21 +109,21 @@ function MessageItem({ msg, isActive, tab, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3.5 border-b border-slate-100 transition-colors ${
+      className={`w-full text-left px-4 py-3.5 border-b border-[var(--divider)] transition-colors ${
         isActive
-          ? 'bg-blue-50 border-l-2 border-l-blue-500'
-          : 'hover:bg-slate-50 border-l-2 border-l-transparent'
+          ? 'bg-[var(--color-blue-50)] border-l-2 border-l-blue-500'
+          : 'hover:bg-[var(--surface-page)] border-l-2 border-l-transparent'
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={`text-[13px] truncate ${unread ? 'font-semibold text-slate-900' : 'text-slate-700'}`}>
+        <p className={`text-[13px] truncate ${unread ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
           {tab === 'inbox' ? msg.sender?.name : msg.receiver?.name}
         </p>
-        <span className="text-[11px] text-slate-400 shrink-0">
+        <span className="text-[11px] text-[var(--text-muted)] shrink-0">
           {new Date(msg.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
         </span>
       </div>
-      <p className="text-[12px] text-slate-500 truncate mt-0.5">{msg.subject}</p>
+      <p className="text-[12px] text-[var(--text-muted)] truncate mt-0.5">{msg.subject}</p>
       {unread && <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mt-1" />}
     </button>
   );
@@ -154,20 +154,20 @@ export default function MessagesPage({ user }) {
         Mobile:  show EITHER the list OR the thread (full-width), never both.
         Desktop: side-by-side panel layout.
       */}
-      <div className="flex bg-white border border-slate-200 rounded-xl overflow-hidden flex-1" style={{ minHeight: 400 }}>
+      <div className="flex bg-[var(--surface-card)] border border-[var(--border)] rounded-xl overflow-hidden flex-1" style={{ minHeight: 400 }}>
 
         {/* ── Left panel — list ── */}
         {/* On mobile: hidden when a message is open; full-width when no message selected.
             On sm+: always visible at fixed width. */}
         <div
           className={[
-            'flex-col border-r border-slate-200',
+            'flex-col border-r border-[var(--border)]',
             'w-full sm:w-[260px] sm:flex-shrink-0',
             viewing ? 'hidden sm:flex' : 'flex',
           ].join(' ')}
         >
           {/* Tab bar */}
-          <div className="flex border-b border-slate-200" role="tablist">
+          <div className="flex border-b border-[var(--border)]" role="tablist">
             {['inbox', 'sent'].map((t) => (
               <button
                 key={t}
@@ -177,7 +177,7 @@ export default function MessagesPage({ user }) {
                 aria-selected={tab === t}
                 tabIndex={tab === t ? 0 : -1}
                 className={`flex-1 py-3 text-[13px] font-medium capitalize transition-colors ${
-                  tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-700'
+                  tab === t ? 'text-[var(--brand)] border-b-2 border-[var(--brand)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                 }`}
               >
                 {t}
@@ -188,10 +188,10 @@ export default function MessagesPage({ user }) {
           {/* Messages list */}
           <div className="flex-1 overflow-y-auto" role="tabpanel" aria-labelledby={`tab-${tab}`}>
             {isLoading && (
-              <p className="text-[13px] text-slate-400 text-center py-8">Loading…</p>
+              <p className="text-[13px] text-[var(--text-muted)] text-center py-8">Loading…</p>
             )}
             {!isLoading && !data?.data?.length && (
-              <p className="text-[13px] text-slate-400 text-center py-8">No messages.</p>
+              <p className="text-[13px] text-[var(--text-muted)] text-center py-8">No messages.</p>
             )}
             {data?.data?.map((m) => (
               <MessageItem
@@ -206,7 +206,7 @@ export default function MessagesPage({ user }) {
 
           {/* Pagination */}
           {data?.meta && data.meta.pages > 1 && (
-            <div className="border-t border-slate-100 p-2">
+            <div className="border-t border-[var(--divider)] p-2">
               <Pagination meta={data.meta} page={page} onPage={setPage} />
             </div>
           )}
@@ -221,7 +221,7 @@ export default function MessagesPage({ user }) {
           />
         ) : (
           // Empty state: hidden on mobile (list is shown instead), visible on desktop
-          <div className="hidden sm:flex flex-1 flex-col items-center justify-center text-slate-400 gap-2">
+          <div className="hidden sm:flex flex-1 flex-col items-center justify-center text-[var(--text-muted)] gap-2">
             <p className="text-[28px]">✉️</p>
             <p className="text-[13px]">Select a message to read it</p>
           </div>

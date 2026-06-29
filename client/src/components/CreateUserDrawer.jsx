@@ -9,8 +9,8 @@ function RoleButton({ label, subtitle, selected, onClick }) {
       onClick={onClick}
       className="flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer"
       style={{
-        border: `1.5px solid ${selected ? '#3b82f6' : 'var(--border)'}`,
-        backgroundColor: selected ? '#eff6ff' : 'var(--surface-page)',
+        border: `1.5px solid ${selected ? 'var(--brand)' : 'var(--border)'}`,
+        backgroundColor: selected ? 'var(--color-blue-50)' : 'var(--surface-page)',
       }}
     >
       <p className="text-sm font-bold mb-0.5" style={{ color: selected ? '#2563eb' : 'var(--text-secondary)' }}>
@@ -101,7 +101,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
       {inviteLink ? (
         // ── INVITE LINK PANEL ──
         <div className="p-5 flex flex-col gap-3.5">
-          <div className="bg-blue-50 border-[1.5px] border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+          <div className="bg-[var(--color-blue-50)] border-[1.5px] border-[var(--color-blue-200)] rounded-xl p-3 text-xs text-[var(--color-blue-800)] leading-relaxed">
             <p className="font-bold mb-2">📋 Instructions:</p>
             <ol className="m-0" style={{ paddingLeft: '18px' }}>
               <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
@@ -110,22 +110,22 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
             </ol>
           </div>
 
-          <div className="bg-slate-50 rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: 'var(--border)' }}>
+          <div className="bg-[var(--surface-page)] rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: 'var(--border)' }}>
             <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', margin: '0 0 6px' }}>Bot Username</p>
-            <p className="text-sm font-bold text-slate-900 m-0" style={{ fontFamily: 'monospace' }}>
+            <p className="text-sm font-bold text-[var(--text-primary)] m-0" style={{ fontFamily: 'monospace' }}>
               @SimsPharmacybot
             </p>
           </div>
 
-          <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-900 font-semibold" style={{ borderWidth: '1.5px', borderColor: 'var(--border)', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+          <div className="bg-[var(--surface-page)] rounded-lg p-3 text-xs text-[var(--text-primary)] font-semibold" style={{ borderWidth: '1.5px', borderColor: 'var(--border)', wordBreak: 'break-word', fontFamily: 'monospace' }}>
             /start {extractInviteToken()}
           </div>
 
           <div className="flex flex-col gap-2">
             <button
               onClick={copyCommand}
-              className="w-full h-11 rounded-lg font-bold text-sm text-blue-600 cursor-pointer transition-all duration-150 hover:bg-blue-100"
-              style={{ borderWidth: '1.5px', borderColor: '#3b82f6', backgroundColor: '#eff6ff' }}
+              className="w-full h-11 rounded-lg font-bold text-sm text-[var(--brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-blue-100)]"
+              style={{ borderWidth: '1.5px', borderColor: 'var(--brand)', backgroundColor: 'var(--color-blue-50)' }}
             >
               📋 Copy command
             </button>

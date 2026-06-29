@@ -378,6 +378,17 @@ html.dark {
   --color-orange-solid:  #f97316;
   --color-orange-border: #7c2d12;
 
+  /* Blue ramp overrides for dark mode */
+  --color-blue-50:  #1e3a5f;
+  --color-blue-100: #1e3a6e;
+  --color-blue-200: #1d4a8a;
+  --color-blue-700: #93c5fd;
+  --color-blue-800: #bfdbfe;
+
+  --blue-50:  #1e3a5f;
+  --blue-100: #1e3a6e;
+  --blue-200: #1d4a8a;
+
   /* Brands */
   --brand:               #3b82f6;
   --brand-hover:         #60a5fa;

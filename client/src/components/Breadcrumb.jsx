@@ -6,19 +6,19 @@ export default function Breadcrumb({ items = [] }) {
 
   return (
     <nav className="mb-4" aria-label="Breadcrumb">
-      <ol className="flex items-center gap-2 text-xs text-slate-500">
+      <ol className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
         {items.map((item, i) => (
           <li key={i} className="flex items-center gap-2">
-            {i > 0 && <span className="text-slate-300">/</span>}
+            {i > 0 && <span className="text-[var(--text-muted)]">/</span>}
             {item.href ? (
               <Link
                 to={item.href}
-                className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                className="text-[var(--brand)] hover:text-[var(--brand)] hover:underline transition-colors"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-slate-700 font-medium">{item.label}</span>
+              <span className="text-[var(--text-secondary)] font-medium">{item.label}</span>
             )}
           </li>
         ))}

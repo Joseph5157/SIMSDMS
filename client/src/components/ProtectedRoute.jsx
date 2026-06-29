@@ -5,14 +5,14 @@ export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="min-h-dvh flex items-center justify-center bg-gradient-to-br from-[var(--surface-page)] to-[var(--surface-page)]">
         <div className="flex flex-col items-center gap-4">
           {/* Animated spinner */}
-          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-[var(--color-blue-200)] border-t-[var(--brand)] rounded-full animate-spin" />
           {/* Status text */}
           <div className="text-center">
-            <p className="text-sm font-medium text-slate-900">Verifying access</p>
-            <p className="text-xs text-slate-500 mt-1">Please wait…</p>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Verifying access</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">Please wait…</p>
           </div>
         </div>
       </div>
@@ -31,11 +31,11 @@ export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
     const hasAccess = requiredRoles.some(role => role.toLowerCase() === userRole);
     if (!hasAccess) {
       return (
-        <div className="min-h-dvh flex items-center justify-center bg-slate-50">
+        <div className="min-h-dvh flex items-center justify-center bg-[var(--surface-page)]">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
             <p className="text-xl font-semibold text-red-600 mb-2">Access Denied</p>
-            <p className="text-slate-500 text-sm">Your role (<span className="font-medium">{user.role}</span>) doesn't have access to this page.</p>
+            <p className="text-[var(--text-muted)] text-sm">Your role (<span className="font-medium">{user.role}</span>) doesn't have access to this page.</p>
           </div>
         </div>
       );
