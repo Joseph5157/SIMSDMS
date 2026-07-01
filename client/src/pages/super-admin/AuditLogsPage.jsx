@@ -12,12 +12,12 @@ export default function AuditLogsPage({ user }) {
   const { data, isLoading } = useAuditLogs({ action, page, limit: 50 });
 
   function getActionColor(act) {
-    if (!act) return 'var(--slate-500)';
-    if (act.includes('DELETE') || act.includes('DEACTIVATE')) return 'var(--red-solid)';
-    if (act.includes('CREATE') || act.includes('UPLOAD'))     return 'var(--emerald-solid)';
-    if (act.includes('RESET'))                                return 'var(--amber-solid)';
-    if (act.includes('UPDATE') || act.includes('EDIT'))       return 'var(--blue-500)';
-    return 'var(--slate-500)';
+    if (!act) return 'var(--text-muted)';
+    if (act.includes('DELETE') || act.includes('DEACTIVATE')) return 'var(--color-red-solid)';
+    if (act.includes('CREATE') || act.includes('UPLOAD'))     return 'var(--color-emerald-solid)';
+    if (act.includes('RESET'))                                return 'var(--color-amber-solid)';
+    if (act.includes('UPDATE') || act.includes('EDIT'))       return 'var(--color-blue-500)';
+    return 'var(--text-muted)';
   }
 
   return (

@@ -213,10 +213,10 @@ export default function NotificationsPage({ user }) {
                 </span>
               </Td>
               <Td className="font-medium">{notif.title}</Td>
-              <Td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--slate-600)' }}>
+              <Td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
                 {notif.message}
               </Td>
-              <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--slate-500)' }}>{formatDate(notif.createdAt)}</Td>
+              <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>{formatDate(notif.createdAt)}</Td>
               <Td>
                 <span style={{
                   display: 'inline-block', padding: '4px 8px', borderRadius: 'var(--radius-md)',

@@ -179,7 +179,7 @@ export default function DashboardPage({ user }) {
       {/* ── 4. Upcoming duties ── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Upcoming duties
           </p>
           <button onClick={() => navigate(ROUTES.FACULTY_SLOTS)}
@@ -220,7 +220,7 @@ export default function DashboardPage({ user }) {
       {/* ── 5. Recent messages ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--slate-600)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Recent messages
           </p>
           {unread > 0 && (

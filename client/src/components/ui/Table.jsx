@@ -31,7 +31,7 @@ export function Th({ children, className }) {
       className={className}
       style={{
         fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.08em', color: 'var(--slate-400)',
+        letterSpacing: '0.08em', color: 'var(--text-muted)',
         backgroundColor: 'var(--surface-page)', whiteSpace: 'nowrap',
         padding: '10px 16px',
       }}
@@ -47,7 +47,7 @@ export function Td({ children, className }) {
     <MTable.Td
       className={className}
       style={{
-        fontSize: 13, color: 'var(--slate-700)',
+        fontSize: 13, color: 'var(--text-secondary)',
         padding: '10px 16px',
         borderBottom: '1px solid var(--divider)',
       }}

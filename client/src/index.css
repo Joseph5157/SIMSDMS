@@ -577,3 +577,65 @@ h3, .h3 {
 .animate-spin {
   animation: spin 0.7s linear infinite;
 }
+
+/* ── Mantine dark mode overrides — sync with our design system ── */
+html.dark .mantine-Paper-root {
+  background-color: var(--surface-card);
+  border-color: var(--border);
+}
+html.dark .mantine-Modal-header {
+  background-color: var(--surface-card);
+}
+html.dark .mantine-Modal-body {
+  background-color: var(--surface-card);
+}
+html.dark .mantine-Modal-title {
+  color: var(--text-primary);
+}
+html.dark .mantine-TextInput-input,
+html.dark .mantine-NumberInput-input,
+html.dark .mantine-Select-input,
+html.dark .mantine-Checkbox-input,
+html.dark .mantine-Textarea-input {
+  background-color: var(--surface-page);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+html.dark .mantine-TextInput-label,
+html.dark .mantine-NumberInput-label,
+html.dark .mantine-Select-label,
+html.dark .mantine-Checkbox-label {
+  color: var(--text-secondary);
+}
+html.dark .mantine-Select-dropdown {
+  background-color: var(--surface-card);
+  border-color: var(--border);
+}
+html.dark .mantine-Select-option[data-combobox-option] {
+  color: var(--text-primary);
+}
+html.dark .mantine-Select-option[data-combobox-selected] {
+  background-color: var(--color-blue-900);
+}
+html.dark .mantine-Select-option:hover {
+  background-color: var(--surface-page);
+}
+html.dark .mantine-AppShell-main {
+  background-color: var(--surface-page);
+}
+html.dark .mantine-Drawer-content {
+  background-color: var(--surface-card);
+}
+html.dark .mantine-Drawer-header {
+  background-color: var(--surface-card);
+}
+html.dark .mantine-Menu-dropdown {
+  background-color: var(--surface-card);
+  border-color: var(--border);
+}
+html.dark .mantine-Menu-item {
+  color: var(--text-primary);
+}
+html.dark .mantine-Menu-item:hover {
+  background-color: var(--surface-page);
+}

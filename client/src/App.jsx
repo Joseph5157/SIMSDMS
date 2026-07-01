@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MantineProvider } from '@mantine/core';
@@ -9,7 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import OfflineBanner from './components/OfflineBanner';
 import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import { useCurrentUser } from './hooks/useAuth';
-import { initializeTheme } from './lib/theme';
+import { initializeTheme, getEffectiveTheme } from './lib/theme';
 import { ROLES } from './utils/constants';
 
 import LoginPage          from './pages/auth/LoginPage';
@@ -107,13 +107,18 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [colorScheme, setColorScheme] = useState(getEffectiveTheme);
+
   useEffect(() => {
     initializeTheme();
+    const handleThemeChange = () => setColorScheme(getEffectiveTheme());
+    window.addEventListener('themechange', handleThemeChange);
+    return () => window.removeEventListener('themechange', handleThemeChange);
   }, []);
 
   return (
     <MantineProvider
-      defaultColorScheme="light"
+      forceColorScheme={colorScheme}
       theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
     >
       <Notifications position="bottom-right" zIndex={9999} />
