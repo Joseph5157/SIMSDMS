@@ -10,6 +10,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
@@ -49,8 +50,17 @@ export default function LoginPage() {
 
   const isDisabled = login.isPending || !email.trim() || !password.trim();
 
+  const inputClasses = [
+    'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-5 h-14',
+    'text-[var(--text-primary)]',
+    'outline-none w-full bg-[var(--surface-page)]',
+    'transition-[border-color] duration-[var(--dur-fast)]',
+    'focus:border-[var(--brand)]',
+    login.isPending ? 'opacity-60 cursor-not-allowed' : 'cursor-auto',
+  ].join(' ');
+
   return (
-    <div className="min-h-dvh w-full flex flex-col bg-[var(--surface-sidebar)] relative overflow-hidden">
+    <div className="min-h-dvh w-full flex flex-col items-center bg-[var(--surface-sidebar)] relative overflow-hidden">
 
       {/* ── Background glow circles ── */}
       <div
@@ -68,154 +78,165 @@ export default function LoginPage() {
         }}
       />
 
-      {/* ── Top branding area ── */}
-      <div className="flex-none flex flex-col items-center justify-center pt-[72px] pb-10 px-6 text-center">
-        {/* Brand mark */}
-        <img
-          src={simsLogo}
-          alt="SIMS College of Pharmacy"
-          className="w-24 h-24 object-contain mb-5"
-        />
+      {/* ── Centered container (max-width for desktop) ── */}
+      <div className="w-full max-w-[440px] flex flex-col flex-1">
 
-        <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2">
-          SIMS College of Pharmacy
-        </p>
+        {/* ── Top branding area ── */}
+        <div className="flex-none flex flex-col items-center justify-center pt-12 sm:pt-16 pb-8 px-6 text-center">
+          <img
+            src={simsLogo}
+            alt="SIMS College of Pharmacy"
+            className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4"
+          />
 
-        <h1 className="text-[length:var(--text-display)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2.5">
-          Discipline<br />Management System
-        </h1>
+          <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2">
+            SIMS College of Pharmacy
+          </p>
 
-        <p className="text-[length:var(--text-body)] text-[var(--text-secondary)] leading-[var(--leading-normal)] max-w-[280px]">
-          Faculty duty scheduling and student violation tracking
-        </p>
-      </div>
+          <h1 className="text-[length:var(--text-display)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2">
+            Discipline<br />Management System
+          </h1>
 
-      {/* ── Form sheet ── */}
-      <div
-        className="flex-1 bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] px-6 pt-8 pb-12"
-        style={{ boxShadow: 'var(--shadow-sheet)' }}
-      >
-        {/* Pull handle */}
-        <div className="w-10 h-1 bg-[var(--border)] rounded-full mx-auto mb-7" />
+          <p className="text-[length:var(--text-body)] text-[var(--text-secondary)] leading-[var(--leading-normal)] max-w-[280px]">
+            Faculty duty scheduling and student violation tracking
+          </p>
+        </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-5">
-          <div>
-            <h2 className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
-              Sign in
-            </h2>
-            <p className="text-[length:var(--text-body)] text-[var(--text-secondary)]">
-              Enter your credentials to manage duty schedules, attendance, and violations
-            </p>
-          </div>
+        {/* ── Form card ── */}
+        <div
+          className="flex-1 sm:flex-none bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] sm:rounded-[var(--radius-sheet)] px-6 pt-8 pb-10 sm:mb-8"
+          style={{ boxShadow: 'var(--shadow-sheet)' }}
+        >
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            <div className="mb-1">
+              <h2 className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
+                Sign in
+              </h2>
+              <p className="text-[length:var(--text-body)] text-[var(--text-secondary)]">
+                Enter your credentials to continue
+              </p>
+            </div>
 
-          {/* Email field */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)]">
-              Email Address
-            </label>
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="your.email@college.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoFocus
-              disabled={login.isPending}
-              style={{ fontSize: 16 }}
+            {/* Email field */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="login-email"
+                className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)] pl-5"
+              >
+                Email Address
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                placeholder="your.email@college.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+                disabled={login.isPending}
+                style={{ fontSize: 16 }}
+                className={inputClasses}
+              />
+            </div>
+
+            {/* Password field */}
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="login-password"
+                className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)] pl-5"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={login.isPending}
+                  style={{ fontSize: 16 }}
+                  className={inputClasses + ' pr-14'}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div
+                className="rounded-[var(--radius-lg)] px-3.5 py-3 text-[length:var(--text-card)] text-[var(--color-red-text)]"
+                style={{
+                  backgroundColor: 'var(--color-red-bg)',
+                  border: '1px solid var(--color-red-border)',
+                  borderLeft: '3px solid var(--color-red-solid)',
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Sign in CTA */}
+            <button
+              type="submit"
+              disabled={isDisabled}
               className={[
-                'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-                'text-[var(--text-primary)]',
-                'outline-none w-full bg-[var(--surface-page)]',
-                'transition-[border-color] duration-[var(--dur-fast)]',
-                'focus:border-[var(--brand)]',
-                login.isPending ? 'opacity-60 cursor-not-allowed' : 'cursor-auto',
+                'w-full h-14 rounded-[var(--radius-xl)] border-none',
+                'text-[length:var(--text-card-lg)] font-[var(--weight-bold)] font-[var(--font-sans)]',
+                'text-[var(--text-on-brand)]',
+                'transition-all duration-[var(--dur-fast)]',
+                isDisabled ? 'bg-[var(--color-blue-300)] cursor-not-allowed shadow-none' : 'cursor-pointer active:scale-[0.97] active:opacity-90',
               ].join(' ')}
-            />
-          </div>
+              style={
+                isDisabled
+                  ? undefined
+                  : {
+                      background: 'var(--brand-gradient-deep)',
+                      boxShadow: 'var(--shadow-brand)',
+                    }
+              }
+            >
+              {login.isPending ? 'Signing in...' : 'Sign in'}
+            </button>
 
-          {/* Password field */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)]">
-              Password
-            </label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={login.isPending}
-              style={{ fontSize: 16 }}
-              className={[
-                'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-                'text-[var(--text-primary)]',
-                'outline-none w-full bg-[var(--surface-page)]',
-                'transition-[border-color] duration-[var(--dur-fast)]',
-                'focus:border-[var(--brand)]',
-                login.isPending ? 'opacity-60 cursor-not-allowed' : 'cursor-auto',
-              ].join(' ')}
-            />
-          </div>
-
-          {/* Error message */}
-          {error && (
+            {/* Password reset helper */}
             <div
-              className="rounded-[var(--radius-lg)] px-3.5 py-3 text-[length:var(--text-card)] text-[var(--color-red-text)]"
+              className="rounded-[var(--radius-lg)] px-3.5 py-3 flex gap-2.5 items-start"
               style={{
-                backgroundColor: 'var(--color-red-bg)',
-                border: '1px solid var(--color-red-border)',
-                borderLeft: '3px solid var(--color-red-solid)',
+                backgroundColor: 'var(--color-blue-50)',
+                border: '1px solid var(--color-blue-100)',
               }}
             >
-              {error}
+              <span className="text-base shrink-0">🔑</span>
+              <p className="text-[length:var(--text-card)] text-[var(--color-blue-700)] leading-[var(--leading-snug)]">
+                Forgot your password? Send <strong>/resetpassword</strong> to{' '}
+                <strong>@SimsPharmacybot</strong> on Telegram to receive a new temporary password.
+              </p>
             </div>
-          )}
-
-          {/* Sign in CTA */}
-          <button
-            type="submit"
-            disabled={isDisabled}
-            className={[
-              'w-full py-4 rounded-[var(--radius-xl)] border-none',
-              'text-[length:var(--text-card-lg)] font-[var(--weight-bold)] font-[var(--font-sans)]',
-              'text-[var(--text-on-brand)]',
-              'transition-all duration-[var(--dur-fast)]',
-              isDisabled ? 'bg-[var(--color-blue-300)] cursor-not-allowed shadow-none' : 'cursor-pointer active:scale-[0.97] active:opacity-90',
-            ].join(' ')}
-            style={
-              isDisabled
-                ? undefined
-                : {
-                    background: 'var(--brand-gradient-deep)',
-                    boxShadow: 'var(--shadow-brand)',
-                  }
-            }
-          >
-            {login.isPending ? '⏳ Signing in…' : 'Sign in →'}
-          </button>
-
-          {/* Password reset helper */}
-          <div
-            className="rounded-[var(--radius-lg)] px-3.5 py-3 flex gap-2.5 items-start"
-            style={{
-              backgroundColor: 'var(--color-blue-50)',
-              border: '1px solid var(--color-blue-100)',
-            }}
-          >
-            <span className="text-base shrink-0">🔑</span>
-            <p className="text-[length:var(--text-card)] text-[var(--color-blue-700)] leading-[var(--leading-snug)]">
-              Forgot your password? Send <strong>/resetpassword</strong> to{' '}
-              <strong>@SimsPharmacybot</strong> on Telegram to receive a new temporary password.
-            </p>
-          </div>
-        </form>
-
-        {/* Footer */}
-        <p className="text-center text-[length:var(--text-micro)] text-[var(--text-secondary)] mt-8">
-          SIMS DMS · Version 1.0
-        </p>
+          </form>
+        </div>
       </div>
     </div>
   );
