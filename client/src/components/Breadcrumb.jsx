@@ -1,5 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 export default function Breadcrumb({ items = [] }) {
   if (!items.length) return null;
