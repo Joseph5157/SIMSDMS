@@ -104,7 +104,7 @@ export default function LoginPage() {
 
         {/* ── Form card ── */}
         <div
-          className="flex-1 sm:flex-none bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] sm:rounded-[var(--radius-sheet)] px-6 pt-8 pb-10 sm:mb-8"
+          className="flex-1 sm:flex-none bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] sm:rounded-[var(--radius-sheet)] px-8 pt-10 pb-10 sm:mb-8"
           style={{ boxShadow: 'var(--shadow-sheet)' }}
         >
           <form onSubmit={handleLogin} className="flex flex-col gap-5">
