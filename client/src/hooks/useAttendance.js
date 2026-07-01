@@ -20,6 +20,7 @@ export function useAttendance(dutySlotId) {
       return res.data;
     },
     enabled: !!dutySlotId,
+    retry: false, // 404 "no attendance record yet" is expected, not a transient failure
   });
 }
 

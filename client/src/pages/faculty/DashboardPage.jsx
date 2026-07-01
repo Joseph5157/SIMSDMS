@@ -1,6 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout, { PageHeader } from '../../components/Layout';
-import StatCard from '../../components/ui/StatCard';
+import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
 import { Button } from '@mantine/core';
@@ -8,33 +8,78 @@ import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
 import { useMyCoverRequests } from '../../hooks/useCoverRequests';
-import { useAttendance } from '../../hooks/useAttendance';
+import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import Skeleton from '../../components/ui/Skeleton';
+import { useToast } from '../../components/ui/Toast';
+import RecordViolationModal from '../../components/faculty/RecordViolationModal';
+import PostCoverBroadcastModal from '../../components/faculty/PostCoverBroadcastModal';
 import { ROUTES } from '../../utils/constants';
 
 function todayIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+function isoDate(d) {
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+function timeAgo(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
 export default function DashboardPage({ user }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  const { data: slotsData, isLoading: slotsLoading }      = useMonthSlots(year, month);
-  const { data: violationsData } = useMyViolations({ limit: 5 });
-  const { data: inboxData }      = useInbox({ limit: 5 });
-  const { data: coverData }      = useMyCoverRequests();
+  const [showRecordViolation, setShowRecordViolation] = useState(false);
+  const [showRequestCover, setShowRequestCover]       = useState(false);
+  const [dismissedAlerts, setDismissedAlerts]         = useState(new Set());
+
+  const { data: slotsData, isLoading: slotsLoading, isError: slotsError, refetch: refetchSlots } = useMonthSlots(year, month);
+  const { data: violationsData, isLoading: violationsLoading } = useMyViolations({ limit: 5 });
+  const { data: inboxData, isLoading: inboxLoading }            = useInbox({ limit: 5 });
+  const { data: coverData, isLoading: coverLoading }            = useMyCoverRequests();
 
   const slots    = slotsData?.data ?? [];
   const today    = todayIST();
-  const todaySlot = slots.find((s) => new Date(s.duty_date).toISOString().slice(0, 10) === today);
-  const { data: attData }        = useAttendance(todaySlot?.id);
-  const upcoming  = slots.filter((s) => new Date(s.duty_date).toISOString().slice(0, 10) > today).slice(0, 3);
-  const unread    = inboxData?.data?.filter((m) => !m.is_read).length ?? 0;
+  const todaySlot = slots.find((s) => isoDate(s.duty_date) === today);
+  const { data: attData, isLoading: attLoading, isError: attError, error: attErrorObj, refetch: refetchAtt } = useAttendance(todaySlot?.id);
+  const upcoming  = slots.filter((s) => isoDate(s.duty_date) > today).slice(0, 3);
 
-  const att = attData?.data;
+  // 404 means "no attendance record yet" (not checked in) — that's expected, not an error.
+  const attNotCheckedIn = attErrorObj?.response?.status === 404;
+  const att = attData;
+  const checkIn  = useCheckIn();
+  const checkOut = useCheckOut();
+
+  async function handleCheckIn() {
+    try {
+      await checkIn.mutateAsync(todaySlot.id);
+      toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Check-in failed.', type: 'error' });
+    }
+  }
+  async function handleCheckOut() {
+    try {
+      await checkOut.mutateAsync(todaySlot.id);
+      toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Check-out failed.', type: 'error' });
+    }
+  }
+
   // Clock-out warnings: check if checked-in but not out, and session ends within 15 min
   const sessionEndHour = todaySlot?.session_type === 'morning' ? 13 : 18;
   const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
@@ -50,25 +95,83 @@ export default function DashboardPage({ user }) {
 
   const canDoViolation = todaySlot && ['scheduled', 'covered', 'cover_pending'].includes(todaySlot.status);
 
+  // ── Single, priority-ordered, dismissible alert (never stack banners) ──
+  const alertCandidates = [
+    showClockOutWarning && {
+      key: 'clockout', tone: 'warning', icon: '⏰', title: 'Remember to clock out',
+      body: `Your ${todaySlot?.session_type} session ends in ${minsUntilEnd} min. Clock out before auto-out kicks in.`,
+    },
+    activeCoverRequests.length > 0 && {
+      key: 'cover', tone: 'warning', icon: '🔄',
+      title: myOpenRequests.length > 0
+        ? `${myOpenRequests.length} open cover request${myOpenRequests.length > 1 ? 's' : ''} — awaiting a volunteer`
+        : `You are volunteered to cover ${volunteeredFor.length} slot${volunteeredFor.length > 1 ? 's' : ''}`,
+      body: `${activeCoverRequests.length} active cover request${activeCoverRequests.length > 1 ? 's' : ''} total`,
+      action: <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.FACULTY_COVER_REQUESTS)}>View →</Button>,
+    },
+    wasAutoClocked && {
+      key: 'autoclock', tone: 'info', icon: '🔔', title: 'You were auto clocked out',
+      body: 'The system recorded your check-out automatically at session end.',
+    },
+  ].filter(Boolean);
+  const activeAlert = alertCandidates.find((a) => !dismissedAlerts.has(a.key));
+
+  // ── Next 7 days strip (rolling window from today, not calendar week — duty cadence is sparse) ──
+  const next7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    const iso = isoDate(d);
+    return { date: d, iso, isToday: i === 0, slot: slots.find((s) => isoDate(s.duty_date) === iso) };
+  });
+
+  // ── Unified recent-activity feed (violations logged, messages, cover-request changes) ──
+  const activityLoading = violationsLoading || inboxLoading || coverLoading;
+  const activityItems = [
+    ...(violationsData?.data ?? []).map((v) => ({
+      id: `v-${v.id}`, icon: '⚠️', timestamp: v.created_at,
+      text: `Violation recorded — ${v.student?.student_name ?? 'Student'}`,
+    })),
+    ...(inboxData?.data ?? []).map((m) => ({
+      id: `m-${m.id}`, icon: '✉️', timestamp: m.created_at, unread: !m.is_read,
+      text: `Message: ${m.subject}`,
+    })),
+    ...(coverData?.data ?? [])
+      .filter((c) => c.requested_by === user?.id || c.volunteer_id === user?.id)
+      .map((c) => ({
+        id: `c-${c.id}`, icon: '🔄', timestamp: c.updated_at ?? c.created_at,
+        text: c.requested_by === user?.id ? 'Cover request posted' : 'Volunteered to cover a slot',
+        status: c.status,
+      })),
+  ]
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 6);
+
   return (
     <Layout user={user}>
-      <PageHeader
-        title={`Welcome, ${user?.name?.split(' ')[0]}`}
-        subtitle={now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-      />
+      {/* ── Header — left-aligned, avatar/notifications live in the shared chrome ── */}
+      <div className="mb-5 pb-4 border-b border-[var(--border)]">
+        <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          Hi, {user?.name?.split(' ')[0]}
+        </p>
+        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
+          {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </p>
+      </div>
 
       {/* ── 1. Today's duty — hero ── */}
-      <section className="mb-5">
+      <section className="mb-4">
         {slotsLoading ? (
-          /* Loading skeleton */
           <>
             <Skeleton height="160px" className="rounded-2xl mb-4" />
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {[1, 2, 3].map((i) => <Skeleton key={i} height="96px" className="rounded-xl" />)}
-            </div>
+            <Skeleton height="44px" className="rounded-xl mb-4" />
             <Skeleton height="120px" className="rounded-xl mb-4" />
             <Skeleton height="120px" className="rounded-xl" />
           </>
+        ) : slotsError ? (
+          <Alert tone="danger" icon="⚠️" title="Couldn't load today's duty"
+            action={<Button variant="outline" size="sm" onClick={() => refetchSlots()}>Retry</Button>}>
+            Check your connection and try again.
+          </Alert>
         ) : todaySlot ? (
           <div style={{
             borderRadius: 'var(--radius-3xl)', padding: 20, position: 'relative', overflow: 'hidden',
@@ -92,18 +195,40 @@ export default function DashboardPage({ user }) {
                 </div>
                 <Badge status={todaySlot.status} />
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button size="md" color="dark" leftSection={<span>📋</span>} onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}
-                  style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
-                  Check In / Out
-                </Button>
-                {canDoViolation && (
-                  <Button size="md" variant="white" leftSection={<span>⚠️</span>} onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}
-                    style={{ background: 'rgba(255,255,255,0.25)', color: 'var(--text-on-dark)', border: '1px solid rgba(255,255,255,0.4)' }}>
-                    Record Violation
+
+              {attError && !attNotCheckedIn ? (
+                <Alert tone="warning" icon="⚠️" title="Couldn't load check-in status"
+                  action={<Button variant="white" size="sm" onClick={() => refetchAtt()}>Retry</Button>}>
+                  Check your connection and try again.
+                </Alert>
+              ) : att?.in_time && att?.out_time ? (
+                <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-on-dark)' }}>
+                  ✓ Checked in {new Date(att.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  {' · '}out {new Date(att.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              ) : att?.in_time ? (
+                <>
+                  <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
+                    ● Checked in {new Date(att.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <Button size="md" color="dark" fullWidth loading={checkOut.isPending} disabled={attLoading}
+                    onClick={handleCheckOut}
+                    style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
+                    Check Out
                   </Button>
-                )}
-              </div>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                    ● Not checked in
+                  </p>
+                  <Button size="md" color="dark" fullWidth loading={checkIn.isPending} disabled={attLoading}
+                    onClick={handleCheckIn}
+                    style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
+                    Check In
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -121,40 +246,42 @@ export default function DashboardPage({ user }) {
         )}
       </section>
 
-      {/* ── 2. Cover request alert ── */}
-      {activeCoverRequests.length > 0 && (
+      {/* ── 2. Quick actions ── */}
+      {!slotsLoading && !slotsError && slots.length > 0 && (
+        <section className="mb-4 flex gap-2 flex-wrap">
+          {canDoViolation && (
+            <Button size="md" variant="light" leftSection={<span>⚠️</span>} onClick={() => setShowRecordViolation(true)}>
+              Record Violation
+            </Button>
+          )}
+          <Button size="md" variant="light" leftSection={<span>🔄</span>} onClick={() => setShowRequestCover(true)}>
+            Request Cover
+          </Button>
+        </section>
+      )}
+
+      {/* ── 3. One alert at a time, dismissible ── */}
+      {activeAlert && (
         <section className="mb-4">
-          <Alert tone="warning" icon="🔄"
-            title={myOpenRequests.length > 0
-              ? `${myOpenRequests.length} open cover request${myOpenRequests.length > 1 ? 's' : ''} — awaiting a volunteer`
-              : `You are volunteered to cover ${volunteeredFor.length} slot${volunteeredFor.length > 1 ? 's' : ''}`}
-            action={<Button variant="outline" size="sm" onClick={() => navigate(ROUTES.FACULTY_COVER_REQUESTS)}>View →</Button>}>
-            {activeCoverRequests.length} active cover request{activeCoverRequests.length > 1 ? 's' : ''} total
+          <Alert tone={activeAlert.tone} icon={activeAlert.icon} title={activeAlert.title}
+            action={
+              <div className="flex items-center gap-2">
+                {activeAlert.action}
+                <button
+                  onClick={() => setDismissedAlerts((prev) => new Set(prev).add(activeAlert.key))}
+                  aria-label="Dismiss"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: 0.6, fontSize: 14, lineHeight: 1 }}>
+                  ✕
+                </button>
+              </div>
+            }>
+            {activeAlert.body}
           </Alert>
         </section>
       )}
 
-      {/* ── 2b. Clock-out alerts ── */}
-      {showClockOutWarning && (
-        <section className="mb-4">
-          <Alert tone="warning" icon="⏰"
-            title="Remember to clock out"
-            action={<Button variant="outline" size="sm" onClick={() => navigate(ROUTES.FACULTY_ATTENDANCE)}>Go →</Button>}>
-            Your {todaySlot?.session_type} session ends in {minsUntilEnd} min. Clock out before auto-out kicks in.
-          </Alert>
-        </section>
-      )}
-      {wasAutoClocked && (
-        <section className="mb-4">
-          <Alert tone="info" icon="🔔"
-            title="You were auto clocked out">
-            The system recorded your check-out automatically at session end.
-          </Alert>
-        </section>
-      )}
-
-      {/* ── 2c. Zero-state guidance ── */}
-      {!todaySlot && slots.length === 0 && (
+      {/* ── 3b. Zero-state guidance ── */}
+      {!todaySlot && slots.length === 0 && !slotsLoading && !slotsError && (
         <section className="mb-5">
           <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-xl)] px-5 py-6 text-center">
             <p style={{ fontSize: 'var(--text-h2)', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
@@ -169,29 +296,45 @@ export default function DashboardPage({ user }) {
         </section>
       )}
 
-      {/* ── 3. KPI stat cards ── */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard label="Slots" value={slots.length} accent="blue" icon="🗓" />
-        <StatCard label="Violations" value={violationsData?.meta?.total ?? 0} accent={(violationsData?.meta?.total ?? 0) > 0 ? 'red' : 'default'} icon="⚠️" />
-        <StatCard label="Unread" value={unread} accent={unread > 0 ? 'yellow' : 'default'} icon="✉️" />
-      </div>
+      {/* ── 4. Next 7 days — glanceable strip ── */}
+      {slots.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Next 7 days
+            </p>
+            <button onClick={() => navigate(ROUTES.FACULTY_SLOTS)}
+              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+              All slots →
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {next7Days.map(({ date, iso, isToday, slot }) => (
+              <div key={iso} className="flex flex-col items-center justify-center shrink-0 w-14 h-16 rounded-[var(--radius-lg)]"
+                style={{
+                  background: isToday ? 'var(--brand)' : slot ? 'var(--color-blue-50)' : 'var(--surface-card)',
+                  border: `1px solid ${isToday ? 'var(--brand)' : slot ? 'var(--color-blue-200)' : 'var(--border)'}`,
+                }}>
+                <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, textTransform: 'uppercase', color: isToday ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+                  {date.toLocaleDateString('en-IN', { weekday: 'short' })}
+                </span>
+                <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.6, color: isToday ? 'var(--text-on-dark)' : 'var(--text-primary)' }}>
+                  {date.getDate()}
+                </span>
+                <span className="w-[5px] h-[5px] rounded-full"
+                  style={{ background: slot ? (isToday ? 'rgba(255,255,255,0.9)' : 'var(--brand)') : 'transparent' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* ── 4. Upcoming duties ── */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      {/* ── 5. Upcoming duties (beyond the 7-day strip — duty cadence is sparse) ── */}
+      {upcoming.length > 0 && (
+        <div className="mb-4">
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
             Upcoming duties
           </p>
-          <button onClick={() => navigate(ROUTES.FACULTY_SLOTS)}
-            style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
-            All slots →
-          </button>
-        </div>
-        {!upcoming.length ? (
-          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-dashed border-[var(--border)] px-4 py-5 text-center">
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No upcoming duties this month.</p>
-          </div>
-        ) : (
           <div className="flex flex-col gap-2">
             {upcoming.map((s) => {
               const d = new Date(s.duty_date);
@@ -214,52 +357,44 @@ export default function DashboardPage({ user }) {
               );
             })}
           </div>
-        )}
-      </div>
-
-      {/* ── 5. Recent messages ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Recent messages
-          </p>
-          {unread > 0 && (
-            <span style={{ fontSize: 'var(--text-micro)', background: 'var(--blue-100)', color: 'var(--blue-600)', borderRadius: 'var(--radius-md)', padding: '2px 8px', fontWeight: 700 }}>
-              {unread} unread
-            </span>
-          )}
         </div>
-        {!inboxData?.data?.length ? (
+      )}
+
+      {/* ── 6. Recent activity — unified feed (violations logged, messages, cover-request updates) ── */}
+      <div>
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+          Recent activity
+        </p>
+        {activityLoading ? (
+          <Skeleton height="140px" className="rounded-2xl" />
+        ) : !activityItems.length ? (
           <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-dashed border-[var(--border)] px-4 py-5 text-center">
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No messages.</p>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No recent activity yet.</p>
           </div>
         ) : (
           <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
-            {inboxData.data.slice(0, 4).map((m, i) => (
-              <div key={m.id} className="flex items-center gap-[10px] px-[14px] py-3"
-                style={{ borderBottom: i < Math.min(inboxData.data.length, 4) - 1 ? '1px solid var(--divider)' : 'none' }}>
-                <span className="w-[7px] h-[7px] rounded-full shrink-0"
-                  style={{ background: m.is_read ? 'transparent' : 'var(--blue-500)' }} />
-                <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-                  style={{
-                    fontSize: 'var(--text-card)',
-                    color: m.is_read ? 'var(--text-muted)' : 'var(--text-primary)',
-                    fontWeight: m.is_read ? 400 : 600,
-                  }}>
-                  {m.subject}
-                </span>
+            {activityItems.map((item, i) => (
+              <div key={item.id} className="flex items-center gap-[10px] px-[14px] py-3"
+                style={{ borderBottom: i < activityItems.length - 1 ? '1px solid var(--divider)' : 'none' }}>
+                <span className="text-[15px] shrink-0">{item.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="overflow-hidden text-ellipsis whitespace-nowrap"
+                    style={{ fontSize: 'var(--text-card)', color: 'var(--text-primary)', fontWeight: item.unread ? 600 : 500 }}>
+                    {item.text}
+                  </p>
+                  <p style={{ fontSize: 'var(--text-nano)', color: 'var(--text-muted)', marginTop: 1 }}>
+                    {timeAgo(item.timestamp)}
+                  </p>
+                </div>
+                {item.status && <Badge status={item.status} />}
               </div>
             ))}
-            <button
-              onClick={() => navigate(ROUTES.FACULTY_MESSAGES)}
-              className="w-full px-[14px] py-[11px] bg-[var(--surface-page)] border-none border-t border-[var(--divider)] cursor-pointer text-center"
-              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', borderTop: '1px solid var(--divider)', fontWeight: 600, fontFamily: 'var(--font-sans)' }}
-            >
-              View all messages →
-            </button>
           </div>
         )}
       </div>
+
+      <RecordViolationModal open={showRecordViolation} onClose={() => setShowRecordViolation(false)} />
+      <PostCoverBroadcastModal open={showRequestCover} onClose={() => setShowRequestCover(false)} />
     </Layout>
   );
 }

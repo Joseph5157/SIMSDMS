@@ -58,10 +58,11 @@ function getLinks(role) {
 // ── Bottom tab bar — 4 pinned routes per role ──────────────────────────────────
 
 const facultyBottomTabs = [
-  { to: ROUTES.FACULTY_DASHBOARD,  label: 'Home',    Icon: IconLayoutDashboard },
-  { to: ROUTES.FACULTY_SLOTS,      label: 'Slots',   Icon: IconCalendarEvent },
-  { to: ROUTES.FACULTY_ATTENDANCE, label: 'Attend',  Icon: IconClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS, label: 'Violat.', Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Home',   Icon: IconLayoutDashboard },
+  { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',  Icon: IconCalendarEvent },
+  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attend', Icon: IconClipboardCheck },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Issues', Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover',  Icon: IconArrowsLeftRight },
 ];
 
 const adminBottomTabs = [
