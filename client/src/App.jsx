@@ -11,6 +11,7 @@ import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import { useCurrentUser } from './hooks/useAuth';
 import { initializeTheme, getEffectiveTheme } from './lib/theme';
 import { ROLES } from './utils/constants';
+import simsLogo from './assets/sims-logo.png';
 
 import LoginPage          from './pages/auth/LoginPage';
 import ChangePasswordPage from './pages/auth/ChangePasswordPage';
@@ -41,6 +42,20 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
 });
 
+function SplashScreen() {
+  return (
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-[var(--surface-page)]">
+      <div className="flex flex-col items-center gap-5 animate-pulse">
+        <img src={simsLogo} alt="SIMS" className="w-16 h-16 rounded-xl object-contain" />
+        <div className="text-center">
+          <p className="text-lg font-bold text-[var(--text-primary)] tracking-tight">SIMS DMS</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">Loading…</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppRoutes() {
   const { data: user, isLoading } = useCurrentUser();
 
@@ -52,7 +67,7 @@ function AppRoutes() {
 
       {/* Root redirect */}
       <Route path="/" element={
-        isLoading ? null :
+        isLoading ? <SplashScreen /> :
         !user ? <Navigate to="/login" replace /> :
         user.must_change_password ? <Navigate to="/change-password" replace /> :
         isFaculty ? <Navigate to="/faculty/dashboard" replace /> :
