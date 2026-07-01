@@ -45,6 +45,28 @@
   color: #ffffff;
 }
 
+/* ── Mobile top header ── */
+.mobileHeader {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  padding-top: env(safe-area-inset-top, 0px);
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Hide on desktop (sm = 640px) */
+@media (min-width: 640px) {
+  .mobileHeader { display: none; }
+}
+
 /* ── Bottom tab bar ── */
 .bottomBar {
   position: fixed;

@@ -15,6 +15,7 @@ import {
 import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
 import { ROUTES, ROLES } from '../utils/constants';
+import NotificationBell from './NotificationBell';
 import classes from './Layout.module.css';
 
 // ── Nav link definitions ───────────────────────────────────────────────────────
@@ -198,6 +199,21 @@ export default function Layout({ user, children }) {
           {sidebarContent}
         </AppShell.Navbar>
 
+        {/* Mobile top header — hamburger + title + notifications */}
+        <div className={classes.mobileHeader}>
+          <button
+            onClick={openNav}
+            className="w-9 h-9 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer text-[var(--text-primary)] hover:bg-[var(--color-slate-100)] transition-colors"
+            aria-label="Open menu"
+          >
+            <IconMenu2 size={22} strokeWidth={1.75} />
+          </button>
+          <span className="text-sm font-bold text-[color:var(--text-primary)] tracking-[-0.01em]">
+            SIMS DMS
+          </span>
+          <NotificationBell />
+        </div>
+
         {/* Main content */}
         <AppShell.Main
           style={{
@@ -237,17 +253,6 @@ export default function Layout({ user, children }) {
             )}
           </RouterNavLink>
         ))}
-
-        {/* Menu button — opens full nav drawer */}
-        <button
-          onClick={openNav}
-          className="flex-1 border-none bg-transparent cursor-pointer flex flex-col items-center justify-center h-full gap-[3px] px-0.5 text-[rgba(255,255,255,0.45)] border-t-2 border-t-transparent"
-        >
-          <IconMenu2 size={22} strokeWidth={1.5} />
-          <span className="text-[length:var(--text-micro)] font-normal tracking-[0.01em] text-inherit">
-            Menu
-          </span>
-        </button>
       </div>
     </>
   );
