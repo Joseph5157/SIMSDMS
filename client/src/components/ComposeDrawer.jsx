@@ -7,45 +7,29 @@ import { useToast } from './ui/Toast';
 
 function FieldLabel({ label, icon: Icon }) {
   return (
-    <label style={{
-      display: 'flex', alignItems: 'center', gap: 5,
-      fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)',
-      textTransform: 'uppercase', letterSpacing: '0.08em',
-      marginBottom: 6,
-    }}>
+    <label className="flex items-center gap-[5px] text-[length:var(--text-micro)] font-bold text-[color:var(--text-secondary)] uppercase tracking-[0.08em] mb-1.5">
       {Icon && <Icon size={11} strokeWidth={2.5} />}
       {label}
     </label>
   );
 }
 
-const inputStyle = {
-  width: '100%', height: 44,
-  padding: '0 14px', borderRadius: 'var(--radius-lg)',
-  border: '1.5px solid var(--border)',
-  backgroundColor: 'var(--surface-page)',
-  fontSize: 16, color: 'var(--text-primary)', outline: 'none',
-  boxSizing: 'border-box',
-  transition: 'border-color 0.15s, background-color 0.15s',
-  fontFamily: 'inherit',
-};
+const inputClassName = 'w-full h-11 px-3.5 rounded-[var(--radius-lg)] border-[1.5px] border-[var(--border)] bg-[var(--surface-page)] text-[color:var(--text-primary)] outline-none box-border transition-[border-color,background-color] duration-150';
 
-const selectStyle = {
-  ...inputStyle,
-  padding: '0 36px 0 14px',
-  appearance: 'none',
+const inputInline = { fontSize: 16, fontFamily: 'inherit' };
+
+const selectClassName = `${inputClassName} appearance-none pr-9 pl-3.5`;
+
+const selectInline = {
+  fontSize: 16, fontFamily: 'inherit',
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'right 14px center',
 };
 
-const textareaStyle = {
-  ...inputStyle,
-  height: 'auto',
-  padding: '12px 14px',
-  lineHeight: 1.5,
-  resize: 'none',
-};
+const textareaClassName = `${inputClassName} h-auto py-3 px-3.5 leading-[1.5] resize-none`;
+
+const textareaInline = { fontSize: 16, fontFamily: 'inherit' };
 
 export default function ComposeDrawer({ open, onClose }) {
   const toast = useToast();
@@ -89,11 +73,11 @@ export default function ComposeDrawer({ open, onClose }) {
         </>
       }
     >
-      <form onSubmit={handleSubmit} style={{ padding: '16px 20px 8px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 pt-4 px-5 pb-2">
 
         <div>
           <FieldLabel label="To" icon={Users} />
-          <select value={form.to_user_id} onChange={set('to_user_id')} style={selectStyle}>
+          <select value={form.to_user_id} onChange={set('to_user_id')} className={selectClassName} style={selectInline}>
             <option value="">Select recipient…</option>
             {usersData?.data?.map((u) => (
               <option key={u.id} value={u.id}>{u.name} ({u.role.replace(/_/g, ' ')})</option>
@@ -107,7 +91,8 @@ export default function ComposeDrawer({ open, onClose }) {
             placeholder="Re: Duty schedule"
             value={form.subject}
             onChange={set('subject')}
-            style={inputStyle}
+            className={inputClassName}
+            style={inputInline}
           />
         </div>
 
@@ -117,7 +102,8 @@ export default function ComposeDrawer({ open, onClose }) {
             rows={5}
             value={form.body}
             onChange={set('body')}
-            style={textareaStyle}
+            className={textareaClassName}
+            style={textareaInline}
           />
         </div>
 

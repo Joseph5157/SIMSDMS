@@ -4,12 +4,13 @@ import { X } from 'lucide-react';
 // ── Spinner for primary action buttons ─────────────────────────────────────
 export function DrawerSpinner() {
   return (
-    <span style={{
-      width: 14, height: 14, flexShrink: 0,
-      border: '2px solid rgba(255,255,255,0.4)',
-      borderTopColor: '#fff', borderRadius: 'var(--radius-full)',
-      animation: 'spin 0.7s linear infinite',
-    }} />
+    <span
+      className="w-3.5 h-3.5 shrink-0 rounded-full animate-spin"
+      style={{
+        border: '2px solid rgba(255,255,255,0.4)',
+        borderTopColor: '#fff',
+      }}
+    />
   );
 }
 
@@ -51,48 +52,43 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
   return (
     <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground>
       <Drawer.Portal>
-        <Drawer.Overlay style={{
-          position: 'fixed', inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(2px)',
-          zIndex: 39,
-        }} />
+        <Drawer.Overlay
+          className="fixed inset-0 z-[39]"
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(2px)',
+          }}
+        />
 
-        <Drawer.Content style={{
-          position: 'fixed',
-          bottom: 0, left: 0, right: 0,
-          zIndex: 40,
-          backgroundColor: 'var(--surface-card)',
-          borderRadius: '20px 20px 0 0',
-          maxHeight: '94vh',
-          display: 'flex', flexDirection: 'column',
-          outline: 'none',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-        }}>
+        <Drawer.Content
+          className="fixed bottom-0 left-0 right-0 z-40 flex flex-col outline-none"
+          style={{
+            backgroundColor: 'var(--surface-card)',
+            borderRadius: '20px 20px 0 0',
+            maxHeight: '94vh',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
+          }}
+        >
 
           {/* Drag handle */}
-          <div style={{
-            width: 36, height: 4,
-            backgroundColor: 'var(--border)',
-            borderRadius: 2,
-            margin: '12px auto 0', flexShrink: 0,
-          }} />
+          <div
+            className="w-9 h-1 rounded-sm mx-auto mt-3 shrink-0"
+            style={{ backgroundColor: 'var(--border)' }}
+          />
 
           {/* Header */}
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px 12px',
-            borderBottom: '1px solid var(--divider)', flexShrink: 0,
-          }}>
-            <div style={{ minWidth: 0 }}>
-              <Drawer.Title style={{
-                fontSize: 'var(--text-page-title)', fontWeight: 800,
-                color: 'var(--text-primary)', margin: 0,
-              }}>
+          <div
+            className="flex items-center justify-between shrink-0"
+            style={{ padding: '14px 20px 12px', borderBottom: '1px solid var(--divider)' }}
+          >
+            <div className="min-w-0">
+              <Drawer.Title
+                className="text-[length:var(--text-page-title)] font-extrabold text-[color:var(--text-primary)] m-0"
+              >
                 {title}
               </Drawer.Title>
               {subtitle && (
-                <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 1 }}>
+                <p className="text-[length:var(--text-small)] text-[color:var(--text-muted)] mt-px">
                   {subtitle}
                 </p>
               )}
@@ -100,31 +96,27 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
             <button
               onClick={onClose}
               aria-label="Close"
-              style={{
-                width: 32, height: 32, borderRadius: 'var(--radius-lg)',
-                border: '1px solid var(--border)', backgroundColor: 'var(--surface-page)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', color: 'var(--text-secondary)', flexShrink: 0, marginLeft: 12,
-              }}
+              className="w-8 h-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-page)] flex items-center justify-center cursor-pointer text-[color:var(--text-secondary)] shrink-0 ml-3"
             >
               <X size={16} strokeWidth={2} />
             </button>
           </div>
 
           {/* Scrollable body */}
-          <div style={{ overflowY: 'auto', flex: 1, WebkitOverflowScrolling: 'touch' }}>
+          <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             {children}
           </div>
 
           {/* Sticky footer */}
           {footer && (
-            <div style={{
-              padding: '12px 20px',
-              paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-              borderTop: '1px solid var(--divider)',
-              display: 'flex', gap: 10, flexShrink: 0,
-              backgroundColor: 'var(--surface-card)',
-            }}>
+            <div
+              className="flex gap-2.5 shrink-0 bg-[var(--surface-card)]"
+              style={{
+                padding: '12px 20px',
+                paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+                borderTop: '1px solid var(--divider)',
+              }}
+            >
               {footer}
             </div>
           )}

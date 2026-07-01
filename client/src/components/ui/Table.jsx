@@ -14,7 +14,7 @@ import { Table as MTable, Paper, Text, Center, Stack } from '@mantine/core';
 /** Outer card shell + horizontal scroll container. */
 export function Table({ children, minWidth = 500 }) {
   return (
-    <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
+    <Paper withBorder radius="md" className="overflow-hidden">
       <MTable.ScrollContainer minWidth={minWidth}>
         <MTable striped={false} highlightOnHover={false} withRowBorders={false}>
           {children}
@@ -28,13 +28,7 @@ export function Table({ children, minWidth = 500 }) {
 export function Th({ children, className }) {
   return (
     <MTable.Th
-      className={className}
-      style={{
-        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-        letterSpacing: '0.08em', color: 'var(--text-muted)',
-        backgroundColor: 'var(--surface-page)', whiteSpace: 'nowrap',
-        padding: '10px 16px',
-      }}
+      className={['text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--text-muted)] bg-[var(--surface-page)] whitespace-nowrap px-4 py-2.5', className].filter(Boolean).join(' ')}
     >
       {children}
     </MTable.Th>
@@ -45,12 +39,7 @@ export function Th({ children, className }) {
 export function Td({ children, className }) {
   return (
     <MTable.Td
-      className={className}
-      style={{
-        fontSize: 13, color: 'var(--text-secondary)',
-        padding: '10px 16px',
-        borderBottom: '1px solid var(--divider)',
-      }}
+      className={['text-[13px] text-[color:var(--text-secondary)] px-4 py-2.5 border-b border-b-[var(--divider)]', className].filter(Boolean).join(' ')}
     >
       {children}
     </MTable.Td>
@@ -77,10 +66,10 @@ export function Tr({ children, onClick, className }) {
 export function EmptyRow({ cols, message = 'No records found.' }) {
   return (
     <MTable.Tr>
-      <MTable.Td colSpan={cols} style={{ padding: 0, borderBottom: 'none' }}>
+      <MTable.Td colSpan={cols} className="p-0 border-b-0">
         <Center py="xl">
           <Stack align="center" gap="xs">
-            <Text style={{ fontSize: 32, opacity: 0.4, lineHeight: 1 }}>📭</Text>
+            <Text className="text-[32px] opacity-40 leading-none">📭</Text>
             <Text size="sm" c="dimmed">{message}</Text>
           </Stack>
         </Center>

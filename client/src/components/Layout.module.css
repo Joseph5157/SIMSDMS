@@ -38,11 +38,11 @@
 
 .navItemActive {
   background-color: #2563eb; /* --brand */
-  color: #ffffff !important;
+  color: #ffffff;
 }
-
 .navItemActive:hover {
   background-color: #1d4ed8; /* --brand-hover */
+  color: #ffffff;
 }
 
 /* ── Bottom tab bar ── */

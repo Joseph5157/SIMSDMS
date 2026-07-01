@@ -11,34 +11,28 @@ export default function Alert({ tone = 'info', icon, title, children, action, on
   return (
     <div
       onClick={onClick}
-      className={className}
+      className={`flex items-start gap-2.5 rounded-[var(--radius-lg)] px-3.5 py-3 font-[var(--font-sans)] ${className}`}
       style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
         background: t.bg,
         border: `1px solid ${t.border}`,
         borderLeft: `3px solid ${t.accent}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: '12px 14px',
         cursor: onClick ? 'pointer' : 'default',
-        fontFamily: 'var(--font-sans)',
       }}
     >
-      {icon && <span style={{ fontSize: 17, flexShrink: 0, lineHeight: 1.2 }}>{icon}</span>}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {icon && <span className="text-[17px] shrink-0 leading-[1.2]">{icon}</span>}
+      <div className="flex-1 min-w-0">
         {title && (
-          <p style={{ margin: 0, fontSize: 'var(--text-card)', fontWeight: 'var(--weight-bold)', color: t.title, marginBottom: children ? 2 : 0 }}>
+          <p className="m-0 text-[length:var(--text-card)] font-[var(--weight-bold)]" style={{ color: t.title, marginBottom: children ? 2 : 0 }}>
             {title}
           </p>
         )}
         {children && (
-          <p style={{ margin: 0, fontSize: 'var(--text-small)', color: t.body, lineHeight: 'var(--leading-snug)' }}>
+          <p className="m-0 text-[length:var(--text-small)] leading-[var(--leading-snug)]" style={{ color: t.body }}>
             {children}
           </p>
         )}
       </div>
-      {action && <div style={{ flexShrink: 0 }}>{action}</div>}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

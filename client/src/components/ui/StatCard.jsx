@@ -28,53 +28,47 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
   }, [value, isNumber]);
 
   return (
-    <div style={{
-      position: 'relative',
-      borderRadius: 'var(--radius-xl)',
-      border: `1px solid ${c.border}`,
-      backgroundColor: c.bg,
-      padding: '14px 16px 14px 20px',
-      overflow: 'hidden',
-      minHeight: 96,
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'flex-start',
-      gap: 8,
-      boxShadow: 'var(--shadow-stat)',
-      fontFamily: 'var(--font-sans)',
-    }}>
+    <div
+      className="relative rounded-[var(--radius-xl)] overflow-hidden min-h-24 flex flex-col justify-start gap-2 font-[var(--font-sans)]"
+      style={{
+        border: `1px solid ${c.border}`,
+        backgroundColor: c.bg,
+        padding: '14px 16px 14px 20px',
+        boxShadow: 'var(--shadow-stat)',
+      }}
+    >
       {/* Left accent bar */}
-      <div style={{
-        position: 'absolute',
-        left: 0, top: 0, bottom: 0,
-        width: 4,
-        backgroundColor: c.bar,
-        borderRadius: 'var(--radius-xl) 0 0 var(--radius-xl)',
-      }} />
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1"
+        style={{
+          backgroundColor: c.bar,
+          borderRadius: 'var(--radius-xl) 0 0 var(--radius-xl)',
+        }}
+      />
 
       {/* Label */}
-      <p style={{
-        margin: 0,
-        fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--color-slate-400)',
-        textTransform: 'uppercase', letterSpacing: '0.06em',
-        display: 'flex', alignItems: 'center', gap: 4,
-      }}>
-        {icon && <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>}
-        <span style={{ lineHeight: 1.3 }}>{label}</span>
+      <p
+        className="m-0 text-[length:var(--text-micro)] font-[600] uppercase tracking-[0.06em] flex items-center gap-1"
+        style={{ color: 'var(--color-slate-400)' }}
+      >
+        {icon && <span className="text-[13px] shrink-0">{icon}</span>}
+        <span className="leading-[1.3]">{label}</span>
       </p>
 
       {/* Value */}
-      <p style={{
-        margin: 0,
-        fontSize: 'var(--text-stat)', fontWeight: 800, color: c.text,
-        lineHeight: 1, letterSpacing: 'var(--tracking-tight)',
-      }}>
+      <p
+        className="m-0 text-[length:var(--text-stat)] font-[800] leading-none tracking-[var(--tracking-tight)]"
+        style={{ color: c.text }}
+      >
         {display}
       </p>
 
       {/* Sub */}
       {sub && (
-        <p style={{ margin: 0, fontSize: 'var(--text-micro)', color: c.text, opacity: 0.65, marginTop: 2 }}>
+        <p
+          className="m-0 mt-0.5 text-[length:var(--text-micro)] opacity-65"
+          style={{ color: c.text }}
+        >
           {sub}
         </p>
       )}

@@ -100,7 +100,7 @@ function NavItem({ to, label, Icon, onClick }) {
         `${classes.navItem} ${isActive ? classes.navItemActive : ''}`
       }
     >
-      <Icon size={16} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      <Icon size={16} strokeWidth={1.75} className="shrink-0" />
       <span>{label}</span>
     </RouterNavLink>
   );
@@ -123,11 +123,11 @@ export default function Layout({ user, children }) {
   const bottomTabs = getBottomTabs(user?.role);
 
   const sidebarContent = (
-    <Stack h="100%" gap={0} style={{ overflow: 'hidden' }}>
+    <Stack h="100%" gap={0} className="overflow-hidden">
       <Box className={classes.brand}>
         <Group gap={8} wrap="nowrap">
-          <img src={simsLogo} alt="SIMS" className={classes.brandMark} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          <Text fw={700} size="sm" c="white" style={{ letterSpacing: '-0.01em' }}>
+          <img src={simsLogo} alt="SIMS" className={`${classes.brandMark} w-full h-full object-contain`} />
+          <Text fw={700} size="sm" c="white" className="tracking-[-0.01em]">
             SIMS DMS
           </Text>
         </Group>
@@ -138,7 +138,7 @@ export default function Layout({ user, children }) {
 
       <Divider color="rgba(255,255,255,0.08)" />
 
-      <Stack gap={2} p={8} style={{ flex: 1, overflowY: 'auto' }}>
+      <Stack gap={2} p={8} className="flex-1 overflow-y-auto">
         {links.map((link) => (
           <NavItem key={link.to} {...link} onClick={closeNav} />
         ))}
@@ -148,27 +148,18 @@ export default function Layout({ user, children }) {
 
       <Box p={10}>
         <Group gap={8} mb={6} px={4}>
-          <Avatar size={28} radius="xl" color="blue" style={{ flexShrink: 0 }}>
+          <Avatar size={28} radius="xl" color="blue" className="shrink-0">
             {getInitials(user?.name)}
           </Avatar>
-          <Text size="xs" fw={600} c="gray.3" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Text size="xs" fw={600} c="gray.3" className="overflow-hidden text-ellipsis whitespace-nowrap">
             {user?.name}
           </Text>
         </Group>
         <UnstyledButton
           onClick={cycleTheme}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            width: '100%', padding: '7px 10px',
-            borderRadius: 7, fontSize: 12, fontWeight: 500,
-            color: 'var(--text-muted)', background: 'none', border: 'none',
-            cursor: 'pointer', marginBottom: 6,
-            transition: 'background-color 150ms ease, color 150ms ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#1e293b'; e.currentTarget.style.color = '#f1f5f9'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ''; e.currentTarget.style.color = '#94a3b8'; }}
+          className="flex items-center gap-1.5 w-full py-[7px] px-2.5 rounded-[7px] text-xs font-medium text-[color:var(--text-muted)] bg-transparent border-none cursor-pointer mb-1.5 transition-[background-color,color] duration-150 hover:bg-[#1e293b] hover:text-[color:#f1f5f9]"
         >
-          <span style={{ fontSize: 13 }}>{getThemeIcon()}</span>
+          <span className="text-[13px]">{getThemeIcon()}</span>
           {getThemeLabel()} mode
         </UnstyledButton>
         <UnstyledButton onClick={() => logout.mutate()} className={classes.logoutBtn}>
@@ -228,19 +219,18 @@ export default function Layout({ user, children }) {
           <RouterNavLink
             key={tab.to}
             to={tab.to}
-            style={{ flex: 1, textDecoration: 'none' }}
+            className="flex-1 no-underline"
           >
             {({ isActive }) => (
-              <div style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                height: '100%', gap: 3, padding: '0 2px',
-                color: isActive ? 'var(--brand)' : 'rgba(255,255,255,0.45)',
-                borderTop: isActive ? '2px solid var(--brand)' : '2px solid transparent',
-                transition: 'color 0.15s',
-              }}>
+              <div
+                className="flex flex-col items-center justify-center h-full gap-[3px] px-0.5 transition-colors duration-150"
+                style={{
+                  color: isActive ? 'var(--brand)' : 'rgba(255,255,255,0.45)',
+                  borderTop: isActive ? '2px solid var(--brand)' : '2px solid transparent',
+                }}
+              >
                 <tab.Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
-                <span style={{ fontSize: 'var(--text-micro)', fontWeight: isActive ? 600 : 400, letterSpacing: '0.01em' }}>
+                <span className={`text-[length:var(--text-micro)] tracking-[0.01em] ${isActive ? 'font-semibold' : 'font-normal'}`}>
                   {tab.label}
                 </span>
               </div>
@@ -251,17 +241,10 @@ export default function Layout({ user, children }) {
         {/* Menu button — opens full nav drawer */}
         <button
           onClick={openNav}
-          style={{
-            flex: 1, border: 'none', background: 'none', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            height: '100%', gap: 3, padding: '0 2px',
-            color: 'rgba(255,255,255,0.45)',
-            borderTop: '2px solid transparent',
-          }}
+          className="flex-1 border-none bg-transparent cursor-pointer flex flex-col items-center justify-center h-full gap-[3px] px-0.5 text-[rgba(255,255,255,0.45)] border-t-2 border-t-transparent"
         >
           <IconMenu2 size={22} strokeWidth={1.5} />
-          <span style={{ fontSize: 'var(--text-micro)', fontWeight: 400, letterSpacing: '0.01em', color: 'inherit', fontFamily: 'inherit' }}>
+          <span className="text-[length:var(--text-micro)] font-normal tracking-[0.01em] text-inherit">
             Menu
           </span>
         </button>
@@ -275,9 +258,9 @@ export default function Layout({ user, children }) {
 export function PageHeader({ title, subtitle, action }) {
   return (
     <Stack align="center" gap={4} py="lg" mb="md"
-      style={{ borderBottom: '1px solid var(--border)', textAlign: 'center' }}
+      className="border-b border-b-[var(--border)] text-center"
     >
-      <Title order={2} style={{ fontSize: 'var(--text-h2)', fontWeight: 700, lineHeight: 1.3 }}>
+      <Title order={2} className="text-[length:var(--text-h2)] font-bold leading-[1.3]">
         {title}
       </Title>
       {subtitle && (
@@ -290,7 +273,7 @@ export function PageHeader({ title, subtitle, action }) {
 
 export function Card({ children, className = '' }) {
   return (
-    <Paper withBorder radius="md" style={{ overflow: 'hidden' }} className={className}>
+    <Paper withBorder radius="md" className={`overflow-hidden ${className}`}>
       {children}
     </Paper>
   );
@@ -300,7 +283,7 @@ export function CardHeader({ children, action }) {
   return (
     <Box
       px="md" py="sm"
-      style={{ borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-page)' }}
+      className="border-b border-b-[var(--border)] bg-[var(--surface-page)]"
     >
       <Group justify="space-between" gap="sm">
         <Text size="sm" fw={600} c="gray.7">{children}</Text>

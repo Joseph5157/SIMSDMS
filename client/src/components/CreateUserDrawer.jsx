@@ -2,21 +2,19 @@ import { useState } from 'react';
 import { TextInput } from '@mantine/core';
 import BottomDrawer, { cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 
+const sectionTitle = "text-[length:var(--text-micro)] font-[800] text-[color:var(--text-muted)] uppercase tracking-[0.12em]";
+
 function RoleButton({ label, subtitle, selected, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer"
-      style={{
-        border: `1.5px solid ${selected ? 'var(--brand)' : 'var(--border)'}`,
-        backgroundColor: selected ? 'var(--color-blue-50)' : 'var(--surface-page)',
-      }}
+      className={`flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer border-[1.5px] ${selected ? 'border-[var(--brand)] bg-[var(--color-blue-50)]' : 'border-[var(--border)] bg-[var(--surface-page)]'}`}
     >
-      <p className="text-sm font-bold mb-0.5" style={{ color: selected ? '#2563eb' : 'var(--text-secondary)' }}>
+      <p className={`text-sm font-bold mb-0.5 ${selected ? 'text-[#2563eb]' : 'text-[color:var(--text-secondary)]'}`}>
         {label}
       </p>
-      <p style={{ fontSize: 'var(--text-micro)', color: selected ? '#60a5fa' : 'var(--text-muted)' }}>
+      <p className={`text-[length:var(--text-micro)] ${selected ? 'text-[#60a5fa]' : 'text-[color:var(--text-muted)]'}`}>
         {subtitle}
       </p>
     </button>
@@ -103,29 +101,28 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
         <div className="p-5 flex flex-col gap-3.5">
           <div className="bg-[var(--color-blue-50)] border-[1.5px] border-[var(--color-blue-200)] rounded-xl p-3 text-xs text-[var(--color-blue-800)] leading-relaxed">
             <p className="font-bold mb-2">📋 Instructions:</p>
-            <ol className="m-0" style={{ paddingLeft: '18px' }}>
+            <ol className="m-0 pl-[18px]">
               <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
               <li>Tap "Start" when you open the bot</li>
               <li>Copy and send this exact message:</li>
             </ol>
           </div>
 
-          <div className="bg-[var(--surface-page)] rounded-lg p-2.5 text-center" style={{ borderWidth: '1.5px', borderColor: 'var(--border)' }}>
-            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', margin: '0 0 6px' }}>Bot Username</p>
-            <p className="text-sm font-bold text-[var(--text-primary)] m-0" style={{ fontFamily: 'monospace' }}>
+          <div className="bg-[var(--surface-page)] rounded-lg p-2.5 text-center border-[1.5px] border-[var(--border)]">
+            <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] m-0 mb-1.5">Bot Username</p>
+            <p className="text-sm font-bold text-[var(--text-primary)] m-0 font-mono">
               @SimsPharmacybot
             </p>
           </div>
 
-          <div className="bg-[var(--surface-page)] rounded-lg p-3 text-xs text-[var(--text-primary)] font-semibold" style={{ borderWidth: '1.5px', borderColor: 'var(--border)', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+          <div className="bg-[var(--surface-page)] rounded-lg p-3 text-xs text-[var(--text-primary)] font-semibold border-[1.5px] border-[var(--border)] break-all font-mono">
             /start {extractInviteToken()}
           </div>
 
           <div className="flex flex-col gap-2">
             <button
               onClick={copyCommand}
-              className="w-full h-11 rounded-lg font-bold text-sm text-[var(--brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-blue-100)]"
-              style={{ borderWidth: '1.5px', borderColor: 'var(--brand)', backgroundColor: 'var(--color-blue-50)' }}
+              className="w-full h-11 rounded-lg font-bold text-sm text-[var(--brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-blue-100)] border-[1.5px] border-[var(--brand)] bg-[var(--color-blue-50)]"
             >
               📋 Copy command
             </button>
@@ -145,7 +142,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
             </button>
           </div>
 
-          <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+          <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] text-center leading-[1.5]">
             Link expires in 7 days.<br />
             If issues with deep links, use the command method above.
           </p>
@@ -154,13 +151,13 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
         // ── FORM ──
         <form onSubmit={handleSubmit} className="px-5 py-4 pb-2 flex flex-col gap-4">
 
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <p className={sectionTitle}>
             Identity
           </p>
           <TextInput label="Full name" placeholder="Dr. Priya Sharma" value={form.name} onChange={set('name')} required autoComplete="name" />
           <TextInput label="Email" type="email" placeholder="priya@sims.edu.in" value={form.email} onChange={set('email')} required autoComplete="email" />
 
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <p className={sectionTitle}>
             Role
           </p>
           <div className="flex gap-2">
@@ -170,13 +167,13 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
             )}
           </div>
 
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <p className={sectionTitle}>
             Department
           </p>
           <TextInput label="Department" placeholder="Pharmacology" value={form.department} onChange={set('department')} />
           <TextInput label="Designation" placeholder="Assistant Professor" value={form.designation} onChange={set('designation')} />
 
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+          <p className={sectionTitle}>
             Contact
           </p>
           <TextInput label="Phone" type="tel" placeholder="+91 98765 43210" value={form.phone} onChange={set('phone')} autoComplete="tel" />

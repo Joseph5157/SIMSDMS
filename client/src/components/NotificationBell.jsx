@@ -64,7 +64,7 @@ export default function NotificationBell() {
   const recentNotifications = notifications.slice(0, 10);
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div className="relative inline-block">
       {/* Bell button */}
       <button
         ref={buttonRef}
@@ -78,41 +78,11 @@ export default function NotificationBell() {
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
         aria-pressed={dropdownOpen}
         title={`${unreadCount} unread notifications`}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '4px 8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          borderRadius: 'var(--radius-md)',
-          transition: 'background-color var(--dur-fast)',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-slate-100)')}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        className="bg-transparent border-none cursor-pointer px-2 py-1 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
       >
         <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
         {unreadCount > 0 && (
-          <span
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              width: 20,
-              height: 20,
-              borderRadius: 'var(--radius-full)',
-              backgroundColor: 'var(--color-red-solid)',
-              color: 'white',
-              fontSize: 'var(--text-micro)',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid white',
-            }}
-          >
+          <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[var(--color-red-solid)] text-white text-[length:var(--text-micro)] font-bold flex items-center justify-center border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -122,86 +92,40 @@ export default function NotificationBell() {
       {dropdownOpen && (
         <div
           ref={dropdownRef}
+          className="absolute right-0 z-50 flex flex-col overflow-hidden rounded-[var(--radius-xl)] bg-[var(--surface-card)] border border-[var(--border)] shadow-[var(--shadow-dropdown)]"
           style={{
-            position: 'absolute',
             top: 'calc(100% + 8px)',
-            right: 0,
             width: 'min(360px, calc(100vw - 24px))',
             maxHeight: 500,
-            backgroundColor: 'var(--surface-card)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-dropdown)',
-            zIndex: 50,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
           }}
           role="region"
           aria-label="Notifications"
         >
           {/* Header */}
-          <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--divider)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <p style={{
-              fontSize: 'var(--text-body)',
-              fontWeight: 'var(--weight-semibold)',
-              color: 'var(--text-primary)',
-              margin: 0,
-            }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--divider)]">
+            <p className="text-[length:var(--text-body)] font-[var(--weight-semibold)] text-[color:var(--text-primary)] m-0">
               Notifications
             </p>
             {!isConnected && (
-              <span
-                style={{
-                  fontSize: 'var(--text-micro)',
-                  color: 'var(--color-amber-text)',
-                  backgroundColor: 'var(--color-amber-bg)',
-                  padding: '2px 6px',
-                  borderRadius: 'var(--radius-sm)',
-                }}
-              >
+              <span className="text-[length:var(--text-micro)] text-[color:var(--color-amber-text)] bg-[var(--color-amber-bg)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
                 Offline
               </span>
             )}
           </div>
 
           {/* Notifications list */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              maxHeight: 400,
-            }}
-          >
+          <div className="flex-1 overflow-y-auto max-h-[400px]">
             {recentNotifications.length === 0 ? (
-              <div
-                style={{
-                  padding: '32px 16px',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: 'var(--text-card)',
-                }}
-              >
+              <div className="px-4 py-8 text-center text-[color:var(--text-muted)] text-[length:var(--text-card)]">
                 No notifications
               </div>
             ) : (
               recentNotifications.map((notif) => (
                 <div
                   key={notif.id}
+                  className="px-4 py-3 border-b border-[var(--divider)] cursor-pointer transition-colors duration-[var(--dur-fast)]"
                   style={{
-                    padding: '12px 16px',
-                    borderBottom: '1px solid var(--divider)',
                     backgroundColor: notif.readAt ? 'transparent' : getNotificationColor(notif.type),
-                    cursor: 'pointer',
-                    transition: 'background-color var(--dur-fast)',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = notif.readAt
@@ -222,45 +146,21 @@ export default function NotificationBell() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: 'var(--text-card)',
-                        fontWeight: 'var(--weight-semibold)',
-                        color: 'var(--text-primary)',
-                        margin: '0 0 2px 0',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[color:var(--text-primary)] m-0 mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
                         {notif.title}
                       </p>
-                      <p style={{
-                        fontSize: 'var(--text-small)',
-                        color: 'var(--text-secondary)',
-                        margin: '0 0 4px 0',
-                        lineHeight: 'var(--leading-snug)',
-                      }}>
+                      <p className="text-[length:var(--text-small)] text-[color:var(--text-secondary)] m-0 mb-1 leading-[var(--leading-snug)]">
                         {notif.message}
                       </p>
-                      <p style={{
-                        fontSize: 'var(--text-micro)',
-                        color: 'var(--text-muted)',
-                        margin: 0,
-                      }}>
+                      <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] m-0">
                         {formatTime(notif.createdAt)}
                       </p>
                     </div>
                     {!notif.readAt && (
                       <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: 'var(--radius-full)',
-                          backgroundColor: 'var(--color-blue-500)',
-                          flexShrink: 0,
-                          marginTop: 4,
-                        }}
+                        className="w-2 h-2 rounded-full bg-[var(--color-blue-500)] shrink-0 mt-1"
                         title="Unread"
                         aria-label="Unread"
                       />
@@ -273,25 +173,11 @@ export default function NotificationBell() {
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div
-              style={{
-                padding: '12px 16px',
-                borderTop: '1px solid var(--divider)',
-                textAlign: 'center',
-              }}
-            >
+            <div className="px-4 py-3 border-t border-[var(--divider)] text-center">
               <Link
                 to="/notifications"
                 onClick={() => setDropdownOpen(false)}
-                style={{
-                  color: 'var(--color-blue-600)',
-                  textDecoration: 'none',
-                  fontSize: 'var(--text-card)',
-                  fontWeight: 'var(--weight-semibold)',
-                  transition: 'color var(--dur-fast)',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-blue-700)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-blue-600)')}
+                className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
               >
                 View all notifications
               </Link>

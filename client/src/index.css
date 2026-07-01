@@ -484,8 +484,12 @@ code, .mono, pre {
   color: var(--selection-text);
 }
 
-/* ── Transition defaults ── */
-button, a, input, select, textarea {
+/* ── Transition defaults (scoped to avoid overriding Tailwind transition-* utilities) ── */
+button:not([class*="transition"]),
+a:not([class*="transition"]),
+input:not([class*="transition"]),
+select:not([class*="transition"]),
+textarea:not([class*="transition"]) {
   transition-property: color, background-color, border-color, box-shadow, opacity;
   transition-duration: var(--dur-fast);
   transition-timing-function: var(--ease-standard);
@@ -526,20 +530,20 @@ button, a, input, select, textarea {
   }
 }
 
-/* ── Typography hierarchy ── */
-h1, .h1 {
+/* ── Typography hierarchy (class-only to avoid overriding Tailwind utilities) ── */
+.h1 {
   font-size: var(--text-display);    /* 28px */
   font-weight: var(--weight-extra);  /* 800 */
   line-height: var(--leading-tight); /* 1.2 */
 }
 
-h2, .h2 {
+.h2 {
   font-size: var(--text-h2);        /* 22px */
   font-weight: var(--weight-bold);  /* 700 */
   line-height: var(--leading-snug); /* 1.4 */
 }
 
-h3, .h3 {
+.h3 {
   font-size: var(--text-page-title); /* 18px */
   font-weight: var(--weight-bold);   /* 700 */
 }
