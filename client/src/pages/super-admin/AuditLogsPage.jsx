@@ -48,7 +48,7 @@ export default function AuditLogsPage({ user }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
               <span style={{
-                fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: '#fff',
+                fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-on-brand)',
                 backgroundColor: getActionColor(log.action),
                 padding: '3px 8px', borderRadius: 'var(--radius-sm)',
                 textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',

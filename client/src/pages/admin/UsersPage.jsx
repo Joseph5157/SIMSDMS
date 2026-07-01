@@ -154,7 +154,7 @@ export default function UsersPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-[var(--surface-card)]';
+  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 bg-[var(--surface-card)]';
   const selectStyle = { fontSize: 16 };
 
   return (
@@ -169,7 +169,7 @@ export default function UsersPage({ user }) {
       {/* Filter bar */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
-          className="border border-[var(--border)] rounded-lg px-3 py-2 flex-1 min-w-[200px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)] text-[var(--text-primary)]"
+          className="border border-[var(--border)] rounded-lg px-3 py-2 flex-1 min-w-[200px] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)] text-[var(--text-primary)]"
           style={{ fontSize: 16 }}
           placeholder="Search by name or Telegram ID…"
           value={search}
@@ -234,12 +234,12 @@ export default function UsersPage({ user }) {
               <tr key={u.id}>
                 <Td>
                   <p className="font-medium text-[var(--text-primary)]">{u.name}</p>
-                  <p className="text-[11px] text-[var(--text-muted)]">{u.email}</p>
+                  <p className="text-[length:11px] text-[var(--text-muted)]">{u.email}</p>
                 </Td>
                 <Td><Badge status={u.role} label={u.role.replace(/_/g, ' ')} /></Td>
                 <Td className="hidden sm:table-cell">{u.department ?? '—'}</Td>
                 <Td className="hidden md:table-cell">
-                  <span className="font-mono text-[12px] text-[var(--text-secondary)]">
+                  <span className="font-mono text-[length:12px] text-[var(--text-secondary)]">
                     {u.telegram_id ?? '—'}
                   </span>
                 </Td>
@@ -301,7 +301,7 @@ export default function UsersPage({ user }) {
                 <Td><p className="font-medium text-[var(--text-primary)]">{inv.name}</p></Td>
                 <Td>{inv.email}</Td>
                 <Td><Badge status={inv.role} label={inv.role.replace(/_/g, ' ')} /></Td>
-                <Td className="hidden sm:table-cell text-[12px] text-[var(--text-secondary)]">
+                <Td className="hidden sm:table-cell text-[length:12px] text-[var(--text-secondary)]">
                   {new Date(inv.invite_expires_at).toLocaleDateString()}
                 </Td>
                 <Td>

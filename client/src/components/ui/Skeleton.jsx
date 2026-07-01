@@ -1,7 +1,7 @@
 export default function Skeleton({ className = '', width = '100%', height = '16px' }) {
   return (
     <div
-      className={`bg-slate-200 rounded animate-pulse ${className}`}
+      className={`bg-[var(--border)] rounded animate-pulse ${className}`}
       style={{ width, height }}
     />
   );

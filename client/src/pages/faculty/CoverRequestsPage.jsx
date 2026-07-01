@@ -94,7 +94,7 @@ export default function FacultyCoverRequestsPage({ user }) {
             id={`tab-${t}`}
             aria-selected={tab === t}
             tabIndex={tab === t ? 0 : -1}
-            className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-colors ${tab === t ? 'bg-[var(--surface-card)] shadow text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
+            className={`px-4 py-1.5 rounded-md text-[length:13px] font-medium transition-colors ${tab === t ? 'bg-[var(--surface-card)] shadow text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}>
             {t === 'open' ? 'Open broadcasts' : 'My requests'}
           </button>
         ))}

@@ -248,10 +248,10 @@ export default function AdminDashboardPage({ user }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-2xl)] px-[14px] py-[14px] cursor-pointer text-left transition-all hover:border-blue-500 hover:-translate-y-px"
+              className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-2xl)] px-[14px] py-[14px] cursor-pointer text-left transition-all hover:border-[var(--brand)] hover:-translate-y-px"
               style={{ minHeight: 'var(--control-min)' }}
             >
-              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center text-[19px]"
+              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center text-[length:19px]"
                 style={{ background: item.tint }}>
                 {item.emoji}
               </span>

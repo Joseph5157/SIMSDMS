@@ -15,25 +15,25 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 // ── Report card definitions ────────────────────────────────────────────────────
 const REPORTS = [
   // Attendance group
-  { id: 'monthly-attendance',   group: 'Attendance',      emoji: '📊', color: 'bg-blue-100',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
-  { id: 'late-arrivals',        group: 'Attendance',      emoji: '⏰', color: 'bg-amber-100',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
-  { id: 'absent-faculty',       group: 'Attendance',      emoji: '❌', color: 'bg-red-100',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
-  { id: 'auto-clockout',        group: 'Attendance',      emoji: '🕓', color: 'bg-orange-100', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
+  { id: 'monthly-attendance',   group: 'Attendance',      emoji: '📊', color: 'bg-[var(--color-blue-100)]',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
+  { id: 'late-arrivals',        group: 'Attendance',      emoji: '⏰', color: 'bg-[var(--color-amber-bg)]',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
+  { id: 'absent-faculty',       group: 'Attendance',      emoji: '❌', color: 'bg-[var(--color-red-bg)]',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
+  { id: 'auto-clockout',        group: 'Attendance',      emoji: '🕓', color: 'bg-[var(--color-orange-bg)]', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
   // Violations group
-  { id: 'faculty-activity',     group: 'Violations',      emoji: '👤', color: 'bg-purple-100', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
-  { id: 'violation-types',      group: 'Violations',      emoji: '🏷', color: 'bg-indigo-100', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
-  { id: 'pending-fines',        group: 'Violations',      emoji: '💰', color: 'bg-yellow-100', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
-  { id: 'flagged-violations',   group: 'Violations',      emoji: '⚑',  color: 'bg-amber-100',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
+  { id: 'faculty-activity',     group: 'Violations',      emoji: '👤', color: 'bg-[var(--color-purple-bg)]', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
+  { id: 'violation-types',      group: 'Violations',      emoji: '🏷', color: 'bg-[var(--color-indigo-100)]', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
+  { id: 'pending-fines',        group: 'Violations',      emoji: '💰', color: 'bg-[var(--color-amber-bg)]', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
+  { id: 'flagged-violations',   group: 'Violations',      emoji: '⚑',  color: 'bg-[var(--color-amber-bg)]',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
-  { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-green-100',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
+  { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-[var(--color-emerald-bg)]',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
   { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--surface-page)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
-  { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-cyan-100',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
-  { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-teal-100',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
+  { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-[var(--color-cyan-bg)]',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
+  { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-[var(--color-emerald-bg)]',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
-  { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-pink-100',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
-  { id: 'upload-history',       group: 'Students',        emoji: '📤', color: 'bg-blue-100',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
-  { id: 'active-students',      group: 'Students',        emoji: '🎓', color: 'bg-green-100',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
-  { id: 'student-violations',   group: 'Students',        emoji: '⚠️', color: 'bg-red-100',   label: 'Student Violations',    desc: 'All violations by student' },
+  { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-[var(--color-red-bg)]',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
+  { id: 'upload-history',       group: 'Students',        emoji: '📤', color: 'bg-[var(--color-blue-100)]',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
+  { id: 'active-students',      group: 'Students',        emoji: '🎓', color: 'bg-[var(--color-emerald-bg)]',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
+  { id: 'student-violations',   group: 'Students',        emoji: '⚠️', color: 'bg-[var(--color-red-bg)]',   label: 'Student Violations',    desc: 'All violations by student' },
 ];
 
 const REPORT_GROUPS = ['Attendance', 'Violations', 'Duty & Coverage', 'Students'];
@@ -57,7 +57,7 @@ function MonthFilter({ year, month, setYear, setMonth }) {
 
 // ── Report result content ──────────────────────────────────────────────────────
 function ReportSection({ id, data, isLoading }) {
-  if (isLoading) return <p className="text-[13px] text-[var(--text-muted)]">Loading…</p>;
+  if (isLoading) return <p className="text-[length:13px] text-[var(--text-muted)]">Loading…</p>;
   if (!data)     return null;
 
   switch (id) {
@@ -120,7 +120,7 @@ function ReportSection({ id, data, isLoading }) {
               <Td>{r.faculty?.name}</Td>
               <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
               <Td>{r.overriddenBy?.name}</Td>
-              <Td className="text-[12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
+              <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
             </tr>
           ))}
         </tbody>
@@ -162,7 +162,7 @@ function ReportSection({ id, data, isLoading }) {
 
     case 'pending-fines': return (
       <>
-        <p className="text-[13px] font-semibold text-[var(--text-secondary)] mb-3">
+        <p className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-3">
           Total outstanding: ₹{data.total_fine_amount} across {data.total} violations
         </p>
         <Table>
@@ -171,7 +171,7 @@ function ReportSection({ id, data, isLoading }) {
             {data.data?.map((v) => (
               <tr key={v.id}>
                 <Td className="font-medium">{v.student?.student_name}</Td>
-                <Td className="font-mono text-[12px]">{v.student?.registration_number}</Td>
+                <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
                 <Td>{v.student?.course}</Td>
                 <Td>{v.violationType?.name}</Td>
                 <Td className="font-semibold">₹{v.fine_amount}</Td>
@@ -184,9 +184,9 @@ function ReportSection({ id, data, isLoading }) {
 
     case 'flagged-violations': return (
       <>
-        <div className="flex gap-4 mb-3 text-[13px]">
-          <span className="text-orange-600 font-medium">Pending: {data.pending_count}</span>
-          <span className="text-green-600 font-medium">Resolved: {data.resolved_count}</span>
+        <div className="flex gap-4 mb-3 text-[length:13px]">
+          <span className="text-[var(--color-amber-solid)] font-medium">Pending: {data.pending_count}</span>
+          <span className="text-[var(--color-emerald-solid)] font-medium">Resolved: {data.resolved_count}</span>
         </div>
         <Table>
           <thead><tr><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
@@ -196,7 +196,7 @@ function ReportSection({ id, data, isLoading }) {
                 <Td>{v.student?.student_name}</Td>
                 <Td>{v.faculty?.name}</Td>
                 <Td>{v.violationType?.name}</Td>
-                <Td className="text-[12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
+                <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
                 <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
               </tr>
             ))}
@@ -212,8 +212,8 @@ function ReportSection({ id, data, isLoading }) {
           ['Morning', data.morning], ['Afternoon', data.afternoon], ['Completion rate', `${data.completion_rate}%`],
         ].map(([label, value]) => (
           <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
-            <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
-            <p className="text-[20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
+            <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
+            <p className="text-[length:20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -242,8 +242,8 @@ function ReportSection({ id, data, isLoading }) {
           ['Expired', data.expired], ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`],
         ].map(([label, value]) => (
           <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
-            <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
-            <p className="text-[20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
+            <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
+            <p className="text-[length:20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>
         ))}
       </div>
@@ -259,7 +259,7 @@ function ReportSection({ id, data, isLoading }) {
               <Td>{r.total}</Td>
               <Td>{r.completed}</Td>
               <Td>
-                <span className={`font-semibold ${parseFloat(r.rate) >= 80 ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`font-semibold ${parseFloat(r.rate) >= 80 ? 'text-[var(--color-emerald-solid)]' : 'text-[var(--color-red-solid)]'}`}>
                   {r.rate}%
                 </span>
               </Td>
@@ -276,11 +276,11 @@ function ReportSection({ id, data, isLoading }) {
           {!data.data?.length && <EmptyRow cols={7} />}
           {data.data?.map((log) => (
             <tr key={log.id}>
-              <Td className="font-mono text-[12px]">{log.filename}</Td>
+              <Td className="font-mono text-[length:12px]">{log.filename}</Td>
               <Td>{log.uploader?.name}</Td>
               <Td>{log.added_count}</Td><Td>{log.updated_count}</Td><Td>{log.deactivated_count}</Td>
               <Td>{Array.isArray(log.errors) ? log.errors.length : 0}</Td>
-              <Td className="text-[12px]">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
+              <Td className="text-[length:12px]">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
             </tr>
           ))}
         </tbody>
@@ -291,12 +291,12 @@ function ReportSection({ id, data, isLoading }) {
       <>
         <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(data.breakdown ?? {}).map(([key, count]) => (
-            <span key={key} className="bg-[var(--color-blue-50)] text-[var(--brand)] text-[12px] px-3 py-1 rounded-full">
+            <span key={key} className="bg-[var(--color-blue-50)] text-[var(--brand)] text-[length:12px] px-3 py-1 rounded-full">
               {key}: {count}
             </span>
           ))}
         </div>
-        <p className="text-[13px] text-[var(--text-muted)]">Total: <strong>{data.total}</strong> active students</p>
+        <p className="text-[length:13px] text-[var(--text-muted)]">Total: <strong>{data.total}</strong> active students</p>
       </>
     );
 
@@ -308,18 +308,18 @@ function ReportSection({ id, data, isLoading }) {
           {data.data?.map((v) => (
             <tr key={v.id}>
               <Td className="font-medium">{v.student?.student_name}</Td>
-              <Td className="font-mono text-[12px]">{v.student?.registration_number}</Td>
+              <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
               <Td>{v.violationType?.name}</Td>
               <Td>{v.is_warning_only ? 'Warning' : `₹${v.fine_amount}`}</Td>
               <Td>{v.faculty?.name}</Td>
-              <Td className="text-[12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
+              <Td className="text-[length:12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
             </tr>
           ))}
         </tbody>
       </Table>
     );
 
-    default: return <pre className="text-[12px] text-[var(--text-muted)] overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
+    default: return <pre className="text-[length:12px] text-[var(--text-muted)] overflow-auto">{JSON.stringify(data, null, 2)}</pre>;
   }
 }
 
@@ -392,14 +392,14 @@ export default function ReportsPage({ user }) {
                 onClick={() => setActive(active === r.id ? null : r.id)}
                 className={`text-left rounded-xl border p-4 transition-all ${
                   active === r.id
-                    ? 'border-blue-500 bg-[var(--color-blue-50)] shadow-sm'
-                    : 'border-[var(--border)] bg-[var(--surface-card)] hover:border-blue-300 hover:bg-[var(--surface-page)]'
+                    ? 'border-[var(--brand)] bg-[var(--color-blue-50)] shadow-sm'
+                    : 'border-[var(--border)] bg-[var(--surface-card)] hover:border-[var(--color-blue-300)] hover:bg-[var(--surface-page)]'
                 }`}
               >
-                <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[18px] mb-3`}>
+                <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[length:18px] mb-3`}>
                   {r.emoji}
                 </div>
-                <p className="text-[13px] font-semibold text-[var(--text-primary)] leading-snug">{r.label}</p>
+                <p className="text-[length:13px] font-semibold text-[var(--text-primary)] leading-snug">{r.label}</p>
                 <p style={{ fontSize: 'var(--text-micro)' }} className="text-[var(--text-muted)] mt-0.5 leading-snug">{r.desc}</p>
               </button>
             ))}
@@ -411,12 +411,12 @@ export default function ReportsPage({ user }) {
       {active && (
         <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-semibold text-[var(--text-primary)]">
+            <h2 className="text-[length:14px] font-semibold text-[var(--text-primary)]">
               {activeReport?.emoji} {activeReport?.label}
             </h2>
             <button
               onClick={() => setActive(null)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[18px] leading-none"
+              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[length:18px] leading-none"
             >
               ✕
             </button>

@@ -133,13 +133,13 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
               href={inviteLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center h-11 rounded-lg border-0 bg-cyan-500 text-xs font-bold text-white cursor-pointer no-underline transition-all duration-150 hover:bg-cyan-600"
+              className="flex items-center justify-center h-11 rounded-lg border-0 bg-[var(--color-cyan-solid)] text-xs font-bold text-[var(--text-on-brand)] cursor-pointer no-underline transition-all duration-150 hover:bg-[var(--color-cyan-700)]"
             >
               🔗 Open Telegram
             </a>
             <button
               onClick={shareOnWhatsApp}
-              className="w-full h-11 rounded-lg border-0 bg-green-500 text-xs font-bold text-white cursor-pointer transition-all duration-150 hover:bg-green-600"
+              className="w-full h-11 rounded-lg border-0 bg-[var(--success)] text-xs font-bold text-[var(--text-on-brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-emerald-700)]"
             >
               💬 Share WhatsApp
             </button>

@@ -32,7 +32,7 @@ export default function SessionResetPage({ user }) {
 
       <div className="mb-4">
         <input
-          className="border border-[var(--border)] rounded-lg px-3 py-2 w-80 outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-[var(--surface-card)] placeholder:text-[var(--text-muted)] text-[var(--text-primary)]"
+          className="border border-[var(--border)] rounded-lg px-3 py-2 w-80 outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 bg-[var(--surface-card)] placeholder:text-[var(--text-muted)] text-[var(--text-primary)]"
           style={{ fontSize: 16 }}
           placeholder="Search user…" value={search}
           onChange={(e) => setSearch(e.target.value)}

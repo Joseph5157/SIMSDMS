@@ -161,7 +161,7 @@ export default function Layout({ user, children }) {
             display: 'flex', alignItems: 'center', gap: 6,
             width: '100%', padding: '7px 10px',
             borderRadius: 7, fontSize: 12, fontWeight: 500,
-            color: '#94a3b8', background: 'none', border: 'none',
+            color: 'var(--text-muted)', background: 'none', border: 'none',
             cursor: 'pointer', marginBottom: 6,
             transition: 'background-color 150ms ease, color 150ms ease',
           }}

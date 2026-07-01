@@ -37,7 +37,7 @@ export default function DutySlotsPage({ user }) {
           onChange={(v) => setMonth(Number(v))}
           data={MONTHS.map((m, i) => ({ value: String(i+1), label: m }))}
         />
-        <span className="text-[13px] text-[var(--text-muted)]">{slots.length} slot(s) total</span>
+        <span className="text-[length:13px] text-[var(--text-muted)]">{slots.length} slot(s) total</span>
       </div>
 
       {/* Mobile card list */}
@@ -90,7 +90,7 @@ export default function DutySlotsPage({ user }) {
         const group = session === 'morning' ? morning : afternoon;
         return (
           <div key={session} className="mb-6">
-            <h3 className="text-[13px] font-semibold text-[var(--text-secondary)] mb-2 capitalize">{session} slots ({group.length})</h3>
+            <h3 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2 capitalize">{session} slots ({group.length})</h3>
             <Table>
               <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th className="hidden sm:table-cell">Covered by</Th></tr></thead>
               <tbody className="divide-y divide-[var(--divider)]">

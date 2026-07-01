@@ -178,19 +178,19 @@ export default function SlotPickerPage({ user }) {
         {/* Legend — above grid */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 10, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#3b82f6', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-blue-500)', display: 'inline-block' }} />
             <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Morning</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#f97316', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-orange-solid)', display: 'inline-block' }} />
             <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Afternoon</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#10b981', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-emerald-solid)', display: 'inline-block' }} />
             <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Picked</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: '#94a3b8', display: 'inline-block' }} />
+            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-slate-400)', display: 'inline-block' }} />
             <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Past</span>
           </div>
         </div>

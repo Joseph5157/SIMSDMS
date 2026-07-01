@@ -83,7 +83,7 @@ export default function DashboardPage({ user }) {
                   <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
                     📋 Today's duty
                   </p>
-                  <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: '#fff', lineHeight: 1.1, textTransform: 'capitalize' }}>
+                  <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-on-dark)', lineHeight: 1.1, textTransform: 'capitalize' }}>
                     {todaySlot.session_type} session
                   </p>
                   <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
@@ -99,7 +99,7 @@ export default function DashboardPage({ user }) {
                 </Button>
                 {canDoViolation && (
                   <Button size="md" variant="white" leftSection={<span>⚠️</span>} onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}
-                    style={{ background: 'rgba(255,255,255,0.25)', color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
+                    style={{ background: 'rgba(255,255,255,0.25)', color: 'var(--text-on-dark)', border: '1px solid rgba(255,255,255,0.4)' }}>
                     Record Violation
                   </Button>
                 )}

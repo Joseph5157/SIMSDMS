@@ -180,7 +180,7 @@ export default function CalendarPage({ user }) {
         />
       </div>
 
-      {isLoading ? <p className="text-[var(--text-muted)] text-[13px]">Loading…</p> : (
+      {isLoading ? <p className="text-[var(--text-muted)] text-[length:13px]">Loading…</p> : (
         <>
           {/* Status bar */}
           <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6 flex items-center gap-6">
@@ -211,7 +211,7 @@ export default function CalendarPage({ user }) {
                   <button key={d} onClick={() => toggleBlocked(d)}
                     aria-label={`${new Date(year, month - 1, d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isBlocked ? ' — blocked' : ' — available'}`}
                     aria-pressed={isBlocked}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`}>
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-[var(--color-red-bg)] text-[var(--color-red-text)] border border-[var(--color-red-border)]' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`}>
                     {d}
                   </button>
                 );

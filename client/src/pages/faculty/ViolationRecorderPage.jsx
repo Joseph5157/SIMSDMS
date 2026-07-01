@@ -13,7 +13,7 @@ import { useStudentSearch } from '../../hooks/useStudents';
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-[10px] font-extrabold text-blue-500/70 uppercase tracking-[0.14em] pb-1">
+    <p className="text-[length:10px] font-extrabold text-[var(--color-blue-500)]/70 uppercase tracking-[0.14em] pb-1">
       {children}
     </p>
   );
@@ -151,7 +151,7 @@ function RecordModal({ open, onClose }) {
           <div className="relative">
             <input
               ref={studentInputRef}
-              className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
               style={{ fontSize: 16 }}
               placeholder="Search by name or reg. number…"
               value={studentQ}
@@ -163,7 +163,7 @@ function RecordModal({ open, onClose }) {
                   <button
                     key={s.id}
                     type="button"
-                    className="w-full text-left px-4 py-3 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--color-blue-50)] transition-colors"
+                    className="w-full text-left px-4 py-3 text-[length:13px] text-[var(--text-secondary)] hover:bg-[var(--color-blue-50)] transition-colors"
                     onClick={() => {
                       setForm(f => ({ ...f, student_id: s.id }));
                       setStudentQ(`${s.student_name} (${s.registration_number})`);
@@ -171,7 +171,7 @@ function RecordModal({ open, onClose }) {
                   >
                     <span className="font-medium text-[var(--text-primary)]">{s.student_name}</span>
                     <span className="text-[var(--text-muted)]"> — {s.registration_number}</span>
-                    <span className="block text-[11px] text-[var(--text-muted)] mt-0.5">{s.course} · {s.semester_or_year}</span>
+                    <span className="block text-[length:11px] text-[var(--text-muted)] mt-0.5">{s.course} · {s.semester_or_year}</span>
                   </button>
                 ))}
               </div>

@@ -114,7 +114,7 @@ export default function ChangePasswordPage() {
       <div className="flex-none flex flex-col items-center justify-center pt-[72px] pb-10 px-6 text-center">
         {/* Brand mark */}
         <div
-          className="w-[72px] h-[72px] rounded-[var(--radius-3xl)] flex items-center justify-center text-[32px] mb-5"
+          className="w-[72px] h-[72px] rounded-[var(--radius-3xl)] flex items-center justify-center text-[length:32px] mb-5"
           style={{
             background: 'var(--brand-gradient)',
             boxShadow: 'var(--shadow-brand)',

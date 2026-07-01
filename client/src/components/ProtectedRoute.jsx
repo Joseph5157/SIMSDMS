@@ -34,7 +34,7 @@ export default function ProtectedRoute({ user, isLoading, requiredRoles }) {
         <div className="min-h-dvh flex items-center justify-center bg-[var(--surface-page)]">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
-            <p className="text-xl font-semibold text-red-600 mb-2">Access Denied</p>
+            <p className="text-xl font-semibold text-[var(--danger)] mb-2">Access Denied</p>
             <p className="text-[var(--text-muted)] text-sm">Your role (<span className="font-medium">{user.role}</span>) doesn't have access to this page.</p>
           </div>
         </div>
