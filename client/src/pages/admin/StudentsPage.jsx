@@ -87,7 +87,7 @@ function PromoteModal({ open, student, onClose }) {
         style={{
           marginTop: 12, width: '100%', padding: '8px 12px',
           border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-          fontSize: 13, outline: 'none',
+          fontSize: 16, outline: 'none',
         }}
       />
     </FormModal>
@@ -154,14 +154,14 @@ export default function StudentsPage({ user }) {
           style={{
             flex: '1 1 180px', minWidth: 160,
             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-            padding: '7px 12px', fontSize: 13, outline: 'none',
+            padding: '7px 12px', fontSize: 16, outline: 'none',
             backgroundColor: 'var(--surface-card)',
           }}
         />
         <select
           value={filterCourse}
           onChange={(e) => { setFilterCourse(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterCourse ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterCourse ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All courses</option>
           <option value="b_pharm">B.Pharm</option>
@@ -171,7 +171,7 @@ export default function StudentsPage({ user }) {
         <select
           value={filterYear}
           onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterYear ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterYear ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All years</option>
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
@@ -179,7 +179,7 @@ export default function StudentsPage({ user }) {
         <select
           value={filterSection}
           onChange={(e) => { setFilterSection(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 13, backgroundColor: 'var(--surface-card)', color: filterSection ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterSection ? 'var(--text-primary)' : 'var(--text-muted)' }}
         >
           <option value="">All sections</option>
           {['A','B','C','D'].map((s) => <option key={s} value={s}>Section {s}</option>)}

@@ -151,7 +151,8 @@ function RecordModal({ open, onClose }) {
           <div className="relative">
             <input
               ref={studentInputRef}
-              className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              style={{ fontSize: 16 }}
               placeholder="Search by name or reg. number…"
               value={studentQ}
               onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); }}

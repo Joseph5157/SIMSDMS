@@ -85,7 +85,7 @@ export default function LoginPage() {
           Discipline<br />Management System
         </h1>
 
-        <p className="text-[length:var(--text-body)] text-[var(--color-slate-500)] leading-[var(--leading-normal)] max-w-[280px]">
+        <p className="text-[length:var(--text-body)] text-[var(--text-secondary)] leading-[var(--leading-normal)] max-w-[280px]">
           Faculty duty scheduling and student violation tracking
         </p>
       </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
             <h2 className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
               Sign in
             </h2>
-            <p className="text-[length:var(--text-body)] text-[var(--text-muted)]">
+            <p className="text-[length:var(--text-body)] text-[var(--text-secondary)]">
               Enter your credentials to manage duty schedules, attendance, and violations
             </p>
           </div>
@@ -122,9 +122,10 @@ export default function LoginPage() {
               required
               autoFocus
               disabled={login.isPending}
+              style={{ fontSize: 16 }}
               className={[
                 'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-                'text-[length:16px] text-[var(--text-primary)]',
+                'text-[var(--text-primary)]',
                 'outline-none w-full bg-[var(--surface-page)]',
                 'transition-[border-color] duration-[var(--dur-fast)]',
                 'focus:border-[var(--brand)]',
@@ -146,9 +147,10 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={login.isPending}
+              style={{ fontSize: 16 }}
               className={[
                 'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-                'text-[length:16px] text-[var(--text-primary)]',
+                'text-[var(--text-primary)]',
                 'outline-none w-full bg-[var(--surface-page)]',
                 'transition-[border-color] duration-[var(--dur-fast)]',
                 'focus:border-[var(--brand)]',
@@ -211,7 +213,7 @@ export default function LoginPage() {
         </form>
 
         {/* Footer */}
-        <p className="text-center text-[length:var(--text-micro)] text-[var(--text-muted)] mt-8">
+        <p className="text-center text-[length:var(--text-micro)] text-[var(--text-secondary)] mt-8">
           SIMS DMS · Version 1.0
         </p>
       </div>

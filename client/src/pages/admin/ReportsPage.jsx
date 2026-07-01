@@ -41,13 +41,14 @@ const REPORT_GROUPS = ['Attendance', 'Violations', 'Duty & Coverage', 'Students'
 // ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
   const now = new Date();
-  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] outline-none focus:border-blue-500 bg-[var(--surface-card)]';
+  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)]';
+  const controlStyle = { fontSize: 16 };
   return (
     <div className="flex gap-2 mb-5">
-      <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls}>
+      <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls} style={controlStyle}>
         {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y}>{y}</option>)}
       </select>
-      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={cls}>
+      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={cls} style={controlStyle}>
         {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
       </select>
     </div>

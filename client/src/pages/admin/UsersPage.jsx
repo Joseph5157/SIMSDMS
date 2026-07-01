@@ -154,7 +154,8 @@ export default function UsersPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] text-[var(--text-secondary)] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-[var(--surface-card)]';
+  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 bg-[var(--surface-card)]';
+  const selectStyle = { fontSize: 16 };
 
   return (
     <Layout user={user}>
@@ -168,18 +169,19 @@ export default function UsersPage({ user }) {
       {/* Filter bar */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
-          className="border border-[var(--border)] rounded-lg px-3 py-2 text-[13px] flex-1 min-w-[200px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)]"
+          className="border border-[var(--border)] rounded-lg px-3 py-2 flex-1 min-w-[200px] outline-none focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)] text-[var(--text-primary)]"
+          style={{ fontSize: 16 }}
           placeholder="Search by name or Telegram ID…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
-        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className={selectCls}>
+        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className={selectCls} style={selectStyle}>
           <option value="">All roles</option>
           <option value="faculty">Faculty</option>
           <option value="admin">Admin</option>
           <option value="super_admin">Super Admin</option>
         </select>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls}>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls} style={selectStyle}>
           <option value="">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>

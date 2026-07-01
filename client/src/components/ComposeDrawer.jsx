@@ -24,7 +24,7 @@ const inputStyle = {
   padding: '0 14px', borderRadius: 'var(--radius-lg)',
   border: '1.5px solid var(--border)',
   backgroundColor: 'var(--surface-page)',
-  fontSize: 'var(--text-body)', color: 'var(--text-primary)', outline: 'none',
+  fontSize: 16, color: 'var(--text-primary)', outline: 'none',
   boxSizing: 'border-box',
   transition: 'border-color 0.15s, background-color 0.15s',
   fontFamily: 'inherit',

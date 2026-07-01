@@ -7,7 +7,7 @@ import api from '../../utils/api';
 /* Shared Tailwind class string for password/text inputs */
 const fieldClass = (isLoading) => [
   'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-  'text-[length:var(--text-card-lg)] text-[var(--text-primary)]',
+  'text-[var(--text-primary)]',
   'outline-none w-full bg-[var(--surface-page)]',
   'transition-[border-color] duration-[var(--dur-fast)]',
   'focus:border-[var(--brand)]',
@@ -182,6 +182,7 @@ export default function ChangePasswordPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               disabled={isLoading}
+              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
           </div>
@@ -197,6 +198,7 @@ export default function ChangePasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
               disabled={isLoading}
+              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
             {newPassword.length > 0 && newPassword.length < 8 && (
@@ -217,6 +219,7 @@ export default function ChangePasswordPage() {
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
               disabled={isLoading}
+              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
             {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
