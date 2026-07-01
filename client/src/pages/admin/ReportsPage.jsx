@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import Badge from '../../components/ui/Badge';
+import BottomDrawer from '../../components/ui/BottomDrawer';
+import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
   useAttendanceOverrides, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
@@ -364,8 +366,15 @@ function ReportView({ id }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ReportsPage({ user }) {
   const [active, setActive] = useState(null);
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   const activeReport = REPORTS.find((r) => r.id === active);
+
+  const reportContent = active && (
+    <div className="p-5">
+      <ReportView key={active} id={active} />
+    </div>
+  );
 
   return (
     <Layout user={user}>
@@ -375,14 +384,7 @@ export default function ReportsPage({ user }) {
       {/* Grouped report cards */}
       {REPORT_GROUPS.map((group) => (
         <div key={group} className="mb-6">
-          <p style={{
-            fontSize: 'var(--text-micro)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: 'var(--tracking-wide)',
-            color: 'var(--text-muted)',
-            marginBottom: 8,
-          }}>
+          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] mb-2">
             {group}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -400,15 +402,27 @@ export default function ReportsPage({ user }) {
                   {r.emoji}
                 </div>
                 <p className="text-[length:13px] font-semibold text-[var(--text-primary)] leading-snug">{r.label}</p>
-                <p style={{ fontSize: 'var(--text-micro)' }} className="text-[var(--text-muted)] mt-0.5 leading-snug">{r.desc}</p>
+                <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-0.5 leading-snug">{r.desc}</p>
               </button>
             ))}
           </div>
         </div>
       ))}
 
-      {/* Result panel */}
-      {active && (
+      {/* Mobile: BottomDrawer for report results */}
+      {isMobile && (
+        <BottomDrawer
+          open={!!active}
+          onClose={() => setActive(null)}
+          title={activeReport?.label ?? ''}
+          subtitle={activeReport?.desc}
+        >
+          {reportContent}
+        </BottomDrawer>
+      )}
+
+      {/* Desktop: inline result panel */}
+      {!isMobile && active && (
         <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[length:14px] font-semibold text-[var(--text-primary)]">
@@ -416,7 +430,7 @@ export default function ReportsPage({ user }) {
             </h2>
             <button
               onClick={() => setActive(null)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[length:18px] leading-none"
+              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[length:18px] leading-none cursor-pointer bg-transparent border-none"
             >
               ✕
             </button>
