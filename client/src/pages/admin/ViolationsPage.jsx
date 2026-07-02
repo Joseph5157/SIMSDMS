@@ -53,7 +53,7 @@ function ResolveFlagModal({ violation, onClose }) {
 function AuditModal({ violationId, onClose }) {
   const { data } = useViolationAuditLog(violationId);
   return (
-    <Modal opened={!!violationId} onClose={onClose} title="Violation Audit Log" size="lg" centered>
+    <Modal opened={!!violationId} onClose={onClose} title="Student Violation Audit Log" size="lg" centered>
       <div className="space-y-2">
         {data?.data?.map((log) => (
           <div key={log.id} className="border border-[var(--border)] rounded-lg p-3 text-[length:13px]">
@@ -84,7 +84,7 @@ export default function ViolationsPage({ user }) {
   async function handleHide() {
     try {
       await hide.mutateAsync(hiding.id);
-      toast({ message: 'Violation hidden.' });
+      toast({ message: 'Student violation hidden.' });
       setHiding(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
@@ -93,8 +93,8 @@ export default function ViolationsPage({ user }) {
 
   return (
     <Layout user={user}>
-      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Violations' }]} />
-      <PageHeader title="Violations" subtitle="All recorded student violations" />
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Student Violations' }]} />
+      <PageHeader title="Student Violations" subtitle="All recorded student violations" />
 
       <div className="flex flex-wrap gap-3 mb-4">
         <Select
@@ -124,7 +124,7 @@ export default function ViolationsPage({ user }) {
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
         {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No violations found.</div>}
+        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No student violations found.</div>}
         {data?.data?.map((v) => (
           <div key={v.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -199,8 +199,8 @@ export default function ViolationsPage({ user }) {
       {hiding && (
         <ConfirmDialog
           open
-          title="Hide Violation"
-          message="Hide this violation record? It will no longer appear in the active list."
+          title="Hide Student Violation"
+          message="Hide this student violation record? It will no longer appear in the active list."
           confirmText="Hide"
           isDangerous
           isLoading={hide.isPending}

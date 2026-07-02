@@ -332,7 +332,7 @@ async function getPendingUsers(req, res) {
 // ─── GET /admin/audit-logs — Super Admin ──────────────────────────────────────
 
 async function getAuditLogs(req, res) {
-  const { actor, action, page = '1', limit = '50' } = req.query;
+  const { actor, action, from, to, page = '1', limit = '50' } = req.query;
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
@@ -340,6 +340,11 @@ async function getAuditLogs(req, res) {
   const where = {};
   if (actor) where.actor_id = actor;
   if (action) where.action = action;
+  if (from || to) {
+    where.created_at = {};
+    if (from) where.created_at.gte = new Date(from);
+    if (to)   where.created_at.lte = new Date(`${to}T23:59:59.999`);
+  }
 
   const [total, logs] = await Promise.all([
     prisma.adminAuditLog.count({ where }),

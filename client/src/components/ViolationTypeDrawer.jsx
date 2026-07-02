@@ -29,7 +29,7 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
         toast({ message: 'Updated.' });
       } else {
         await create.mutateAsync(payload);
-        toast({ message: 'Violation type created.' });
+        toast({ message: 'Student violation type created.' });
       }
       onClose();
     } catch (err) {
@@ -44,7 +44,7 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
     <BottomDrawer
       open={open}
       onClose={onClose}
-      title={editing ? 'Edit violation type' : 'New violation type'}
+      title={editing ? 'Edit student violation type' : 'New student violation type'}
       subtitle={editing ? 'Update name or fine amount' : 'Define a new disciplinary category'}
       footer={
         <>

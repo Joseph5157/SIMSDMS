@@ -10,7 +10,7 @@ import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
   IconTag, IconArrowsLeftRight, IconMail, IconChartBar,
-  IconBolt, IconKey, IconFileText, IconLogout, IconMenu2,
+  IconBolt, IconFileText, IconLogout, IconMenu2,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
@@ -27,8 +27,8 @@ const adminLinks = [
   { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',        Icon: IconCalendar },
   { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',      Icon: IconCalendarEvent },
   { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',      Icon: IconClipboardCheck },
-  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Violations',      Icon: IconAlertTriangle },
-  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Viol. Types',     Icon: IconTag },
+  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Stu. Viol. Types',   Icon: IconTag },
   { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',  Icon: IconArrowsLeftRight },
   { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',        Icon: IconMail },
   { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',         Icon: IconChartBar },
@@ -38,14 +38,13 @@ const facultyLinks = [
   { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',      Icon: IconLayoutDashboard },
   { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',       Icon: IconCalendarEvent },
   { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',     Icon: IconClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations',     Icon: IconAlertTriangle },
-  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests', Icon: IconArrowsLeftRight },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Student Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests',     Icon: IconArrowsLeftRight },
   { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',       Icon: IconMail },
 ];
 
 const superAdminExtra = [
   { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard', Icon: IconBolt },
-  { to: ROUTES.SUPER_ADMIN_SESSIONS,  label: 'Sessions',     Icon: IconKey },
   { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',   Icon: IconFileText },
 ];
 
@@ -68,7 +67,7 @@ const facultyBottomTabs = [
 const adminBottomTabs = [
   { to: ROUTES.ADMIN_DASHBOARD,   label: 'Home',       Icon: IconLayoutDashboard },
   { to: ROUTES.ADMIN_STUDENTS,    label: 'Students',   Icon: IconSchool },
-  { to: ROUTES.ADMIN_VIOLATIONS,  label: 'Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_VIOLATIONS,  label: 'Stu. Viol.', Icon: IconAlertTriangle },
   { to: ROUTES.ADMIN_ATTENDANCE,  label: 'Live',       Icon: IconClipboardCheck },
 ];
 

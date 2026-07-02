@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
 import { Button, Menu, ActionIcon } from '@mantine/core';
@@ -65,9 +66,10 @@ function InviteRowMenu({ invite, onRegenerate, onCancel }) {
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function UsersPage({ user }) {
   const toast = useToast();
+  const [searchParams] = useSearchParams();
   const [page,       setPage]       = useState(1);
-  const [role,       setRole]       = useState('');
-  const [status,     setStatus]     = useState('');
+  const [role,       setRole]       = useState(() => searchParams.get('role')   ?? '');
+  const [status,     setStatus]     = useState(() => searchParams.get('status') ?? '');
   const [search,     setSearch]     = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
@@ -185,6 +187,7 @@ export default function UsersPage({ user }) {
           <option value="">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="pending">Pending Approval</option>
           <option value="pending_telegram">Telegram Relink Needed</option>
         </select>
       </div>

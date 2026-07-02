@@ -33,7 +33,7 @@ async function createViolationType(req, res) {
     where: { name: { equals: name, mode: 'insensitive' } },
   });
   if (existing) {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A violation type with this name already exists.' });
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A student violation type with this name already exists.' });
   }
 
   const type = await prisma.violationType.create({
@@ -48,7 +48,7 @@ async function createViolationType(req, res) {
 async function updateViolationType(req, res) {
   const type = await prisma.violationType.findUnique({ where: { id: req.params.id } });
   if (!type) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation type not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation type not found.' });
   }
 
   const { name, default_fine } = req.body;
@@ -59,7 +59,7 @@ async function updateViolationType(req, res) {
       where: { name: { equals: name, mode: 'insensitive' }, id: { not: type.id } },
     });
     if (conflict) {
-      return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A violation type with this name already exists.' });
+      return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A student violation type with this name already exists.' });
     }
   }
 
@@ -79,10 +79,10 @@ async function updateViolationType(req, res) {
 async function deactivateViolationType(req, res) {
   const type = await prisma.violationType.findUnique({ where: { id: req.params.id } });
   if (!type) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation type not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation type not found.' });
   }
   if (!type.is_active) {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Violation type is already inactive.' });
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Student violation type is already inactive.' });
   }
 
   const updated = await prisma.violationType.update({
@@ -98,10 +98,10 @@ async function deactivateViolationType(req, res) {
 async function deleteViolationType(req, res) {
   const type = await prisma.violationType.findUnique({ where: { id: req.params.id } });
   if (!type) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation type not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation type not found.' });
   }
   if (type.is_system) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'System violation types cannot be deleted.' });
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'System student violation types cannot be deleted.' });
   }
 
   // Prevent delete if violations already reference this type
@@ -110,13 +110,13 @@ async function deleteViolationType(req, res) {
     return res.status(409).json({
       error: true,
       code: 'TYPE_IN_USE',
-      message: `Cannot delete — ${usageCount} violation record(s) use this type. Deactivate it instead.`,
+      message: `Cannot delete — ${usageCount} student violation record(s) use this type. Deactivate it instead.`,
     });
   }
 
   await prisma.violationType.delete({ where: { id: req.params.id } });
 
-  res.json({ message: 'Violation type deleted.' });
+  res.json({ message: 'Student violation type deleted.' });
 }
 
 module.exports = {

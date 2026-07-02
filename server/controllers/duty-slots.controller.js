@@ -256,7 +256,7 @@ async function unpickSlot(req, res) {
     return res.status(409).json({
       error: true,
       code: 'VIOLATIONS_EXIST',
-      message: 'Violations have been recorded for this slot and it cannot be removed.',
+      message: 'Student violations have been recorded for this slot and it cannot be removed.',
     });
   }
 

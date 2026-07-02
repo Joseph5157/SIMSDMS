@@ -6,10 +6,12 @@ import BottomDrawer from '../../components/ui/BottomDrawer';
 import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
-  useAttendanceOverrides, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
+  useAttendanceOverrides, useStudentViolations, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
   useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useCoverRequestSummary,
   useCompletionRate, useUploadHistory, useActiveStudents,
 } from '../../hooks/useReports';
+import { useToast } from '../../components/ui/Toast';
+import api from '../../utils/api';
 import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -21,11 +23,11 @@ const REPORTS = [
   { id: 'late-arrivals',        group: 'Attendance',      emoji: '⏰', color: 'bg-[var(--color-amber-bg)]',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
   { id: 'absent-faculty',       group: 'Attendance',      emoji: '❌', color: 'bg-[var(--color-red-bg)]',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
   { id: 'auto-clockout',        group: 'Attendance',      emoji: '🕓', color: 'bg-[var(--color-orange-bg)]', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
-  // Violations group
-  { id: 'faculty-activity',     group: 'Violations',      emoji: '👤', color: 'bg-[var(--color-purple-bg)]', label: 'Faculty Activity',      desc: 'Violations recorded per faculty' },
-  { id: 'violation-types',      group: 'Violations',      emoji: '🏷', color: 'bg-[var(--color-indigo-100)]', label: 'Type Breakdown',        desc: 'Violations grouped by type' },
-  { id: 'pending-fines',        group: 'Violations',      emoji: '💰', color: 'bg-[var(--color-amber-bg)]', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
-  { id: 'flagged-violations',   group: 'Violations',      emoji: '⚑',  color: 'bg-[var(--color-amber-bg)]',  label: 'Flagged Violations',    desc: 'Records flagged for Admin review' },
+  // Student Violations group
+  { id: 'faculty-activity',     group: 'Student Violations', emoji: '👤', color: 'bg-[var(--color-purple-bg)]', label: 'Faculty Activity',      desc: 'Student violations recorded per faculty' },
+  { id: 'violation-types',      group: 'Student Violations', emoji: '🏷', color: 'bg-[var(--color-indigo-100)]', label: 'Type Breakdown',        desc: 'Student violations grouped by type' },
+  { id: 'pending-fines',        group: 'Student Violations', emoji: '💰', color: 'bg-[var(--color-amber-bg)]', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
+  { id: 'flagged-violations',   group: 'Student Violations', emoji: '⚑',  color: 'bg-[var(--color-amber-bg)]',  label: 'Flagged Student Violations', desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
   { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-[var(--color-emerald-bg)]',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
   { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--surface-page)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
@@ -35,10 +37,9 @@ const REPORTS = [
   { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-[var(--color-red-bg)]',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
   { id: 'upload-history',       group: 'Students',        emoji: '📤', color: 'bg-[var(--color-blue-100)]',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
   { id: 'active-students',      group: 'Students',        emoji: '🎓', color: 'bg-[var(--color-emerald-bg)]',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
-  { id: 'student-violations',   group: 'Students',        emoji: '⚠️', color: 'bg-[var(--color-red-bg)]',   label: 'Student Violations',    desc: 'All violations by student' },
 ];
 
-const REPORT_GROUPS = ['Attendance', 'Violations', 'Duty & Coverage', 'Students'];
+const REPORT_GROUPS = ['Attendance', 'Student Violations', 'Duty & Coverage', 'Students'];
 
 // ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
@@ -131,7 +132,7 @@ function ReportSection({ id, data, isLoading }) {
 
     case 'faculty-activity': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
+        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Student Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r, i) => (
@@ -325,8 +326,101 @@ function ReportSection({ id, data, isLoading }) {
   }
 }
 
+// ── Student Monthly Violation Report — the primary report (Monthly / Yearly / Overall + Excel export) ──
+const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)]';
+
+function StudentViolationReportCard() {
+  const toast = useToast();
+  const now = new Date();
+  const [mode, setMode]   = useState('monthly'); // 'monthly' | 'yearly' | 'overall'
+  const [year, setYear]   = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [downloading, setDownloading] = useState(false);
+
+  const params = mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {};
+  const { data, isLoading } = useStudentViolations(params);
+
+  async function handleDownload() {
+    setDownloading(true);
+    try {
+      const res = await api.get('/reports/student-violations/export', { params, responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const suffix = mode === 'monthly' ? `${year}-${String(month).padStart(2, '0')}` : mode === 'yearly' ? String(year) : 'all-time';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `student-violations-${suffix}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ message: 'Could not download report.', type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className="bg-[var(--surface-card)] border-2 border-[var(--brand)] rounded-2xl p-5 mb-8">
+      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+        <div>
+          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--brand)] mb-1">Main report</p>
+          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">⚠️ Student Monthly Violation Report</h2>
+          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — monthly, yearly, or overall</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading || isLoading || !data?.data?.length}
+          className="shrink-0 h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+        >
+          {downloading ? 'Preparing…' : '⬇ Download Excel'}
+        </button>
+      </div>
+
+      {/* Mode switcher */}
+      <div className="flex gap-2 mb-4">
+        {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['overall', 'Overall']].map(([m, label]) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+              mode === m
+                ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
+                : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Year / Month pickers depending on mode */}
+      {mode !== 'overall' && (
+        <div className="flex gap-2 mb-5">
+          <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
+          </select>
+          {mode === 'monthly' && (
+            <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+            </select>
+          )}
+        </div>
+      )}
+
+      {!isLoading && data && (
+        <p className="text-[length:12px] text-[var(--text-muted)] mb-3">
+          Showing {data.shown ?? data.data?.length ?? 0} of {data.total ?? 0} student violation{(data.total ?? 0) === 1 ? '' : 's'}
+        </p>
+      )}
+
+      <ReportSection id="student-violations" data={data} isLoading={isLoading} />
+    </div>
+  );
+}
+
 // ── Report view (runs the hook for selected report) ────────────────────────────
-const NO_MONTH = ['pending-fines','flagged-violations','upload-history','active-students','completion-rate','student-violations'];
+const NO_MONTH = ['pending-fines','flagged-violations','upload-history','active-students','completion-rate'];
 
 function ReportView({ id }) {
   const now = new Date();
@@ -379,7 +473,13 @@ export default function ReportsPage({ user }) {
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Reports' }]} />
-      <PageHeader title="Reports" subtitle="16 system reports" />
+      <PageHeader title="Reports" subtitle="1 primary report + 15 secondary reports" />
+
+      <StudentViolationReportCard />
+
+      <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] mb-3">
+        Secondary reports
+      </p>
 
       {/* Grouped report cards */}
       {REPORT_GROUPS.map((group) => (

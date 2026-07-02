@@ -32,6 +32,8 @@ These decisions are locked. Do not suggest alternatives or use different tools.
 | Tailwind CSS | Mobile-first responsive styling |
 | Workbox | PWA service worker caching |
 
+> **Evaluated and rejected (2026-07-01): Server-Driven UI (SDUI) for the Admin desktop panel.** SDUI earns its complexity when UI needs to change without a redeploy (native apps gated by app-store review) or one backend serves many heterogeneous clients. Neither applies — this is a single web admin panel for one college's admin team, redeploys are a `git push` to Railway, and scale is ~20-30 faculty. Stick with React + Tailwind + TanStack Query above; do not revisit without a changed scale/deploy constraint.
+
 ### Backend
 
 | Tool | Purpose |

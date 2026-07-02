@@ -20,6 +20,7 @@ router.get('/absent-faculty',       validateQuery(yearMonthQuery),          asyn
 router.get('/auto-clockout',        validateQuery(yearMonthQuery),          asyncHandler(ctrl.autoClockOutReport));
 router.get('/attendance-overrides', validateQuery(yearMonthQuery),          asyncHandler(ctrl.attendanceOverrideLog));
 router.get('/student-violations',   validateQuery(studentViolationQuery),   asyncHandler(ctrl.studentViolationHistory));
+router.get('/student-violations/export', validateQuery(studentViolationQuery), asyncHandler(ctrl.studentViolationHistoryExport));
 router.get('/faculty-activity',     validateQuery(facultyActivityQuery),    asyncHandler(ctrl.facultyViolationActivity));
 router.get('/violation-types',      validateQuery(yearMonthQuery),          asyncHandler(ctrl.violationTypeBreakdown));
 router.get('/pending-fines',        asyncHandler(ctrl.pendingFinesSummary));

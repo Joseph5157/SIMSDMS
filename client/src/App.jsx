@@ -35,7 +35,6 @@ import FacultyCoverRequestsPage from './pages/faculty/CoverRequestsPage';
 import MessagesPage     from './pages/shared/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
 import SuperAdminDashboardPage from './pages/super-admin/SuperAdminDashboardPage';
-import SessionResetPage from './pages/super-admin/SessionResetPage';
 import AuditLogsPage    from './pages/super-admin/AuditLogsPage';
 
 const queryClient = new QueryClient({
@@ -112,7 +111,6 @@ function AppRoutes() {
       {/* Super Admin routes — Super Admin only */}
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['super_admin']} />}>
         <Route path="/super-admin/dashboard"  element={<SuperAdminDashboardPage user={user} />} />
-        <Route path="/super-admin/sessions"   element={<SessionResetPage user={user} />} />
         <Route path="/super-admin/audit"      element={<AuditLogsPage user={user} />} />
       </Route>
 

@@ -18,7 +18,7 @@ function FlagModal({ violation, onClose }) {
     e.preventDefault();
     try {
       await flag.mutateAsync({ id: violation.id, flag_note: note });
-      toast({ message: 'Violation flagged for review.' });
+      toast({ message: 'Student violation flagged for review.' });
       onClose();
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
@@ -55,9 +55,9 @@ export default function ViolationRecorderPage({ user }) {
   return (
     <Layout user={user}>
       <PageHeader
-        title="Violations"
-        subtitle="Violations you've recorded"
-        action={<Button size="sm" onClick={() => setShowRecord(true)}>+ Record Violation</Button>}
+        title="Student Violations"
+        subtitle="Student violations you've recorded"
+        action={<Button size="sm" onClick={() => setShowRecord(true)}>+ Record Student Violation</Button>}
       />
       <Table>
         <thead>
@@ -67,7 +67,7 @@ export default function ViolationRecorderPage({ user }) {
         </thead>
         <tbody>
           {isLoading && <EmptyRow cols={6} message="Loading…" />}
-          {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No violations recorded." />}
+          {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No student violations recorded." />}
           {data?.data?.map((v) => (
             <tr key={v.id}>
               <Td>

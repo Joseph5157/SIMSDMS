@@ -61,18 +61,15 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
         />
 
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 z-40 flex flex-col outline-none"
+          className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-40 flex flex-col outline-none max-h-[94vh] sm:max-h-[85vh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
           style={{
             backgroundColor: 'var(--surface-card)',
-            borderRadius: '20px 20px 0 0',
-            maxHeight: '94vh',
-            boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
           }}
         >
 
           {/* Drag handle */}
           <div
-            className="w-9 h-1 rounded-sm mx-auto mt-3 shrink-0"
+            className="w-9 h-1 rounded-sm mx-auto mt-3 shrink-0 sm:hidden"
             style={{ backgroundColor: 'var(--border)' }}
           />
 

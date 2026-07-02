@@ -9,7 +9,7 @@ const ACCENTS = {
   default: { bar: 'var(--border-strong)', bg: 'var(--surface-card)', text: 'var(--text-primary)', border: 'var(--border)' },
 };
 
-export default function StatCard({ label, value, sub, accent = 'default', icon }) {
+export default function StatCard({ label, value, sub, accent = 'default', icon, onClick }) {
   const c = ACCENTS[accent] ?? ACCENTS.default;
   const isNumber = typeof value === 'number';
   const [display, setDisplay] = useState(isNumber ? 0 : value);
@@ -29,7 +29,8 @@ export default function StatCard({ label, value, sub, accent = 'default', icon }
 
   return (
     <div
-      className="relative rounded-[var(--radius-xl)] overflow-hidden min-h-24 flex flex-col justify-start gap-2 font-[var(--font-sans)]"
+      onClick={onClick}
+      className={`relative rounded-[var(--radius-xl)] overflow-hidden min-h-24 flex flex-col justify-start gap-2 font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''}`}
       style={{
         border: `1px solid ${c.border}`,
         backgroundColor: c.bg,

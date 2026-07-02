@@ -4,7 +4,7 @@ const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { promoteSchema } = require('../schemas/students.schema');
+const { promoteSchema, bulkPromoteSchema, bulkDeactivateSchema } = require('../schemas/students.schema');
 const ctrl = require('../controllers/students.controller');
 
 const router = Router();
@@ -55,6 +55,15 @@ router.get('/search', asyncHandler(ctrl.searchStudents));
 
 // GET /students — Admin only
 router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listStudents));
+
+// GET /students/:id — Admin only (MUST be after literal /upload-*, /search routes above)
+router.get('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.getStudent));
+
+// PATCH /students/bulk/promote — Admin only (MUST be before /:id/promote — see note above)
+router.patch('/bulk/promote', authorize('admin', 'super_admin'), validate(bulkPromoteSchema), asyncHandler(ctrl.bulkPromoteStudents));
+
+// PATCH /students/bulk/deactivate — Admin only (MUST be before /:id/deactivate — see note above)
+router.patch('/bulk/deactivate', authorize('admin', 'super_admin'), validate(bulkDeactivateSchema), asyncHandler(ctrl.bulkDeactivateStudents));
 
 // PATCH /students/:id/promote — Admin only
 router.patch('/:id/promote', authorize('admin', 'super_admin'), validate(promoteSchema), asyncHandler(ctrl.promoteStudent));

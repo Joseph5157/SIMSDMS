@@ -80,7 +80,7 @@ export default function RecordViolationModal({ open, onClose }) {
         setShowRemarks(false);
         setTimeout(() => studentInputRef.current?.focus(), 50);
       } else {
-        toast({ message: 'Violation recorded.' });
+        toast({ message: 'Student violation recorded.' });
         onClose();
       }
     } catch (err) {
@@ -92,10 +92,10 @@ export default function RecordViolationModal({ open, onClose }) {
     <FormModal
       opened={open}
       onClose={onClose}
-      title="Record Violation"
+      title="Record Student Violation"
       size="xl"
       onSubmit={handleSubmit}
-      submitLabel="Record Violation"
+      submitLabel="Record Student Violation"
       loading={create.isPending}
     >
       <div className="flex flex-col">
@@ -179,9 +179,9 @@ export default function RecordViolationModal({ open, onClose }) {
 
         {/* ── Violation type + Fine ── */}
         <div className="flex flex-col gap-4 py-6">
-          <SectionLabel>Violation</SectionLabel>
+          <SectionLabel>Student Violation</SectionLabel>
           <Select
-            label="Violation type"
+            label="Student violation type"
             placeholder="Select type…"
             value={form.violation_type_id || null}
             onChange={handleTypeChange}

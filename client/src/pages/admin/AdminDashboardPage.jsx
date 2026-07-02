@@ -13,7 +13,7 @@ import { ROUTES } from '../../utils/constants';
 const QUICK_ACTIONS = [
   { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE,      tint: 'var(--color-emerald-bg)', ink: 'var(--color-emerald-text)' },
   { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS,  tint: 'var(--color-blue-50)',    ink: 'var(--color-blue-800)' },
-  { label: 'Violations',      emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,      tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
+  { label: 'Student Violations', emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,   tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
   { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
 ];
 
@@ -203,7 +203,7 @@ export default function AdminDashboardPage({ user }) {
       {/* ── Flagged violations requiring review ── */}
       {pendingFlaggedCount > 0 && (
         <Card className="mb-4">
-          <CardHeader>⚑ Flagged violations — needs review</CardHeader>
+          <CardHeader>⚑ Flagged student violations — needs review</CardHeader>
           <CardBody className="p-0">
             <div className="max-h-[200px] overflow-y-auto">
               {pendingFlaggedViolations.map((v) => (
@@ -231,7 +231,7 @@ export default function AdminDashboardPage({ user }) {
                 onClick={() => navigate(ROUTES.ADMIN_VIOLATIONS + '?is_flagged=true')}
                 style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
-                Review all flagged violations →
+                Review all flagged student violations →
               </button>
             </div>
           </CardBody>

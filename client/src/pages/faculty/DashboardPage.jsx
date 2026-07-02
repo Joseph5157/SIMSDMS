@@ -129,7 +129,7 @@ export default function DashboardPage({ user }) {
   const activityItems = [
     ...(violationsData?.data ?? []).map((v) => ({
       id: `v-${v.id}`, icon: '⚠️', timestamp: v.created_at,
-      text: `Violation recorded — ${v.student?.student_name ?? 'Student'}`,
+      text: `Student violation recorded — ${v.student?.student_name ?? 'Student'}`,
     })),
     ...(inboxData?.data ?? []).map((m) => ({
       id: `m-${m.id}`, icon: '✉️', timestamp: m.created_at, unread: !m.is_read,
@@ -251,7 +251,7 @@ export default function DashboardPage({ user }) {
         <section className="mb-4 flex gap-2 flex-wrap">
           {canDoViolation && (
             <Button size="md" variant="light" leftSection={<span>⚠️</span>} onClick={() => setShowRecordViolation(true)}>
-              Record Violation
+              Record Student Violation
             </Button>
           )}
           <Button size="md" variant="light" leftSection={<span>🔄</span>} onClick={() => setShowRequestCover(true)}>

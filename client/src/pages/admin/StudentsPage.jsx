@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Breadcrumb from '../../components/Breadcrumb';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button, Select } from '@mantine/core';
+import { Table, Th, Td, Tr, EmptyRow } from '../../components/ui/Table';
+import { Button, Select, Checkbox } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -10,8 +10,12 @@ import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
 import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
+import StudentDetailsDrawer from '../../components/StudentDetailsDrawer';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useStudents, usePromoteStudent, useDeactivateStudent } from '../../hooks/useStudents';
+import {
+  useStudents, usePromoteStudent, useDeactivateStudent,
+  useBulkPromoteStudents, useBulkDeactivateStudents,
+} from '../../hooks/useStudents';
 import { ROUTES } from '../../utils/constants';
 
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
@@ -94,6 +98,66 @@ function PromoteModal({ open, student, onClose }) {
   );
 }
 
+function BulkPromoteModal({ open, ids, onClose, onDone }) {
+  const toast   = useToast();
+  const promote = useBulkPromoteStudents();
+  const [form, setForm] = useState({ year: '1', semester: '1', academic_year: '' });
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    try {
+      const res = await promote.mutateAsync({
+        ids,
+        year:          parseInt(form.year, 10),
+        semester:      parseInt(form.semester, 10),
+        academic_year: form.academic_year || undefined,
+      });
+      toast({ message: `Promoted ${res.data.updated} student${res.data.updated === 1 ? '' : 's'}.` });
+      onDone();
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  return (
+    <FormModal
+      opened={open}
+      onClose={onClose}
+      title={`Promote ${ids.length} student${ids.length === 1 ? '' : 's'}`}
+      size="sm"
+      onSubmit={handleSubmit}
+      submitLabel="Promote"
+      loading={promote.isPending}
+    >
+      <Select
+        label="Year"
+        data={YEAR_OPTIONS}
+        value={form.year}
+        onChange={(v) => setForm((f) => ({ ...f, year: v }))}
+        required
+      />
+      <Select
+        label="Semester"
+        data={SEMESTER_OPTIONS}
+        value={form.semester}
+        onChange={(v) => setForm((f) => ({ ...f, semester: v }))}
+        required
+        mt="sm"
+      />
+      <input
+        placeholder="Academic Year e.g. 2025-26 (optional)"
+        value={form.academic_year}
+        onChange={(e) => setForm((f) => ({ ...f, academic_year: e.target.value }))}
+        style={{
+          marginTop: 12, width: '100%', padding: '8px 12px',
+          border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+          fontSize: 16, outline: 'none',
+        }}
+      />
+    </FormModal>
+  );
+}
+
 export default function StudentsPage({ user }) {
   const toast = useToast();
   const [page, setPage]     = useState(1);
@@ -104,6 +168,10 @@ export default function StudentsPage({ user }) {
   const [showUpload, setShowUpload]       = useState(false);
   const [promoting, setPromoting]         = useState(null);
   const [deactivating, setDeactivating]   = useState(null);
+  const [viewingId, setViewingId]         = useState(null);
+  const [selectedIds, setSelectedIds]         = useState(new Set());
+  const [showBulkPromote, setShowBulkPromote] = useState(false);
+  const [bulkDeactivating, setBulkDeactivating] = useState(false);
 
   const debouncedSearch = useDebounce(search, 500);
   const { data, isLoading } = useStudents({
@@ -114,7 +182,38 @@ export default function StudentsPage({ user }) {
     page,
     limit:   20,
   });
-  const deactivate = useDeactivateStudent();
+  const deactivate     = useDeactivateStudent();
+  const bulkDeactivate = useBulkDeactivateStudents();
+
+  // Selection is page-scoped — clear it whenever the visible row set changes
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, filterCourse, filterYear, filterSection, debouncedSearch]);
+
+  const pageIds     = (data?.data ?? []).map((s) => s.id);
+  const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const someSelected = pageIds.some((id) => selectedIds.has(id));
+
+  function toggleSelect(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
 
   function resetFilters() {
     setFilterCourse(''); setFilterYear(''); setFilterSection('');
@@ -128,6 +227,18 @@ export default function StudentsPage({ user }) {
       setDeactivating(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
+
+  async function handleBulkDeactivate() {
+    try {
+      const res = await bulkDeactivate.mutateAsync(Array.from(selectedIds));
+      toast({ message: `Deactivated ${res.data.updated} student${res.data.updated === 1 ? '' : 's'}.` });
+      clearSelection();
+      setBulkDeactivating(false);
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+      setBulkDeactivating(false);
     }
   }
 
@@ -199,19 +310,32 @@ export default function StudentsPage({ user }) {
         )}
         {data?.data?.map((s) => (
           <div key={s.id} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--border)', gap: 12,
+            borderBottom: '1px solid var(--border)',
           }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {s.student_name}
-              </p>
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
-                {s.registration_number} · {COURSE_LABELS[s.course] ?? s.course} · Yr {s.year} Sem {s.semester}{s.section ? ` · ${s.section}` : ''}
-              </p>
+            <div onClick={() => setViewingId(s.id)} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 12, cursor: 'pointer',
+            }}>
+              <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                <Checkbox checked={selectedIds.has(s.id)} onChange={() => toggleSelect(s.id)} />
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {s.student_name}
+                </p>
+                <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+                  {s.registration_number} · {COURSE_LABELS[s.course] ?? s.course} · Yr {s.year} Sem {s.semester}{s.section ? ` · ${s.section}` : ''}
+                </p>
+              </div>
+              <Badge status={s.status} />
             </div>
-            <Badge status={s.status} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <Button variant="subtle" size="xs" onClick={() => setPromoting(s)}>Promote</Button>
+              {s.status === 'active' && (
+                <Button variant="subtle" size="xs" color="red" onClick={() => setDeactivating(s)}>Deactivate</Button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -221,6 +345,13 @@ export default function StudentsPage({ user }) {
         <Table>
           <thead>
             <tr>
+              <Th>
+                <Checkbox
+                  checked={allSelected}
+                  indeterminate={someSelected && !allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </Th>
               <Th>Reg. No.</Th>
               <Th>Name</Th>
               <Th>Course</Th>
@@ -233,10 +364,15 @@ export default function StudentsPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && Array.from({ length: 10 }).map((_, i) => <TableRowSkeleton key={i} cols={9} />)}
-            {!isLoading && !data?.data?.length && <EmptyRow cols={9} />}
+            {isLoading && Array.from({ length: 10 }).map((_, i) => <TableRowSkeleton key={i} cols={10} />)}
+            {!isLoading && !data?.data?.length && <EmptyRow cols={10} />}
             {data?.data?.map((s) => (
-              <tr key={s.id}>
+              <Tr key={s.id} onClick={() => setViewingId(s.id)}>
+                <Td>
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <Checkbox checked={selectedIds.has(s.id)} onChange={() => toggleSelect(s.id)} />
+                  </span>
+                </Td>
                 <Td className="font-mono text-xs">{s.registration_number}</Td>
                 <Td className="font-medium text-[var(--text-primary)]">{s.student_name}</Td>
                 <Td>{COURSE_LABELS[s.course] ?? s.course}</Td>
@@ -246,14 +382,14 @@ export default function StudentsPage({ user }) {
                 <Td>{s.academic_year}</Td>
                 <Td><Badge status={s.status} /></Td>
                 <Td>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button variant="subtle" size="xs" onClick={() => setPromoting(s)}>Promote</Button>
                     {s.status === 'active' && (
                       <Button variant="subtle" size="xs" color="red" onClick={() => setDeactivating(s)}>Deactivate</Button>
                     )}
                   </div>
                 </Td>
-              </tr>
+              </Tr>
             ))}
           </tbody>
         </Table>
@@ -272,7 +408,31 @@ export default function StudentsPage({ user }) {
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
+      {selectedIds.size > 0 && <div style={{ height: 64 }} />}
+
+      {selectedIds.size > 0 && (
+        <div
+          className="fixed left-0 right-0 z-40 bottom-[60px] sm:bottom-0"
+          style={{
+            backgroundColor: 'var(--surface-card)', borderTop: '1px solid var(--border)',
+            boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
+            padding: '10px 16px', display: 'flex', alignItems: 'center',
+            justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)' }}>
+            {selectedIds.size} selected
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="subtle" size="sm" onClick={clearSelection}>Clear</Button>
+            <Button variant="light" size="sm" onClick={() => setShowBulkPromote(true)}>Bulk Promote</Button>
+            <Button variant="light" color="red" size="sm" onClick={() => setBulkDeactivating(true)}>Bulk Deactivate</Button>
+          </div>
+        </div>
+      )}
+
       <UploadStudentsDrawer open={showUpload} onClose={() => setShowUpload(false)} />
+      <StudentDetailsDrawer studentId={viewingId} onClose={() => setViewingId(null)} />
       {promoting && <PromoteModal open student={promoting} onClose={() => setPromoting(null)} />}
       {deactivating && (
         <ConfirmDialog
@@ -284,6 +444,26 @@ export default function StudentsPage({ user }) {
           confirmText="Deactivate"
           isDangerous
           isLoading={deactivate.isPending}
+        />
+      )}
+      {showBulkPromote && (
+        <BulkPromoteModal
+          open
+          ids={Array.from(selectedIds)}
+          onClose={() => setShowBulkPromote(false)}
+          onDone={() => { setShowBulkPromote(false); clearSelection(); }}
+        />
+      )}
+      {bulkDeactivating && (
+        <ConfirmDialog
+          open
+          onConfirm={handleBulkDeactivate}
+          onCancel={() => setBulkDeactivating(false)}
+          title="Deactivate Students"
+          message={`Are you sure you want to deactivate ${selectedIds.size} student${selectedIds.size === 1 ? '' : 's'}?`}
+          confirmText="Deactivate"
+          isDangerous
+          isLoading={bulkDeactivate.isPending}
         />
       )}
     </Layout>

@@ -1,22 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
-import { getCacheKey, setCacheKey } from '../lib/cache';
 
 export function useStudents(filters = {}) {
-  // Generate cache key based on filters
-  const cacheKey = `STUDENTS_${JSON.stringify(filters)}`;
-  const cachedData = getCacheKey(cacheKey);
-
   return useQuery({
     queryKey: ['students', filters],
     queryFn: async () => {
       const res = await api.get('/students', { params: filters });
-      // Cache the result
-      setCacheKey(cacheKey, res.data);
       return res.data;
     },
-    initialData: cachedData,
     staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+export function useStudent(id) {
+  return useQuery({
+    queryKey: ['student', id],
+    queryFn: async () => {
+      const res = await api.get(`/students/${id}`);
+      return res.data;
+    },
+    enabled: !!id,
   });
 }
 
@@ -65,6 +68,22 @@ export function useDeactivateStudent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id) => api.patch(`/students/${id}/deactivate`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
+  });
+}
+
+export function useBulkPromoteStudents() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, ...data }) => api.patch('/students/bulk/promote', { ids, ...data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
+  });
+}
+
+export function useBulkDeactivateStudents() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids) => api.patch('/students/bulk/deactivate', { ids }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
   });
 }

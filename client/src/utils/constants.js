@@ -28,7 +28,6 @@ export const ROUTES = {
   FACULTY_MESSAGES:       '/faculty/messages',
   // Super Admin
   SUPER_ADMIN_DASHBOARD:  '/super-admin/dashboard',
-  SUPER_ADMIN_SESSIONS:   '/super-admin/sessions',
   SUPER_ADMIN_AUDIT:      '/super-admin/audit',
 };
 

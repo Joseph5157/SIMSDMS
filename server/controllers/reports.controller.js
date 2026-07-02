@@ -1,10 +1,28 @@
 const prisma = require('../lib/prisma');
+const { buildWorkbook, sendWorkbook } = require('../lib/excel');
 
 function monthRange(year, month) {
   return {
     gte: new Date(year, month - 1, 1),
     lte: new Date(year, month, 0, 23, 59, 59, 999),
   };
+}
+
+function yearRange(year) {
+  return {
+    gte: new Date(year, 0, 1),
+    lte: new Date(year, 11, 31, 23, 59, 59, 999),
+  };
+}
+
+// Shared filter builder for the student violation report + its export —
+// year+month = one month, year alone = whole year, neither = all-time.
+function studentViolationWhere({ student_id, year, month }) {
+  const where = { record_status: 'active' };
+  if (student_id) where.student_id = student_id;
+  if (year && month) where.dutySlot = { duty_date: monthRange(parseInt(year, 10), parseInt(month, 10)) };
+  else if (year)     where.dutySlot = { duty_date: yearRange(parseInt(year, 10)) };
+  return where;
 }
 
 // 1. Monthly Faculty Attendance Summary
@@ -105,25 +123,63 @@ async function attendanceOverrideLog(req, res) {
   res.json({ year, month, data: records, total: records.length });
 }
 
-// 6. Student Violation History
-async function studentViolationHistory(req, res) {
-  const { student_id, year, month } = req.query;
-  const where = { record_status: 'active' };
-  if (student_id) where.student_id = student_id;
-  if (year && month) where.dutySlot = { duty_date: monthRange(parseInt(year,10), parseInt(month,10)) };
+// Filename date suffix shared by every report export — monthly / yearly / all-time.
+function dateSuffix({ year, month }) {
+  return year && month ? `${year}-${String(month).padStart(2, '0')}` : year ? String(year) : 'all-time';
+}
 
-  const violations = await prisma.violation.findMany({
+async function _getStudentViolations(where, { take } = {}) {
+  return prisma.violation.findMany({
     where,
     include: {
       student:       { select: { registration_number: true, student_name: true, course: true } },
       faculty:       { select: { name: true } },
       violationType: { select: { name: true } },
+      dutySlot:      { select: { duty_date: true } },
     },
     orderBy: { created_at: 'desc' },
-    take: 200,
+    ...(take && { take }),
   });
+}
 
-  res.json({ data: violations, total: violations.length });
+// 6. Student Violation History
+async function studentViolationHistory(req, res) {
+  const where = studentViolationWhere(req.query);
+
+  const [total, violations] = await Promise.all([
+    prisma.violation.count({ where }),
+    _getStudentViolations(where, { take: 200 }),
+  ]);
+
+  res.json({ data: violations, total, shown: violations.length });
+}
+
+// 6b. Student Violation History — Export (.xlsx, all matching rows, no cap)
+async function studentViolationHistoryExport(req, res) {
+  const where = studentViolationWhere(req.query);
+  const violations = await _getStudentViolations(where);
+
+  const buffer = await buildWorkbook('Student Violations', [
+    { header: 'Registration Number',    key: 'reg_no',      width: 22 },
+    { header: 'Student Name',           key: 'name',        width: 24 },
+    { header: 'Course',                 key: 'course',      width: 12 },
+    { header: 'Student Violation Type', key: 'type',        width: 22 },
+    { header: 'Fine (₹)',               key: 'fine',        width: 12 },
+    { header: 'Faculty',                key: 'faculty',     width: 22 },
+    { header: 'Duty Date',              key: 'duty_date',   width: 14 },
+    { header: 'Recorded At',            key: 'created_at',  width: 18 },
+  ], violations.map((v) => ({
+    reg_no:     v.student?.registration_number,
+    name:       v.student?.student_name,
+    course:     v.student?.course,
+    type:       v.violationType?.name,
+    fine:       v.is_warning_only ? 'Warning only' : Number(v.fine_amount ?? 0),
+    faculty:    v.faculty?.name,
+    duty_date:  v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
+    created_at: new Date(v.created_at).toLocaleString('en-IN'),
+  })));
+
+  sendWorkbook(res, buffer, `student-violations-${dateSuffix(req.query)}.xlsx`);
 }
 
 // 7. Faculty Violation Activity
@@ -344,7 +400,7 @@ async function activeStudentRoster(req, res) {
 
 module.exports = {
   monthlyAttendanceSummary, lateArrivalReport, absentFacultyReport, autoClockOutReport,
-  attendanceOverrideLog, studentViolationHistory, facultyViolationActivity, violationTypeBreakdown,
+  attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport, facultyViolationActivity, violationTypeBreakdown,
   pendingFinesSummary, flaggedViolationsReport, monthlyDutyCoverage, unassignedFacultyReport,
   coverRequestSummary, sessionCompletionRate, studentUploadHistory, activeStudentRoster,
 };

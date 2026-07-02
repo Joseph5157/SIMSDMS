@@ -6,4 +6,12 @@ const promoteSchema = z.object({
   academic_year: z.string().regex(/^\d{4}-\d{2,4}$/, 'Format must be e.g. 2024-25').optional(),
 });
 
-module.exports = { promoteSchema };
+const bulkPromoteSchema = promoteSchema.extend({
+  ids: z.array(z.string()).min(1),
+});
+
+const bulkDeactivateSchema = z.object({
+  ids: z.array(z.string()).min(1),
+});
+
+module.exports = { promoteSchema, bulkPromoteSchema, bulkDeactivateSchema };

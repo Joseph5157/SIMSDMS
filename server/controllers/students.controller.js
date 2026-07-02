@@ -296,6 +296,16 @@ async function listStudents(req, res) {
   res.json({ data: students, meta: { total, page: pageNum, limit: pageSize, pages: Math.ceil(total / pageSize) } });
 }
 
+// ─── GET /students/:id ──────────────────────────────────────────────────────────
+
+async function getStudent(req, res) {
+  const student = await prisma.student.findUnique({ where: { id: req.params.id } });
+  if (!student || student.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student not found.' });
+  }
+  res.json(student);
+}
+
 // ─── GET /students/search ──────────────────────────────────────────────────────
 
 async function searchStudents(req, res) {
@@ -372,6 +382,75 @@ async function deactivateStudent(req, res) {
   res.json(updated);
 }
 
+// ─── PATCH /students/bulk/promote ─────────────────────────────────────────────
+
+async function bulkPromoteStudents(req, res) {
+  const { ids, year, semester, academic_year } = req.body;
+
+  const data = {
+    year,
+    semester,
+    semester_or_year: `Year ${year} Sem ${semester}`,
+    ...(academic_year && { academic_year }),
+  };
+
+  const skipped = [];
+  let updated = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const id of ids) {
+      const student = await tx.student.findUnique({ where: { id } });
+      if (!student || student.deleted_at) {
+        skipped.push({ id, reason: 'not found' });
+        continue;
+      }
+      await tx.student.update({ where: { id }, data });
+      updated++;
+    }
+  });
+
+  await logAction({
+    actorId: req.user.id, action: 'BULK_PROMOTE_STUDENTS', targetType: 'student',
+    metadata: { count: updated, student_ids: ids, to: { year, semester, academic_year } },
+  });
+
+  res.json({ updated, skipped });
+}
+
+// ─── PATCH /students/bulk/deactivate ──────────────────────────────────────────
+
+async function bulkDeactivateStudents(req, res) {
+  const { ids } = req.body;
+
+  const skipped = [];
+  let updated = 0;
+  const updatedIds = [];
+
+  await prisma.$transaction(async (tx) => {
+    for (const id of ids) {
+      const student = await tx.student.findUnique({ where: { id } });
+      if (!student || student.deleted_at) {
+        skipped.push({ id, reason: 'not found' });
+        continue;
+      }
+      if (student.status === 'inactive') {
+        skipped.push({ id, reason: 'already inactive' });
+        continue;
+      }
+      await tx.student.update({ where: { id }, data: { status: 'inactive' } });
+      updated++;
+      updatedIds.push(id);
+    }
+  });
+
+  await logAction({
+    actorId: req.user.id, action: 'BULK_DEACTIVATE_STUDENTS', targetType: 'student',
+    metadata: { count: updated, student_ids: updatedIds },
+  });
+
+  res.json({ updated, skipped });
+}
+
 // ─── GET /students/upload-template ────────────────────────────────────────────
 
 async function downloadTemplate(req, res) {
@@ -428,6 +507,7 @@ async function downloadTemplate(req, res) {
 }
 
 module.exports = {
-  uploadStudents, getUploadLogs, listStudents, searchStudents,
-  promoteStudent, deactivateStudent, downloadTemplate,
+  uploadStudents, getUploadLogs, listStudents, getStudent, searchStudents,
+  promoteStudent, deactivateStudent, bulkPromoteStudents, bulkDeactivateStudents,
+  downloadTemplate,
 };

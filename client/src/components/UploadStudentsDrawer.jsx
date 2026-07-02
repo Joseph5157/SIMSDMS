@@ -94,7 +94,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         }}>Required columns</p>
         <div style={{
           backgroundColor: 'var(--color-blue-50)', border: '1px solid var(--color-blue-200)',
-          borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 12,
+          borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 10,
         }}>
           {REQUIRED_COLUMNS.map((col, i) => (
             <div key={col.name} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: i > 0 ? 6 : 0 }}>
@@ -112,7 +112,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         }}>Optional columns</p>
         <div style={{
           backgroundColor: 'var(--surface-page)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 20,
+          borderRadius: 'var(--radius-lg)', padding: '12px 14px', marginBottom: 16,
         }}>
           {OPTIONAL_COLUMNS.map((col, i) => (
             <div key={col.name} style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: i > 0 ? 6 : 0 }}>
@@ -129,7 +129,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           disabled={downloading}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 7, padding: '10px 16px', marginBottom: 20,
+            gap: 7, padding: '10px 16px', marginBottom: 16,
             border: '1.5px dashed var(--color-blue-200)', borderRadius: 'var(--radius-lg)',
             backgroundColor: 'var(--color-blue-50)', cursor: downloading ? 'not-allowed' : 'pointer',
             fontSize: 'var(--text-card)', fontWeight: 700,
@@ -158,7 +158,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           padding: '16px 20px',
           boxSizing: 'border-box',
           transition: 'all 0.15s',
-          marginBottom: 20,
+          marginBottom: 16,
         }}>
           <FileText size={22} strokeWidth={1.5} color={file ? 'var(--brand)' : 'var(--text-muted)'} />
           <span style={{
@@ -208,16 +208,22 @@ export default function UploadStudentsDrawer({ open, onClose }) {
                 </button>
                 {showErrors && Array.isArray(result.errors) && (
                   <div style={{ marginTop: 8, borderTop: '1px solid var(--color-red-border)', paddingTop: 8 }}>
-                    {result.errors.map((err, i) => (
-                      <div key={i} style={{
-                        display: 'flex', justifyContent: 'space-between',
-                        padding: '5px 0', borderBottom: '1px solid var(--divider)',
-                        fontSize: 'var(--text-small)',
-                      }}>
-                        <span style={{ color: 'var(--text-secondary)', flexShrink: 0, marginRight: 12 }}>Row {err.row}</span>
-                        <span style={{ color: 'var(--color-red-solid)', textAlign: 'right' }}>{err.reason}</span>
-                      </div>
-                    ))}
+                    <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                      {result.errors.map((err, i) => (
+                        <div key={i} style={{
+                          display: 'flex', flexDirection: 'column', gap: 2,
+                          padding: '6px 0', borderBottom: '1px solid var(--divider)',
+                          fontSize: 'var(--text-small)',
+                        }}>
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                            Row {err.row}{err.registration_number ? ` · ${err.registration_number}` : ''}
+                          </span>
+                          <span style={{ color: 'var(--color-red-solid)' }}>
+                            {Array.isArray(err.reasons) ? err.reasons.join('; ') : err.reason}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

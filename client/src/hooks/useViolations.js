@@ -1,13 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
 
-export function useViolations(filters = {}) {
+export function useViolations(filters = {}, options = {}) {
   return useQuery({
     queryKey: ['violations', filters],
     queryFn: async () => {
       const res = await api.get('/violations', { params: filters });
       return res.data;
     },
+    ...options,
   });
 }
 

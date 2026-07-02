@@ -46,17 +46,17 @@ async function createViolation(req, res) {
   // confirmed covering faculty for this slot.
   const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
   if (!slot || (slot.faculty_id !== req.user.id && slot.covered_by !== req.user.id)) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record violations for your own duty slots.' });
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record student violations for your own duty slots.' });
   }
 
   // Reject unless faculty is actively on duty: slot must be today and the faculty
   // must be checked in (in_time set) but not yet checked out (out_time null).
   if (!isSlotToday(slot.duty_date)) {
-    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Violations can only be recorded during an active duty session.' });
+    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
   }
   const activeAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
   if (!activeAttendance?.in_time || activeAttendance.out_time !== null) {
-    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Violations can only be recorded during an active duty session.' });
+    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
   }
 
   // Verify student exists and is active
@@ -68,12 +68,12 @@ async function createViolation(req, res) {
   // Verify violation type exists and is active
   const violationType = await prisma.violationType.findUnique({ where: { id: violation_type_id } });
   if (!violationType || !violationType.is_active) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation type not found or inactive.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation type not found or inactive.' });
   }
 
   // custom_violation required when type name is 'Others' or is_system + no standard name
   if (violationType.name.toLowerCase() === 'others' && !custom_violation) {
-    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'custom_violation is required for the "Others" violation type.' });
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'custom_violation is required for the "Others" student violation type.' });
   }
 
   // Determine final fine amount
@@ -178,7 +178,7 @@ async function getViolation(req, res) {
   });
 
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
 
   // Faculty can only view their own
@@ -195,13 +195,13 @@ async function editViolation(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (violation.faculty_id !== req.user.id) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only edit your own violations.' });
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only edit your own student violations.' });
   }
   if (violation.is_flagged) {
-    return res.status(409).json({ error: true, code: 'ALREADY_FLAGGED', message: 'You cannot edit a violation after it has been flagged for review.' });
+    return res.status(409).json({ error: true, code: 'ALREADY_FLAGGED', message: 'You cannot edit a student violation after it has been flagged for review.' });
   }
 
   const oldSnapshot = snapshotViolation(violation);
@@ -239,10 +239,10 @@ async function hideViolation(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (violation.record_status === 'hidden') {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Violation is already hidden.' });
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Student violation is already hidden.' });
   }
 
   const oldSnapshot = snapshotViolation(violation);
@@ -270,13 +270,13 @@ async function flagViolation(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (violation.faculty_id !== req.user.id) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only flag your own violations.' });
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only flag your own student violations.' });
   }
   if (violation.is_flagged) {
-    return res.status(409).json({ error: true, code: 'ALREADY_FLAGGED', message: 'This violation is already flagged for review.' });
+    return res.status(409).json({ error: true, code: 'ALREADY_FLAGGED', message: 'This student violation is already flagged for review.' });
   }
 
   const updated = await prisma.violation.update({
@@ -301,10 +301,10 @@ async function resolveFlag(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (!violation.is_flagged) {
-    return res.status(409).json({ error: true, code: 'NOT_FLAGGED', message: 'This violation is not flagged for review.' });
+    return res.status(409).json({ error: true, code: 'NOT_FLAGGED', message: 'This student violation is not flagged for review.' });
   }
   if (violation.flag_resolved_at) {
     return res.status(409).json({ error: true, code: 'ALREADY_RESOLVED', message: 'This flag has already been resolved.' });
@@ -343,7 +343,7 @@ async function getPhoto(req, res) {
 async function getAuditLog(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
   if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Violation not found.' });
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
 
   const logs = await prisma.violationAuditLog.findMany({

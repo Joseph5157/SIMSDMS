@@ -51,7 +51,7 @@ export default function LoginPage() {
   const isDisabled = login.isPending || !email.trim() || !password.trim();
 
   const inputClasses = [
-    'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-5 h-14',
+    'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-5 sm:px-4 h-14 sm:h-11',
     'text-[var(--text-primary)]',
     'outline-none w-full bg-[var(--surface-page)]',
     'transition-[border-color] duration-[var(--dur-fast)]',
@@ -60,7 +60,7 @@ export default function LoginPage() {
   ].join(' ');
 
   return (
-    <div className="min-h-dvh w-full flex flex-col items-center bg-[var(--surface-sidebar)] relative overflow-hidden">
+    <div className="min-h-dvh w-full flex flex-col items-center sm:justify-center bg-[var(--surface-sidebar)] relative overflow-hidden">
 
       {/* ── Background glow circles ── */}
       <div
@@ -79,46 +79,46 @@ export default function LoginPage() {
       />
 
       {/* ── Centered container (max-width for desktop) ── */}
-      <div className="w-full max-w-[440px] flex flex-col flex-1">
+      <div className="w-full max-w-[440px] flex flex-col flex-1 sm:flex-none">
 
         {/* ── Top branding area ── */}
-        <div className="flex-none flex flex-col items-center justify-center pt-12 sm:pt-16 pb-8 px-6 text-center">
+        <div className="flex-none flex flex-col items-center justify-center pt-12 sm:pt-6 pb-8 sm:pb-4 px-6 text-center">
           <img
             src={simsLogo}
             alt="SIMS College of Pharmacy"
-            className="w-20 h-20 sm:w-24 sm:h-24 object-contain mb-4"
+            className="w-20 h-20 sm:w-14 sm:h-14 object-contain mb-4 sm:mb-3"
           />
 
-          <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2">
+          <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2 sm:mb-1">
             SIMS College of Pharmacy
           </p>
 
-          <h1 className="text-[length:var(--text-display)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2">
+          <h1 className="text-[length:var(--text-display)] sm:text-[22px] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2 sm:mb-1">
             Discipline<br />Management System
           </h1>
 
-          <p className="text-[length:var(--text-body)] text-[var(--text-secondary)] leading-[var(--leading-normal)] max-w-[280px]">
+          <p className="text-[length:var(--text-body)] sm:text-[13px] text-[var(--text-secondary)] leading-[var(--leading-normal)] max-w-[280px]">
             Faculty duty scheduling and student violation tracking
           </p>
         </div>
 
         {/* ── Form card ── */}
         <div
-          className="flex-1 sm:flex-none bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] sm:rounded-[var(--radius-sheet)] px-8 pt-10 pb-10 sm:mb-8"
+          className="flex-1 sm:flex-none bg-[var(--surface-card)] rounded-t-[var(--radius-sheet)] sm:rounded-[var(--radius-sheet)] px-8 pt-10 sm:pt-6 pb-10 sm:pb-6 sm:mb-4"
           style={{ boxShadow: 'var(--shadow-sheet)' }}
         >
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <form onSubmit={handleLogin} className="flex flex-col gap-5 sm:gap-3">
             <div className="mb-1">
-              <h2 className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
+              <h2 className="text-[length:var(--text-h2)] sm:text-[18px] font-[var(--weight-extra)] text-[var(--text-primary)] mb-1">
                 Sign in
               </h2>
-              <p className="text-[length:var(--text-body)] text-[var(--text-secondary)]">
+              <p className="text-[length:var(--text-body)] sm:text-[12px] text-[var(--text-secondary)]">
                 Enter your credentials to continue
               </p>
             </div>
 
             {/* Email field */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:gap-1">
               <label
                 htmlFor="login-email"
                 className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)] pl-5"
@@ -141,7 +141,7 @@ export default function LoginPage() {
             </div>
 
             {/* Password field */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:gap-1">
               <label
                 htmlFor="login-password"
                 className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-label)] pl-5"
@@ -187,7 +187,7 @@ export default function LoginPage() {
             {/* Error message */}
             {error && (
               <div
-                className="rounded-[var(--radius-lg)] px-3.5 py-3 text-[length:var(--text-card)] text-[var(--color-red-text)]"
+                className="rounded-[var(--radius-lg)] px-3.5 py-3 sm:py-2 text-[length:var(--text-card)] sm:text-[12px] text-[var(--color-red-text)]"
                 style={{
                   backgroundColor: 'var(--color-red-bg)',
                   border: '1px solid var(--color-red-border)',
@@ -203,7 +203,7 @@ export default function LoginPage() {
               type="submit"
               disabled={isDisabled}
               className={[
-                'w-full h-14 rounded-[var(--radius-xl)] border-none',
+                'w-full h-14 sm:h-11 rounded-[var(--radius-xl)] border-none',
                 'text-[length:var(--text-card-lg)] font-[var(--weight-bold)] font-[var(--font-sans)]',
                 'text-[var(--text-on-brand)]',
                 'transition-all duration-[var(--dur-fast)]',
@@ -223,14 +223,14 @@ export default function LoginPage() {
 
             {/* Password reset helper */}
             <div
-              className="rounded-[var(--radius-lg)] px-3.5 py-3 flex gap-2.5 items-start"
+              className="rounded-[var(--radius-lg)] px-3.5 py-3 sm:py-2 flex gap-2.5 items-start"
               style={{
                 backgroundColor: 'var(--color-blue-50)',
                 border: '1px solid var(--color-blue-100)',
               }}
             >
               <span className="text-base shrink-0">🔑</span>
-              <p className="text-[length:var(--text-card)] text-[var(--color-blue-700)] leading-[var(--leading-snug)]">
+              <p className="text-[length:var(--text-card)] sm:text-[11px] text-[var(--color-blue-700)] leading-[var(--leading-snug)]">
                 Forgot your password? Send <strong>/resetpassword</strong> to{' '}
                 <strong>@SimsPharmacybot</strong> on Telegram to receive a new temporary password.
               </p>

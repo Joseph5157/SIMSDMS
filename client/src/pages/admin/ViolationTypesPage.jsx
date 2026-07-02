@@ -124,9 +124,9 @@ export default function ViolationTypesPage({ user }) {
 
   return (
     <Layout user={user}>
-      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Violation Types' }]} />
+      <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Student Violation Types' }]} />
       <PageHeader
-        title="Violation Types"
+        title="Student Violation Types"
         subtitle="Define disciplinary categories and default fines"
         action={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true); }}>+ New Type</Button>}
       />
@@ -136,7 +136,7 @@ export default function ViolationTypesPage({ user }) {
         {isLoading && <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>Loading…</p>}
         {!isLoading && !activeRows.length && (
           <div style={{ padding: '24px 16px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--radius-xl)' }}>
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No violation types yet.</p>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No student violation types yet.</p>
           </div>
         )}
         {activeRows.map(renderMobileCard)}
@@ -166,7 +166,7 @@ export default function ViolationTypesPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={5} message="Loading…" />}
-            {!isLoading && !activeRows.length && <EmptyRow cols={5} message="No violation types yet." />}
+            {!isLoading && !activeRows.length && <EmptyRow cols={5} message="No student violation types yet." />}
             {activeRows.map(renderTableRow)}
           </tbody>
         </Table>

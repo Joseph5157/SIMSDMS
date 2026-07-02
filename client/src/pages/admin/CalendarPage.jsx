@@ -10,6 +10,7 @@ import { useCalendar, useOpenWindow, useCloseWindow, useUpdateBlockedDates, useU
 import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
@@ -158,6 +159,28 @@ export default function CalendarPage({ user }) {
   }
 
   const days = Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1);
+  const leadingBlanks = Array.from({ length: new Date(year, month - 1, 1).getDay() });
+
+  function goPrevMonth() {
+    if (month === 1) { setYear(year - 1); setMonth(12); }
+    else setMonth(month - 1);
+  }
+
+  function goNextMonth() {
+    if (month === 12) { setYear(year + 1); setMonth(1); }
+    else setMonth(month + 1);
+  }
+
+  function dayLabel(d) {
+    const key = fmtDate(d);
+    const isBlocked = blocked.includes(key);
+    return `${new Date(year, month - 1, d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isBlocked ? ' — blocked' : ' — available'}`;
+  }
+
+  function dayButtonClass(d, { square = false } = {}) {
+    const isBlocked = blocked.includes(fmtDate(d));
+    return `${square ? 'aspect-square w-full' : 'w-9 h-9'} rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-[var(--color-red-bg)] text-[var(--color-red-text)] border border-[var(--color-red-border)]' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`;
+  }
 
   return (
     <Layout user={user}>
@@ -183,40 +206,74 @@ export default function CalendarPage({ user }) {
       {isLoading ? <p className="text-[var(--text-muted)] text-[length:13px]">Loading…</p> : (
         <>
           {/* Status bar */}
-          <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6 flex items-center gap-6">
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Window status</p>
-              <Badge status={config?.is_window_open ? 'active' : 'inactive'} label={config?.is_window_open ? 'Open' : 'Closed'} />
+          <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex gap-6">
+              <div>
+                <p className="text-xs text-[var(--text-muted)] mb-1">Window status</p>
+                <Badge status={config?.is_window_open ? 'active' : 'inactive'} label={config?.is_window_open ? 'Open' : 'Closed'} />
+              </div>
+              <div>
+                <p className="text-xs text-[var(--text-muted)] mb-1">Sessions per faculty</p>
+                <p className="text-sm font-semibold">{config?.sessions_per_faculty ?? 3}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Sessions per faculty</p>
-              <p className="text-sm font-semibold">{config?.sessions_per_faculty ?? 3}</p>
-            </div>
-            <div className="flex gap-2 ml-auto">
+            <div className="flex gap-2 sm:ml-auto">
               {!config?.is_window_open
-                ? <Button size="sm" onClick={handleOpen} loading={openWindow.isPending}>Open Window</Button>
-                : <Button size="sm" color="red" onClick={() => setClosingWindow(true)}>Close Window</Button>}
-              <Button size="sm" variant="default" onClick={() => setShowSetSessions(true)}>Set Sessions</Button>
+                ? <Button size="sm" onClick={handleOpen} loading={openWindow.isPending} className="flex-1 sm:flex-none">Open Window</Button>
+                : <Button size="sm" color="red" onClick={() => setClosingWindow(true)} className="flex-1 sm:flex-none">Close Window</Button>}
+              <Button size="sm" variant="default" onClick={() => setShowSetSessions(true)} className="flex-1 sm:flex-none">Set Sessions</Button>
             </div>
           </div>
 
           {/* Days grid */}
           <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4 mb-6">
-            <p className="text-sm font-medium text-[var(--text-secondary)] mb-3">Blocked dates (click to toggle)</p>
-            <div className="flex flex-wrap gap-2">
-              {days.map((d) => {
-                const key = fmtDate(d);
-                const isBlocked = blocked.includes(key);
-                return (
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-[var(--text-secondary)]">Blocked dates (click to toggle)</p>
+              <div className="hidden sm:flex items-center gap-2">
+                <button type="button" onClick={goPrevMonth} aria-label="Previous month"
+                  className="w-7 h-7 rounded-md border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-page)]">
+                  ‹
+                </button>
+                <span className="text-sm font-semibold text-[var(--text-primary)] min-w-[110px] text-center">{MONTHS[month - 1]} {year}</span>
+                <button type="button" onClick={goNextMonth} aria-label="Next month"
+                  className="w-7 h-7 rounded-md border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--surface-page)]">
+                  ›
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile: flat wrapped list */}
+            <div className="flex flex-wrap gap-2 sm:hidden">
+              {days.map((d) => (
+                <button key={d} onClick={() => toggleBlocked(d)}
+                  aria-label={dayLabel(d)}
+                  aria-pressed={blocked.includes(fmtDate(d))}
+                  className={dayButtonClass(d)}>
+                  {d}
+                </button>
+              ))}
+            </div>
+
+            {/* Desktop: traditional monthly calendar grid */}
+            <div className="hidden sm:block">
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {WEEKDAYS.map((wd) => (
+                  <div key={wd} className="text-center text-xs font-semibold text-[var(--text-muted)] py-1">{wd}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {leadingBlanks.map((_, i) => <div key={`blank-${i}`} />)}
+                {days.map((d) => (
                   <button key={d} onClick={() => toggleBlocked(d)}
-                    aria-label={`${new Date(year, month - 1, d).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}${isBlocked ? ' — blocked' : ' — available'}`}
-                    aria-pressed={isBlocked}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-[var(--color-red-bg)] text-[var(--color-red-text)] border border-[var(--color-red-border)]' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`}>
+                    aria-label={dayLabel(d)}
+                    aria-pressed={blocked.includes(fmtDate(d))}
+                    className={dayButtonClass(d, { square: true })}>
                     {d}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
+
             <p className="text-xs text-[var(--text-muted)] mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
           </div>
 

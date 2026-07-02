@@ -6,10 +6,12 @@ import { TextInput } from '@mantine/core';
 import { useAuditLogs } from '../../hooks/useUsers';
 
 export default function AuditLogsPage({ user }) {
-  const [page, setPage]     = useState(1);
+  const [page,   setPage]   = useState(1);
   const [action, setAction] = useState('');
+  const [from,   setFrom]   = useState('');
+  const [to,     setTo]     = useState('');
 
-  const { data, isLoading } = useAuditLogs({ action, page, limit: 50 });
+  const { data, isLoading } = useAuditLogs({ action, from, to, page, limit: 50 });
 
   function getActionColor(act) {
     if (!act) return 'var(--text-muted)';
@@ -24,12 +26,26 @@ export default function AuditLogsPage({ user }) {
     <Layout user={user}>
       <PageHeader title="Audit Logs" subtitle="Immutable system-level action history" />
 
-      <div className="mb-4">
+      <div className="mb-4 flex gap-2 flex-wrap items-end">
         <TextInput
           placeholder="Filter by action…"
           value={action}
           onChange={(e) => { setAction(e.target.value); setPage(1); }}
           w={256}
+        />
+        <TextInput
+          type="date"
+          label="From"
+          value={from}
+          onChange={(e) => { setFrom(e.target.value); setPage(1); }}
+          w={160}
+        />
+        <TextInput
+          type="date"
+          label="To"
+          value={to}
+          onChange={(e) => { setTo(e.target.value); setPage(1); }}
+          w={160}
         />
       </div>
 

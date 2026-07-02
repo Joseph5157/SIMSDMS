@@ -13,7 +13,7 @@ function getNotificationTypeLabel(type) {
   const labels = {
     duty_assigned: 'Duty Assigned',
     cover_request: 'Cover Request',
-    violation: 'Violation',
+    violation: 'Student Violation',
     message: 'Message',
     system: 'System',
   };
