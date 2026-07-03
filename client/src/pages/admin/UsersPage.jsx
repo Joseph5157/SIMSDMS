@@ -28,7 +28,14 @@ function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetTelegra
         {u.status === 'active' && (
           <Menu.Item color="red" onClick={() => onDeactivate(u)}>Deactivate</Menu.Item>
         )}
-        {u.status === 'pending_telegram' && isSuperAdmin && (
+        {/* TODO(T029): "Reset Telegram" is hidden because the backend it calls
+            (POST /admin/users/:id/reset-login) is currently broken — it still
+            references the removed otp_sessions model and will 500. Once T029
+            ships (rewriting this endpoint to do a real password reset instead
+            of a Telegram relink), this control needs a full rework — new label,
+            confirm copy, and success handling (temp password sent via Telegram,
+            not a relink_link) — not just re-enabling as-is. */}
+        {false && u.status === 'pending_telegram' && isSuperAdmin && (
           <Menu.Item onClick={() => onResetTelegram(u)}>Reset Telegram</Menu.Item>
         )}
         {u.status === 'inactive' && (

@@ -255,7 +255,14 @@ async function getAuditLogs(req, res) {
 }
 
 // ─── POST /admin/users/:id/reset-login — Super Admin ─────────────────────────
-
+// TODO(T029): BROKEN — this still does a pre-password-migration Telegram relink
+// flow and calls prisma.otpSession.deleteMany(...) below, but the otp_sessions
+// model no longer exists. This will throw (500) if invoked. Needs a full rewrite
+// to a real password reset (temp password, must_change_password, session_version
+// bump, Telegram notify) — see specs/001-auth-user-accounts/tasks.md T029. The
+// one caller of this route in the client (UsersPage.jsx "Reset Telegram" menu
+// item) has been hidden until this ships — do not re-enable it without also
+// reworking that UI for the new password-reset semantics.
 async function resetUserLogin(req, res) {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user || user.deleted_at) {

@@ -5,86 +5,72 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / End-of-session commit — auth model correction (Telegram OTP →
-email/password + Telegram invite), full doc/code drift reconciliation, dev/prod DB
-isolation, T040 fix, dead code removal
+001-auth-user-accounts / Follow-up to the session close-out (`131a7ab`/`a7be5b2`) — found and
+hid a live broken UI control calling the still-unfixed `resetUserLogin` endpoint
 
 ## status
 complete
 
 ## completed
-Full arc of this session, committed as **`131a7ab`** (`131a7ab2b77cb6f66865bd16aaa3a488ff730d18`),
-a single logical commit covering everything below (see the reasoning for one commit vs. a
-series in the chat response of this turn — kept as one commit since it's a single continuous
-narrative: discover the drift, reconcile every doc, fix the concrete bugs found along the
-way):
-
-- **Auth model corrected across every doc**: discovered the codebase had abandoned Telegram
-  OTP login for email + password (`7b33d90`), then further discovered the actual
-  account-creation path is invite-based (`POST /invites` → Telegram-tap activation), not the
-  "Admin creates directly" model either doc or an earlier pass of this session's work
-  assumed. `CONSTITUTION.md`, `spec.md`, `plan.md`, and `tasks.md` were each revised — some
-  more than once — until they matched the live code exactly.
-- **`CONSTITUTION.md`** (v2.6 → v3.1): Admin permission reworded; Authentication section
-  rewritten for the permanent password model; new Super-Admin password-reset rule added;
-  §6 API table corrected to 95 endpoints/12 modules; §5 table's last OTP-era reference
-  (`otp_sessions`) removed as the final cleanup step this turn.
-- **`SIMS_API_Endpoints_v2.0.md`** (v2.0 → v2.2): full audit-driven sync — dead endpoints
-  removed, real endpoints added, two entirely undocumented modules (Invites, Reports — 21
-  endpoints) documented, two confirmed-duplicate Need Cover routes resolved out.
-- **Dev/prod DB isolation**: local `.env`/`server/.env` now point at an isolated Docker
-  Postgres; production `DATABASE_URL` (already rotated by the user) is gone from any local
-  file.
-- **T040 fixed**: `prisma/seed.js` bootstrap Super Admin now gets a real `password_hash` and
-  `must_change_password = true`.
-- **Migration bug fixed**: `20260613173500_add_last_password_reset_at` made idempotent
-  (`ADD COLUMN IF NOT EXISTS`) — was blocking any fresh database. Confirmed harmless on
-  production; resulting checksum drift reviewed and accepted by the user.
-- **Dead code removed**: `createUser`/`getPendingUsers`/`regenerateInvite` and their retired
-  `410`-stub routes in `users.controller.js`/`users.routes.js`/`users.schema.js`; two
-  confirmed-dead duplicate routes in `cover-requests.routes.js`. Live invite/relink code
-  (`invites.controller.js`, `bot.js`, `PendingInvite`, `TelegramRelinkToken`) was correctly
-  identified as load-bearing and left untouched after an earlier wrong premise was caught.
-- **Handoff automation extended**: now fires on `after_specify`/`after_clarify` too, not
-  just `after_implement`.
+- **Corrected a mistake from earlier in the session**: I had told the user
+  `useResetUserLogin()` had "zero callers anywhere in the client." That was wrong — my grep
+  pattern (`ResetLogin`, case-sensitive) never matched the actual camelCase variable name
+  `resetUserLogin` used in `client/src/pages/admin/UsersPage.jsx`. Re-checked properly this
+  time and found a real, live "Reset Telegram" menu item (visible to Super Admin, only for
+  users with `status === 'pending_telegram'`) that calls
+  `resetUserLogin.mutateAsync(...)` → `POST /admin/users/:id/reset-login` → the still-broken
+  backend function from the prior session's findings (throws on the dead
+  `prisma.otpSession.deleteMany(...)` call).
+- **`client/src/pages/admin/UsersPage.jsx`**: hidden the "Reset Telegram" `Menu.Item` behind
+  a `{false && ...}` guard with an explanatory comment, so it can never be clicked in
+  production. Left the surrounding handler (`doResetTelegram`) and state
+  (`resettingTelegram`) in place since they're harmless while unreachable and will be needed
+  again — rewritten for password-reset semantics — once T029 ships.
+- **`server/controllers/users.controller.js`**: added a `TODO(T029)` comment directly above
+  `resetUserLogin` explaining exactly why it's broken, what needs to happen, and that its one
+  UI caller has been hidden until the rewrite ships.
+- Verified both edits: `node --check` passes on the controller; re-read the JSX to confirm
+  braces/parens are balanced and the guard correctly prevents rendering.
+- Committed as a small standalone fix, separate from the prior session's larger commit.
 
 ## failed_or_blocked
-(none — everything in this session's scope was completed or explicitly deferred as a
-documented open item, listed below)
+(none)
 
 ## commands_run
 ```
-git add <17 explicitly-named files — see files_touched>   # not `git add -A`/`.`
-git commit -m "fix: correct auth model docs/code to match reality ..."
+git status --short
+git diff --stat -- client/src/pages/admin/UsersPage.jsx server/controllers/users.controller.js
+node --check server/controllers/users.controller.js
+git add client/src/pages/admin/UsersPage.jsx server/controllers/users.controller.js
+git commit -m "fix: hide broken Reset Telegram button to prevent live 500, TODO -> T029"
 git log -1 --format=%H
-# => 131a7ab2b77cb6f66865bd16aaa3a488ff730d18
 ```
 
 ## constraints_discovered
-(none new this step — final cleanup only)
+- The "Reset Telegram" button's copy/behavior (relink link, not password reset) matches the
+  *current* (broken) backend implementation's intent, not the future T029 rewrite's — meaning
+  even once T029 ships, this UI can't just be un-hidden as-is. It needs a full rework (new
+  label, confirm copy, and success handling for a temp password sent via Telegram instead of
+  a `relink_link`). Noted in both the frontend comment and the backend TODO so whoever picks
+  up T029 doesn't just flip the `{false && ...}` guard back on.
+- This is a reminder that "no callers" claims about a hook should be verified by searching
+  for the actual variable name in use, not an assumed string pattern — the earlier false
+  negative came from exactly that shortcut.
 
 ## deviations_from_constitution
-- None — `CONSTITUTION.md` itself received its final correction this turn, with explicit
-  owner instruction.
+- None.
 
 ## files_touched
-`.env.example`, `.specify/extensions.yml`, `.specify/extensions/handoff/README.md`,
-`.specify/extensions/handoff/commands/speckit.handoff.update.md`,
-`.specify/extensions/handoff/extension.yml`, `CONSTITUTION.md`,
-`SIMS_API_Endpoints_v2.0.md`,
-`prisma/migrations/20260613173500_add_last_password_reset_at/migration.sql`,
-`prisma/seed.js`, `server/controllers/users.controller.js`,
-`server/routes/cover-requests.routes.js`, `server/routes/users.routes.js`,
-`server/schemas/users.schema.js`, `specs/001-auth-user-accounts/plan.md`,
-`specs/001-auth-user-accounts/spec.md`, `specs/001-auth-user-accounts/tasks.md`,
-`specs/001-auth-user-accounts/handoff.md` (this file). Not tracked/committed (gitignored,
-correctly): `.env`, `server/.env`.
+- `client/src/pages/admin/UsersPage.jsx`
+- `server/controllers/users.controller.js`
+- `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
-## open_questions_for_owner — carrying into the next session
-1. **Super-Admin password-reset is spec'd but not coded.** `resetUserLogin` in
-   `users.controller.js` still calls `prisma.otpSession.deleteMany(...)` (a model that no
-   longer exists) and would still crash if invoked. The rewrite is fully specified as
-   `tasks.md` T029 but not implemented.
+## open_questions_for_owner — still carrying into the next session
+1. **Super-Admin password-reset is spec'd but not coded.** `resetUserLogin` still calls
+   `prisma.otpSession.deleteMany(...)` and would crash if invoked directly (e.g. via curl/
+   Postman) — the one UI path to it is now hidden, but the endpoint itself is unchanged and
+   still reachable by anyone who knows the URL. The rewrite is fully specified as `tasks.md`
+   T029 but not implemented.
 2. **No path exists to create a second Super Admin account.** The live invite schema
    (`createInviteSchema`) hard-blocks `role: 'super_admin'` for anyone, including Super
    Admin. Documented as a known gap (FR-016); not resolved.
@@ -93,5 +79,5 @@ correctly): `.env`, `server/.env`.
    if the Telegram send fails? Marked OPEN in both `spec.md` and `plan.md`.
 4. **Retired routes now 404 instead of 410.** `POST /users`, `GET /users/pending`, and
    `POST /users/:id/regenerate-invite` used to return an explicit `410 GONE` with a redirect
-   message; removing the dead stub handlers means they now return a plain `404`. No known
-   caller depends on the old `410`, but flagging as an observable API behavior change.
+   message; they now return a plain `404`. No known caller depends on the old `410`, but
+   flagging as an observable API behavior change.
