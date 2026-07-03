@@ -31,90 +31,6 @@ async function getMe(req, res) {
   res.json(safeUser(user));
 }
 
-// ─── POST /users — Admin/Super Admin ──────────────────────────────────────────
-
-async function createUser(req, res) {
-  try {
-    const { name, email, role, department, designation, phone, telegram_id } = req.body || {};
-
-    logger.info(`[CREATE_USER] Starting for ${email ?? 'unknown'}`);
-
-    // Validate input
-    if (!name || !email || !role) {
-      return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Name, email, and role are required.' });
-    }
-
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing && !existing.deleted_at) {
-      return res.status(409).json({ error: true, code: 'CONFLICT', message: 'A user with this email already exists.' });
-    }
-
-    // Always use invite-token flow for proper Telegram verification
-    // Do not auto-activate based on manually-supplied telegram_id
-    const token = crypto.randomBytes(32).toString('hex');
-    const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-    const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
-
-    let userData = {
-      name,
-      email,
-      role,
-      department,
-      designation,
-      phone,
-      telegram_id: telegram_id ? String(telegram_id) : null,
-      approved_at: new Date(),
-      approved_by: req.user.id,
-      status: 'pending_telegram',
-      telegram_verified: false,
-      telegram_invite_token: token,
-      telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    };
-
-    logger.info(`[CREATE_USER] Created with status=${userData.status}, telegram_verified=${userData.telegram_verified}, invite_token generated`);
-
-    logger.info(`[CREATE_USER] Creating user in database for ${email}`);
-    const user = await prisma.user.create({ data: userData });
-    logger.info(`[CREATE_USER] User created successfully: ${user.id}`);
-
-    const response = {
-      user: safeUser(user),
-      invite_link: inviteLink,
-    };
-
-    res.status(201).json(response);
-
-    // Log action after response (don't block response on logging)
-    logAction({
-      actorId: req.user.id,
-      action: 'CREATE_USER',
-      targetId: user.id,
-      targetType: 'user',
-      metadata: { email, role, hasInviteToken: !telegram_id },
-    }).catch(err => logger.error('Failed to log CREATE_USER action', err));
-  } catch (err) {
-    // Handle Prisma-specific errors
-    if (err.code === 'P2002') {
-      // Unique constraint violation
-      const field = err.meta?.target?.[0] ?? 'field';
-      logger.warn(`[CREATE_USER] Duplicate ${field} for user creation attempt: ${email ?? 'unknown email'}`);
-      return res.status(409).json({
-        error: true,
-        code: 'DUPLICATE_FIELD',
-        message: `An account with this ${field} already exists.`,
-      });
-    }
-
-    // All other errors — log internally, never expose Prisma internals
-    logger.error('[CREATE_USER] Error:', err);
-    return res.status(500).json({
-      error: true,
-      code: 'SERVER_ERROR',
-      message: 'Something went wrong. Please try again.',
-    });
-  }
-}
-
 // ─── GET /users — Admin/Super Admin ───────────────────────────────────────────
 
 async function listUsers(req, res) {
@@ -302,33 +218,6 @@ async function deleteUser(req, res) {
   res.json(safeUser(deleted));
 }
 
-// ─── GET /users/pending — Admin/Super Admin ───────────────────────────────────
-
-async function getPendingUsers(req, res) {
-  try {
-    const users = await prisma.user.findMany({
-      where: { status: 'pending', deleted_at: null },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        department: true,
-        designation: true,
-        telegram_id: true,
-        status: true,
-        created_at: true,
-      },
-    });
-    res.json({ data: users });
-  } catch (err) {
-    logger.error(err);
-    res.status(500).json({ error: true, code: 'INTERNAL_ERROR', message: 'Failed to fetch pending users.' });
-  }
-}
-
 // ─── GET /admin/audit-logs — Super Admin ──────────────────────────────────────
 
 async function getAuditLogs(req, res) {
@@ -501,50 +390,9 @@ async function updateSettings(req, res) {
   res.json(settings);
 }
 
-// ─── POST /users/:id/regenerate-invite — Admin/Super Admin ──────────────────
-
-async function regenerateInvite(req, res) {
-  const user = await prisma.user.findUnique({ where: { id: req.params.id } });
-  if (!user || user.deleted_at) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
-  }
-
-  if (user.status !== 'pending_telegram') {
-    return res.status(400).json({
-      error: true,
-      code: 'ALREADY_ACTIVE',
-      message: "This user's Telegram is already linked.",
-    });
-  }
-
-  // Generate new token
-  const token = crypto.randomBytes(32).toString('hex');
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-  const inviteLink = `https://t.me/${botUsername}?start=invite_${token}`;
-
-  await prisma.user.update({
-    where: { id: req.params.id },
-    data: {
-      telegram_invite_token: token,
-      telegram_invite_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    },
-  });
-
-  await logAction({
-    actorId: req.user.id,
-    action: 'REGENERATE_INVITE',
-    targetId: user.id,
-    targetType: 'user',
-  });
-
-  res.json({ invite_link: inviteLink });
-}
-
 module.exports = {
   getMe,
-  createUser,
   listUsers,
-  getPendingUsers,
   getUser,
   updateProfile,
   deactivateUser,
@@ -555,5 +403,4 @@ module.exports = {
   hardDelete,
   getSettings,
   updateSettings,
-  regenerateInvite,
 };

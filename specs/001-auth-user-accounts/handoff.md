@@ -5,73 +5,90 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / super_admin login bootstrap fix + admin dashboard UX follow-ups
+001-auth-user-accounts / End-of-session commit — auth model correction (Telegram OTP →
+email/password + Telegram invite), full doc/code drift reconciliation, dev/prod DB
+isolation, T040 fix, dead code removal
 
 ## status
-partial
+complete
 
 ## completed
-- Diagnosed why the super_admin account could never log in: `prisma/seed.js` creates the
-  bootstrap super_admin without a `password_hash`, so `server/controllers/auth.controller.js:17`
-  always rejected it as `INVALID_CREDENTIALS`, regardless of password typed. This is the gap
-  tracked as task T040 in `tasks.md` (never implemented after the OTP→password migration in
-  `7b33d90`).
-- Unblocked the specific admin account directly in the production DB (bcrypt-hashed password set,
-  `must_change_password` cleared) so the user could log in immediately. This was a one-off data
-  fix, not a code fix — T040 (updating `prisma/seed.js` to accept `BOOTSTRAP_SUPER_ADMIN_PASSWORD`
-  and hash it at creation) is still outstanding.
-- Admin dashboard (`client/src/pages/admin/AdminDashboardPage.jsx`) UX pass, requested separately
-  by the user after noticing Quick Actions required scrolling on mobile:
-  - Added a `compact` prop to `StatCard` (smaller padding/font) and applied it to the 4 KPI cards.
-  - Shrank internal padding/row-height/scroll-cap on the "Today's attendance" and "Open cover
-    requests" cards.
-  - Removed "Live Attendance" and "Cover Requests" from Quick Actions per user request — only
-    "Student Violations" and "Reports" remain.
-  - Quick Actions kept in its original position (bottom of page, after the cards), per user
-    preference — an earlier attempt to move it to the top (right after the header) was explicitly
-    reverted by the user.
-- Fixed a dark-mode contrast bug in the shared `CardHeader` component
-  (`client/src/components/Layout.jsx`): header text was hardcoded to Mantine `gray.7`
-  (`rgb(73,80,87)`), which doesn't invert for dark mode and was nearly invisible against the
-  dark-mode page background (`rgb(15,23,42)`). Changed to `var(--text-secondary)`, which already
-  has correct light/dark values in `index.css`. Since `CardHeader` is used app-wide, this fixes
-  the same invisibility issue on every page that uses it, not just the dashboard.
+Full arc of this session, now committed (see commit hash noted below — this file was
+updated once more immediately after committing to record it):
+
+- **Auth model corrected across every doc**: discovered the codebase had abandoned Telegram
+  OTP login for email + password (`7b33d90`), then further discovered the actual
+  account-creation path is invite-based (`POST /invites` → Telegram-tap activation), not the
+  "Admin creates directly" model either doc or an earlier pass of this session's work
+  assumed. `CONSTITUTION.md`, `spec.md`, `plan.md`, and `tasks.md` were each revised — some
+  more than once — until they matched the live code exactly.
+- **`CONSTITUTION.md`** (v2.6 → v3.1): Admin permission reworded; Authentication section
+  rewritten for the permanent password model; new Super-Admin password-reset rule added;
+  §6 API table corrected to 95 endpoints/12 modules; §5 table's last OTP-era reference
+  (`otp_sessions`) removed as the final cleanup step this turn.
+- **`SIMS_API_Endpoints_v2.0.md`** (v2.0 → v2.2): full audit-driven sync — dead endpoints
+  removed, real endpoints added, two entirely undocumented modules (Invites, Reports — 21
+  endpoints) documented, two confirmed-duplicate Need Cover routes resolved out.
+- **Dev/prod DB isolation**: local `.env`/`server/.env` now point at an isolated Docker
+  Postgres; production `DATABASE_URL` (already rotated by the user) is gone from any local
+  file.
+- **T040 fixed**: `prisma/seed.js` bootstrap Super Admin now gets a real `password_hash` and
+  `must_change_password = true`.
+- **Migration bug fixed**: `20260613173500_add_last_password_reset_at` made idempotent
+  (`ADD COLUMN IF NOT EXISTS`) — was blocking any fresh database. Confirmed harmless on
+  production; resulting checksum drift reviewed and accepted by the user.
+- **Dead code removed**: `createUser`/`getPendingUsers`/`regenerateInvite` and their retired
+  `410`-stub routes in `users.controller.js`/`users.routes.js`/`users.schema.js`; two
+  confirmed-dead duplicate routes in `cover-requests.routes.js`. Live invite/relink code
+  (`invites.controller.js`, `bot.js`, `PendingInvite`, `TelegramRelinkToken`) was correctly
+  identified as load-bearing and left untouched after an earlier wrong premise was caught.
+- **Handoff automation extended**: now fires on `after_specify`/`after_clarify` too, not
+  just `after_implement`.
 
 ## failed_or_blocked
-- T040 (seed script password bootstrap) is not implemented — only the single existing admin row
-  was patched by hand. Re-seeding a fresh environment would reproduce the original bug.
+(none — everything in this session's scope was completed or explicitly deferred as a
+documented open item, listed below)
 
 ## commands_run
 ```
-npx prisma generate
-node server/scripts/tmp-set-admin-password.js   (temporary, deleted after use)
-node server/scripts/tmp-check-admin.js          (temporary, deleted after use)
-npx eslint <changed files>
+(this turn: no new shell commands beyond the git add/commit sequence — see below)
+git add <17 explicitly-named files — see files_touched>
+git commit -m "<see commit message>"
+git log -1 --format=%H
 ```
 
 ## constraints_discovered
-- The local dev checkout's `DATABASE_URL` (both root `.env` and `server/.env`) points at the
-  production Railway database (`acela.proxy.rlwy.net`), not a local/staging DB. Any script run
-  locally against `server/lib/prisma.js` writes to production. Confirm with the user before
-  running further DB-writing scripts locally.
-- Local Prisma client generation was stale/broken (`server/node_modules/@prisma/client` was
-  empty despite the custom generator `output` path in `prisma/schema.prisma`); running
-  `npx prisma generate` from repo root fixed it. Worth doing after any fresh `npm install`.
+(none new this step — final cleanup only)
 
 ## deviations_from_constitution
-- None.
+- None — `CONSTITUTION.md` itself received its final correction this turn, with explicit
+  owner instruction.
 
 ## files_touched
-- `client/src/pages/admin/AdminDashboardPage.jsx`
-- `client/src/components/ui/StatCard.jsx`
-- `client/src/components/Layout.jsx`
-- (production DB) `users` row for the super_admin account — `password_hash`,
-  `must_change_password`, `last_password_reset_at` set directly, bypassing the app's normal
-  password-set flow.
+`.env.example`, `.specify/extensions.yml`, `.specify/extensions/handoff/README.md`,
+`.specify/extensions/handoff/commands/speckit.handoff.update.md`,
+`.specify/extensions/handoff/extension.yml`, `CONSTITUTION.md`,
+`SIMS_API_Endpoints_v2.0.md`,
+`prisma/migrations/20260613173500_add_last_password_reset_at/migration.sql`,
+`prisma/seed.js`, `server/controllers/users.controller.js`,
+`server/routes/cover-requests.routes.js`, `server/routes/users.routes.js`,
+`server/schemas/users.schema.js`, `specs/001-auth-user-accounts/plan.md`,
+`specs/001-auth-user-accounts/spec.md`, `specs/001-auth-user-accounts/tasks.md`,
+`specs/001-auth-user-accounts/handoff.md` (this file). Not tracked/committed (gitignored,
+correctly): `.env`, `server/.env`.
 
-## open_questions_for_owner
-- Should `prisma/seed.js` be updated now to implement T040 (hash a `BOOTSTRAP_SUPER_ADMIN_PASSWORD`
-  env var at creation time), so re-seeding doesn't reproduce the login bug?
-- Quick Actions on the admin dashboard now only exposes "Student Violations" and "Reports" —
-  confirm "Live Attendance" and "Cover Requests" being reachable only via the main nav (not Quick
-  Actions) is intentional going forward.
+## open_questions_for_owner — carrying into the next session
+1. **Super-Admin password-reset is spec'd but not coded.** `resetUserLogin` in
+   `users.controller.js` still calls `prisma.otpSession.deleteMany(...)` (a model that no
+   longer exists) and would still crash if invoked. The rewrite is fully specified as
+   `tasks.md` T029 but not implemented.
+2. **No path exists to create a second Super Admin account.** The live invite schema
+   (`createInviteSchema`) hard-blocks `role: 'super_admin'` for anyone, including Super
+   Admin. Documented as a known gap (FR-016); not resolved.
+3. **Telegram-unreachable-during-password-reset behavior is undecided** — should a reset
+   still succeed (temp password returned in the API response as a fallback) or fail outright
+   if the Telegram send fails? Marked OPEN in both `spec.md` and `plan.md`.
+4. **Retired routes now 404 instead of 410.** `POST /users`, `GET /users/pending`, and
+   `POST /users/:id/regenerate-invite` used to return an explicit `410 GONE` with a redirect
+   message; removing the dead stub handlers means they now return a plain `404`. No known
+   caller depends on the old `410`, but flagging as an observable API behavior change.

@@ -86,6 +86,13 @@ hooks:
     description: Auto-commit after constitution update
     condition: null
   after_specify:
+  - extension: handoff
+    command: speckit.handoff.update
+    enabled: true
+    optional: false
+    prompt: null
+    description: Generate/update handoff.md before specification changes are committed
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true
@@ -101,6 +108,13 @@ hooks:
     description: Refresh agent context after specification
     condition: null
   after_clarify:
+  - extension: handoff
+    command: speckit.handoff.update
+    enabled: true
+    optional: false
+    prompt: null
+    description: Generate/update handoff.md before clarification changes are committed
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true

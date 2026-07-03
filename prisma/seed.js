@@ -1,7 +1,13 @@
 require('dotenv').config();
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('../server/node_modules/@prisma/client');
 
 const prisma = new PrismaClient();
+
+function generatePassword() {
+  return crypto.randomBytes(12).toString('base64url');
+}
 
 async function main() {
   const email = process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL;
@@ -47,6 +53,9 @@ async function main() {
     throw new Error(`Cannot bootstrap: Telegram ID already exists: ${telegramId}`);
   }
 
+  const generatedPassword = process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD || generatePassword();
+  const passwordHash = await bcrypt.hash(generatedPassword, 12);
+
   const superAdmin = await prisma.user.create({
     data: {
       name,
@@ -58,12 +67,25 @@ async function main() {
       status: 'active',
       telegram_id: telegramId,
       telegram_verified: true,
+      password_hash: passwordHash,
+      must_change_password: true,
       session_version: 1,
       approved_at: new Date(),
     },
   });
 
   console.log(`Bootstrap super_admin created: ${superAdmin.email}`);
+
+  if (!process.env.BOOTSTRAP_SUPER_ADMIN_PASSWORD) {
+    console.log('');
+    console.log('================================================================');
+    console.log('  GENERATED PASSWORD (shown once — not stored anywhere in plaintext)');
+    console.log(`  ${generatedPassword}`);
+    console.log('  Log in with this password immediately; the account is flagged');
+    console.log('  must_change_password = true, so it will be forced to change.');
+    console.log('================================================================');
+    console.log('');
+  }
 }
 
 main()

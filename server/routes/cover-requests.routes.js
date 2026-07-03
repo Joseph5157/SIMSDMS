@@ -30,12 +30,6 @@ router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listCoverRe
 // POST /cover-requests/:id/volunteer — Faculty
 router.post('/:id/volunteer', authorize('faculty'), asyncHandler(ctrl.volunteer));
 
-// DELETE /cover-requests/:id — Faculty
-router.delete('/:id', authorize('faculty'), asyncHandler(ctrl.cancelCoverRequest));
-
-// POST /cover-requests/:id/reject-volunteer — Admin
-router.post('/:id/reject-volunteer', authorize('admin', 'super_admin'), asyncHandler(ctrl.rejectVolunteer));
-
 // PATCH /cover-requests/:id/confirm — Admin
 router.patch('/:id/confirm', authorize('admin', 'super_admin'), asyncHandler(ctrl.confirmCover));
 

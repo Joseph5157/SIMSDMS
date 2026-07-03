@@ -1,14 +1,14 @@
 # Handoff Reports Extension
 
 Generates or updates a structured `handoff.md` report for the active feature after
-implementation work, so the next session (or the next agent) can pick up work without
-re-deriving context.
+specification, clarification, or implementation work, so the next session (or the next
+agent) can pick up work without re-deriving context.
 
 ## Overview
 
-This extension is invoked as an `after_implement` hook, running **before** the git
-auto-commit step so that the handoff report is included in the same commit as the
-implementation changes it describes.
+This extension is invoked as an `after_specify`, `after_clarify`, and `after_implement`
+hook, running **before** the git auto-commit step in each of those hooks so that the
+handoff report is included in the same commit as the change it describes.
 
 ## Commands
 
@@ -20,6 +20,8 @@ implementation changes it describes.
 
 | Event | Command | Optional | Description |
 |-------|---------|----------|--------------|
+| `after_specify` | `speckit.handoff.update` | No | Generate/update handoff.md before specification changes are committed |
+| `after_clarify` | `speckit.handoff.update` | No | Generate/update handoff.md before clarification changes are committed |
 | `after_implement` | `speckit.handoff.update` | No | Generate/update handoff.md before implementation changes are committed |
 
 ## Behavior

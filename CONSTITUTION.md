@@ -51,7 +51,7 @@ These decisions are locked. Do not suggest alternatives or use different tools.
 |---|---|
 | Database | PostgreSQL — hosted on Railway |
 | Hosting | Railway — both staging and production |
-| Auth | Telegram OTP → JWT stored in httpOnly cookie. No email/SMS fallback — Telegram only |
+| Auth | Email + password → JWT stored in httpOnly cookie + CSRF token. Telegram is used for notifications only, never for login |
 | Real-time | 30-second polling — no WebSockets, no SSE |
 | API style | REST — no GraphQL |
 | App structure | Monolithic — single repo, single deploy |
@@ -67,14 +67,14 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 ### Super Admin
 - Full unrestricted access to all modules, roles, and data in the system
 - Manages Admin accounts (create, deactivate)
-- Resets any user's login session (including locked accounts)
+- Resets any user's login session or password (including locked accounts) — generates a temporary password, forces a change on next login, and notifies the user via Telegram
 - Views all audit logs across all roles and modules
 - Configures system-wide settings
 - Can permanently hard-delete any record — the only role that can do this
 - Has all Admin permissions
 
 ### Admin
-- Approves and deactivates user accounts
+- Creates, activates, and deactivates user accounts
 - Manages the duty calendar (open/close window, block holidays, set working days, set sessions per faculty)
 - Assigns duty slots to faculty who missed the window
 - Uploads and manages student Excel data
@@ -103,11 +103,26 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 These are non-negotiable rules encoded in the planning document. Every feature must respect them.
 
 ### Authentication
-- Login is via Telegram OTP only. No passwords, no email OTP, no SMS.
-- If Telegram is unavailable, users wait — no fallback mechanism, no extra infrastructure.
-- OTP expires in 5 minutes. Maximum 5 failed attempts before lockout.
-- JWT stored in httpOnly cookie — never in localStorage.
-- All routes except `/auth/request-otp` and `/auth/verify-otp` require a valid JWT.
+- Login is via registered email + password. No Telegram OTP, no SMS, no email OTP.
+- Passwords are hashed with bcrypt (cost factor 12) — plaintext is never stored or logged.
+- JWT stored in httpOnly cookie — never in localStorage. A CSRF token (`sims_csrf` cookie +
+  `X-CSRF-Token` header) is required on every mutating request.
+- `session_version` on the user row is embedded in the JWT and checked on every request.
+  Incrementing it (on deactivate, reactivate, delete, role change, or password reset)
+  instantly revokes all of that user's existing sessions — this is the forced-logout
+  mechanism.
+- New accounts and any admin-reset account are flagged `must_change_password = true` and are
+  forced to set a new password via `POST /auth/change-password` before using the rest of the
+  system.
+- `POST /auth/login` is rate-limited per IP (50 requests / 15 min in production). There is no
+  per-account failed-attempt lockout counter — brute-force defense is IP-level rate limiting
+  only.
+- All routes except `/auth/login` require a valid JWT.
+- **Admin-triggered password reset**: Super Admin can trigger a password reset for any user.
+  This generates a new temporary password, sets `must_change_password = true`, increments
+  `session_version` (revoking any existing session), and notifies the user of the temporary
+  password via Telegram — no email, no SMS. This is the system's only "forgot password"
+  recovery path; there is no self-service reset.
 
 ### Duty Calendar
 - Admin manually opens the scheduling window whenever ready — it does not auto-open.
@@ -147,8 +162,12 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Unanswered broadcasts auto-expire after 48 hours (cron job checks `expires_at`).
 
 ### Notifications
-- All system notifications (duty window open, cover requests, reminders) are sent via Telegram Bot only.
+- All system notifications (duty window open, cover requests, reminders, admin-triggered
+  password resets) are sent via Telegram Bot only.
 - No email, no SMTP, no SMS — Telegram is the sole notification channel.
+- Telegram is notification-only. It plays no role in login or session issuance (see
+  Authentication) — a user with no Telegram linked can still log in with email + password,
+  they simply won't receive Telegram notifications.
 
 ### Students
 - Student data is uploaded via Excel. Upsert logic — `registration_number` is the unique key.
@@ -165,14 +184,13 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ---
 
-## 5. Database — 15 Tables
+## 5. Database — 14 Tables
 
 All migrations must match this schema exactly. Full column definitions in `SIMS_Database_Schema_v2.1.md`.
 
 | Table | Purpose |
 |---|---|
 | `users` | All system users — 3 roles: Faculty, Admin, Super Admin |
-| `otp_sessions` | Telegram OTP flow — stores hash, expiry, attempt count |
 | `students` | Student master data uploaded via Excel |
 | `duty_slots` | Monthly duty assignments per faculty |
 | `duty_attendance` | Faculty IN/OUT timestamps and status per duty slot |
@@ -187,11 +205,10 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 
-> **Removed**: `correction_requests` (replaced by `violations.is_flagged`), `reschedule_requests` (replaced by `cover_requests`)
+> **Removed**: `correction_requests` (replaced by `violations.is_flagged`), `reschedule_requests` (replaced by `cover_requests`), `otp_sessions` (Telegram OTP login was built and then abandoned in favor of email/password — see §4 Authentication)
 
 ### Key Schema Rules
-- `otp_sessions.user_id` — FK to `users`. User must exist and be active before an OTP session can be created
-- `admin_audit_log` — system-level actions only (session resets, account changes, hard deletes). Never mix with `violation_audit_log`
+- `admin_audit_log` — system-level actions only (password resets, account changes, hard deletes). Never mix with `violation_audit_log`
 - `violations.is_flagged` — set by Faculty to request Admin review; resolved via `flag_resolved_by` + `flag_resolved_at`
 - `violations.photo_path` / `violations.photo_expires_at` — foundation columns, not used in Phase 1
 - `cover_requests.expires_at` — used by cron for 48hr auto-expiry
@@ -201,22 +218,24 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 63 Endpoints Across 10 Modules
+## 6. API — 95 Endpoints Across 12 Modules
 
 | Module | Count | Base Path |
 |---|---|---|
 | Authentication | 3 | `/auth` |
-| Users & Accounts | 9 | `/users`, `/admin` |
-| Students | 6 | `/students` |
-| Duty Calendar | 7 | `/calendar` |
+| Users & Accounts | 10 | `/users`, `/admin` |
+| Students | 10 | `/students` |
+| Duty Calendar | 8 | `/calendar` |
 | Duty Slots | 6 | `/duty-slots` |
 | Duty Attendance | 5 | `/attendance` |
 | Violations | 10 | `/violations` |
 | Violation Types | 5 | `/violation-types` |
-| Need Cover | 7 | `/cover-requests` |
-| Messages | 5 | `/messages` |
+| Need Cover | 9 | `/cover-requests` |
+| Messages | 6 | `/messages` |
+| Invites | 4 | `/invites` |
+| Reports | 17 | `/reports` |
 
-Full endpoint definitions in `SIMS_API_Endpoints_v2.0.md`.
+Full endpoint definitions in `SIMS_API_Endpoints_v2.0.md` (v2.2).
 
 All endpoints return JSON. All errors follow the format:
 ```json
@@ -316,6 +335,6 @@ PORT=3000
 
 ---
 
-*Constitution version: 2.7 — Updated: June 2026*
+*Constitution version: 3.1 — Updated: July 2026*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*

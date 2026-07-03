@@ -19,6 +19,14 @@ provides:
       description: "Generate or update specs/<feature-folder>/handoff.md from specs/_templates/handoff.md"
 
 hooks:
+  after_specify:
+    command: speckit.handoff.update
+    optional: false
+    description: "Generate/update handoff.md for the active feature before specification changes are committed"
+  after_clarify:
+    command: speckit.handoff.update
+    optional: false
+    description: "Generate/update handoff.md for the active feature before clarification changes are committed"
   after_implement:
     command: speckit.handoff.update
     optional: false

@@ -1,6 +1,6 @@
 # SIMS DMS — API Endpoint Reference
 **SIMS College of Pharmacy — Discipline Management System**
-Version 2.0 | REST API | Node.js + Express | JWT Auth
+Version 2.2 | REST API | Node.js + Express | JWT Auth
 
 > **Changes from v1.0:**
 > - Coordinator role removed — all Coordinator access merged into Admin
@@ -8,7 +8,26 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 > - Module 10 (Correction Requests) removed — replaced by `violations.is_flagged` flag endpoints in Module 7
 > - Photo endpoint kept in Module 7 as foundation for v2 — not implemented in Phase 1
 > - Self-registration removed — Admin creates accounts directly (`POST /users`). `POST /users/register`, `GET /users/pending`, `PATCH /users/:id/approve` removed.
-> - Actual endpoint count: **63 endpoints across 10 modules**
+
+> **Changes from v2.0 (2026-07-03 — synced against a full code audit):**
+> - Module 1 (Authentication) corrected: the account model changed again after v2.0 was
+>   written. Login is now email + password (`POST /auth/login`, `POST /auth/change-password`),
+>   not Telegram OTP. `POST /auth/request-otp` and `POST /auth/verify-otp` never existed in
+>   the current auth model and are removed from this doc.
+> - `POST /users` (direct account creation, described in v2.0's own changelog above) was
+>   itself later retired — it now returns `410 GONE`/`404`. The real, current creation path is
+>   the new **Module 11 — Invites**, added below. v2.0's premise ("Admin creates accounts
+>   directly") is superseded; account creation is invite + Telegram-activation based.
+> - Added **Module 11 — Invites** (4 endpoints) and **Module 12 — Reports** (17 endpoints) —
+>   both existed in the live codebase but were never documented.
+> - Added several endpoints that existed in code but were missing from Modules 2–3, 4, 9, 10
+>   (see each module's notes below).
+> - Corrected the summary table: the v2.0 body said "63 endpoints" while its own summary
+>   table header said "66" — both were wrong. See the corrected summary at the bottom.
+> - **2026-07-03, same day**: removed `DELETE /cover-requests/:id` and
+>   `POST /cover-requests/:id/reject-volunteer` — confirmed duplicates of
+>   `PATCH /:id/cancel` and `PATCH /:id/reject` respectively (same controller function,
+>   unused by the frontend). Total corrected 97 → 95.
 
 ---
 
@@ -25,51 +44,62 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 
 ## Module 1 — Authentication (3 endpoints)
 
-> No JWT required. OTP sent via Telegram. Token stored in httpOnly cookie on success.
+> Email + password login. JWT + CSRF token issued and stored in httpOnly cookies on success.
+> Telegram plays no role in login — see Module 11 for how Telegram is used (account
+> activation) and Module 2 for the Super Admin password-reset notification channel.
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| POST | /auth/request-otp | Public | Send OTP to user's registered Telegram ID |
-| POST | /auth/verify-otp | Public | Verify OTP → issue JWT cookie on success |
-| POST | /auth/logout | All Auth | Clear JWT cookie and invalidate session |
+| POST | /auth/login | Public | Authenticate with email + password → issue JWT + CSRF cookies |
+| POST | /auth/change-password | All Auth | Change own password (skips current-password check on first-time set) |
+| POST | /auth/logout | All Auth | Clear JWT + CSRF cookies and invalidate session |
 
 ---
 
-## Module 2 — Users & Accounts (9 endpoints)
+## Module 2 — Users & Accounts (10 endpoints)
 
-> Accounts are created by Admin only — no self-registration.
+> Accounts are **not** created directly through this module — see Module 11 (Invites). This
+> module covers session/profile lookup, listing, deactivation/reactivation, and Super
+> Admin-level account operations. `POST /users`, `GET /users/pending`, and
+> `POST /users/:id/regenerate-invite` (documented in v2.0) are retired and return `404`.
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| POST | /users | Admin | Create a new user account (status = active immediately) |
-| PATCH | /users/:id/deactivate | Admin | Deactivate an active user account |
+| GET | /users/me | All Auth | Get the current authenticated user's own profile |
 | GET | /users | Admin | List all users with filters (role, status, dept) |
 | GET | /users/:id | All Auth | Get a single user profile |
 | PATCH | /users/:id/profile | All Auth | Update own profile (name, phone, dept) |
+| PATCH | /users/:id/deactivate | Admin | Deactivate an active user account (cannot deactivate self or a Super Admin) |
+| PATCH | /users/:id/reactivate | Admin | Reactivate a deactivated user account |
+| DELETE | /users/:id | Super Admin | Soft-delete a user (`deleted_at` set) — distinct from the permanent hard-delete below |
 | GET | /admin/audit-logs | Super Admin | View all system audit logs |
-| POST | /admin/users/:id/reset-login | Super Admin | Force-reset any user's login session |
+| POST | /admin/users/:id/reset-login | Super Admin | Reset a user's password — generates a temp password, forces change on next login, notifies via Telegram (cannot target a Super Admin) |
 | DELETE | /admin/hard-delete/:resource/:id | Super Admin | Permanently delete any record by resource type and ID |
 | GET | /admin/settings | Super Admin | View system-wide configuration |
 | PATCH | /admin/settings | Super Admin | Update system-wide configuration |
 
 ---
 
-## Module 3 — Students (6 endpoints)
+## Module 3 — Students (10 endpoints)
 
 > Excel upload uses upsert logic — `registration_number` is the unique key. Existing records updated, new ones created, missing ones deactivated.
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
 | POST | /students/upload | Admin | Upload student Excel file (upsert by reg. number) |
+| GET | /students/upload-template | Admin | Download the expected Excel upload template |
 | GET | /students/upload-logs | Admin | View history of all Excel uploads including error rows |
 | GET | /students | Admin | List all students with filters (course, year, status) |
+| GET | /students/:id | Admin | Get a single student record |
 | GET | /students/search | All Auth | Search students by name or reg. number (violation form autocomplete) |
-| PATCH | /students/:id/promote | Admin | Promote student to next semester or year |
-| PATCH | /students/:id/deactivate | Admin | Deactivate a student record |
+| PATCH | /students/bulk/promote | Admin | Bulk-promote multiple students to the next semester/year in one request |
+| PATCH | /students/bulk/deactivate | Admin | Bulk-deactivate multiple student records in one request |
+| PATCH | /students/:id/promote | Admin | Promote a single student to next semester or year |
+| PATCH | /students/:id/deactivate | Admin | Deactivate a single student record |
 
 ---
 
-## Module 4 — Duty Calendar (7 endpoints)
+## Module 4 — Duty Calendar (8 endpoints)
 
 > Admin manually controls the scheduling window. Faculty notified via Telegram when window opens. Window auto-closes on last day of month or Admin closes early.
 
@@ -79,6 +109,7 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 | POST | /calendar/:year/:month/open | Admin | Open the scheduling window — triggers Telegram notification to all faculty |
 | POST | /calendar/:year/:month/close | Admin | Manually close the scheduling window early |
 | PATCH | /calendar/:year/:month/blocked-dates | Admin | Update blocked holiday dates for the month |
+| PATCH | /calendar/:year/:month/working-days | Admin | Set which days of the month are working days, before opening the window |
 | PATCH | /calendar/:year/:month/sessions-per-faculty | Admin | Set how many sessions each faculty must pick this month |
 | GET | /calendar/:year/:month/unassigned-faculty | Admin | List faculty who have not picked their slots after window closes |
 | POST | /calendar/:year/:month/assign/:facultyId | Admin | Admin manually assigns slots to a faculty who missed the window |
@@ -147,9 +178,16 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 
 ---
 
-## Module 9 — Need Cover (7 endpoints)
+## Module 9 — Need Cover (9 endpoints)
 
 > Replaces Reschedule Requests. Faculty post an open broadcast — any faculty can volunteer. Admin confirms the cover assignment. Broadcasts auto-expire after 48 hours.
+>
+> **Resolved 2026-07-03**: v2.1 previously flagged `DELETE /:id` vs `PATCH /:id/cancel`, and
+> `POST /:id/reject-volunteer` vs `PATCH /:id/reject`, as possible duplicates under review.
+> Confirmed both `DELETE /:id` and `POST /:id/reject-volunteer` routed to the exact same
+> controller functions as their `PATCH` counterparts, were unused by the frontend, and (for
+> the cancel pair) were a strict subset of the `PATCH` route's role access. Both dead routes
+> removed from the codebase; this table reflects the endpoints that remain.
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
@@ -158,12 +196,14 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 | GET | /cover-requests/open | Faculty | View open broadcasts available to volunteer for |
 | GET | /cover-requests/my | Faculty | View own posted and volunteered requests |
 | POST | /cover-requests/:id/volunteer | Faculty | Volunteer to cover a broadcast slot |
+| PATCH | /cover-requests/:id/cancel | Faculty, Admin, Super Admin | Cancel a cover request (Faculty: own only; Admin/Super Admin: any) |
+| PATCH | /cover-requests/:id/reject | Admin | Reject a volunteer for a cover request — clears the volunteer, keeps the request open |
 | PATCH | /cover-requests/:id/confirm | Admin | Confirm a volunteer — finalises the cover assignment |
 | PATCH | /cover-requests/config | Admin | Set max cover requests allowed per duty slot |
 
 ---
 
-## Module 10 — Messages (5 endpoints)
+## Module 10 — Messages (6 endpoints)
 
 > Two-way internal messaging between any two users. Soft delete — deleting from one side does not delete from the other.
 
@@ -172,28 +212,80 @@ Version 2.0 | REST API | Node.js + Express | JWT Auth
 | POST | /messages | All Auth | Send a message to another user |
 | GET | /messages/inbox | All Auth | Get received messages (unread first) |
 | GET | /messages/sent | All Auth | Get sent messages |
-| GET | /messages/:id | All Auth | View a single message (marks as read automatically) |
+| GET | /messages/:id | All Auth | View a single message |
+| PATCH | /messages/:id/read | All Auth | Explicitly mark a message as read |
 | DELETE | /messages/:id | All Auth | Soft-delete a message from own view |
 
 ---
 
-## Summary — 66 Endpoints Across 10 Modules
+## Module 11 — Invites (4 endpoints) — NEW, added 2026-07-03
+
+> The real account-creation mechanism. Admin/Super Admin invites a person by email; the
+> system creates a `PendingInvite` and a Telegram deep link (`https://t.me/<bot>?start=invite_<token>`,
+> 7-day expiry). The invited person taps the link and messages the bot, which creates the
+> real `User` account with a system-generated temporary password (`must_change_password = true`).
+> There is no direct account-creation endpoint (see Module 2's note on `POST /users`).
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| POST | /invites | Admin, Super Admin | Create a pending invite (Admin: `role` must be `faculty`; Super Admin: `faculty` or `admin` — `super_admin` is not an accepted role here, see known gap in `spec.md` FR-016) |
+| GET | /invites | Admin, Super Admin | List all pending (not yet activated) invites |
+| POST | /invites/:id/regenerate | Admin, Super Admin | Generate a new token + link for an existing pending invite (same role-scope guard as create) |
+| DELETE | /invites/:id | Admin, Super Admin | Cancel a pending invite (same role-scope guard as create) |
+
+---
+
+## Module 12 — Reports (17 endpoints) — NEW, added 2026-07-03
+
+> All report endpoints are Admin/Super Admin only (`router.use(authenticate, authorize('admin','super_admin'))`).
+> Most take `year`/`month` query params; a few take entity-specific filters.
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| GET | /reports/monthly-attendance | Admin | Monthly attendance summary |
+| GET | /reports/late-arrivals | Admin | Late-arrival report for the month |
+| GET | /reports/absent-faculty | Admin | Faculty who missed assigned duty slots |
+| GET | /reports/auto-clockout | Admin | Records auto-clocked-out by the cron job |
+| GET | /reports/attendance-overrides | Admin | Log of Admin attendance overrides |
+| GET | /reports/student-violations | Admin | Student violation history (filterable) |
+| GET | /reports/student-violations/export | Admin | Export student violation history (same filters as above) |
+| GET | /reports/faculty-activity | Admin | Faculty violation-recording activity |
+| GET | /reports/violation-types | Admin | Breakdown of violations by type for the month |
+| GET | /reports/pending-fines | Admin | Summary of unpaid/pending violation fines |
+| GET | /reports/flagged-violations | Admin | All violations currently flagged for review |
+| GET | /reports/duty-coverage | Admin | Monthly duty slot coverage summary |
+| GET | /reports/unassigned-faculty | Admin | Faculty who never picked/were assigned a slot |
+| GET | /reports/cover-requests | Admin | Need Cover request summary for the month |
+| GET | /reports/completion-rate | Admin | Overall session completion rate |
+| GET | /reports/upload-history | Admin | Student Excel upload history |
+| GET | /reports/active-students | Admin | Active student roster (filterable) |
+
+---
+
+## Summary — 95 Endpoints Across 12 Modules
 
 | # | Module | Count | Base Path |
 |---|--------|-------|-----------|
 | 1 | Authentication | 3 | `/auth` |
-| 2 | Users & Accounts | 9 | `/users`, `/admin` |
-| 3 | Students | 6 | `/students` |
-| 4 | Duty Calendar | 7 | `/calendar` |
+| 2 | Users & Accounts | 10 | `/users`, `/admin` |
+| 3 | Students | 10 | `/students` |
+| 4 | Duty Calendar | 8 | `/calendar` |
 | 5 | Duty Slots | 6 | `/duty-slots` |
 | 6 | Duty Attendance | 5 | `/attendance` |
 | 7 | Violations | 10 | `/violations` |
 | 8 | Violation Types | 5 | `/violation-types` |
-| 9 | Need Cover | 7 | `/cover-requests` |
-| 10 | Messages | 5 | `/messages` |
-| | **TOTAL** | **63** | |
+| 9 | Need Cover | 9 | `/cover-requests` |
+| 10 | Messages | 6 | `/messages` |
+| 11 | Invites | 4 | `/invites` |
+| 12 | Reports | 17 | `/reports` |
+| | **TOTAL** | **95** | |
+
+Not counted above: the Telegram webhook (`POST /bot/webhook/:secret`) — internal bot
+integration, not a REST endpoint intended for frontend consumption.
 
 ---
 
-*API Reference version: 2.0 — Updated: June 2026*
-*Supersedes SIMS_API_Endpoints_v1.0.docx*
+*API Reference version: 2.2 — Updated: 2026-07-03 (synced against a full code audit, then
+same-day resolved the two Module 9 duplicate-route entries; see
+`specs/001-auth-user-accounts/handoff.md` for the audit that produced these revisions)*
+*Supersedes SIMS_API_Endpoints_v1.0.docx, v2.0, and v2.1*

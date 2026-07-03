@@ -5,8 +5,8 @@ description: "Generate or update specs/<feature-folder>/handoff.md from specs/_t
 # Update Handoff Report
 
 Generate or update the structured handoff report for the feature that was just worked on,
-**before** the `after_implement` auto-commit step runs, so the report ships in the same
-commit as the work it describes.
+**before** the `after_specify` / `after_clarify` / `after_implement` auto-commit step runs,
+so the report ships in the same commit as the work it describes.
 
 ## Behavior
 
