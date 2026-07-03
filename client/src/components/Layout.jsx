@@ -291,7 +291,7 @@ export function CardHeader({ children, action }) {
       className="border-b border-b-[var(--border)] bg-[var(--surface-page)]"
     >
       <Group justify="space-between" gap="sm">
-        <Text size="sm" fw={600} c="gray.7">{children}</Text>
+        <Text size="sm" fw={600} className="text-[color:var(--text-secondary)]">{children}</Text>
         {action}
       </Group>
     </Box>

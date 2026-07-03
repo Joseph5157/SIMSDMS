@@ -9,7 +9,7 @@ const ACCENTS = {
   default: { bar: 'var(--border-strong)', bg: 'var(--surface-card)', text: 'var(--text-primary)', border: 'var(--border)' },
 };
 
-export default function StatCard({ label, value, sub, accent = 'default', icon, onClick }) {
+export default function StatCard({ label, value, sub, accent = 'default', icon, onClick, compact = false }) {
   const c = ACCENTS[accent] ?? ACCENTS.default;
   const isNumber = typeof value === 'number';
   const [display, setDisplay] = useState(isNumber ? 0 : value);
@@ -30,11 +30,11 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
   return (
     <div
       onClick={onClick}
-      className={`relative rounded-[var(--radius-xl)] overflow-hidden min-h-24 flex flex-col justify-start gap-2 font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''}`}
+      className={`relative rounded-[var(--radius-xl)] overflow-hidden ${compact ? '' : 'min-h-24'} flex flex-col justify-start ${compact ? 'gap-0.5' : 'gap-2'} font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''}`}
       style={{
         border: `1px solid ${c.border}`,
         backgroundColor: c.bg,
-        padding: '14px 16px 14px 20px',
+        padding: compact ? '10px 12px 10px 16px' : '14px 16px 14px 20px',
         boxShadow: 'var(--shadow-stat)',
       }}
     >
@@ -58,7 +58,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
 
       {/* Value */}
       <p
-        className="m-0 text-[length:var(--text-stat)] font-[800] leading-none tracking-[var(--tracking-tight)]"
+        className={`m-0 font-[800] leading-none tracking-[var(--tracking-tight)] ${compact ? 'text-[length:var(--text-h2)]' : 'text-[length:var(--text-stat)]'}`}
         style={{ color: c.text }}
       >
         {display}

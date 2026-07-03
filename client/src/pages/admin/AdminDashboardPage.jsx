@@ -1,4 +1,4 @@
-import Layout, { PageHeader, Card, CardHeader, CardBody } from '../../components/Layout';
+import Layout, { Card, CardHeader, CardBody } from '../../components/Layout';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
@@ -11,8 +11,6 @@ import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
 
 const QUICK_ACTIONS = [
-  { label: 'Live Attendance', emoji: '✅', path: ROUTES.ADMIN_ATTENDANCE,      tint: 'var(--color-emerald-bg)', ink: 'var(--color-emerald-text)' },
-  { label: 'Cover Requests',  emoji: '🔄', path: ROUTES.ADMIN_COVER_REQUESTS,  tint: 'var(--color-blue-50)',    ink: 'var(--color-blue-800)' },
   { label: 'Student Violations', emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,   tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
   { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
 ];
@@ -55,16 +53,21 @@ export default function AdminDashboardPage({ user }) {
 
   return (
     <Layout user={user}>
-      <PageHeader
-        title={`Good ${getGreeting()}, ${user?.name?.split(' ')[0]}`}
-        subtitle={dateStr}
-      />
+      {/* ── Header — compact, left-aligned (matches faculty dashboard) ── */}
+      <div className="mb-5 pb-4 border-b border-[var(--border)]">
+        <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          Good {getGreeting()}, {user?.name?.split(' ')[0]}
+        </p>
+        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
+          {dateStr}
+        </p>
+      </div>
 
       {/* ── Loading skeleton ── */}
       {isLoading && (
         <>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} height="96px" className="rounded-xl" />)}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} height="68px" className="rounded-xl" />)}
           </div>
           <Skeleton height="140px" className="rounded-xl mb-3" />
           <Skeleton height="140px" className="rounded-xl" />
@@ -73,12 +76,12 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── KPI grid ── */}
       {!isLoading && (
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <StatCard label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
-          <StatCard label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <StatCard compact label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
+          <StatCard compact label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
             sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-          <StatCard label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
-          <StatCard label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
+          <StatCard compact label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
+          <StatCard compact label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
             sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
         </div>
       )}
@@ -123,28 +126,28 @@ export default function AdminDashboardPage({ user }) {
         </CardHeader>
         <CardBody className="p-0">
           {!liveSlots.length ? (
-            <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
+            <p style={{ padding: '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
           ) : (
             <>
-              <div className="flex gap-2 px-4 py-[14px] border-b border-[var(--border)]">
+              <div className="flex gap-2 px-4 py-2 border-b border-[var(--border)]">
                 {[
                   { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: 'var(--color-emerald-bg)' },
                   { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: 'var(--color-blue-50)' },
                   { n: notCheckedIn,  label: 'Not in', color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
                   ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: 'var(--color-amber-bg)' }] : []),
                 ].map((item) => (
-                  <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-[10px] text-center"
+                  <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-1.5 text-center"
                     style={{ background: item.tint }}>
-                    <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
-                    <p style={{ fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 4 }}>{item.label}</p>
+                    <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
+                    <p style={{ fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>{item.label}</p>
                   </div>
                 ))}
               </div>
-              <div className="max-h-[200px] overflow-y-auto">
+              <div className="max-h-[160px] overflow-y-auto">
                 {liveSlots.map((s) => (
                   <div
                     key={s.slot_id}
-                    className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)]"
+                    className="flex items-center justify-between px-4 py-[6px] border-b border-[var(--divider)]"
                   >
                     <div className="flex-1 min-w-0">
                       <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -175,13 +178,13 @@ export default function AdminDashboardPage({ user }) {
         <CardHeader>🔄 Open cover requests</CardHeader>
         <CardBody className="p-0">
           {!openCovers?.data?.length ? (
-            <p style={{ padding: 16, fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No open cover requests.</p>
+            <p style={{ padding: '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No open cover requests.</p>
           ) : (
-            <div className="max-h-[220px] overflow-y-auto">
+            <div className="max-h-[180px] overflow-y-auto">
               {openCovers.data.slice(0, 8).map((cr) => (
                 <div
                   key={cr.id}
-                  className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)] gap-[10px]"
+                  className="flex items-center justify-between px-4 py-[6px] border-b border-[var(--divider)] gap-[10px]"
                 >
                   <div className="min-w-0 flex-1">
                     <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
