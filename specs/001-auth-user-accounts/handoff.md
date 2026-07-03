@@ -13,8 +13,11 @@ isolation, T040 fix, dead code removal
 complete
 
 ## completed
-Full arc of this session, now committed (see commit hash noted below — this file was
-updated once more immediately after committing to record it):
+Full arc of this session, committed as **`131a7ab`** (`131a7ab2b77cb6f66865bd16aaa3a488ff730d18`),
+a single logical commit covering everything below (see the reasoning for one commit vs. a
+series in the chat response of this turn — kept as one commit since it's a single continuous
+narrative: discover the drift, reconcile every doc, fix the concrete bugs found along the
+way):
 
 - **Auth model corrected across every doc**: discovered the codebase had abandoned Telegram
   OTP login for email + password (`7b33d90`), then further discovered the actual
@@ -51,10 +54,10 @@ documented open item, listed below)
 
 ## commands_run
 ```
-(this turn: no new shell commands beyond the git add/commit sequence — see below)
-git add <17 explicitly-named files — see files_touched>
-git commit -m "<see commit message>"
+git add <17 explicitly-named files — see files_touched>   # not `git add -A`/`.`
+git commit -m "fix: correct auth model docs/code to match reality ..."
 git log -1 --format=%H
+# => 131a7ab2b77cb6f66865bd16aaa3a488ff730d18
 ```
 
 ## constraints_discovered
