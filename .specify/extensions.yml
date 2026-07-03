@@ -1,6 +1,7 @@
 installed:
 - agent-context
 - git
+- handoff
 settings:
   auto_execute_hooks: true
 hooks:
@@ -131,6 +132,13 @@ hooks:
     description: Auto-commit after task generation
     condition: null
   after_implement:
+  - extension: handoff
+    command: speckit.handoff.update
+    enabled: true
+    optional: false
+    prompt: null
+    description: Generate/update handoff.md before implementation changes are committed
+    condition: null
   - extension: git
     command: speckit.git.commit
     enabled: true
