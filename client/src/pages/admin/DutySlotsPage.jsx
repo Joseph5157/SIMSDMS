@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useMonthSlots } from '../../hooks/useDutySlots';
@@ -13,7 +13,7 @@ export default function DutySlotsPage({ user }) {
   const [year,  setYear]  = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const { data, isLoading } = useMonthSlots(year, month);
+  const { data, isLoading, isError, refetch } = useMonthSlots(year, month);
 
   const slots = data?.data ?? [];
   const morning   = slots.filter((s) => s.session_type === 'morning');
@@ -52,7 +52,9 @@ export default function DutySlotsPage({ user }) {
               </p>
               <div style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
                 overflow: 'hidden', marginBottom: 16 }}>
-                {!group.length ? (
+                {isError ? (
+                  <ErrorBlock onRetry={refetch} />
+                ) : !group.length ? (
                   <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
                     No {session} slots
                   </div>
@@ -95,7 +97,8 @@ export default function DutySlotsPage({ user }) {
               <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th className="hidden sm:table-cell">Covered by</Th></tr></thead>
               <tbody className="divide-y divide-[var(--divider)]">
                 {isLoading && <EmptyRow cols={5} message="Loading…" />}
-                {!isLoading && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
+                {isError && <ErrorRow cols={5} onRetry={refetch} />}
+                {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
                 {group.map((s) => (
                   <tr key={s.id}>
                     <Td className="font-medium">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>

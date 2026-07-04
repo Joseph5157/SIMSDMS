@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
 import { TextInput } from '@mantine/core';
 import { useAuditLogs } from '../../hooks/useUsers';
@@ -11,7 +11,7 @@ export default function AuditLogsPage({ user }) {
   const [from,   setFrom]   = useState('');
   const [to,     setTo]     = useState('');
 
-  const { data, isLoading } = useAuditLogs({ action, from, to, page, limit: 50 });
+  const { data, isLoading, isError, refetch } = useAuditLogs({ action, from, to, page, limit: 50 });
 
   function getActionColor(act) {
     if (!act) return 'var(--text-muted)';
@@ -55,7 +55,8 @@ export default function AuditLogsPage({ user }) {
         border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16,
       }}>
         {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No logs found.</div>}
+        {isError && <ErrorBlock onRetry={refetch} />}
+        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No logs found.</div>}
         {data?.data?.map((log) => (
           <div key={log.id} style={{
             padding: '14px 16px',
@@ -100,7 +101,8 @@ export default function AuditLogsPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={4} message="Loading…" />}
-            {!isLoading && !data?.data?.length && <EmptyRow cols={4} />}
+            {isError && <ErrorRow cols={4} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={4} />}
             {data?.data?.map((log) => (
               <tr key={log.id}>
                 <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>

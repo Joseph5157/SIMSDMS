@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Breadcrumb from '../../components/Breadcrumb';
-import { Table, Th, Td, Tr, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, Tr, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, Select, Checkbox } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
@@ -174,7 +174,7 @@ export default function StudentsPage({ user }) {
   const [bulkDeactivating, setBulkDeactivating] = useState(false);
 
   const debouncedSearch = useDebounce(search, 500);
-  const { data, isLoading } = useStudents({
+  const { data, isLoading, isError, refetch } = useStudents({
     search:  debouncedSearch,
     course:  filterCourse  || undefined,
     year:    filterYear    || undefined,
@@ -305,7 +305,8 @@ export default function StudentsPage({ user }) {
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
         {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
-        {!isLoading && !data?.data?.length && (
+        {isError && <ErrorBlock onRetry={refetch} />}
+        {!isLoading && !isError && !data?.data?.length && (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No students found.</div>
         )}
         {data?.data?.map((s) => (
@@ -365,7 +366,8 @@ export default function StudentsPage({ user }) {
           </thead>
           <tbody>
             {isLoading && Array.from({ length: 10 }).map((_, i) => <TableRowSkeleton key={i} cols={10} />)}
-            {!isLoading && !data?.data?.length && <EmptyRow cols={10} />}
+            {isError && <ErrorRow cols={10} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={10} />}
             {data?.data?.map((s) => (
               <Tr key={s.id} onClick={() => setViewingId(s.id)}>
                 <Td>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorBlock } from '../../components/ui/Table';
 import Badge from '../../components/ui/Badge';
 import BottomDrawer from '../../components/ui/BottomDrawer';
 import { useMediaQuery } from '@mantine/hooks';
@@ -59,8 +59,9 @@ function MonthFilter({ year, month, setYear, setMonth }) {
 }
 
 // ── Report result content ──────────────────────────────────────────────────────
-function ReportSection({ id, data, isLoading }) {
+function ReportSection({ id, data, isLoading, isError, refetch }) {
   if (isLoading) return <p className="text-[length:13px] text-[var(--text-muted)]">Loading…</p>;
+  if (isError)   return <ErrorBlock onRetry={refetch} />;
   if (!data)     return null;
 
   switch (id) {
@@ -338,7 +339,7 @@ function StudentViolationReportCard() {
   const [downloading, setDownloading] = useState(false);
 
   const params = mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {};
-  const { data, isLoading } = useStudentViolations(params);
+  const { data, isLoading, isError, refetch } = useStudentViolations(params);
 
   async function handleDownload() {
     setDownloading(true);
@@ -414,7 +415,7 @@ function StudentViolationReportCard() {
         </p>
       )}
 
-      <ReportSection id="student-violations" data={data} isLoading={isLoading} />
+      <ReportSection id="student-violations" data={data} isLoading={isLoading} isError={isError} refetch={refetch} />
     </div>
   );
 }
@@ -447,12 +448,12 @@ function ReportView({ id }) {
     'active-students':      useActiveStudents,
   };
   const useHook = hookMap[id] ?? useFlaggedViolations;
-  const { data, isLoading } = useHook(params);
+  const { data, isLoading, isError, refetch } = useHook(params);
 
   return (
     <div>
       {needsMonth && <MonthFilter year={year} month={month} setYear={setYear} setMonth={setMonth} />}
-      <ReportSection id={id} data={data} isLoading={isLoading} />
+      <ReportSection id={id} data={data} isLoading={isLoading} isError={isError} refetch={refetch} />
     </div>
   );
 }

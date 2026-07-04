@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, Tooltip } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useToast } from '../../components/ui/Toast';
@@ -14,7 +14,7 @@ export default function ViolationTypesPage({ user }) {
   const [editing, setEditing]           = useState(null);
   const [showDeactivated, setShowDeact] = useState(false);
 
-  const { data, isLoading } = useViolationTypes(true);
+  const { data, isLoading, isError, refetch } = useViolationTypes(true);
   const deactivate = useDeactivateViolationType();
   const deleteType = useDeleteViolationType();
 
@@ -134,7 +134,8 @@ export default function ViolationTypesPage({ user }) {
       {/* Mobile card list */}
       <div className="md:hidden" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {isLoading && <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>Loading…</p>}
-        {!isLoading && !activeRows.length && (
+        {isError && <ErrorBlock onRetry={refetch} />}
+        {!isLoading && !isError && !activeRows.length && (
           <div style={{ padding: '24px 16px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 'var(--radius-xl)' }}>
             <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No student violation types yet.</p>
           </div>
@@ -166,7 +167,8 @@ export default function ViolationTypesPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={5} message="Loading…" />}
-            {!isLoading && !activeRows.length && <EmptyRow cols={5} message="No student violation types yet." />}
+            {isError && <ErrorRow cols={5} onRetry={refetch} />}
+            {!isLoading && !isError && !activeRows.length && <EmptyRow cols={5} message="No student violation types yet." />}
             {activeRows.map(renderTableRow)}
           </tbody>
         </Table>

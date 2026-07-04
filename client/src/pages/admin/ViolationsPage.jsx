@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, TextInput, Select, Modal } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
@@ -78,7 +78,7 @@ export default function ViolationsPage({ user }) {
   const [auditing,  setAuditing]  = useState(null);
   const [hiding,    setHiding]    = useState(null);
 
-  const { data, isLoading } = useViolations({ ...filters, page, limit: 20 });
+  const { data, isLoading, isError, refetch } = useViolations({ ...filters, page, limit: 20 });
   const hide = useHideViolation();
 
   async function handleHide() {
@@ -124,7 +124,8 @@ export default function ViolationsPage({ user }) {
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
         {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No student violations found.</div>}
+        {isError && <ErrorBlock onRetry={refetch} />}
+        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No student violations found.</div>}
         {data?.data?.map((v) => (
           <div key={v.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -160,7 +161,8 @@ export default function ViolationsPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={7} message="Loading…" />}
-            {!isLoading && !data?.data?.length && <EmptyRow cols={7} />}
+            {isError && <ErrorRow cols={7} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={7} />}
             {data?.data?.map((v) => (
               <tr key={v.id} className={v.is_flagged ? 'bg-[var(--color-amber-bg)]' : v.record_status === 'hidden' ? 'opacity-50' : ''}>
                 <Td>

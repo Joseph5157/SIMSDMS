@@ -9,7 +9,7 @@
  *
  * Exports: Table, Th, Td, Tr, EmptyRow  (same names as before)
  */
-import { Table as MTable, Paper, Text, Center, Stack } from '@mantine/core';
+import { Table as MTable, Paper, Text, Center, Stack, Button } from '@mantine/core';
 
 /** Outer card shell + horizontal scroll container. */
 export function Table({ children, minWidth = 500 }) {
@@ -75,6 +75,43 @@ export function EmptyRow({ cols, message = 'No records found.' }) {
         </Center>
       </MTable.Td>
     </MTable.Tr>
+  );
+}
+
+/** Shared visual content for a failed-request state — icon, message, optional Retry. */
+function ErrorContent({ message = "Couldn't load this data.", onRetry }) {
+  return (
+    <Stack align="center" gap="xs">
+      <Text className="text-[32px] opacity-40 leading-none">⚠️</Text>
+      <Text size="sm" c="dimmed">{message}</Text>
+      {onRetry && (
+        <Button size="xs" variant="light" color="red" onClick={onRetry}>
+          Retry
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+/** Error row — same shape as EmptyRow, for when a query's isError is true. */
+export function ErrorRow({ cols, message, onRetry }) {
+  return (
+    <MTable.Tr>
+      <MTable.Td colSpan={cols} className="p-0 border-b-0">
+        <Center py="xl">
+          <ErrorContent message={message} onRetry={onRetry} />
+        </Center>
+      </MTable.Td>
+    </MTable.Tr>
+  );
+}
+
+/** Error block — non-table-row form, for card lists / non-table sections. */
+export function ErrorBlock({ message, onRetry }) {
+  return (
+    <Center py="xl">
+      <ErrorContent message={message} onRetry={onRetry} />
+    </Center>
   );
 }
 

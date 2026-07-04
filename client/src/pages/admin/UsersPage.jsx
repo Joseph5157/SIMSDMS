@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
-import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
+import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, Menu, ActionIcon, Modal, Text, Group } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -83,8 +83,8 @@ export default function UsersPage({ user }) {
   const [passwordResetResult, setPasswordResetResult] = useState(null);
 
   const debouncedSearch = useDebounce(search, 500);
-  const { data, isLoading } = useUsers({ role, status, search: debouncedSearch, page, limit: 20 });
-  const { data: invitesData, isLoading: invitesLoading } = useInvites();
+  const { data, isLoading, isError, refetch } = useUsers({ role, status, search: debouncedSearch, page, limit: 20 });
+  const { data: invitesData, isLoading: invitesLoading, isError: invitesError, refetch: refetchInvites } = useInvites();
 
   const createInvite     = useCreateInvite();
   const deactivate       = useDeactivateUser();
@@ -205,7 +205,8 @@ export default function UsersPage({ user }) {
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
         {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {!isLoading && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No users found.</div>}
+        {isError && <ErrorBlock onRetry={refetch} />}
+        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No users found.</div>}
         {data?.data?.map((u) => (
           <div key={u.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -245,7 +246,8 @@ export default function UsersPage({ user }) {
           </thead>
           <tbody>
             {isLoading && <EmptyRow cols={6} message="Loading…" />}
-            {!isLoading && !data?.data?.length && <EmptyRow cols={6} />}
+            {isError && <ErrorRow cols={6} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={6} />}
             {data?.data?.map((u) => (
               <tr key={u.id}>
                 <Td>
@@ -316,7 +318,8 @@ export default function UsersPage({ user }) {
           </thead>
           <tbody>
             {invitesLoading && <EmptyRow cols={5} message="Loading…" />}
-            {!invitesLoading && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
+            {invitesError && <ErrorRow cols={5} onRetry={refetchInvites} />}
+            {!invitesLoading && !invitesError && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
             {invitesData?.data?.map((inv) => (
               <tr key={inv.id}>
                 <Td><p className="font-medium text-[var(--text-primary)]">{inv.name}</p></Td>
