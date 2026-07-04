@@ -272,14 +272,14 @@ export default function SlotPickerPage({ user }) {
                     {(hasMorn || pickedMorn) && (
                       <span style={{
                         width: 8, height: 8, borderRadius: 'var(--radius-full)',
-                        background: pickedMorn ? (isPast ? '#94a3b8' : '#10b981') : '#3b82f6',
+                        background: pickedMorn ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-blue-500)',
                         flexShrink: 0,
                       }} />
                     )}
                     {(hasAftern || pickedAftern) && (
                       <span style={{
                         width: 8, height: 8, borderRadius: 'var(--radius-full)',
-                        background: pickedAftern ? (isPast ? '#94a3b8' : '#10b981') : '#f97316',
+                        background: pickedAftern ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-orange-solid)',
                         flexShrink: 0,
                       }} />
                     )}
@@ -399,7 +399,7 @@ export default function SlotPickerPage({ user }) {
                 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: 'var(--radius-full)', flexShrink: 0,
-                    background: s.session_type === 'morning' ? '#3b82f6' : '#f97316',
+                    background: s.session_type === 'morning' ? 'var(--color-blue-500)' : 'var(--color-orange-solid)',
                   }} />
                   <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, textTransform: 'capitalize' }}>
                     {s.session_type} · {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}

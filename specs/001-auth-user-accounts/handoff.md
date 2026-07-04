@@ -5,100 +5,98 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Mantine usage audit follow-up: remove confirmed duplication
-(redundant toast system, redundant Skeleton), document Mantine in CONSTITUTION.md.
-Decision (explicit, from project owner): keep Mantine for Modal/Drawer focus handling and
-form primitives — do not remove the library or touch the Modal/BottomDrawer split.
+001-auth-user-accounts / UI color-system reconciliation (follow-up to read-only color audit).
+Fixed the three prioritized findings; #4 and #5 deferred to backlog per project owner.
 
 ## status
 complete
 
 ## completed
-1. **Folded the one-off Mantine `notifications.show()` call into the existing `useToast()`
-   system** (`client/src/components/PWAUpdatePrompt.jsx`). This was the only call site using
-   `@mantine/notifications`'s imperative API — everywhere else in the app already used the
-   custom `ToastProvider`/`useToast()` context (21 files), so two toast systems were running
-   in parallel for exactly one message (the PWA update banner).
-   - Extended `client/src/components/ui/Toast.jsx`'s `toast()` to accept `persistent` (skip
-     the 3.5s auto-dismiss) and `onClick` (make the whole toast clickable, dismissing on
-     click) — the minimum needed to match the removed Mantine notification's behavior
-     (stayed open until tapped, tapping triggered the SW update). Added `e.stopPropagation()`
-     on the inner dismiss (✕) button so it doesn't also fire the toast's own `onClick`.
-   - Removed `<Notifications position="bottom-right" zIndex={9999} />` and its
-     `@mantine/notifications` import from `client/src/App.jsx`.
-   - `PWAUpdatePrompt` now calls `useToast()`, so it had to move from being a sibling of
-     `<ToastProvider>` to a child of it in `App.jsx` (it was previously rendered *outside*
-     `ToastProvider`, which would have made `useToast()` return `null` there).
-   - Also removed the now-dead `import '@mantine/notifications/styles.css'` from
-     `client/src/main.jsx` — found while verifying nothing else references the package;
-     harmless to leave but unused once the `<Notifications>` component was gone.
-   - Left `@mantine/notifications` in `client/package.json`/lockfile untouched — not asked to
-     uninstall the package, only to remove the import/usage, which is now fully done (zero
-     references left under `client/src`).
-2. **Standardized on the custom `Skeleton`** (`client/src/pages/faculty/SlotPickerPage.jsx`
-   was the only file importing Mantine's `Skeleton` directly instead of the app's own
-   `ui/Skeleton.jsx`, used everywhere else). Swapped the import and translated all 4 call
-   sites' Mantine props to the custom component's `width`/`height`/`className` API:
-   - `radius={12}` → `className="rounded-xl"` (Tailwind's 12px radius, exact match)
-   - `radius={8}` → `className="rounded-lg"` (8px, exact match)
-   - `radius={4}` → no override needed (custom `Skeleton`'s default `rounded` class is
-     already 4px)
-   - `mb={16}` → `className="mb-4"` (16px)
-   - `display="inline-block"` → `className="inline-block"`
-3. **Left the Modal/Drawer split untouched** — `FormModal.jsx`/`ConfirmDialog.jsx` still wrap
-   Mantine `Modal`, form drawers still use custom `BottomDrawer` (vaul) with Mantine form
-   inputs inside. No changes made here per explicit instruction.
-4. **Documented Mantine in `CONSTITUTION.md` §2** (Frontend table) — added a row for
-   `@mantine/core`/`@mantine/hooks` alongside Tailwind CSS, with a one-line note on the
-   division of labor (Tailwind for styling/layout, Mantine specifically for accessible form
-   primitives + Modal/Drawer focus handling). Closes the doc-drift flagged in the prior
-   audit without changing the actual architecture.
+1. **Wired the DS token ramp into Mantine's theme** (`client/src/App.jsx`). Previously
+   `MantineProvider` got only `{ primaryColor: 'blue', defaultRadius: 'md' }`, so every Mantine
+   component (Button / Alert / ActionIcon / Avatar / Menu.Item across ~15 files) rendered in
+   Mantine's *default* swatches — a different blue (~#228be6) than the DS `--brand` (#2563eb),
+   plus off-brand green/red/gray.
+   - Added a module-level `mantineTheme = createTheme({...})` with 10-shade `colors` tuples for
+     `blue / green / red / yellow / gray`, each built from the same hex values as the Tailwind
+     `@theme` ramps in `index.css` (blue = DS blue-50…900; green = emerald; gray = slate; etc.).
+   - Set `primaryShade: { light: 6, dark: 5 }` so Mantine's primary is `blue[6] #2563eb` in
+     light and `blue[5] #3b82f6` in dark — matching `--brand` **exactly** in both themes.
+   - `color="dark"` (used for faculty check-in/out CTAs) was intentionally left on Mantine's
+     default dark tuple — not in scope and overriding it risks Mantine's internal dark-surface
+     computations.
+   - **Added a sync-guard comment** above `mantineTheme` declaring that these hex values MUST
+     stay in sync with `index.css @theme`, and that this is the one place visual drift can
+     reappear if not kept synchronized.
+2. **Closed the slate ramp dark-mode gap** (`client/src/index.css`, `html.dark` block). The
+   numbered `--color-slate-*` ramp had no dark overrides, so anything reaching past the semantic
+   layer rendered light-mode values on dark: neutral badges (`inactive/cancelled/not_checked_in/
+   hidden` → `bg-slate-100`) showed as bright white blocks, and raw `text-slate-600/700` /
+   `bg-slate-100` hovers in AuditLogs, AdminDashboard, NotificationsPage, NotificationBell were
+   also broken. Added a role-appropriate inversion (low steps → dark for backgrounds, high steps
+   → light for text), same philosophy as the emerald/red/amber ramps already use.
+   - Repointed the two `html.dark ::-webkit-scrollbar-thumb` rules from `--color-slate-700/600`
+     (now light after the inversion → would give a too-bright thumb) to the dark-aware semantic
+     tokens `--border-strong` / `--text-muted`.
+   - Light mode is unchanged — verified `--color-slate-100` still resolves to `#f1f5f9` with no
+     `.dark` class.
+3. **Replaced hardcoded hex swatches with tokens** (`client/src/pages/faculty/SlotPickerPage.jsx`,
+   3 sites). Session-type dots were frozen light-mode hexes: `#3b82f6`→`var(--color-blue-500)`
+   (morning), `#f97316`→`var(--color-orange-solid)` (afternoon), `#10b981`→
+   `var(--color-emerald-solid)` (picked), `#94a3b8`→`var(--color-slate-400)` (past). All chosen
+   tokens hold up in both themes.
 
 ## failed_or_blocked
-(none)
+- Could not drive **authenticated** pages (the real Buttons/badges in-situ) — that needs the
+  full backend + DB + seeded credentials, which weren't stood up. Chrome autofilled a saved
+  password on the login page and the backend returned "Invalid email or password"; I did **not**
+  attempt to authenticate with the owner's saved credentials. Verification was done on the login
+  page + injected real badge elements instead (see below) — sufficient to confirm all three
+  fixes, but the authenticated views were not eyeballed live.
 
 ## commands_run
 ```
-npx eslint src/App.jsx src/main.jsx src/components/ui/Toast.jsx src/components/PWAUpdatePrompt.jsx src/pages/faculty/SlotPickerPage.jsx
-# 1 pre-existing error (react-refresh/only-export-components on useToast/ToastProvider
-# sharing a file) — confirmed via git stash that it fires identically on the unmodified
-# file, not introduced by this change.
-npx vite build
-# clean build, no errors. Pre-existing >500kB chunk-size warning is unrelated to this change.
-git diff -- CONSTITUTION.md client/src/App.jsx client/src/main.jsx client/src/components/PWAUpdatePrompt.jsx client/src/components/ui/Toast.jsx client/src/pages/faculty/SlotPickerPage.jsx
+npm run build            # (in client/) clean build, 1.53s. Pre-existing >500kB chunk-size warning only.
+npm run dev              # (in client/) dev server on http://localhost:5175, then stopped after testing
+# Browser verification via chrome-devtools MCP on the login page, both themes:
+#   - Injected real badge elements using the exact STATUS_COLORS Tailwind classes and read computed styles
+#   - Read CSS custom properties + --mantine-color-blue-filled in light and dark
+git diff -- client/src/App.jsx client/src/index.css client/src/pages/faculty/SlotPickerPage.jsx
+git commit -m "fix: unify Mantine + Tailwind color systems; fix slate dark-mode inversion; add sync guards"
 ```
 
 ## constraints_discovered
-- `PWAUpdatePrompt` was rendered as a sibling of `ToastProvider` in `App.jsx`, not a child —
-  an easy thing to miss when folding its notification call over to `useToast()`, since the
-  hook would silently return `null` instead of erroring. Confirmed the new placement (inside
-  `ToastProvider`, still outside `ErrorBoundary`) preserves the original mount order relative
-  to everything else.
-- The app's custom `Skeleton` (`ui/Skeleton.jsx`) only accepts `width`/`height`/`className` —
-  no `radius`/`display`/margin props like Mantine's version. Confirmed each Mantine prop used
-  in `SlotPickerPage.jsx` has an exact Tailwind utility-class equivalent before swapping, so
-  no visual regression from the translation (rounded-lg/rounded-xl map 1:1 to Mantine's
-  radius=8/12 scale; default `rounded` already matches radius=4).
+- **Mantine is v9.3.1** (not v7). `createTheme`, 10-length `colors` tuples, and
+  `primaryShade: { light, dark }` are all still valid — the API is stable across v7–v9 for this.
+- **Dark mode is reachable** despite `client/src/lib/theme.js:21` claiming "temporarily disabled -
+  force light mode": `getTheme()` actually returns `SYSTEM` when unset, so the app follows the OS
+  `prefers-color-scheme`. Dark-mode correctness genuinely matters. (The comment is stale.)
+- Verified in-browser, both themes:
+  - `--mantine-color-blue-filled` = `#2563eb` (light) / `#3b82f6` (dark) — matches `--brand`.
+  - `--color-slate-100` = `#f1f5f9` (light) / `#334155` (dark); the `inactive` badge computes to a
+    light-grey pill in light and a dark pill with light text (`#cbd5e1`) in dark. Fix confirmed.
+- The `--slate-*` (non-`--color-`-prefixed) alias set in `:root` is only referenced in a comment,
+  so only the `--color-slate-*` Tailwind tokens needed dark overrides.
+- The LoginPage's dark navy background is its own decorative backdrop, present in light mode too —
+  not a themed `--surface-*` token, so it's unaffected and out of scope.
 
 ## deviations_from_constitution
-None — this task's own change *is* the CONSTITUTION.md update (documenting Mantine), not a
-deviation from it.
+None. This aligns the implementation *toward* the documented design system (single source of
+truth in `index.css @theme`) rather than away from it.
 
 ## files_touched
-- `CONSTITUTION.md`
 - `client/src/App.jsx`
-- `client/src/main.jsx`
-- `client/src/components/PWAUpdatePrompt.jsx`
-- `client/src/components/ui/Toast.jsx`
+- `client/src/index.css`
 - `client/src/pages/faculty/SlotPickerPage.jsx`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
-- Not yet visually verified in a running browser (only lint + production build checked) —
-  worth a quick manual check that: (a) the PWA-update toast still appears and updates the SW
-  on tap next time a new build is deployed, (b) `SlotPickerPage`'s skeleton loading states
-  look right on faculty's slot-picker calendar.
-- (carried forward, unrelated) No path exists to create a second Super Admin account
-  (FR-016); retired routes now 404 instead of 410.
-- (carried forward, unrelated) `sims-dms-dev-db`/Docker Desktop and earlier dev processes may
-  still be running in the background from prior sessions.
+- **Backlog (deferred by owner, cosmetic/low-priority):**
+  - #4 — scattered hex duplicates of existing tokens: `CreateUserDrawer.jsx` (`#2563eb`/`#60a5fa`),
+    disabled-blue `#93c5fd` in `UploadStudentsDrawer.jsx` / `ui/BottomDrawer.jsx`, and the
+    token-value copies in `components/Layout.module.css`.
+  - #5 — `StatPill` in `AttendanceLivePage.jsx` mixes utility classes (`bg-emerald-bg`) and
+    arbitrary values (`bg-[var(--color-blue-50)]`) for the same purpose; same result, two syntaxes.
+- Worth a live pass on authenticated pages once a dev login is available, to eyeball real Mantine
+  Buttons/Menu items/Alerts and the neutral badges on Users/Students/Attendance in dark mode.
+- (carried forward, unrelated) No path exists to create a second Super Admin account (FR-016).

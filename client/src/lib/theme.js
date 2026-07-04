@@ -18,7 +18,6 @@ export function getSystemPreference() {
 /**
  * Get the current theme setting from localStorage
  * @returns {string} 'light', 'dark', or 'system'
- * NOTE: Dark mode temporarily disabled - force light mode
  */
 export function getTheme() {
   if (typeof window === 'undefined') return THEMES.LIGHT;

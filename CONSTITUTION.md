@@ -30,7 +30,7 @@ These decisions are locked. Do not suggest alternatives or use different tools.
 | Vite | Build tooling — replaces Create React App |
 | TanStack Query | API state management, caching, 30-second polling |
 | Tailwind CSS | Mobile-first responsive styling — all custom layout, typography, and one-off components |
-| Mantine (`@mantine/core`, `@mantine/hooks`) | Accessible form primitives (`TextInput`, `Select`, `Checkbox`, `Switch`, `NumberInput`) and overlay focus handling (`Modal`, nav `Drawer`) — kept specifically for behavior not worth re-implementing (focus trapping, keyboard nav, ARIA wiring), not for general styling |
+| Mantine (`@mantine/core`, `@mantine/hooks`) | Accessible form primitives (`TextInput`, `Select`, `Checkbox`, `Switch`, `NumberInput`) and overlay focus handling (`Modal`, nav `Drawer`) — kept specifically for behavior not worth re-implementing (focus trapping, keyboard nav, ARIA wiring), not for general styling. **Mantine's color palette is derived from the Tailwind DS tokens** (`client/src/App.jsx` `mantineTheme` object); if brand or status colors change, both `index.css @theme` and `mantineTheme.colors` must be updated in sync to prevent palette drift. |
 | Workbox | PWA service worker caching |
 
 > **Evaluated and rejected (2026-07-01): Server-Driven UI (SDUI) for the Admin desktop panel.** SDUI earns its complexity when UI needs to change without a redeploy (native apps gated by app-store review) or one backend serves many heterogeneous clients. Neither applies — this is a single web admin panel for one college's admin team, redeploys are a `git push` to Railway, and scale is ~20-30 faculty. Stick with React + Tailwind + TanStack Query above; do not revisit without a changed scale/deploy constraint.

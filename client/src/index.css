@@ -376,6 +376,21 @@ html.dark {
   --color-orange-solid:  #f97316;
   --color-orange-border: #7c2d12;
 
+  /* Slate ramp — inverted for dark mode so neutral badges (inactive/cancelled/
+     not_checked_in/hidden), muted body text, and hover surfaces flip instead of
+     rendering as bright light-mode values on a dark background. Low steps (bg)
+     go dark; high steps (text) go light — same philosophy as the status ramps. */
+  --color-slate-50:  #1e293b;
+  --color-slate-100: #334155;
+  --color-slate-200: #475569;
+  --color-slate-300: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #cbd5e1;
+  --color-slate-600: #e2e8f0;
+  --color-slate-700: #f1f5f9;
+  --color-slate-800: #f8fafc;
+  --color-slate-900: #f8fafc;
+
   /* Blue ramp overrides for dark mode */
   --color-blue-50:  #1e3a5f;
   --color-blue-100: #1e3a6e;
@@ -413,12 +428,13 @@ html.dark {
   /* Scrollbar dark mode */
 }
 
+/* Dark-aware semantic tokens (not the slate ramp, which now inverts light for dark) */
 html.dark ::-webkit-scrollbar-thumb {
-  background: var(--color-slate-700);
+  background: var(--border-strong);
 }
 
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-slate-600);
+  background: var(--text-muted);
 }
 
 /* ── Global reset ── */

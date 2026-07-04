@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MantineProvider } from '@mantine/core';
+import { MantineProvider, createTheme } from '@mantine/core';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,6 +38,29 @@ import AuditLogsPage    from './pages/super-admin/AuditLogsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, staleTime: 30_000 } },
+});
+
+// ── Mantine theme wired to the DS token ramp (source of truth: index.css @theme) ──
+// Each tuple is a 10-shade ramp [0..9] built from the same hex values as the Tailwind
+// @theme colors, so every Mantine component (Button / Alert / ActionIcon / Avatar / Menu.Item)
+// renders in SIMS brand + status colors instead of Mantine's defaults. Shade index 6 == the
+// DS "-600" step; index 5 == the "-solid"/"-500" step.
+//
+// ⚠️ SYNC REQUIREMENT: These hex values MUST stay in sync with client/src/index.css @theme.
+// If brand or status colors change, update BOTH this object AND the @theme block. This is the
+// one place visual drift between Mantine and Tailwind can reappear if not kept synchronized.
+const mantineTheme = createTheme({
+  primaryColor: 'blue',
+  // Light: blue[6] #2563eb == --brand. Dark: blue[5] #3b82f6 == dark-mode --brand.
+  primaryShade: { light: 6, dark: 5 },
+  defaultRadius: 'md',
+  colors: {
+    blue:   ['#eff6ff', '#dbeafe', '#bfdbfe', '#93c5fd', '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af', '#1e3a8a'],
+    green:  ['#ecfdf5', '#d1fae5', '#a7f3d0', '#6ee7b7', '#34d399', '#10b981', '#059669', '#047857', '#065f46', '#064e3b'],
+    red:    ['#fef2f2', '#fee2e2', '#fecaca', '#fca5a5', '#f87171', '#ef4444', '#dc2626', '#b91c1c', '#991b1b', '#7f1d1d'],
+    yellow: ['#fffbeb', '#fef3c7', '#fde68a', '#fcd34d', '#fbbf24', '#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f'],
+    gray:   ['#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b', '#0f172a'],
+  },
 });
 
 function SplashScreen() {
@@ -131,7 +154,7 @@ export default function App() {
   return (
     <MantineProvider
       forceColorScheme={colorScheme}
-      theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
+      theme={mantineTheme}
     >
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
