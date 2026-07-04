@@ -47,7 +47,12 @@ async function getOrCreateConfig(year, month) {
   });
 }
 
-// Send Telegram notifications to all active faculty (fire-and-forget)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Send Telegram notifications to all active faculty (fire-and-forget).
+// Sends are staggered ~50ms apart (dispatch, not completion) to stay well
+// under Telegram's ~30 msg/sec limit — at ~40 faculty a burst can otherwise
+// tail into 429s. Failure handling per recipient is unchanged.
 async function notifyAllFaculty(year, month) {
   const faculty = await prisma.user.findMany({
     where: { role: 'faculty', status: 'active', deleted_at: null, telegram_id: { not: null } },
@@ -63,6 +68,7 @@ async function notifyAllFaculty(year, month) {
     telegram.sendMessage(f.telegram_id, text).catch((err) => {
       logger.warn(`Telegram notify failed for faculty ${f.id}: ${err.message}`);
     });
+    await sleep(50);
   }
 }
 

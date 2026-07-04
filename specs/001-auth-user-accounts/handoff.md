@@ -5,79 +5,88 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Perf/reliability audit fix #3: batch the Excel student upload N+1
+001-auth-user-accounts / Perf/reliability audit follow-ups: document intentional inbox
+polling, stagger Telegram broadcast sends (audit item #4, now acted on)
 
 ## status
 complete
 
 ## completed
-- `server/controllers/students.controller.js`'s `uploadStudents` import loop did one
-  `findUnique` + one `create`/`update` per row inside a single transaction — a 1,000-row
-  roster upload meant ~2,000 sequential round-trips inside one interactive transaction,
-  risking Prisma's default 5s transaction timeout on a full-roster upload. The dry-run path
-  a few lines above (`dryRun` branch) already avoided this by fetching all existing
-  registration numbers into a `Set` in one query — the actual import path just didn't reuse
-  that approach.
-- Fix: inside the transaction, fetch existing registration numbers into a `Set` (identical
-  pattern to the dry-run branch), split `uniqueRows` into `toCreate`/`toUpdate`, batch all
-  new rows into a single `tx.student.createMany({...})`, and keep per-row `tx.student.update`
-  only for rows that already exist (Prisma's `updateMany` can't apply different `data` per
-  row, so this part can't be further batched without raw SQL — matching the requested scope
-  of "createMany for new rows plus targeted updates for existing ones", not a full rewrite).
-  Net effect: the `findUnique`-per-row is gone entirely (1 query instead of N), and the
-  create path is 1 query instead of N; only updates still cost 1 query per changed row.
-- Tested against the local dev DB by building real `.xlsx` buffers with `exceljs` and
-  calling `uploadStudents` directly (mocked `req`/`res`, real Prisma):
-  - First upload: 1 pre-existing student + 2 new rows → response showed
-    `added_count: 2, updated_count: 1`; confirmed via Prisma that the existing row's name/
-    semester were updated and both new rows were created with correct data.
-  - Second upload re-using the same 3 registration numbers (now all existing) → confirmed
-    `added_count: 0, updated_count: 3` with **no error** from the `if (toCreate.length > 0)`
-    guard around `createMany` — verifies the empty-creates edge case doesn't call
-    `createMany` with a zero-length array.
-  - Cleaned up both test uploads' student rows, `student_upload_log` rows, and the
-    resulting `STUDENT_UPLOAD` `admin_audit_log` entries afterward; confirmed via `psql` that
-    `students`/`student_upload_log` are back to 0 rows and `admin_audit_log` only has the two
-    original pre-existing entries (`PASSWORD_LOGIN`, `CREATE_INVITE`) left.
-- `node --check server/controllers/students.controller.js` passes. Did not change the
-  dry-run path, the deactivation path, the bulk-promote/bulk-deactivate endpoints (page-scoped
-  to ≤20 ids, negligible per the original audit), or the response shape/API contract.
+1. **Documented the inbox-polling decision** (`CONSTITUTION.md`, Notifications section):
+   added a bullet noting `useInbox`'s 30-second `refetchInterval` (faculty dashboard +
+   Messages page) is a deliberate UX choice beyond the "live attendance" 30s-polling
+   rationale, confirmed intentional during the 2026-07 perf audit — so it isn't
+   re-flagged as scope creep in a future review.
+2. **Staggered the two Telegram broadcast loops** that previously fired all sends in a
+   parallel burst (audit item #4, previously left as backlog — now addressed on request):
+   - `server/controllers/calendar.controller.js`'s `notifyAllFaculty` (duty-window-open
+     broadcast to all faculty).
+   - `server/controllers/cover-requests.controller.js`'s `notifyFaculty` (Need-Cover
+     broadcast to all faculty except the requester).
+   - Both now `await sleep(50)` between each recipient's dispatch (not each send's
+     completion — the sends themselves stay fire-and-forget with their existing
+     per-recipient `.catch(logger.warn(...))`, unchanged). At ~40 recipients this keeps the
+     whole broadcast at ~20 dispatches/sec, safely under Telegram's ~30 msg/sec limit,
+     without serializing on network round-trip time (which would make broadcasts take
+     several seconds longer than necessary for no benefit).
+   - Deliberately did not touch failure handling, the single-recipient `notifyUser`
+     (cover-requests) which needs no stagger, or anything else — scope was exactly "avoid the
+     rate limit," per instruction.
+3. **Tested against the local dev DB**: created 5 throwaway faculty users with fake
+   `telegram_id`s, then (temporarily exporting the two normally-internal functions from
+   their modules just for this test, reverted immediately after — final diff has no export
+   changes) timed both functions directly:
+   - `notifyAllFaculty` (5 recipients): **368ms** total.
+   - `notifyFaculty` (5 recipients): **384ms** total.
+   - Both comfortably exceed the 250ms floor that 5×50ms stagger gaps would impose if the
+     delay is actually being awaited between iterations (versus the near-instant completion
+     you'd see if the loop just fired all 5 sends with no gap) — confirms the stagger is
+     real, not a no-op.
+   - Confirmed existing per-recipient failure logging is untouched: all 5
+     `[cover-notify] Telegram failed for faculty <id>: ...` warnings still fired in the
+     `notifyFaculty` test, same format as before.
+   - Cleaned up all 5 test users afterward; confirmed dev DB back to its original 1-user
+     state via `psql`.
+- `node --check` passes on both controllers.
 
 ## failed_or_blocked
 (none)
 
 ## commands_run
 ```
-node --check server/controllers/students.controller.js
-# test script (inline node -e, not saved to disk): built two real .xlsx buffers with
-# exceljs (one mixed new+existing, one all-existing), called ctrl.uploadStudents() directly
-# against the real dev DB twice, inspected added_count/updated_count and the resulting
-# student rows via Prisma; cleaned up via psql DELETE (students, student_upload_log,
-# admin_audit_log)
-git diff -- server/controllers/students.controller.js
+node --check server/controllers/calendar.controller.js
+node --check server/controllers/cover-requests.controller.js
+# temporarily added notifyAllFaculty/notifyFaculty to their module.exports for direct
+# testing, reverted both before finalizing (git diff confirmed clean, no export changes
+# in the committed version)
+node -e "... console.time/timeEnd around cal.notifyAllFaculty(2026, 8) ..."   # 368ms/5 recipients
+node -e "... console.time/timeEnd around cover.notifyFaculty(excludeId, text) ..."  # 384ms/5 recipients
+# psql DELETE to remove the 5 test faculty users afterward
+git diff -- server/controllers/calendar.controller.js server/controllers/cover-requests.controller.js CONSTITUTION.md
 ```
 
 ## constraints_discovered
-- Prisma's `createMany` has no equivalent for per-row differing `data` in a single call —
-  confirmed this is why the update side of the loop can't be collapsed the same way the
-  create side was, without introducing raw SQL (e.g. a bulk `INSERT ... ON CONFLICT DO
-  UPDATE`), which this codebase treats as an exception reserved for cases Prisma genuinely
-  can't do at all (see the `FOR UPDATE` comment in `bot.js`), not a general optimization tool.
+- None new. Confirmed there's no existing shared `sleep`/delay utility in `server/lib/` —
+  `bot.js` defines its own local one-liner `const sleep = (ms) => new Promise(...)`, so
+  adding the same local one-liner to each of these two controllers (rather than extracting a
+  shared util for a single-line helper used in 3 places total) matches existing convention.
 
 ## deviations_from_constitution
-- None.
+- None — this is the second CONSTITUTION.md update in this feature's history (see the
+  Notifications section addition above); both are additive clarifications of existing
+  decisions, not changes to them.
 
 ## files_touched
-- `server/controllers/students.controller.js`
+- `CONSTITUTION.md`
+- `server/controllers/calendar.controller.js`
+- `server/controllers/cover-requests.controller.js`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
-- All three prioritized fixes from the perf/reliability audit are now complete: #1
-  (`/resetpassword` bot retry+flag), #2 (`autoClockOut` atomicity + straggler recovery), #3
-  (this one). #4 (Telegram broadcast throttling) remains documented backlog per explicit
-  instruction — not acted on.
+- All 4 items from the original perf/reliability audit are now addressed: #1
+  (`/resetpassword` retry+flag), #2 (`autoClockOut` atomicity+recovery), #3 (upload
+  batching), #4 (broadcast stagger, this task).
 - (carried forward, unrelated) No path exists to create a second Super Admin account
   (FR-016); retired routes now 404 instead of 410.
 - `sims-dms-dev-db` and Docker Desktop, and the client/server dev processes from the earlier
-  ErrorRow spot-check session, may still be running in the background — worth stopping if
-  there's no more manual testing planned this session.
+  ErrorRow spot-check session, may still be running in the background.

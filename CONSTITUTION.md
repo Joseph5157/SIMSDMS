@@ -168,6 +168,11 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Telegram is notification-only. It plays no role in login or session issuance (see
   Authentication) — a user with no Telegram linked can still log in with email + password,
   they simply won't receive Telegram notifications.
+- The in-app message inbox (`useInbox`, faculty dashboard + Messages page) also polls every
+  30 seconds. This is a deliberate UX choice beyond the "live attendance" 30-second-polling
+  rationale — confirmed intentional (2026-07) during a perf audit, not scope creep. Noting
+  it explicitly here so it isn't flagged again as an unintended over-application of the
+  polling pattern.
 
 ### Students
 - Student data is uploaded via Excel. Upsert logic — `registration_number` is the unique key.

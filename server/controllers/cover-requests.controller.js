@@ -31,7 +31,12 @@ async function hasDutyConflict(userId, dutyDate, sessionType) {
   return conflict !== null;
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Fire-and-forget Telegram broadcast to all active faculty except excludeId.
+// Sends are staggered ~50ms apart (dispatch, not completion) to stay well
+// under Telegram's ~30 msg/sec limit — at ~40 faculty a burst can otherwise
+// tail into 429s. Failure handling per recipient is unchanged.
 async function notifyFaculty(excludeId, text) {
   const faculty = await prisma.user.findMany({
     where: { role: 'faculty', status: 'active', deleted_at: null, telegram_id: { not: null }, id: { not: excludeId } },
@@ -41,6 +46,7 @@ async function notifyFaculty(excludeId, text) {
     telegram.sendMessage(f.telegram_id, text).catch((err) => {
       logger.warn(`[cover-notify] Telegram failed for faculty ${f.id}: ${err.message}`);
     });
+    await sleep(50);
   }
 }
 
