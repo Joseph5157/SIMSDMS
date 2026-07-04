@@ -253,7 +253,7 @@ export default function StudentsPage({ user }) {
       <PageHeader
         title="Student Management"
         subtitle="Upload Excel to sync student records"
-        action={<Button size="sm" onClick={() => setShowUpload(true)}>↑ Upload Excel</Button>}
+        action={<Button size="md" onClick={() => setShowUpload(true)}>↑ Upload Excel</Button>}
       />
 
       {/* Filters */}

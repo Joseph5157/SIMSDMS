@@ -203,7 +203,7 @@ export default function Layout({ user, children }) {
         <div className={classes.mobileHeader}>
           <button
             onClick={openNav}
-            className="w-9 h-9 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer text-[var(--text-primary)] hover:bg-[var(--color-slate-100)] transition-colors"
+            className="w-11 h-11 flex items-center justify-center rounded-lg bg-transparent border-none cursor-pointer text-[var(--text-primary)] hover:bg-[var(--color-slate-100)] transition-colors"
             aria-label="Open menu"
           >
             <IconMenu2 size={22} strokeWidth={1.75} />

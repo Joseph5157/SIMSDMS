@@ -33,7 +33,7 @@ export default function FacultyCoverRequestsPage({ user }) {
     <Layout user={user}>
       <PageHeader
         title="Cover Requests"
-        action={<Button size="sm" onClick={() => setShowPost(true)}>+ Post Broadcast</Button>}
+        action={<Button size="md" onClick={() => setShowPost(true)}>+ Post Broadcast</Button>}
       />
 
       <div className="flex gap-1 mb-4 bg-[var(--surface-page)] p-1 rounded-lg w-fit" role="tablist">

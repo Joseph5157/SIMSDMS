@@ -57,7 +57,7 @@ export default function ViolationRecorderPage({ user }) {
       <PageHeader
         title="Student Violations"
         subtitle="Student violations you've recorded"
-        action={<Button size="sm" onClick={() => setShowRecord(true)}>+ Record Student Violation</Button>}
+        action={<Button size="md" onClick={() => setShowRecord(true)}>+ Record Student Violation</Button>}
       />
       <Table>
         <thead>

@@ -128,7 +128,7 @@ export default function ViolationTypesPage({ user }) {
       <PageHeader
         title="Student Violation Types"
         subtitle="Define disciplinary categories and default fines"
-        action={<Button size="sm" onClick={() => { setEditing(null); setShowModal(true); }}>+ New Type</Button>}
+        action={<Button size="md" onClick={() => { setEditing(null); setShowModal(true); }}>+ New Type</Button>}
       />
 
       {/* Mobile card list */}

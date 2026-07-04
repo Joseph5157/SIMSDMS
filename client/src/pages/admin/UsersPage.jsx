@@ -174,7 +174,7 @@ export default function UsersPage({ user }) {
       <PageHeader
         title="User Management"
         subtitle="Manage faculty and admin accounts"
-        action={<Button size="sm" onClick={() => setShowCreate(true)}>+ Invite User</Button>}
+        action={<Button size="md" onClick={() => setShowCreate(true)}>+ Invite User</Button>}
       />
 
       {/* Filter bar */}

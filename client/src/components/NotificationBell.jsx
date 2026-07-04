@@ -78,7 +78,7 @@ export default function NotificationBell() {
         aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
         aria-pressed={dropdownOpen}
         title={`${unreadCount} unread notifications`}
-        className="bg-transparent border-none cursor-pointer px-2 py-1 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
+        className="bg-transparent border-none cursor-pointer w-11 h-11 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
       >
         <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
         {unreadCount > 0 && (
