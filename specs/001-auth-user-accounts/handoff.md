@@ -5,172 +5,64 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / T029 — rewrite `resetUserLogin` (Super-Admin password reset),
-replacing the broken Telegram-relink implementation; closes T029 and T029a
+001-auth-user-accounts / Security follow-up patch on the T029 temp-password modal
+(`UsersPage.jsx`) — handling checklist requested against commit `d6bf86c`
 
 ## status
-complete — committed as **`d6bf86c`** (`d6bf86c81ef2aa58de8579dd0816b1c2a6473e19`), its own
-logical commit, separate from the prior `activation_notification_failed` fix committed as
-**`eb53d4f`** (`eb53d4fcb68181043e747b735bcff19f9059ef94`), per explicit request.
+complete
 
 ## completed
-- **Applied the previously-pending migration** (`20260704120000_add_activation_notification_failed`)
-  against the local dev DB: Docker Desktop wasn't running, so started it, found the
-  `sims-dms-dev-db` container stopped, started it, then ran `npm run migrate:deploy`
-  (`migrate dev` refused — non-interactive environment, and the migration file already
-  existed on disk from the prior session). Confirmed via `psql \d users` that
-  `activation_notification_failed boolean not null default false` now exists. Left both
-  Docker Desktop and the container running per explicit request, for manual UI testing.
-- **Rewrote `resetUserLogin` in `server/controllers/users.controller.js`** (same endpoint,
-  `POST /admin/users/:id/reset-login`, already Super-Admin-only via
-  `router.use(authenticate, authorize('super_admin'))` in `admin.routes.js` — requirement
-  #1 was already satisfied at the router level, no change needed there). New behavior:
-  - Generates a temp password via `lib/password.js`'s `generateTempPassword()` (same
-    generator already used by the invite-activation and self-service `/resetpassword` bot
-    flows — `prisma/seed.js`'s bootstrap generator is a separate one-off with a different
-    charset/format and isn't exported for reuse, so matching the *live* reset-flow
-    convention was the better fit for "consistency" than literally importing from seed.js).
-  - Hashes it with `hashPassword()` (bcrypt cost 12, same helper — already cost 12).
-  - Updates `password_hash`, `must_change_password = true`, increments `session_version`
-    (revokes existing sessions — matches the constitution's "resets any user's login
-    session" language and the pattern already used by `deactivateUser`/`deleteUser`), and
-    clears `activation_notification_failed` unconditionally (idempotent recovery path for
-    that flag).
-  - **Confirmed before committing** (user asked for explicit verification): the
-    `prisma.user.update({ where: { id: user.id }, ... })` call (`users.controller.js:283`)
-    only ever touches the target user's row. `user.id` there is the user fetched at line
-    265 via `req.params.id` — the URL target — never `req.user.id` (the acting Super
-    Admin, only used for the audit log's `actorId`). `session_version` is a plain per-row
-    column on `User`, not shared/global state, so there is no path by which this update
-    reaches any row but the one being reset. A Super Admin also cannot target their own
-    row through this endpoint at all: the guard at line 271 (`user.role === 'super_admin'`)
-    checks the *target's* role, and a Super Admin's own row always has that role, so
-    self-targeting 403s before the update is ever reached — confirmed this is genuinely
-    unreachable, not just discouraged by convention.
-  - Attempts Telegram delivery via `lib/telegram.js`'s `sendMessage(chatId, text)` — **not**
-    `bot.js`'s internal `sendTelegramMessage`; checked callers first (`calendar.controller.js`,
-    `cover-requests.controller.js` both use `lib/telegram.js` for controller-initiated
-    notifications) and matched that existing convention instead of reaching into the bot
-    webhook module.
-  - Never blocks on the Telegram outcome — the password is already committed before the
-    send is attempted. On success: response omits the temp password (`telegram_delivered:
-    true`). On failure (API error, or no `telegram_id` at all): response includes
-    `temp_password` in plaintext, `telegram_delivered: false`, and the reason so the Super
-    Admin can relay it manually — never silently swallowed into logs only.
-  - Writes a `RESET_USER_LOGIN` audit log entry every time via the existing `logAction()`
-    pattern, with `metadata: { telegram_delivered, telegram_error }`.
-  - Removed the `TODO(T029)` comment and the entire old relink-token/`otpSession` code path;
-    removed the now-unused `crypto` import (nothing else in the file used it).
-- **Re-enabled the UI control in `client/src/pages/admin/UsersPage.jsx`**: replaced the
-  `{false && ...}` guard and "Reset Telegram" label with a live "Reset Password"
-  `Menu.Item`, visible to Super Admin for any non-super-admin user regardless of status
-  (matches the backend's only real restriction — role, not status). Confirm dialog copy
-  now describes a password reset, and branches its wording on whether the target has a
-  `telegram_id` at all. On success: toast only, if Telegram delivery succeeded. On Telegram
-  failure: a dedicated Mantine `Modal` (not a toast) shows the temp password in a monospace
-  box with a Copy button, since a toast disappearing would lose the only copy of that
-  password.
-- **`client/src/hooks/useUsers.js`**: `useResetUserLogin()` now invalidates the `['users']`
-  query on success, so the "⚠ Notify failed" badge (added in the prior commit) disappears
-  from the list immediately after a successful reset clears the flag.
-- **`specs/001-auth-user-accounts/tasks.md`**: checked off T029 and T029a (the
-  Telegram-unreachable-during-reset decision — confirmed as "reset always succeeds, temp
-  password returned as fallback").
-- **Tested end-to-end against the local dev DB**, calling the real controller function
-  directly (mocked `req`/`res`, real Prisma client, real `TELEGRAM_BOT_TOKEN`) against two
-  throwaway test users (deleted afterward, DB confirmed back to its original 1-user state):
-  - No `telegram_id` → `telegram_delivered: false`, `telegram_error: "NO_TELEGRAM_ID"`,
-    `temp_password` present in response, DB row updated correctly.
-  - `telegram_id: "1"` (invalid chat, pre-flagged `activation_notification_failed: true`) →
-    real Telegram API call, real `400 Bad Request: chat not found` error caught, same
-    fallback response shape, and confirmed `activation_notification_failed` flipped back to
-    `false` by the reset.
-  - Confirmed via `psql` both times: `password_hash` set, `must_change_password = true`,
-    `session_version` incremented, `activation_notification_failed = false`, and a
-    `RESET_USER_LOGIN` row in `admin_audit_log` with accurate `telegram_delivered`/
-    `telegram_error` metadata for each case.
-  - Also verified the super-admin guard (403) and not-found guard (404) still work.
-  - Re-ran the same two cases again after switching the Telegram import from `bot.js` to
-    `lib/telegram.js` to re-confirm behavior held with axios-based errors too.
-- Verified: `node --check` on the controller; `npx eslint` on both touched client files —
-  zero errors (this also incidentally cleared the pre-existing `no-constant-binary-expression`
-  lint error from the old `{false && ...}` guard, since that code is now gone).
-- **Split the working tree into two commits** rather than one bundled commit, per explicit
-  request that T029 be "its own logical commit," separate from the earlier
-  `activation_notification_failed` fix. Both changes had landed in the same two files
-  (`users.controller.js`, `UsersPage.jsx`) across non-overlapping regions in the same
-  session; reconstructed the intermediate (fix-only) state from `git show HEAD` + the
-  fix-only hunks, committed that first as `eb53d4f`, then restored the final T029 content
-  on top for this commit — confirmed via `git diff --stat`/`git diff` at each step that
-  each commit's diff matched its intended scope exactly before committing.
+Audited the temp-password-on-Telegram-failure modal (`client/src/pages/admin/UsersPage.jsx`,
+the `passwordResetResult` `Modal`) against four explicit requirements:
+
+1. **"Copy password" button using the clipboard API** — already present
+   (`navigator.clipboard.writeText(passwordResetResult.tempPassword)`); relabeled the button
+   from "Copy" to "Copy password" for clarity, no behavior change.
+2. **No WhatsApp/share button in this modal** — confirmed by inspection: the modal only has
+   "Copy password" and "Done." (The unrelated invite-link panel in `CreateUserDrawer.jsx`
+   does have a WhatsApp share button, but that's a different flow — invite links, not temp
+   passwords — and was out of scope here.)
+3. **Inline warning against sending the password over email/public chat** — **was missing**,
+   added as a small follow-up: an amber warning box (reusing the existing
+   `--color-amber-bg`/`--color-amber-text`/`--color-amber-border` CSS vars already defined
+   for the `flagged` badge elsewhere in the app) directly below the password/copy row:
+   "⚠ Share this password directly with the user (phone call, in person, etc.) — don't send
+   it over email or a public/group chat."
+4. **Temp password never in a URL/query param, never console-logged client-side** —
+   confirmed: `useResetUserLogin` (`client/src/hooks/useUsers.js`) is a plain
+   `api.post('/admin/users/:id/reset-login')` with the user ID as a path param only, no
+   query string; grepped `UsersPage.jsx`, `useUsers.js`, and `utils/api.js` for `console.` —
+   zero matches; `utils/api.js`'s axios interceptors don't log request/response bodies
+   either. The password only ever lives in component state (`passwordResetResult`) and the
+   response body, never in a URL.
+
+Net: 3 of 4 requirements were already met from the `d6bf86c` implementation; only #3 needed
+a small addition. Made the minimal patch (no rebuild of the modal) and re-verified lint.
 
 ## failed_or_blocked
 (none)
 
 ## commands_run
 ```
-docker ps --filter "publish=5433"                       # daemon not reachable initially
-Start-Process "Docker Desktop.exe"; poll `docker ps` until responsive
-docker ps -a                                             # found sims-dms-dev-db, Exited
-docker start sims-dms-dev-db
-npm run migrate:deploy                                   # applied the pending migration
-docker exec ... psql -c '\d users'                       # confirmed column exists
-docker exec ... psql -c 'SELECT ... FROM users'          # pre/post state checks
-node --check server/controllers/users.controller.js
-node -e "require('./server/controllers/users.controller.js')"   # circular-dep smoke test
-npx eslint src/pages/admin/UsersPage.jsx src/hooks/useUsers.js
-# end-to-end test script (scratchpad, deleted after use): created 2 throwaway users, called
-# ctrl.resetUserLogin() directly (no-Telegram + bad-Telegram cases), re-ran after switching
-# bot.js -> lib/telegram.js import, cleaned up both test users + audit rows via psql DELETE
-git diff -U1 <files>                                      # inspected hunk boundaries
-git show HEAD:<file> > scratch                             # extracted pre-session baseline
-# reconstructed intermediate (fix-only) file content by hand, staged, committed as eb53d4f
-git commit  # eb53d4f — activation_notification_failed fix
-# restored final T029 content, staged remaining files
-git commit  # this commit — T029
-git diff --stat
+grep -n "console\.\|passwordResetResult\|tempPassword\|navigator.clipboard" client/src/pages/admin/UsersPage.jsx
+grep -rn "console\." src/pages/admin/UsersPage.jsx src/hooks/useUsers.js src/utils/api.js   # zero matches
+npx eslint src/pages/admin/UsersPage.jsx
 ```
 
 ## constraints_discovered
-- **Two parallel Telegram-send helpers exist**: `server/lib/bot.js`'s internal
-  `sendTelegramMessage` (used only by the bot webhook handler itself, raw `fetch`, no
-  timeout) and `server/lib/telegram.js`'s `sendMessage` (axios, 8s timeout) — the latter is
-  the one already used by every *controller* that sends a Telegram notification
-  (`calendar.controller.js`, `cover-requests.controller.js`). Initially wired this up
-  against `bot.js` by mistake (it "worked" — no circular-dependency error — but was the
-  wrong convention); caught it by grepping for existing callers before finalizing, and
-  switched to `lib/telegram.js` to match. Worth a note for anyone touching this later: pick
-  `lib/telegram.js` for anything triggered by an admin/controller action, and reserve
-  `bot.js`'s helper for the webhook's own reply logic.
-- `tasks.md`'s T029 description says to use `server/lib/telegram.js`'s `sendMessage` — it
-  was right and I initially deviated from it; corrected to match.
-- axios error messages from `lib/telegram.js` are less descriptive than raw `fetch` errors
-  (`"Request failed with status code 400"` vs. the full Telegram JSON body) — but this
-  matches the existing convention in `cover-requests.controller.js`'s error logging, so kept
-  it consistent rather than enriching just this one call site.
-- Docker Desktop was not running at all (not just the container) — needed a full daemon
-  start, not just `docker start <container>`, before any of this could be tested locally.
+- The app already has a small amber warning-color system in `client/src/index.css`
+  (`--color-amber-bg`/`--color-amber-text`/`--color-amber-border`, with dark-mode overrides)
+  used today only for the `flagged` status badge — reused it here instead of introducing a
+  new color for the warning box, keeping this consistent with the existing theme.
 
 ## deviations_from_constitution
 - None.
 
 ## files_touched
-- `server/controllers/users.controller.js`
 - `client/src/pages/admin/UsersPage.jsx`
-- `client/src/hooks/useUsers.js`
-- `specs/001-auth-user-accounts/tasks.md`
-- `specs/001-auth-user-accounts/handoff.md` (this file — overwritten, then updated once more
-  immediately after to add this commit's hash)
+- `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
-1. **No "resend"/"acknowledge" action wired to `activation_notification_failed` beyond this
-   reset.** The Super-Admin password reset now clears the flag as a side effect, which is a
-   real recovery path, but there's still no dedicated UI to just re-attempt the original
-   invite-activation Telegram message without also rotating the password. Low priority since
-   the reset flow fully covers recovery either way.
-2. **No path exists to create a second Super Admin account** (FR-016 known gap) — carried
-   forward, unrelated to this task.
-3. **Retired routes now 404 instead of 410** (`POST /users`, `GET /users/pending`,
-   `POST /users/:id/regenerate-invite`) — carried forward, unrelated to this task.
-4. **`sims-dms-dev-db` and Docker Desktop are still running** — left running on request for
-   manual UI testing of this reset flow. Let me know when it's safe to stop them.
+- (carried forward, unrelated to this patch) No path exists to create a second Super Admin
+  account (FR-016); retired routes now 404 instead of 410; `sims-dms-dev-db` and Docker
+  Desktop are still running per earlier request for manual UI testing.

@@ -427,7 +427,7 @@ export default function UsersPage({ user }) {
             could not be delivered. Relay this temporary password to them directly (phone,
             in person, etc.) — it will not be shown again.
           </Text>
-          <Group gap="xs" mb="lg" wrap="nowrap">
+          <Group gap="xs" mb="sm" wrap="nowrap">
             <code className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-primary)] text-sm font-mono break-all">
               {passwordResetResult.tempPassword}
             </code>
@@ -436,9 +436,13 @@ export default function UsersPage({ user }) {
               variant="default"
               onClick={() => navigator.clipboard.writeText(passwordResetResult.tempPassword).catch(() => {})}
             >
-              Copy
+              Copy password
             </Button>
           </Group>
+          <div className="rounded-lg px-3 py-2 text-xs" style={{ marginBottom: 24, backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', color: 'var(--color-amber-text)' }}>
+            ⚠ Share this password directly with the user (phone call, in person, etc.) —
+            don't send it over email or a public/group chat.
+          </div>
           <Group justify="flex-end">
             <Button onClick={() => setPasswordResetResult(null)}>Done</Button>
           </Group>
