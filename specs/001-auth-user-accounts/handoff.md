@@ -5,89 +5,85 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Perf/reliability audit fix #1: retry+flag on /resetpassword bot
-notification failure (same silent-failure class as eb53d4f, higher priority — active lockout)
+001-auth-user-accounts / Perf/reliability audit fix #2: autoClockOut cron — atomic update +
+catch stragglers from prior days
 
 ## status
 complete
 
 ## completed
-- Following a read-only perf/reliability audit, this closes the highest-priority finding:
-  `handlePasswordReset` (triggered by a user sending `/resetpassword` to the bot) commits the
-  new password hash **before** the reply containing the temp password is sent, and that send
-  was fire-and-forget with only `.catch(log)` — no retry, no flag. If the send failed, the
-  user's old password was already dead, the temp password existed nowhere retrievable, and
-  they were locked out until the 1-hour `/resetpassword` rate limit cleared (worse than the
-  invite-activation case fixed in `eb53d4f`, since this is user-initiated and actively
-  destructive, not just a stalled onboarding).
-- **`server/lib/bot.js`**: generalized the existing invite-activation retry/flag logic
-  (previously a single-purpose `notifyActivationSuccess`) into a shared
-  `sendWithRetryOrFlag(chatId, text, user, auditAction)` — same 3-attempt/1s-3s-backoff retry,
-  same `activation_notification_failed` flag on final failure, same audit log write, now
-  parameterized by an `auditAction` string instead of hardcoding `ACTIVATION_NOTIFICATION_FAILED`.
-  - `notifyActivationSuccess(chatId, text, user)` is now a one-line wrapper calling
-    `sendWithRetryOrFlag(..., 'ACTIVATION_NOTIFICATION_FAILED')` — unchanged behavior.
-  - Added `notifyPasswordResetSuccess(chatId, text, user)`, wrapping
-    `sendWithRetryOrFlag(..., 'PASSWORD_RESET_NOTIFICATION_FAILED')`.
-  - Restructured the `/resetpassword` branch in `handleWebhook` to mirror the invite-activation
-    branch's shape: on success, build the reply, call `notifyPasswordResetSuccess(...)` (fire-
-    and-forget, same as before) and `return` early — only the success/lockout path gets retry+
-    flag. The `NOT_LINKED`/`RATE_LIMITED`/generic-error replies keep the original single-attempt
-    `sendTelegramMessage(...).catch(log)` — those don't follow a destructive state change, so
-    there's nothing to protect by retrying.
-- Tested end-to-end against the local dev DB by calling `bot.handleWebhook` directly (mocked
-  `req`/`res`, real Prisma, real `TELEGRAM_BOT_TOKEN`) with a throwaway test user
-  (`telegram_id: '1'`, an invalid chat — same technique used to test T029, produces a real
-  Telegram `400 chat not found` without spamming anyone):
-  - `/resetpassword` succeeded (password changed, `must_change_password: true`,
-    `last_password_reset_at` set, `PASSWORD_RESET_VIA_BOT` audit row written) — confirming the
-    webhook still returns `200 {"ok":true}` immediately regardless of notification outcome.
-  - Notification retried twice (`warn` logs at attempts 1 and 2), then failed permanently
-    (`error` log), then `activation_notification_failed` flipped to `true` and a
-    `PASSWORD_RESET_NOTIFICATION_FAILED` audit row was written with accurate
-    `{ chatId, error }` metadata.
-  - Immediately re-sent `/resetpassword` from the same chat → correctly hit `RATE_LIMITED`
-    (no second password change, no second flag/audit write) — confirms the restructuring
-    didn't disturb the non-success branches.
-  - Sent `/resetpassword` from an unrelated unknown chat id → correctly hit `NOT_LINKED`.
-  - Both `RATE_LIMITED`/`NOT_LINKED` replies logged exactly one failed send attempt each (no
-    retry warnings) — confirms retry+flag is scoped to the success path only, as intended.
-  - Cleaned up the test user and its audit rows afterward; confirmed dev DB back to its
-    original 1-user state.
-- `node --check server/lib/bot.js` passes.
+- `server/lib/cron.js`'s `autoClockOut()` had two problems found in the audit:
+  1. Two sequential `updateMany` calls (attendance, then slot) with no transaction — a
+     mid-run DB drop could close attendance records without marking their slots completed,
+     or vice versa.
+  2. The query only looked at **today's** date (`duty_date: todayRange`). If the job didn't
+     run at all one day (e.g. DB down at 4:30 PM), those open records were never revisited —
+     tomorrow's run only ever looks at tomorrow's date, so a missed run left them stuck open
+     forever with no self-healing path.
+- Fix:
+  - Widened the query to `duty_date: { lte: throughToday }` — an upper bound only, so it now
+    catches today's open records **and** any straggler from a prior day in the same pass.
+  - Since stragglers can span multiple different dates, and each date needs its own
+    auto-checkout cutoff timestamp (today's cutoff would be semantically wrong for a
+    3-day-old record), grouped the open records by their own `dutySlot.duty_date` and
+    computed `autoOutUTC` per group using that group's date, not `nowInIST()`'s date.
+  - Wrapped each date-group's attendance-update + slot-update in `prisma.$transaction([...])`
+    so the two can't diverge if the DB drops mid-run.
+- Tested against the local dev DB by calling the exported `autoClockOut()` directly:
+  - Created two open attendance records (in_time set, out_time null): one dated 3 days ago
+    (`2026-07-01`), one dated today (`2026-07-04`), both under the seeded Super Admin as
+    faculty (FK only, role irrelevant to the test).
+  - Ran `autoClockOut()` once — log confirmed "2 record(s) closed" (both picked up in the
+    same run, confirming the widened query catches the straggler).
+  - Verified via Prisma: the 07-01 record's `out_time` was `2026-07-01T11:00:00.000Z`
+    (16:30 IST **on its own date**) and the 07-04 record's was `2026-07-04T11:00:00.000Z` —
+    confirming each straggler gets its own date's cutoff, not today's. Both slots flipped to
+    `status: 'completed'`.
+  - Re-ran `autoClockOut()` a second time — no-op (no log output, matching the existing
+    `if (openAttendance.length === 0) return;` early exit), confirming idempotency: closed
+    records aren't reprocessed.
+  - Cleaned up both test duty_slot/duty_attendance rows afterward; confirmed both tables
+    back to 0 rows (their pre-test state).
+- `node --check server/lib/cron.js` passes.
+- Did not (and couldn't practically) simulate an actual mid-transaction DB crash to prove
+  the atomicity guarantee under real failure — that's inherent to `prisma.$transaction`'s
+  contract (either both `updateMany` calls in a group commit or neither does), not something
+  that needs its own bespoke test; verified the grouping/cutoff-date logic instead, which was
+  the part actually specific to this change.
 
 ## failed_or_blocked
 (none)
 
 ## commands_run
 ```
-node --check server/lib/bot.js
-# test script (inline node -e, not saved to disk): created a throwaway test user with
-# telegram_id '1', called bot.handleWebhook() directly for /resetpassword (success + retry +
-# flag path), then again twice more (rate-limited case, not-linked case), inspecting
-# activation_notification_failed / admin_audit_log / must_change_password via Prisma queries
-# and psql; deleted the test user + its audit rows afterward
-git diff -- server/lib/bot.js
+node --check server/lib/cron.js
+# test script (inline node -e, not saved to disk): created a straggler duty_slot+attendance
+# dated 3 days ago and one dated today, both with in_time set and out_time null; ran
+# autoClockOut() directly; inspected out_time/out_status/auto_out/slot.status via Prisma;
+# re-ran to confirm idempotency; cleaned up via psql DELETE
+git diff -- server/lib/cron.js
 ```
 
 ## constraints_discovered
-- None new — this reused the exact retry/flag mechanism and constraints already documented
-  for the invite-activation fix (`AdminAuditLog.actor_id` has no system-actor concept, so the
-  affected user's own id is used as `actorId`; the webhook already responds before the
-  notification settles, so retry backoff doesn't affect webhook response time).
+- `duty_date` is `@db.Date`, which Prisma returns as a UTC-midnight JS `Date` (per the
+  existing comment in `lib/time.js`) — so grouping stragglers by
+  `dutySlot.duty_date.toISOString().slice(0, 10)` and reading
+  `getUTCFullYear()/getUTCMonth()/getUTCDate()` off it directly gives the correct IST
+  calendar date without needing any timezone conversion, consistent with how the rest of the
+  codebase already treats this field.
 
 ## deviations_from_constitution
 - None.
 
 ## files_touched
-- `server/lib/bot.js`
+- `server/lib/cron.js`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
 - (carried forward, unrelated) No path exists to create a second Super Admin account
   (FR-016); retired routes now 404 instead of 410.
-- Next up from the same audit, per explicit priority order: #2 (autoClockOut cron
-  non-atomicity) and #3 (Excel student upload N+1) — not yet started.
-- `sims-dms-dev-db` and Docker Desktop are still running from earlier sessions' manual
-  testing; dev servers (client :5173, server :3000) may also still be running in the
-  background from the ErrorRow spot-check session.
+- Next up from the same audit, per explicit priority order: #3 (Excel student upload N+1) —
+  not yet started. #4 (Telegram broadcast throttling) remains documented backlog per explicit
+  instruction, not being acted on now.
+- `sims-dms-dev-db` and Docker Desktop, and the client/server dev processes from the earlier
+  ErrorRow spot-check session, may still be running in the background.

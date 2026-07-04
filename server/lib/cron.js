@@ -11,36 +11,57 @@ const { nowInIST, istDayRangeUTC, istWallToUTC } = require('./time');
 // ─── 1. Auto clock-out — daily at 4:30 PM IST ─────────────────────────────────
 
 async function autoClockOut() {
-  const ist        = nowInIST();
-  const todayRange = istDayRangeUTC(ist.year, ist.month, ist.day);
+  const ist = nowInIST();
+  // Upper bound only — catches today AND any prior-day record that never got
+  // closed (e.g. this job didn't run because the DB was down at 4:30 PM).
+  // Without this, a single missed run leaves those records open forever,
+  // since tomorrow's run only ever looks at tomorrow's date.
+  const throughToday = istDayRangeUTC(ist.year, ist.month, ist.day).lte;
 
   const openAttendance = await prisma.dutyAttendance.findMany({
     where: {
-      dutySlot: { duty_date: todayRange },
+      dutySlot: { duty_date: { lte: throughToday } },
       in_time:  { not: null },
       out_time: null,
     },
-    select: { id: true, duty_slot_id: true },
+    select: { id: true, duty_slot_id: true, dutySlot: { select: { duty_date: true } } },
   });
 
   if (openAttendance.length === 0) return;
 
-  const cfg        = await settingsService.getSettings();
-  // Produce a UTC timestamp that represents the configured IST clock-out time.
-  const autoOutUTC = istWallToUTC(
-    ist.year, ist.month, ist.day,
-    cfg.auto_checkout_hour, cfg.auto_checkout_min,
-  );
+  const cfg = await settingsService.getSettings();
 
-  await prisma.dutyAttendance.updateMany({
-    where: { id: { in: openAttendance.map((a) => a.id) } },
-    data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
-  });
+  // Group by the record's own duty date so a straggler from a prior day gets
+  // an out_time based on THAT date's auto-checkout cutoff, not today's — and
+  // so each date group's attendance+slot updates can be committed atomically
+  // together (a mid-run DB drop can't leave one written without the other).
+  const byDate = new Map();
+  for (const a of openAttendance) {
+    const d = a.dutySlot.duty_date;
+    const key = d.toISOString().slice(0, 10);
+    if (!byDate.has(key)) byDate.set(key, { date: d, attendanceIds: [], slotIds: [] });
+    const group = byDate.get(key);
+    group.attendanceIds.push(a.id);
+    group.slotIds.push(a.duty_slot_id);
+  }
 
-  await prisma.dutySlot.updateMany({
-    where: { id: { in: openAttendance.map((a) => a.duty_slot_id) } },
-    data:  { status: 'completed' },
-  });
+  for (const { date, attendanceIds, slotIds } of byDate.values()) {
+    const autoOutUTC = istWallToUTC(
+      date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(),
+      cfg.auto_checkout_hour, cfg.auto_checkout_min,
+    );
+
+    await prisma.$transaction([
+      prisma.dutyAttendance.updateMany({
+        where: { id: { in: attendanceIds } },
+        data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
+      }),
+      prisma.dutySlot.updateMany({
+        where: { id: { in: slotIds } },
+        data:  { status: 'completed' },
+      }),
+    ]);
+  }
 
   logger.info(`[cron] Auto clock-out: ${openAttendance.length} record(s) closed.`);
 }
