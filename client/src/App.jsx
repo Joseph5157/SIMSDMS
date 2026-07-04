@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MantineProvider } from '@mantine/core';
-import { Notifications } from '@mantine/notifications';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -134,10 +133,9 @@ export default function App() {
       forceColorScheme={colorScheme}
       theme={{ primaryColor: 'blue', defaultRadius: 'md' }}
     >
-      <Notifications position="bottom-right" zIndex={9999} />
-      <PWAUpdatePrompt />
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
+          <PWAUpdatePrompt />
           <ErrorBoundary>
             <OfflineBanner />
             <BrowserRouter>

@@ -16,10 +16,11 @@ export function ToastProvider({ children }) {
     setToasts((t) => t.filter((x) => x.id !== id));
   }, []);
 
-  const toast = useCallback(({ message, type = 'success' }) => {
+  const toast = useCallback(({ message, type = 'success', persistent = false, onClick }) => {
     const id = Date.now();
-    setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => dismissToast(id), 3500);
+    setToasts((t) => [...t, { id, message, type, onClick }]);
+    if (!persistent) setTimeout(() => dismissToast(id), 3500);
+    return id;
   }, [dismissToast]);
 
   return (
@@ -44,6 +45,7 @@ export function ToastProvider({ children }) {
               role="alert"
               aria-live={t.type === 'error' ? 'assertive' : 'polite'}
               aria-atomic="true"
+              onClick={t.onClick ? () => { t.onClick(); dismissToast(t.id); } : undefined}
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -60,11 +62,12 @@ export function ToastProvider({ children }) {
                 boxShadow: 'var(--shadow-toast)',
                 pointerEvents: 'auto',
                 animation: 'fadeSlideIn 0.2s ease',
+                cursor: t.onClick ? 'pointer' : 'default',
               }}
             >
               <span style={{ flex: 1 }}>{t.message}</span>
               <button
-                onClick={() => dismissToast(t.id)}
+                onClick={(e) => { e.stopPropagation(); dismissToast(t.id); }}
                 aria-label="Dismiss notification"
                 style={{
                   background: 'none',

@@ -1,27 +1,20 @@
 import { useEffect } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { notifications } from '@mantine/notifications';
+import { useToast } from './ui/Toast';
 
 export default function PWAUpdatePrompt() {
   const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW();
+  const toast = useToast();
 
   useEffect(() => {
     if (!needRefresh) return;
-    notifications.show({
-      id: 'pwa-update',
-      title: 'Update available',
-      message: 'A new version of SIMS DMS is ready.',
-      color: 'blue',
-      autoClose: false,
-      withCloseButton: false,
-      withBorder: true,
-      styles: { root: { cursor: 'pointer' } },
-      onClick: () => {
-        notifications.hide('pwa-update');
-        updateServiceWorker(true);
-      },
+    toast({
+      message: 'Update available — tap to refresh SIMS DMS.',
+      type: 'info',
+      persistent: true,
+      onClick: () => updateServiceWorker(true),
     });
-  }, [needRefresh, updateServiceWorker]);
+  }, [needRefresh, updateServiceWorker, toast]);
 
   return null;
 }

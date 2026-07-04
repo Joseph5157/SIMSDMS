@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
-import { Button, Skeleton, Modal, Text, Group } from '@mantine/core';
+import Skeleton from '../../components/ui/Skeleton';
+import { Button, Modal, Text, Group } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
 
@@ -125,7 +126,7 @@ export default function SlotPickerPage({ user }) {
 
       {/* ── Window status ── */}
       {loadingAvail ? (
-        <Skeleton height={44} radius={12} mb={16} />
+        <Skeleton height="44px" className="rounded-xl mb-4" />
       ) : windowOpen ? (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -136,7 +137,7 @@ export default function SlotPickerPage({ user }) {
           <p style={{ fontSize: 13, color: 'var(--color-emerald-text)', margin: 0 }}>
             Window <strong>open</strong> ·{' '}
             {loadingMine
-              ? <Skeleton display="inline-block" w={80} h={12} radius={4} />
+              ? <Skeleton width="80px" height="12px" className="inline-block" />
               : <>{pickedCount} of {requiredSlots} picked · <strong>{remainingSlots} left to pick</strong></>}
           </p>
         </div>
@@ -208,7 +209,7 @@ export default function SlotPickerPage({ user }) {
         {(loadingAvail || loadingMine) ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
             {Array.from({ length: 35 }).map((_, i) => (
-              <Skeleton key={i} height={40} radius={8} />
+              <Skeleton key={i} height="40px" className="rounded-lg" />
             ))}
           </div>
         ) : (
@@ -380,7 +381,7 @@ export default function SlotPickerPage({ user }) {
           My picks · {pickedCount} / {requiredSlots} required
         </p>
         {loadingMine ? (
-          <Skeleton height={52} radius={12} />
+          <Skeleton height="52px" className="rounded-xl" />
         ) : !mySlots?.data?.length ? (
           <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
             Tap a highlighted date above to pick your slots.
