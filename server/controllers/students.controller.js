@@ -196,19 +196,34 @@ async function uploadStudents(req, res) {
 
   try {
     await prisma.$transaction(async (tx) => {
-      for (const row of uniqueRows) {
-        const existing = await tx.student.findUnique({ where: { registration_number: row.registration_number } });
-        if (existing) {
-          await tx.student.update({
-            where: { registration_number: row.registration_number },
-            data:  { ...row, status: 'active', deleted_at: null },
-          });
-          updated_count++;
-        } else {
-          await tx.student.create({ data: { ...row, status: 'active' } });
-          added_count++;
-        }
+      // Same "fetch existing registration numbers into a Set" pattern as the
+      // dry-run above — one query instead of one findUnique per row.
+      const existingInFile = await tx.student.findMany({
+        where:  { registration_number: { in: uploadedRegNums } },
+        select: { registration_number: true },
+      });
+      const existingSet = new Set(existingInFile.map((s) => s.registration_number));
+
+      const toCreate = uniqueRows.filter((r) => !existingSet.has(r.registration_number));
+      const toUpdate = uniqueRows.filter((r) =>  existingSet.has(r.registration_number));
+
+      if (toCreate.length > 0) {
+        await tx.student.createMany({
+          data: toCreate.map((row) => ({ ...row, status: 'active' })),
+        });
+        added_count = toCreate.length;
       }
+
+      // createMany can't set per-row data, so updates (each row differs) still
+      // need one call per row — but only for rows that actually exist, with no
+      // findUnique first.
+      for (const row of toUpdate) {
+        await tx.student.update({
+          where: { registration_number: row.registration_number },
+          data:  { ...row, status: 'active', deleted_at: null },
+        });
+      }
+      updated_count = toUpdate.length;
 
       if (deactivateWhere) {
         const result = await tx.student.updateMany({ where: deactivateWhere, data: { status: 'inactive' } });

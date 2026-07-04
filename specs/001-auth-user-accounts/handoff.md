@@ -5,85 +5,79 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Perf/reliability audit fix #2: autoClockOut cron — atomic update +
-catch stragglers from prior days
+001-auth-user-accounts / Perf/reliability audit fix #3: batch the Excel student upload N+1
 
 ## status
 complete
 
 ## completed
-- `server/lib/cron.js`'s `autoClockOut()` had two problems found in the audit:
-  1. Two sequential `updateMany` calls (attendance, then slot) with no transaction — a
-     mid-run DB drop could close attendance records without marking their slots completed,
-     or vice versa.
-  2. The query only looked at **today's** date (`duty_date: todayRange`). If the job didn't
-     run at all one day (e.g. DB down at 4:30 PM), those open records were never revisited —
-     tomorrow's run only ever looks at tomorrow's date, so a missed run left them stuck open
-     forever with no self-healing path.
-- Fix:
-  - Widened the query to `duty_date: { lte: throughToday }` — an upper bound only, so it now
-    catches today's open records **and** any straggler from a prior day in the same pass.
-  - Since stragglers can span multiple different dates, and each date needs its own
-    auto-checkout cutoff timestamp (today's cutoff would be semantically wrong for a
-    3-day-old record), grouped the open records by their own `dutySlot.duty_date` and
-    computed `autoOutUTC` per group using that group's date, not `nowInIST()`'s date.
-  - Wrapped each date-group's attendance-update + slot-update in `prisma.$transaction([...])`
-    so the two can't diverge if the DB drops mid-run.
-- Tested against the local dev DB by calling the exported `autoClockOut()` directly:
-  - Created two open attendance records (in_time set, out_time null): one dated 3 days ago
-    (`2026-07-01`), one dated today (`2026-07-04`), both under the seeded Super Admin as
-    faculty (FK only, role irrelevant to the test).
-  - Ran `autoClockOut()` once — log confirmed "2 record(s) closed" (both picked up in the
-    same run, confirming the widened query catches the straggler).
-  - Verified via Prisma: the 07-01 record's `out_time` was `2026-07-01T11:00:00.000Z`
-    (16:30 IST **on its own date**) and the 07-04 record's was `2026-07-04T11:00:00.000Z` —
-    confirming each straggler gets its own date's cutoff, not today's. Both slots flipped to
-    `status: 'completed'`.
-  - Re-ran `autoClockOut()` a second time — no-op (no log output, matching the existing
-    `if (openAttendance.length === 0) return;` early exit), confirming idempotency: closed
-    records aren't reprocessed.
-  - Cleaned up both test duty_slot/duty_attendance rows afterward; confirmed both tables
-    back to 0 rows (their pre-test state).
-- `node --check server/lib/cron.js` passes.
-- Did not (and couldn't practically) simulate an actual mid-transaction DB crash to prove
-  the atomicity guarantee under real failure — that's inherent to `prisma.$transaction`'s
-  contract (either both `updateMany` calls in a group commit or neither does), not something
-  that needs its own bespoke test; verified the grouping/cutoff-date logic instead, which was
-  the part actually specific to this change.
+- `server/controllers/students.controller.js`'s `uploadStudents` import loop did one
+  `findUnique` + one `create`/`update` per row inside a single transaction — a 1,000-row
+  roster upload meant ~2,000 sequential round-trips inside one interactive transaction,
+  risking Prisma's default 5s transaction timeout on a full-roster upload. The dry-run path
+  a few lines above (`dryRun` branch) already avoided this by fetching all existing
+  registration numbers into a `Set` in one query — the actual import path just didn't reuse
+  that approach.
+- Fix: inside the transaction, fetch existing registration numbers into a `Set` (identical
+  pattern to the dry-run branch), split `uniqueRows` into `toCreate`/`toUpdate`, batch all
+  new rows into a single `tx.student.createMany({...})`, and keep per-row `tx.student.update`
+  only for rows that already exist (Prisma's `updateMany` can't apply different `data` per
+  row, so this part can't be further batched without raw SQL — matching the requested scope
+  of "createMany for new rows plus targeted updates for existing ones", not a full rewrite).
+  Net effect: the `findUnique`-per-row is gone entirely (1 query instead of N), and the
+  create path is 1 query instead of N; only updates still cost 1 query per changed row.
+- Tested against the local dev DB by building real `.xlsx` buffers with `exceljs` and
+  calling `uploadStudents` directly (mocked `req`/`res`, real Prisma):
+  - First upload: 1 pre-existing student + 2 new rows → response showed
+    `added_count: 2, updated_count: 1`; confirmed via Prisma that the existing row's name/
+    semester were updated and both new rows were created with correct data.
+  - Second upload re-using the same 3 registration numbers (now all existing) → confirmed
+    `added_count: 0, updated_count: 3` with **no error** from the `if (toCreate.length > 0)`
+    guard around `createMany` — verifies the empty-creates edge case doesn't call
+    `createMany` with a zero-length array.
+  - Cleaned up both test uploads' student rows, `student_upload_log` rows, and the
+    resulting `STUDENT_UPLOAD` `admin_audit_log` entries afterward; confirmed via `psql` that
+    `students`/`student_upload_log` are back to 0 rows and `admin_audit_log` only has the two
+    original pre-existing entries (`PASSWORD_LOGIN`, `CREATE_INVITE`) left.
+- `node --check server/controllers/students.controller.js` passes. Did not change the
+  dry-run path, the deactivation path, the bulk-promote/bulk-deactivate endpoints (page-scoped
+  to ≤20 ids, negligible per the original audit), or the response shape/API contract.
 
 ## failed_or_blocked
 (none)
 
 ## commands_run
 ```
-node --check server/lib/cron.js
-# test script (inline node -e, not saved to disk): created a straggler duty_slot+attendance
-# dated 3 days ago and one dated today, both with in_time set and out_time null; ran
-# autoClockOut() directly; inspected out_time/out_status/auto_out/slot.status via Prisma;
-# re-ran to confirm idempotency; cleaned up via psql DELETE
-git diff -- server/lib/cron.js
+node --check server/controllers/students.controller.js
+# test script (inline node -e, not saved to disk): built two real .xlsx buffers with
+# exceljs (one mixed new+existing, one all-existing), called ctrl.uploadStudents() directly
+# against the real dev DB twice, inspected added_count/updated_count and the resulting
+# student rows via Prisma; cleaned up via psql DELETE (students, student_upload_log,
+# admin_audit_log)
+git diff -- server/controllers/students.controller.js
 ```
 
 ## constraints_discovered
-- `duty_date` is `@db.Date`, which Prisma returns as a UTC-midnight JS `Date` (per the
-  existing comment in `lib/time.js`) — so grouping stragglers by
-  `dutySlot.duty_date.toISOString().slice(0, 10)` and reading
-  `getUTCFullYear()/getUTCMonth()/getUTCDate()` off it directly gives the correct IST
-  calendar date without needing any timezone conversion, consistent with how the rest of the
-  codebase already treats this field.
+- Prisma's `createMany` has no equivalent for per-row differing `data` in a single call —
+  confirmed this is why the update side of the loop can't be collapsed the same way the
+  create side was, without introducing raw SQL (e.g. a bulk `INSERT ... ON CONFLICT DO
+  UPDATE`), which this codebase treats as an exception reserved for cases Prisma genuinely
+  can't do at all (see the `FOR UPDATE` comment in `bot.js`), not a general optimization tool.
 
 ## deviations_from_constitution
 - None.
 
 ## files_touched
-- `server/lib/cron.js`
+- `server/controllers/students.controller.js`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
+- All three prioritized fixes from the perf/reliability audit are now complete: #1
+  (`/resetpassword` bot retry+flag), #2 (`autoClockOut` atomicity + straggler recovery), #3
+  (this one). #4 (Telegram broadcast throttling) remains documented backlog per explicit
+  instruction — not acted on.
 - (carried forward, unrelated) No path exists to create a second Super Admin account
   (FR-016); retired routes now 404 instead of 410.
-- Next up from the same audit, per explicit priority order: #3 (Excel student upload N+1) —
-  not yet started. #4 (Telegram broadcast throttling) remains documented backlog per explicit
-  instruction, not being acted on now.
 - `sims-dms-dev-db` and Docker Desktop, and the client/server dev processes from the earlier
-  ErrorRow spot-check session, may still be running in the background.
+  ErrorRow spot-check session, may still be running in the background — worth stopping if
+  there's no more manual testing planned this session.
