@@ -9,10 +9,9 @@
 replacing the broken Telegram-relink implementation; closes T029 and T029a
 
 ## status
-complete — committed as its own logical commit, separate from the prior
-`activation_notification_failed` fix (`eb53d4f`), per explicit request. This file will be
-updated once more immediately after committing to record this commit's hash (handoff.md
-can't reference its own commit atomically — same pattern used for `131a7ab`/`a7be5b2`).
+complete — committed as **`d6bf86c`** (`d6bf86c81ef2aa58de8579dd0816b1c2a6473e19`), its own
+logical commit, separate from the prior `activation_notification_failed` fix committed as
+**`eb53d4f`** (`eb53d4fcb68181043e747b735bcff19f9059ef94`), per explicit request.
 
 ## completed
 - **Applied the previously-pending migration** (`20260704120000_add_activation_notification_failed`)
