@@ -101,12 +101,25 @@ async function handleWebhook(req, res) {
     } else if (text === '/resetpassword') {
       // Handle /resetpassword command — reset password for linked user
       const result = await handlePasswordReset(chatId);
-      let replyText;
 
       if (result.success) {
-        replyText = `✅ Your password has been reset!\n\nLogin at: ${process.env.APP_URL || 'https://sims-dms.railway.app'}/login\nEmail: ${result.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+        const replyText = `✅ Your password has been reset!\n\nLogin at: ${process.env.APP_URL || 'https://sims-dms.railway.app'}/login\nEmail: ${result.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
         logger.info(`[TELEGRAM] Password reset: ${result.userId}`);
-      } else if (result.error === 'NOT_LINKED') {
+
+        // The password is already changed at this point — if this notification
+        // never reaches the user, they're locked out of their account with no
+        // recovery path until the 1-hour rate limit clears. Retry before giving
+        // up, and flag the account for Admin follow-up if all retries fail
+        // (same recovery path as invite activation).
+        notifyPasswordResetSuccess(chatId, replyText, { id: result.userId, email: result.email }).catch((err) => {
+          logger.error(`[TELEGRAM] Failed to send message to ${chatId}:`, err);
+        });
+
+        return res.status(200).json({ ok: true });
+      }
+
+      let replyText;
+      if (result.error === 'NOT_LINKED') {
         replyText = 'No SIMS DMS account linked to this Telegram account. Contact your Admin.';
       } else if (result.error === 'RATE_LIMITED') {
         replyText = `Please wait before requesting another reset (max 1 per hour). Try again in ${result.minutesWait} minute(s).`;
@@ -335,12 +348,14 @@ async function handlePasswordReset(chatId) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Send the account-activation success message, retrying on failure since the
- * invite token is already consumed by this point (no way for the user to
- * request the temp password again via the same link). If every attempt
- * fails, flag the account so it surfaces on the Admin Users page.
+ * Send a Telegram notification that follows an already-committed, unrecoverable
+ * account change (new temp password, etc.) — retrying on failure since there's
+ * no way for the user to request it again through the same channel. If every
+ * attempt fails, flag the account (activation_notification_failed) so it
+ * surfaces on the Admin Users page, and write an audit log entry with the
+ * given action name for context on which flow failed.
  */
-async function notifyActivationSuccess(chatId, text, user) {
+async function sendWithRetryOrFlag(chatId, text, user, auditAction) {
   const RETRY_DELAYS_MS = [1000, 3000];
 
   for (let attempt = 0; ; attempt += 1) {
@@ -350,7 +365,7 @@ async function notifyActivationSuccess(chatId, text, user) {
     } catch (err) {
       if (attempt >= RETRY_DELAYS_MS.length) {
         logger.error(
-          `[TELEGRAM] Activation notification permanently failed for user ${user.id} (${user.email}) after ${attempt + 1} attempts:`,
+          `[TELEGRAM] Notification permanently failed for user ${user.id} (${user.email}) after ${attempt + 1} attempts:`,
           err
         );
 
@@ -363,7 +378,7 @@ async function notifyActivationSuccess(chatId, text, user) {
 
         await logAction({
           actorId: user.id,
-          action: 'ACTIVATION_NOTIFICATION_FAILED',
+          action: auditAction,
           targetId: user.id,
           targetType: 'user',
           metadata: { chatId, error: err.message },
@@ -374,10 +389,27 @@ async function notifyActivationSuccess(chatId, text, user) {
         return;
       }
 
-      logger.warn(`[TELEGRAM] Activation notification attempt ${attempt + 1} failed for user ${user.id}, retrying:`, err.message);
+      logger.warn(`[TELEGRAM] Notification attempt ${attempt + 1} failed for user ${user.id}, retrying:`, err.message);
       await sleep(RETRY_DELAYS_MS[attempt]);
     }
   }
+}
+
+/**
+ * Invite-activation success message — the PendingInvite is already deleted and
+ * the User row already created by this point.
+ */
+async function notifyActivationSuccess(chatId, text, user) {
+  return sendWithRetryOrFlag(chatId, text, user, 'ACTIVATION_NOTIFICATION_FAILED');
+}
+
+/**
+ * /resetpassword success message — the new password is already committed by
+ * this point, so a failed send here actively locks the user out (no recovery
+ * until the 1-hour rate limit on /resetpassword clears).
+ */
+async function notifyPasswordResetSuccess(chatId, text, user) {
+  return sendWithRetryOrFlag(chatId, text, user, 'PASSWORD_RESET_NOTIFICATION_FAILED');
 }
 
 /**

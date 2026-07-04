@@ -5,100 +5,89 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Add shared ErrorRow/ErrorBlock and wire it into every admin data
-table that previously only distinguished loading vs. empty, not a failed request
+001-auth-user-accounts / Perf/reliability audit fix #1: retry+flag on /resetpassword bot
+notification failure (same silent-failure class as eb53d4f, higher priority — active lockout)
 
 ## status
 complete
 
 ## completed
-- **`client/src/components/ui/Table.jsx`**: added two new exports alongside the existing
-  `EmptyRow`:
-  - `ErrorRow({ cols, message, onRetry })` — same `<tr>`/`colSpan` shape as `EmptyRow`, for
-    use inside a `<tbody>`, with a ⚠️ icon and an optional "Retry" button (only rendered when
-    `onRetry` is passed).
-  - `ErrorBlock({ message, onRetry })` — the same visual content without the table-row
-    wrapper, for card-list/mobile views and non-table report sections.
-  - Both share one internal `ErrorContent` so the visuals can't drift between the two forms.
-- **Wired into every admin/super-admin page that renders a data table via `EmptyRow` and
-  only checked `isLoading`/empty-data**, not `isError`:
-  - `UsersPage.jsx` — both the main users table and the pending-invites table (two separate
-    queries, `useUsers`/`useInvites`, each with its own `isError`/`refetch`).
-  - `ViolationsPage.jsx`, `DutySlotsPage.jsx`, `CoverRequestsPage.jsx`,
-    `ViolationTypesPage.jsx`, `StudentsPage.jsx`, `AuditLogsPage.jsx` (super-admin) — same
-    pattern: destructure `isError`/`refetch` from the existing query hook, add an
-    `{isError && <ErrorRow .../>}` line alongside the existing loading/empty lines, and gate
-    the empty-state check with `&& !isError` so a failed request can't also render "no
-    records found" underneath/instead of the error.
-  - `ReportsPage.jsx` — the most structurally different one: its shared `ReportSection({ id,
-    data, isLoading })` helper renders ~15 different report shapes (tables, stat grids, etc.)
-    driven by a `hookMap`. Added `isError`/`refetch` params to `ReportSection` and one early
-    `if (isError) return <ErrorBlock onRetry={refetch} />;` check before the `switch` —
-    covers all 15 report types from one place, no per-case changes needed. Wired both
-    callers (`StudentViolationReportCard`'s `useStudentViolations` and `ReportView`'s dynamic
-    `useHook`) to pass `isError`/`refetch` through.
-- Confirmed every touched hook (`useUsers`, `useInvites`, `useViolations`,
-  `useMonthSlots`, `useCoverRequests`, `useViolationTypes`, `useStudents`, `useAuditLogs`,
-  and all 15 report hooks via the shared `useReport` factory in `useReports.js`) returns the
-  raw `useQuery(...)` result unmodified, so `isError`/`refetch` were available everywhere
-  without any hook changes.
-- `npx vite build` succeeds cleanly; `npx eslint` clean on every touched file except one
-  pre-existing, unrelated error in `StudentsPage.jsx` (a `react-hooks/set-state-in-effect`
-  violation on a `useEffect` at line 190 that predates this change — confirmed via
-  `git stash`/re-lint against the pre-change committed version, same error, so not
-  introduced here and out of scope to fix as part of this task).
+- Following a read-only perf/reliability audit, this closes the highest-priority finding:
+  `handlePasswordReset` (triggered by a user sending `/resetpassword` to the bot) commits the
+  new password hash **before** the reply containing the temp password is sent, and that send
+  was fire-and-forget with only `.catch(log)` — no retry, no flag. If the send failed, the
+  user's old password was already dead, the temp password existed nowhere retrievable, and
+  they were locked out until the 1-hour `/resetpassword` rate limit cleared (worse than the
+  invite-activation case fixed in `eb53d4f`, since this is user-initiated and actively
+  destructive, not just a stalled onboarding).
+- **`server/lib/bot.js`**: generalized the existing invite-activation retry/flag logic
+  (previously a single-purpose `notifyActivationSuccess`) into a shared
+  `sendWithRetryOrFlag(chatId, text, user, auditAction)` — same 3-attempt/1s-3s-backoff retry,
+  same `activation_notification_failed` flag on final failure, same audit log write, now
+  parameterized by an `auditAction` string instead of hardcoding `ACTIVATION_NOTIFICATION_FAILED`.
+  - `notifyActivationSuccess(chatId, text, user)` is now a one-line wrapper calling
+    `sendWithRetryOrFlag(..., 'ACTIVATION_NOTIFICATION_FAILED')` — unchanged behavior.
+  - Added `notifyPasswordResetSuccess(chatId, text, user)`, wrapping
+    `sendWithRetryOrFlag(..., 'PASSWORD_RESET_NOTIFICATION_FAILED')`.
+  - Restructured the `/resetpassword` branch in `handleWebhook` to mirror the invite-activation
+    branch's shape: on success, build the reply, call `notifyPasswordResetSuccess(...)` (fire-
+    and-forget, same as before) and `return` early — only the success/lockout path gets retry+
+    flag. The `NOT_LINKED`/`RATE_LIMITED`/generic-error replies keep the original single-attempt
+    `sendTelegramMessage(...).catch(log)` — those don't follow a destructive state change, so
+    there's nothing to protect by retrying.
+- Tested end-to-end against the local dev DB by calling `bot.handleWebhook` directly (mocked
+  `req`/`res`, real Prisma, real `TELEGRAM_BOT_TOKEN`) with a throwaway test user
+  (`telegram_id: '1'`, an invalid chat — same technique used to test T029, produces a real
+  Telegram `400 chat not found` without spamming anyone):
+  - `/resetpassword` succeeded (password changed, `must_change_password: true`,
+    `last_password_reset_at` set, `PASSWORD_RESET_VIA_BOT` audit row written) — confirming the
+    webhook still returns `200 {"ok":true}` immediately regardless of notification outcome.
+  - Notification retried twice (`warn` logs at attempts 1 and 2), then failed permanently
+    (`error` log), then `activation_notification_failed` flipped to `true` and a
+    `PASSWORD_RESET_NOTIFICATION_FAILED` audit row was written with accurate
+    `{ chatId, error }` metadata.
+  - Immediately re-sent `/resetpassword` from the same chat → correctly hit `RATE_LIMITED`
+    (no second password change, no second flag/audit write) — confirms the restructuring
+    didn't disturb the non-success branches.
+  - Sent `/resetpassword` from an unrelated unknown chat id → correctly hit `NOT_LINKED`.
+  - Both `RATE_LIMITED`/`NOT_LINKED` replies logged exactly one failed send attempt each (no
+    retry warnings) — confirms retry+flag is scoped to the success path only, as intended.
+  - Cleaned up the test user and its audit rows afterward; confirmed dev DB back to its
+    original 1-user state.
+- `node --check server/lib/bot.js` passes.
 
 ## failed_or_blocked
-- Did not do a full browser/dev-server smoke test of the new error states (would require
-  forcing a real request failure, e.g. stopping the API mid-session). This is a purely
-  additive UI branch following the exact existing `isLoading`/`EmptyRow` pattern already
-  proven throughout the codebase — relied on `vite build` + `eslint` + confirming every
-  hook's shape instead. Flagging so it can be spot-checked manually (e.g. temporarily kill
-  the API server and reload the Users page) before considering this fully verified in the
-  browser.
+(none)
 
 ## commands_run
 ```
-npx eslint <each touched file>          # clean except the pre-existing StudentsPage issue
-git stash && npx eslint src/pages/admin/StudentsPage.jsx && git stash pop   # confirmed pre-existing
-npx vite build                           # succeeds
-grep -n "useQuery" <each hook file>      # confirmed raw useQuery passthrough on all touched hooks
+node --check server/lib/bot.js
+# test script (inline node -e, not saved to disk): created a throwaway test user with
+# telegram_id '1', called bot.handleWebhook() directly for /resetpassword (success + retry +
+# flag path), then again twice more (rate-limited case, not-linked case), inspecting
+# activation_notification_failed / admin_audit_log / must_change_password via Prisma queries
+# and psql; deleted the test user + its audit rows afterward
+git diff -- server/lib/bot.js
 ```
 
 ## constraints_discovered
-- `ReportsPage.jsx`'s `ReportSection` is a single dispatcher for ~15 differently-shaped
-  report bodies (tables, stat grids, breakdowns) selected by `id`. Handling the error state
-  once at the top of that function (before the `switch`) instead of per-`case` was the only
-  way to cover all 15 without touching every case — worth remembering as the pattern if more
-  cases get added later (they inherit the error handling for free).
-- `DutySlotsPage.jsx` renders two independent tables (morning/afternoon) from one query, and
-  already duplicated its loading state per-section; the new error state follows the same
-  existing duplication (shows the error under both session headers) rather than
-  restructuring — consistent with, not a regression from, the current layout.
+- None new — this reused the exact retry/flag mechanism and constraints already documented
+  for the invite-activation fix (`AdminAuditLog.actor_id` has no system-actor concept, so the
+  affected user's own id is used as `actorId`; the webhook already responds before the
+  notification settles, so retry backoff doesn't affect webhook response time).
 
 ## deviations_from_constitution
 - None.
 
 ## files_touched
-- `client/src/components/ui/Table.jsx`
-- `client/src/pages/admin/UsersPage.jsx`
-- `client/src/pages/admin/ViolationsPage.jsx`
-- `client/src/pages/admin/DutySlotsPage.jsx`
-- `client/src/pages/admin/CoverRequestsPage.jsx`
-- `client/src/pages/admin/ViolationTypesPage.jsx`
-- `client/src/pages/admin/StudentsPage.jsx`
-- `client/src/pages/admin/ReportsPage.jsx`
-- `client/src/pages/super-admin/AuditLogsPage.jsx`
+- `server/lib/bot.js`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
-- **Pre-existing lint error in `StudentsPage.jsx`** (`react-hooks/set-state-in-effect` at
-  line 190, calling `setSelectedIds(new Set())` directly inside a `useEffect`) — not
-  introduced by this change, not fixed either since it's out of scope; flagging in case it
-  should be a follow-up.
 - (carried forward, unrelated) No path exists to create a second Super Admin account
-  (FR-016); retired routes now 404 instead of 410; `sims-dms-dev-db` and Docker Desktop are
-  still running from earlier manual-testing sessions.
-- Two other frontend-review items from the same audit (skeleton rollout to the remaining
-  `Loading…` pages, and an accessibility pass) were discussed but not part of this batch —
-  still open if wanted next.
+  (FR-016); retired routes now 404 instead of 410.
+- Next up from the same audit, per explicit priority order: #2 (autoClockOut cron
+  non-atomicity) and #3 (Excel student upload N+1) — not yet started.
+- `sims-dms-dev-db` and Docker Desktop are still running from earlier sessions' manual
+  testing; dev servers (client :5173, server :3000) may also still be running in the
+  background from the ErrorRow spot-check session.
