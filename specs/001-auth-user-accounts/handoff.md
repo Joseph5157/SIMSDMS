@@ -5,64 +5,69 @@
 > previous report for that feature.
 
 ## task_id
-001-auth-user-accounts / Security follow-up patch on the T029 temp-password modal
-(`UsersPage.jsx`) — handling checklist requested against commit `d6bf86c`
+001-auth-user-accounts / Frontend follow-ups on Users admin page: fix mislabeled stat,
+debounce search, add "Notification Failed" status filter
 
 ## status
 complete
 
 ## completed
-Audited the temp-password-on-Telegram-failure modal (`client/src/pages/admin/UsersPage.jsx`,
-the `passwordResetResult` `Modal`) against four explicit requirements:
+Three small, independent fixes to `UsersPage.jsx`, requested together as one commit from a
+broader frontend-improvements review:
 
-1. **"Copy password" button using the clipboard API** — already present
-   (`navigator.clipboard.writeText(passwordResetResult.tempPassword)`); relabeled the button
-   from "Copy" to "Copy password" for clarity, no behavior change.
-2. **No WhatsApp/share button in this modal** — confirmed by inspection: the modal only has
-   "Copy password" and "Done." (The unrelated invite-link panel in `CreateUserDrawer.jsx`
-   does have a WhatsApp share button, but that's a different flow — invite links, not temp
-   passwords — and was out of scope here.)
-3. **Inline warning against sending the password over email/public chat** — **was missing**,
-   added as a small follow-up: an amber warning box (reusing the existing
-   `--color-amber-bg`/`--color-amber-text`/`--color-amber-border` CSS vars already defined
-   for the `flagged` badge elsewhere in the app) directly below the password/copy row:
-   "⚠ Share this password directly with the user (phone call, in person, etc.) — don't send
-   it over email or a public/group chat."
-4. **Temp password never in a URL/query param, never console-logged client-side** —
-   confirmed: `useResetUserLogin` (`client/src/hooks/useUsers.js`) is a plain
-   `api.post('/admin/users/:id/reset-login')` with the user ID as a path param only, no
-   query string; grepped `UsersPage.jsx`, `useUsers.js`, and `utils/api.js` for `console.` —
-   zero matches; `utils/api.js`'s axios interceptors don't log request/response bodies
-   either. The password only ever lives in component state (`passwordResetResult`) and the
-   response body, never in a URL.
-
-Net: 3 of 4 requirements were already met from the `d6bf86c` implementation; only #3 needed
-a small addition. Made the minimal patch (no rebuild of the modal) and re-verified lint.
+1. **Fixed the "Active users" footer stat** (`UsersPage.jsx`): it was labeled "Active users"
+   but showed `data?.data?.length` — the row count of the *current page under whatever
+   filter was applied*, not actually a count of active users (e.g. filtering to "Inactive"
+   would still say "Active users: 12"). Renamed the label to "Showing" and switched the
+   value to `data?.meta?.total` (the true total matching the current filters, across all
+   pages, not just the current page).
+2. **Debounced the Users search input**: it was feeding every keystroke straight into the
+   `useUsers` query key (one API request per keystroke). Added `useDebounce(search, 500)`
+   (existing hook, already used the same way in `StudentsPage.jsx`) and pass the debounced
+   value to `useUsers`, keeping the raw `search` state bound to the input so typing still
+   feels instant.
+3. **Added a "Notification Failed" option to the status filter dropdown** so Admins can find
+   users flagged with `activation_notification_failed` without scrolling the full list.
+   Backend (`server/controllers/users.controller.js`'s `listUsers`): `status` is normally a
+   direct equality filter against the `UserStatus` enum column, which doesn't have a
+   matching value for this — special-cased `status === 'notify_failed'` to filter on
+   `activation_notification_failed: true` instead of passing that string to `where.status`
+   (which would have hit a Prisma enum-validation error, since `notify_failed` isn't a real
+   `UserStatus` value).
 
 ## failed_or_blocked
 (none)
 
 ## commands_run
 ```
-grep -n "console\.\|passwordResetResult\|tempPassword\|navigator.clipboard" client/src/pages/admin/UsersPage.jsx
-grep -rn "console\." src/pages/admin/UsersPage.jsx src/hooks/useUsers.js src/utils/api.js   # zero matches
+node --check server/controllers/users.controller.js
 npx eslint src/pages/admin/UsersPage.jsx
+# end-to-end verification against local dev DB (sims-dms-dev-db, still running from the
+# prior T029 session): temporarily flagged the seeded user's activation_notification_failed,
+# called ctrl.listUsers() directly with { status: 'notify_failed' } and confirmed it returned
+# exactly that user; called again with { status: 'active' } to confirm the normal enum path
+# still works; reverted the flag afterward and confirmed via psql the DB is back to its
+# original state.
 ```
 
 ## constraints_discovered
-- The app already has a small amber warning-color system in `client/src/index.css`
-  (`--color-amber-bg`/`--color-amber-text`/`--color-amber-border`, with dark-mode overrides)
-  used today only for the `flagged` status badge — reused it here instead of introducing a
-  new color for the warning box, keeping this consistent with the existing theme.
+- `status` in `listUsers` was a single field doing double duty as a straightforward enum
+  filter; adding a filter for a boolean column required special-casing it before the enum
+  branch, rather than adding it as a generic where-clause merge, to avoid ever passing an
+  invalid enum value into Prisma's `where.status`.
 
 ## deviations_from_constitution
 - None.
 
 ## files_touched
 - `client/src/pages/admin/UsersPage.jsx`
+- `server/controllers/users.controller.js`
 - `specs/001-auth-user-accounts/handoff.md` (this file — overwritten)
 
 ## open_questions_for_owner
-- (carried forward, unrelated to this patch) No path exists to create a second Super Admin
-  account (FR-016); retired routes now 404 instead of 410; `sims-dms-dev-db` and Docker
-  Desktop are still running per earlier request for manual UI testing.
+- (carried forward, unrelated) No path exists to create a second Super Admin account
+  (FR-016); retired routes now 404 instead of 410; `sims-dms-dev-db` and Docker Desktop are
+  still running for ongoing manual testing.
+- Next up in this same review: a shared `<ErrorRow onRetry={refetch} />` component wired into
+  every admin data table that currently only distinguishes loading/empty, not a failed
+  request — planned as a separate commit right after this one.

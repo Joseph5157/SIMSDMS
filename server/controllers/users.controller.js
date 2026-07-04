@@ -43,7 +43,11 @@ async function listUsers(req, res) {
 
   const where = { deleted_at: null };
   if (role) where.role = role;
-  if (status) where.status = status;
+  if (status === 'notify_failed') {
+    where.activation_notification_failed = true;
+  } else if (status) {
+    where.status = status;
+  }
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },

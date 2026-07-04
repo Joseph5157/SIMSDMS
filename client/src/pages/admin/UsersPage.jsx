@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
 import { useToast } from '../../components/ui/Toast';
+import { useDebounce } from '../../hooks/useDebounce';
 import { useUsers, useDeactivateUser, useReactivateUser, useDeleteUser, useResetUserLogin } from '../../hooks/useUsers';
 import { useInvites, useCreateInvite, useRegenerateInvite, useCancelInvite } from '../../hooks/useInvites';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -81,7 +82,8 @@ export default function UsersPage({ user }) {
   const [resettingPassword, setResettingPassword] = useState(null);
   const [passwordResetResult, setPasswordResetResult] = useState(null);
 
-  const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
+  const debouncedSearch = useDebounce(search, 500);
+  const { data, isLoading } = useUsers({ role, status, search: debouncedSearch, page, limit: 20 });
   const { data: invitesData, isLoading: invitesLoading } = useInvites();
 
   const createInvite     = useCreateInvite();
@@ -196,6 +198,7 @@ export default function UsersPage({ user }) {
           <option value="inactive">Inactive</option>
           <option value="pending">Pending Approval</option>
           <option value="pending_telegram">Telegram Relink Needed</option>
+          <option value="notify_failed">Notification Failed</option>
         </select>
       </div>
 
@@ -284,9 +287,9 @@ export default function UsersPage({ user }) {
         border: '1px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center'
       }}>
-        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Active users</span>
+        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Showing</span>
         <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
-          {data?.data?.length ?? 0}
+          {data?.meta?.total ?? 0}
         </span>
       </div>
 
