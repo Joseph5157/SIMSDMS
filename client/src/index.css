@@ -51,6 +51,14 @@
   --color-indigo-500: #6366f1;
   --color-indigo-600: #4f46e5;
 
+  /* ── Secondary accent role (indigo — already lived in --brand-gradient; now a
+     full first-class tint family like the status colors, for M3-style continuity) ── */
+  --color-indigo-bg:     #eef2ff;
+  --color-indigo-tint:   #e0e7ff;
+  --color-indigo-text:   #3730a3;
+  --color-indigo-solid:  #6366f1;
+  --color-indigo-border: #c7d2fe;
+
   /* primary-* aliases kept for existing Tailwind classes */
   --color-primary-50:  #eff6ff;
   --color-primary-100: #dbeafe;
@@ -209,6 +217,14 @@
   --surface-sidebar:       #0f172a;
   --surface-sidebar-hover: #1e293b;
 
+  /* ── Surface elevation tiers (M3-style) — every tier is the same blue-tinted
+     neutral family as --surface-page/--surface-card, just a different tone, so
+     "flat white card on flat white page" gets replaced with visible depth.
+     low → high = progressively more prominent/elevated. ── */
+  --surface-container-low:  #f4f7fd;
+  --surface-container:      #e9f0fb;
+  --surface-container-high: #dbe6f9;
+
   /* Text */
   --text-primary:   #0f172a;
   --text-secondary: #475569;
@@ -307,6 +323,12 @@ html.dark {
   --surface-sidebar:       #0f172a;
   --surface-sidebar-hover: #1e293b;
 
+  /* Surface elevation tiers — dark mode: progressively brighter/more saturated
+     as elevation increases, same mechanism as light mode. */
+  --surface-container-low:  #16213a;
+  --surface-container:      #1c2b4a;
+  --surface-container-high: #24365c;
+
   /* Text */
   --text-primary:   #f1f5f9;
   --text-secondary: #cbd5e1;
@@ -369,6 +391,12 @@ html.dark {
   --color-purple-text:   #e9d5ff;
   --color-purple-solid:  #8b5cf6;
   --color-purple-border: #581c87;
+
+  --color-indigo-bg:     #1e1b4b;
+  --color-indigo-tint:   #3730a3;
+  --color-indigo-text:   #c7d2fe;
+  --color-indigo-solid:  #6366f1;
+  --color-indigo-border: #4338ca;
 
   --color-orange-bg:     #431407;
   --color-orange-tint:   #7c2d12;
