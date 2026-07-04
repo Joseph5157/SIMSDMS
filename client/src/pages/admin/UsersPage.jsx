@@ -219,6 +219,9 @@ export default function UsersPage({ user }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <Badge status={u.role} label={u.role.replace(/_/g, ' ')} />
               <Badge status={u.status} />
+              {u.activation_notification_failed && (
+                <Badge status="flagged" label="⚠ Notify failed" />
+              )}
             </div>
           </div>
         ))}
@@ -253,7 +256,12 @@ export default function UsersPage({ user }) {
                     {u.telegram_id ?? '—'}
                   </span>
                 </Td>
-                <Td><Badge status={u.status} /></Td>
+                <Td>
+                  <Badge status={u.status} />
+                  {u.activation_notification_failed && (
+                    <Badge status="flagged" label="⚠ Notify failed" className="ml-1" />
+                  )}
+                </Td>
                 <Td>
                   <RowMenu
                     user={u}

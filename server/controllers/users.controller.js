@@ -19,6 +19,7 @@ const safeUser = (u) => ({
   status: u.status,
   approved_at: u.approved_at,
   created_at: u.created_at,
+  activation_notification_failed: u.activation_notification_failed,
 });
 
 // ─── GET /users/me ─────────────────────────────────────────────────────────────

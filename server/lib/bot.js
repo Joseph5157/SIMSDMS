@@ -34,6 +34,16 @@ async function handleWebhook(req, res) {
         const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
         replyText = `✅ Your SIMS DMS account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${result.user.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
         logger.info(`[TELEGRAM] Account activated: ${result.user.id} (${result.user.email})`);
+
+        // The invite token is already consumed at this point (PendingInvite deleted,
+        // User row created) — if this notification never reaches the user, they have
+        // no way to recover the temp password themselves. Retry before giving up, and
+        // flag the account for Admin follow-up if all retries fail.
+        notifyActivationSuccess(chatId, replyText, result.user).catch((err) => {
+          logger.error(`[TELEGRAM] Failed to send message to ${chatId}:`, err);
+        });
+
+        return res.status(200).json({ ok: true });
       } else if (result.error === 'ALREADY_LINKED') {
         replyText = 'This Telegram account is already linked to a SIMS account. Contact your admin.';
         logger.warn(`[TELEGRAM] Duplicate Telegram ID attempted: ${chatId}`);
@@ -319,6 +329,54 @@ async function handlePasswordReset(chatId) {
   } catch (error) {
     logger.error('[TELEGRAM] Error in handlePasswordReset:', error);
     return { success: false, error: 'SYSTEM_ERROR' };
+  }
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Send the account-activation success message, retrying on failure since the
+ * invite token is already consumed by this point (no way for the user to
+ * request the temp password again via the same link). If every attempt
+ * fails, flag the account so it surfaces on the Admin Users page.
+ */
+async function notifyActivationSuccess(chatId, text, user) {
+  const RETRY_DELAYS_MS = [1000, 3000];
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await sendTelegramMessage(chatId, text);
+      return;
+    } catch (err) {
+      if (attempt >= RETRY_DELAYS_MS.length) {
+        logger.error(
+          `[TELEGRAM] Activation notification permanently failed for user ${user.id} (${user.email}) after ${attempt + 1} attempts:`,
+          err
+        );
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { activation_notification_failed: true },
+        }).catch((updateErr) => {
+          logger.error(`[TELEGRAM] Failed to flag user ${user.id} after notification failure:`, updateErr);
+        });
+
+        await logAction({
+          actorId: user.id,
+          action: 'ACTIVATION_NOTIFICATION_FAILED',
+          targetId: user.id,
+          targetType: 'user',
+          metadata: { chatId, error: err.message },
+        }).catch((auditErr) => {
+          logger.error(`[TELEGRAM] Failed to write audit log for notification failure on user ${user.id}:`, auditErr);
+        });
+
+        return;
+      }
+
+      logger.warn(`[TELEGRAM] Activation notification attempt ${attempt + 1} failed for user ${user.id}, retrying:`, err.message);
+      await sleep(RETRY_DELAYS_MS[attempt]);
+    }
   }
 }
 
