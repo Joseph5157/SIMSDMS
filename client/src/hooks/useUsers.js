@@ -45,8 +45,10 @@ export function useDeleteUser() {
 }
 
 export function useResetUserLogin() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (id) => api.post(`/admin/users/${id}/reset-login`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 }
 

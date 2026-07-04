@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button, Menu, ActionIcon } from '@mantine/core';
+import { Button, Menu, ActionIcon, Modal, Text, Group } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
@@ -13,7 +13,7 @@ import { useInvites, useCreateInvite, useRegenerateInvite, useCancelInvite } fro
 import Breadcrumb from '../../components/Breadcrumb';
 
 // ── Row menu for users ──────────────────────────────────────────────────────
-function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetTelegram, onDelete }) {
+function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetPassword, onDelete }) {
   if (u.role === 'super_admin') return null;
   const isSuperAdmin = userRole === 'super_admin';
 
@@ -28,15 +28,8 @@ function RowMenu({ user: u, userRole, onDeactivate, onReactivate, onResetTelegra
         {u.status === 'active' && (
           <Menu.Item color="red" onClick={() => onDeactivate(u)}>Deactivate</Menu.Item>
         )}
-        {/* TODO(T029): "Reset Telegram" is hidden because the backend it calls
-            (POST /admin/users/:id/reset-login) is currently broken — it still
-            references the removed otp_sessions model and will 500. Once T029
-            ships (rewriting this endpoint to do a real password reset instead
-            of a Telegram relink), this control needs a full rework — new label,
-            confirm copy, and success handling (temp password sent via Telegram,
-            not a relink_link) — not just re-enabling as-is. */}
-        {false && u.status === 'pending_telegram' && isSuperAdmin && (
-          <Menu.Item onClick={() => onResetTelegram(u)}>Reset Telegram</Menu.Item>
+        {isSuperAdmin && (
+          <Menu.Item onClick={() => onResetPassword(u)}>Reset Password</Menu.Item>
         )}
         {u.status === 'inactive' && (
           <Menu.Item color="green" onClick={() => onReactivate(u)}>Reactivate</Menu.Item>
@@ -85,7 +78,8 @@ export default function UsersPage({ user }) {
   const [reactivatingUser,  setReactivatingUser]  = useState(null);
   const [deletingUser,      setDeletingUser]      = useState(null);
   const [cancellingInvite,  setCancellingInvite]  = useState(null);
-  const [resettingTelegram, setResettingTelegram] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(null);
+  const [passwordResetResult, setPasswordResetResult] = useState(null);
 
   const { data, isLoading } = useUsers({ role, status, search, page, limit: 20 });
   const { data: invitesData, isLoading: invitesLoading } = useInvites();
@@ -118,14 +112,20 @@ export default function UsersPage({ user }) {
     }
   }
 
-  async function doResetTelegram() {
+  async function doResetPassword() {
+    const target = resettingPassword;
     try {
-      const response = await resetUserLogin.mutateAsync(resettingTelegram.id);
-      if (response.data?.relink_link) {
-        navigator.clipboard.writeText(response.data.relink_link).catch(() => {});
+      const response = await resetUserLogin.mutateAsync(target.id);
+      const body = response.data;
+      setResettingPassword(null);
+      if (body.telegram_delivered) {
+        toast({ message: `Password reset for ${target.name}. They were notified via Telegram.` });
+      } else {
+        // Telegram delivery failed (or no Telegram linked) — the temp password only
+        // exists in this response, so show it in a modal rather than a toast that
+        // disappears before it can be relayed to the user.
+        setPasswordResetResult({ name: target.name, tempPassword: body.temp_password });
       }
-      toast({ message: `Relink link generated for ${resettingTelegram.name}. Copied to clipboard.` });
-      setResettingTelegram(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -268,7 +268,7 @@ export default function UsersPage({ user }) {
                     userRole={user.role}
                     onDeactivate={setDeactivatingUser}
                     onReactivate={setReactivatingUser}
-                    onResetTelegram={setResettingTelegram}
+                    onResetPassword={setResettingPassword}
                     onDelete={setDeletingUser}
                   />
                 </Td>
@@ -398,16 +398,51 @@ export default function UsersPage({ user }) {
           onCancel={() => setCancellingInvite(null)}
         />
       )}
-      {resettingTelegram && (
+      {resettingPassword && (
         <ConfirmDialog
           open
-          title="Reset Telegram Login"
-          message={`Generate a new activation link for ${resettingTelegram.name}? They will need to re-link their Telegram account.`}
-          confirmText="Reset & Copy Link"
+          title="Reset Password"
+          message={`Generate a new temporary password for ${resettingPassword.name}? ${
+            resettingPassword.telegram_id
+              ? "It will be sent to them via Telegram."
+              : "They have no Telegram linked, so it will be shown here for you to relay manually."
+          } They'll be required to change it on next login.`}
+          confirmText="Reset Password"
+          isDangerous
           isLoading={resetUserLogin.isPending}
-          onConfirm={doResetTelegram}
-          onCancel={() => setResettingTelegram(null)}
+          onConfirm={doResetPassword}
+          onCancel={() => setResettingPassword(null)}
         />
+      )}
+      {passwordResetResult && (
+        <Modal
+          opened
+          onClose={() => setPasswordResetResult(null)}
+          title="Telegram delivery failed"
+          size="sm"
+          centered
+        >
+          <Text size="sm" c="dimmed" mb="md">
+            {passwordResetResult.name}'s password was reset, but the Telegram notification
+            could not be delivered. Relay this temporary password to them directly (phone,
+            in person, etc.) — it will not be shown again.
+          </Text>
+          <Group gap="xs" mb="lg" wrap="nowrap">
+            <code className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-primary)] text-sm font-mono break-all">
+              {passwordResetResult.tempPassword}
+            </code>
+            <Button
+              size="xs"
+              variant="default"
+              onClick={() => navigator.clipboard.writeText(passwordResetResult.tempPassword).catch(() => {})}
+            >
+              Copy
+            </Button>
+          </Group>
+          <Group justify="flex-end">
+            <Button onClick={() => setPasswordResetResult(null)}>Done</Button>
+          </Group>
+        </Modal>
       )}
     </Layout>
   );

@@ -1,8 +1,9 @@
-const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
 const settingsService = require('../services/settings.service');
 const logger = require('../lib/logger');
+const { generateTempPassword, hashPassword } = require('../lib/password');
+const telegram = require('../lib/telegram');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -256,14 +257,10 @@ async function getAuditLogs(req, res) {
 }
 
 // ─── POST /admin/users/:id/reset-login — Super Admin ─────────────────────────
-// TODO(T029): BROKEN — this still does a pre-password-migration Telegram relink
-// flow and calls prisma.otpSession.deleteMany(...) below, but the otp_sessions
-// model no longer exists. This will throw (500) if invoked. Needs a full rewrite
-// to a real password reset (temp password, must_change_password, session_version
-// bump, Telegram notify) — see specs/001-auth-user-accounts/tasks.md T029. The
-// one caller of this route in the client (UsersPage.jsx "Reset Telegram" menu
-// item) has been hidden until this ships — do not re-enable it without also
-// reworking that UI for the new password-reset semantics.
+// Generates a new temporary password, notifies the user via Telegram if
+// possible, and never blocks the reset on Telegram delivery: if delivery
+// fails (or the user has no linked Telegram), the temp password is returned
+// in the response so the Super Admin can relay it manually.
 async function resetUserLogin(req, res) {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user || user.deleted_at) {
@@ -279,60 +276,54 @@ async function resetUserLogin(req, res) {
     });
   }
 
-  // Generate new relink token
-  const token = crypto.randomBytes(32).toString('hex');
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-  if (!botUsername) {
-    return res.status(500).json({
-      error: true,
-      code: 'BOT_NOT_CONFIGURED',
-      message: 'Telegram bot not configured.',
-    });
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password_hash: passwordHash,
+      must_change_password: true,
+      session_version: { increment: 1 },
+      activation_notification_failed: false,
+    },
+  });
+
+  // Attempt Telegram delivery. This never blocks the reset — the password is
+  // already changed above regardless of the outcome here.
+  let telegramDelivered = false;
+  let telegramError = null;
+
+  if (user.telegram_id) {
+    try {
+      const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
+      const text = `🔑 Your SIMS DMS password has been reset by an Admin.\n\nLogin at: ${appUrl}/login\nEmail: ${user.email}\nTemporary password: <code>${tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+      await telegram.sendMessage(user.telegram_id, text);
+      telegramDelivered = true;
+    } catch (err) {
+      telegramError = err.message;
+      logger.error(`[RESET_USER_LOGIN] Telegram notification failed for user ${user.id}:`, err);
+    }
+  } else {
+    telegramError = 'NO_TELEGRAM_ID';
   }
-
-  const relinkLink = `https://t.me/${botUsername}?start=relink_${token}`;
-
-  // Use transaction for atomicity: update user, delete unverified OTP sessions,
-  // delete old unused relink tokens, create new relink token
-  await prisma.$transaction([
-    prisma.user.update({
-      where: { id: req.params.id },
-      data: {
-        otp_failed_attempts: 0,
-        telegram_id: null,
-        telegram_verified: false,
-        status: 'pending_telegram',
-        session_version: { increment: 1 },
-      },
-    }),
-    prisma.otpSession.deleteMany({
-      where: { user_id: req.params.id, verified: false },
-    }),
-    prisma.telegramRelinkToken.deleteMany({
-      where: { user_id: req.params.id, used_at: null },
-    }),
-    prisma.telegramRelinkToken.create({
-      data: {
-        user_id: req.params.id,
-        token,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        created_by: req.user.id,
-      },
-    }),
-  ]);
 
   await logAction({
     actorId: req.user.id,
     action: 'RESET_USER_LOGIN',
     targetId: user.id,
     targetType: 'user',
-    metadata: { telegram_reset: true },
+    metadata: { telegram_delivered: telegramDelivered, telegram_error: telegramError },
   });
 
   res.json({
     success: true,
-    message: 'User login reset. Telegram unlinked. Send the relink link to the user.',
-    relink_link: relinkLink,
+    message: telegramDelivered
+      ? 'Password reset. User notified via Telegram.'
+      : 'Password reset, but Telegram delivery failed. Relay the temporary password to the user manually.',
+    telegram_delivered: telegramDelivered,
+    // Only surface the temp password when the user didn't already receive it directly.
+    ...(telegramDelivered ? {} : { temp_password: tempPassword }),
   });
 }
 
