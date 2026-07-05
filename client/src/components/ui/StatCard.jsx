@@ -9,7 +9,7 @@ const ACCENTS = {
   purple:  { bar: 'var(--color-purple-solid)',  bg: 'var(--color-purple-bg)',   text: 'var(--color-purple-text)',  border: 'var(--color-purple-tint)' },
   /* Empty/neutral state — a tinted surface tier instead of flat white, so a page
      full of zero-value cards still reads as part of the same system, not a blank fallback. */
-  default: { bar: 'var(--border-strong)', bg: 'var(--surface-container-low)', text: 'var(--text-primary)', border: 'var(--border)' },
+  default: { bar: 'var(--border-strong)', bg: 'var(--color-surface-container-low)', text: 'var(--text-primary)', border: 'var(--border)' },
 };
 
 export default function StatCard({ label, value, sub, accent = 'default', icon, onClick, compact = false }) {

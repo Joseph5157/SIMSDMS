@@ -130,6 +130,11 @@
   /* ── Semantic surface / text tokens (generate bg-surface, text-text-primary, etc.) ── */
   --color-surface:             #f8fafc;
   --color-card:                #ffffff;
+  /* M3 tonal elevation tiers — in @theme so bg-surface-container-* utilities exist
+     (single source of truth; dark values overridden in html.dark below). */
+  --color-surface-container-low:  #f4f7fd;
+  --color-surface-container:      #e9f0fb;
+  --color-surface-container-high: #dbe6f9;
   --color-sidebar:             #0f172a;
   --color-sidebar-hover:       #1e293b;
   --color-sidebar-border:      #1e293b;
@@ -220,13 +225,14 @@
   --surface-sidebar:       #0f172a;
   --surface-sidebar-hover: #1e293b;
 
-  /* ── Surface elevation tiers (M3-style) — every tier is the same blue-tinted
-     neutral family as --surface-page/--surface-card, just a different tone, so
-     "flat white card on flat white page" gets replaced with visible depth.
-     low → high = progressively more prominent/elevated. ── */
-  --surface-container-low:  #f4f7fd;
-  --surface-container:      #e9f0fb;
-  --surface-container-high: #dbe6f9;
+  /* Page canvas — a subtle blue-tinted base + soft radial glow from the top, so white
+     cards separate from the background instead of blending into a near-white page.
+     Applied only to the app-shell main (not --surface-page, which stays #f8fafc for
+     within-card headers / sunken tiles that must read against white cards). */
+  --page-canvas: radial-gradient(120% 60% at 50% -8%, #e6ecf7 0%, rgba(230,236,247,0) 55%) #eef2f9;
+
+  /* Surface elevation tiers (M3-style) now live in @theme as --color-surface-container-*
+     so they generate bg-surface-container-* utilities. See the @theme block above. */
 
   /* Text */
   --text-primary:   #0f172a;
@@ -326,11 +332,15 @@ html.dark {
   --surface-sidebar:       #0f172a;
   --surface-sidebar-hover: #1e293b;
 
+  /* Dark mode: cards (#1e293b) already separate clearly from the page (#0f172a),
+     so the canvas stays flat — a bright glow would muddy a dark data screen. */
+  --page-canvas: #0f172a;
+
   /* Surface elevation tiers — dark mode: progressively brighter/more saturated
      as elevation increases, same mechanism as light mode. */
-  --surface-container-low:  #16213a;
-  --surface-container:      #1c2b4a;
-  --surface-container-high: #24365c;
+  --color-surface-container-low:  #16213a;
+  --color-surface-container:      #1c2b4a;
+  --color-surface-container-high: #24365c;
 
   /* Text */
   --text-primary:   #f1f5f9;

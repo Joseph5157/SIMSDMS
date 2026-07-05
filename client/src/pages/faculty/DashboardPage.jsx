@@ -23,6 +23,13 @@ function isoDate(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
+// Tonal icon-tile tints per activity category (M3 category-color language).
+const ACTIVITY_TINT = {
+  red:    'var(--color-red-bg)',
+  blue:   'var(--color-blue-50)',
+  indigo: 'var(--color-indigo-bg)',
+};
+
 function timeAgo(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diffMs / 60000);
@@ -128,17 +135,17 @@ export default function DashboardPage({ user }) {
   const activityLoading = violationsLoading || inboxLoading || coverLoading;
   const activityItems = [
     ...(violationsData?.data ?? []).map((v) => ({
-      id: `v-${v.id}`, icon: '⚠️', timestamp: v.created_at,
+      id: `v-${v.id}`, icon: '⚠️', accent: 'red', timestamp: v.created_at,
       text: `Student violation recorded — ${v.student?.student_name ?? 'Student'}`,
     })),
     ...(inboxData?.data ?? []).map((m) => ({
-      id: `m-${m.id}`, icon: '✉️', timestamp: m.created_at, unread: !m.is_read,
+      id: `m-${m.id}`, icon: '✉️', accent: 'blue', timestamp: m.created_at, unread: !m.is_read,
       text: `Message: ${m.subject}`,
     })),
     ...(coverData?.data ?? [])
       .filter((c) => c.requested_by === user?.id || c.volunteer_id === user?.id)
       .map((c) => ({
-        id: `c-${c.id}`, icon: '🔄', timestamp: c.updated_at ?? c.created_at,
+        id: `c-${c.id}`, icon: '🔄', accent: 'indigo', timestamp: c.updated_at ?? c.created_at,
         text: c.requested_by === user?.id ? 'Cover request posted' : 'Volunteered to cover a slot',
         status: c.status,
       })),
@@ -233,7 +240,7 @@ export default function DashboardPage({ user }) {
           </div>
         ) : (
           <div className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-3xl)] px-[18px] py-5">
-            <div className="w-12 h-12 rounded-[var(--radius-xl)] bg-[var(--surface-page)] flex items-center justify-center text-2xl shrink-0">
+            <div className="w-12 h-12 rounded-[var(--radius-xl)] bg-[var(--color-blue-50)] flex items-center justify-center text-2xl shrink-0">
               📅
             </div>
             <div>
@@ -339,10 +346,11 @@ export default function DashboardPage({ user }) {
             {upcoming.map((s) => {
               const d = new Date(s.duty_date);
               return (
-                <div key={s.id} className="flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--surface-page)] flex flex-col items-center justify-center">
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{d.getDate()}</span>
-                    <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div key={s.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
+                  <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--brand)' }} />
+                  <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
+                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-blue-800)', lineHeight: 1 }}>{d.getDate()}</span>
+                    <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--brand)', textTransform: 'uppercase' }}>
                       {d.toLocaleDateString('en-IN', { month: 'short' })}
                     </span>
                   </div>
@@ -376,7 +384,8 @@ export default function DashboardPage({ user }) {
             {activityItems.map((item, i) => (
               <div key={item.id} className="flex items-center gap-[10px] px-[14px] py-3"
                 style={{ borderBottom: i < activityItems.length - 1 ? '1px solid var(--divider)' : 'none' }}>
-                <span className="text-[15px] shrink-0">{item.icon}</span>
+                <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px]"
+                  style={{ background: ACTIVITY_TINT[item.accent] ?? 'var(--surface-page)' }}>{item.icon}</span>
                 <div className="flex-1 min-w-0">
                   <p className="overflow-hidden text-ellipsis whitespace-nowrap"
                     style={{ fontSize: 'var(--text-card)', color: 'var(--text-primary)', fontWeight: item.unread ? 600 : 500 }}>

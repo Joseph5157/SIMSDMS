@@ -217,7 +217,7 @@ export default function Layout({ user, children }) {
         {/* Main content */}
         <AppShell.Main
           style={{
-            backgroundColor: 'var(--surface-page)',
+            background: 'var(--page-canvas)',
             overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             minHeight: '100dvh',

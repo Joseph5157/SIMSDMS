@@ -58,18 +58,17 @@ variables (Mantine v7 `cssVariablesResolver` / `--mantine-color-*` mapping) so t
 source of truth and dark mode is handled once. This is a real improvement but a sizable
 refactor touching every Mantine component's theming — **not** worth it at the current stage.
 
-## D — M3 surface tiers are not first-class Tailwind tokens
+## D — M3 surface tiers are not first-class Tailwind tokens ✅ RESOLVED
 
-`--surface-container-low` / `--surface-container` / `--surface-container-high` live only in
-`:root` + `html.dark`, **not** in `@theme`. Consequences:
+**Done.** The tiers were promoted into `@theme` as `--color-surface-container-low/-/-high`, so
+`bg-surface-container-*` utilities now generate and the old `:root` duplicates were removed
+(single source of truth). Adopted on the faculty dashboard, empty states, and the Reports inner
+stat grids. Also added a `--page-canvas` token (subtle blue-tinted radial gradient in light,
+flat in dark) applied to the app-shell main so white cards separate from the background.
 
-- No `bg-surface-container-*` utility class exists.
-- They can only be used via inline `style={{}}` with `var()`.
-- That's why adoption is nearly zero — only `StatCard`'s `default` (zero-value) accent uses them.
-
-**Future fix:** promote them into `@theme` (as `--color-surface-container-*`) so they generate
-utilities and can be used like any other surface token. Then adopt them on the flat white
-cards (faculty dashboard, etc.) that the M3 work was originally meant to improve.
+Original problem (kept for context): the tiers lived only in `:root` + `html.dark`, not
+`@theme`, so no `bg-surface-container-*` utility existed and they could only be used via inline
+`style={{}}` — which is why adoption had been stuck at just `StatCard`.
 
 ## E — Dead duplicate token layer
 

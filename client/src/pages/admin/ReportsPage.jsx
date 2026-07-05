@@ -30,7 +30,7 @@ const REPORTS = [
   { id: 'flagged-violations',   group: 'Student Violations', emoji: '⚑',  color: 'bg-[var(--color-amber-bg)]',  label: 'Flagged Student Violations', desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
   { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-[var(--color-emerald-bg)]',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
-  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--surface-page)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
+  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--color-amber-bg)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
   { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-[var(--color-cyan-bg)]',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
   { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-[var(--color-emerald-bg)]',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
@@ -215,7 +215,7 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
           ['Cover pending', data.cover_pending], ['Covered', data.covered], ['Scheduled', data.scheduled],
           ['Morning', data.morning], ['Afternoon', data.afternoon], ['Completion rate', `${data.completion_rate}%`],
         ].map(([label, value]) => (
-          <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
+          <div key={label} className="bg-surface-container-low rounded-xl p-4">
             <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
             <p className="text-[length:20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>
@@ -245,7 +245,7 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
         {[['Total', data.total], ['Open', data.open], ['Covered', data.covered],
           ['Expired', data.expired], ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`],
         ].map(([label, value]) => (
-          <div key={label} className="bg-[var(--surface-page)] rounded-xl p-4">
+          <div key={label} className="bg-surface-container-low rounded-xl p-4">
             <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
             <p className="text-[length:20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
           </div>

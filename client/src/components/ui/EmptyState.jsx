@@ -10,11 +10,16 @@ export default function EmptyState({ icon: Icon, emoji = '📭', title, subtitle
   return (
     <Center py={48} px="md">
       <Stack align="center" gap="xs">
-        {Icon ? (
-          <Icon size={48} strokeWidth={1.5} style={{ color: 'var(--text-muted)', opacity: 0.5 }} />
-        ) : (
-          <Text style={{ fontSize: 32, opacity: 0.5, lineHeight: 1 }}>{emoji}</Text>
-        )}
+        <div
+          className="flex items-center justify-center rounded-full mb-1"
+          style={{ width: 72, height: 72, background: 'var(--color-surface-container)' }}
+        >
+          {Icon ? (
+            <Icon size={32} strokeWidth={1.5} style={{ color: 'var(--text-muted)' }} />
+          ) : (
+            <Text style={{ fontSize: 30, lineHeight: 1 }}>{emoji}</Text>
+          )}
+        </div>
         {title && (
           <Text size="sm" fw={600} c="dimmed">{title}</Text>
         )}

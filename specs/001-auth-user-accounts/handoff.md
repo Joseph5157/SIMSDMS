@@ -1,12 +1,30 @@
 # Handoff Report
 
 ## task_id
-001-auth-user-accounts / color-system audit — Fix A (indigo-tint tree-shaking) + Fix F (hardcoded-hex duplicates) + always-color stat cards
+001-auth-user-accounts / color-system audit — Fix A + Fix F, always-color stat cards, M3 accent-system expansion (surface-container utilities, page-canvas gradient, faculty dashboard + empty-state accents)
 
 ## status
 complete
 
 ## completed
+- **M3 accent-system expansion (3 tiers + background).**
+  - *Tier 3 (enabler):* promoted the surface elevation tiers into `@theme` as
+    `--color-surface-container-low/-/-high` so `bg-surface-container-*` utilities generate;
+    removed the old `:root` duplicates (single source of truth); updated `StatCard` to the new
+    token. Resolves item D in `specs/color-system-notes.md`. Verified `.bg-surface-container-low`
+    ships and the token resolves in both light (#f4f7fd) and dark (#16213a).
+  - *Background:* added `--page-canvas` — a subtle blue-tinted radial gradient (light: glow over
+    #eef2f9) / flat #0f172a (dark) — applied to the app-shell main in `Layout.jsx` so white cards
+    separate from the canvas. Left `--surface-page` (#f8fafc) untouched since it's reused for
+    within-card headers / sunken tiles.
+  - *Tier 1 (faculty dashboard):* activity-feed emojis → tonal icon circles keyed by category
+    (violation red / message blue / cover indigo); upcoming-duty cards got a brand accent bar +
+    blue date chip; "No duty today" tile tinted blue.
+  - *Tier 2 (reports + empty states):* `EmptyState` icon now sits in a soft tonal circle; the one
+    flat report tile (Unassigned Faculty) got an amber accent; Reports inner stat grids use the
+    new `bg-surface-container-low` utility. (Report cards already had category-colored tiles.)
+  - Client build passes clean; background verified via live preview matching the shipped values.
+- **Always-color stat cards project-wide** (earlier in session, already pushed).
 - **Always-color stat cards project-wide.** Product owner wanted the admin dashboard as vibrant
   as the super-admin one. Root cause: both use `StatCard` with the M3 tonal tokens, but the
   admin cards used a conditional accent (`value > 0 ? color : 'default'`), so with production
@@ -64,9 +82,15 @@ git diff -- client/src/index.css client/src/components/...               # revie
 - None.
 
 ## files_touched
+- `client/src/index.css` — Tier 3: surface-container tiers moved to @theme; `--page-canvas` gradient token added; (earlier) removed `--color-indigo-tint` (Fix A)
+- `client/src/components/Layout.jsx` — app-shell main uses `--page-canvas`; (earlier) tokenized theme-toggle hover (Fix F)
+- `client/src/components/ui/StatCard.jsx` — surface-container token rename to @theme version
+- `client/src/components/ui/EmptyState.jsx` — tonal icon circle
+- `client/src/pages/faculty/DashboardPage.jsx` — activity tonal circles, upcoming-duty accent bars, blue tiles
+- `client/src/pages/admin/ReportsPage.jsx` — accent the flat report tile; inner stat grids use bg-surface-container-low
 - `client/src/pages/admin/AdminDashboardPage.jsx` — always-color the 4 stat cards (drop conditional default)
 - `client/src/pages/super-admin/SuperAdminDashboardPage.jsx` — always-color Pending Approvals card
-- `client/src/index.css` — removed both `--color-indigo-tint` declarations; added explanatory note (Fix A)
+- `specs/color-system-notes.md` — marked item D resolved
 - `client/src/components/CreateUserDrawer.jsx` — tokenized selected-role title + subtitle (Fix F)
 - `client/src/components/Layout.jsx` — tokenized theme-toggle hover colors (Fix F)
 - `client/src/components/UploadStudentsDrawer.jsx` — tokenized disabled download color (Fix F)
