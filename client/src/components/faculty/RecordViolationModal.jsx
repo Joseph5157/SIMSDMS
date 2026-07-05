@@ -17,10 +17,12 @@ function SectionLabel({ children }) {
 
 export default function RecordViolationModal({ open, onClose }) {
   const toast = useToast();
-  const now   = new Date();
+  // Duty slots/sessions are scheduled on IST calendar dates — derive "today" from
+  // IST wall-clock, not the browser's local timezone (see server/lib/time.js).
+  const now = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
 
   const { data: typesData }  = useViolationTypes();
-  const { data: slotsData }  = useMonthSlots(now.getFullYear(), now.getMonth() + 1);
+  const { data: slotsData }  = useMonthSlots(now.getUTCFullYear(), now.getUTCMonth() + 1);
 
   const [form, setForm] = useState({
     student_id: '', duty_slot_id: '', violation_type_id: '',
@@ -40,10 +42,10 @@ export default function RecordViolationModal({ open, onClose }) {
 
   // Auto-select today's duty slot when data loads
   const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')}`;
   const todaySlots = mySlots.filter(s => String(s.duty_date).slice(0, 10) === todayStr);
-  // Guess session from time of day
-  const currentSession = now.getHours() < 12 ? 'morning' : 'afternoon';
+  // Guess session from time of day (IST)
+  const currentSession = now.getUTCHours() < 12 ? 'morning' : 'afternoon';
   const autoSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
 
   // Pre-fill duty slot if not yet set and auto-slot available

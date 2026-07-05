@@ -179,7 +179,7 @@ export default function CalendarPage({ user }) {
 
   function dayButtonClass(d, { square = false } = {}) {
     const isBlocked = blocked.includes(fmtDate(d));
-    return `${square ? 'aspect-square w-full' : 'w-9 h-9'} rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-[var(--color-red-bg)] text-[var(--color-red-text)] border border-[var(--color-red-border)]' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`;
+    return `${square ? 'w-10 h-10' : 'w-9 h-9'} rounded-lg text-sm font-medium transition-colors ${isBlocked ? 'bg-[var(--color-red-bg)] text-[var(--color-red-text)] border border-[var(--color-red-border)]' : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--surface-page)]'}`;
   }
 
   return (
@@ -255,13 +255,13 @@ export default function CalendarPage({ user }) {
             </div>
 
             {/* Desktop: traditional monthly calendar grid */}
-            <div className="hidden sm:block">
-              <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="hidden sm:block max-w-[340px] mx-auto">
+              <div className="grid grid-cols-7 gap-1 mb-1 justify-items-center">
                 {WEEKDAYS.map((wd) => (
-                  <div key={wd} className="text-center text-xs font-semibold text-[var(--text-muted)] py-1">{wd}</div>
+                  <div key={wd} className="text-center text-xs font-semibold text-[var(--text-muted)] py-1">{wd.slice(0, 2)}</div>
                 ))}
               </div>
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-1 justify-items-center">
                 {leadingBlanks.map((_, i) => <div key={`blank-${i}`} />)}
                 {days.map((d) => (
                   <button key={d} onClick={() => toggleBlocked(d)}

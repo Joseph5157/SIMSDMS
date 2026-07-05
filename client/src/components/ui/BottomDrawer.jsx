@@ -61,7 +61,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
         />
 
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-40 flex flex-col outline-none max-h-[94vh] sm:max-h-[85vh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+          className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-40 flex flex-col outline-none max-h-[94dvh] sm:max-h-[85dvh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
           style={{
             backgroundColor: 'var(--surface-card)',
           }}
@@ -100,7 +100,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
           </div>
 
           {/* Scrollable body */}
-          <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="overflow-y-auto flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
             {children}
           </div>
 

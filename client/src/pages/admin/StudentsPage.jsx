@@ -304,6 +304,22 @@ export default function StudentsPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
+        {!isLoading && !isError && data?.data?.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 16px', borderBottom: '1px solid var(--border)',
+            backgroundColor: 'var(--surface-page)',
+          }}>
+            <Checkbox
+              checked={allSelected}
+              indeterminate={someSelected && !allSelected}
+              onChange={toggleSelectAll}
+            />
+            <span style={{ fontSize: 'var(--text-small)', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              {allSelected ? `All ${pageIds.length} selected` : `Select all (${pageIds.length})`}
+            </span>
+          </div>
+        )}
         {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
         {!isLoading && !isError && !data?.data?.length && (
