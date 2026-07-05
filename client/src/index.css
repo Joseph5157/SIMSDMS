@@ -134,7 +134,6 @@
      (single source of truth; dark values overridden in html.dark below). */
   --color-surface-container-low:  #f4f7fd;
   --color-surface-container:      #e9f0fb;
-  --color-surface-container-high: #dbe6f9;
   --color-sidebar:             #0f172a;
   --color-sidebar-hover:       #1e293b;
   --color-sidebar-border:      #1e293b;
@@ -340,7 +339,6 @@ html.dark {
      as elevation increases, same mechanism as light mode. */
   --color-surface-container-low:  #16213a;
   --color-surface-container:      #1c2b4a;
-  --color-surface-container-high: #24365c;
 
   /* Text */
   --text-primary:   #f1f5f9;
