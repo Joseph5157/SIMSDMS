@@ -7,6 +7,11 @@
 complete
 
 ## completed
+- **Stat cards → white/elevated surface.** After the page-canvas gradient shipped, the cool-tinted
+  card fills (blue-50 #eff6ff, indigo-bg #eef2ff) blended into the cool canvas (#eef2f9) — blue and
+  indigo cards nearly disappeared. Changed all colored `StatCard` accents to a white `--surface-card`
+  fill; the accent now lives in the left bar + border + value color. Cards pop on the tinted canvas;
+  still vibrant. Applies to both admin + SA dashboards. Confirmed via live side-by-side preview.
 - **M3 accent-system expansion (3 tiers + background).**
   - *Tier 3 (enabler):* promoted the surface elevation tiers into `@theme` as
     `--color-surface-container-low/-/-high` so `bg-surface-container-*` utilities generate;

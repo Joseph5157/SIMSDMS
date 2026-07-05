@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 
+// Cards use a white (elevated) surface so they pop against the tinted page canvas
+// (--page-canvas). The accent lives in the left bar, the border, and the value color —
+// not a full tinted fill, which blended into the cool canvas for the cool hues (blue/indigo).
 const ACCENTS = {
-  green:   { bar: 'var(--color-emerald-solid)', bg: 'var(--color-emerald-bg)',  text: 'var(--color-emerald-text)', border: 'var(--color-emerald-tint)' },
-  yellow:  { bar: 'var(--color-amber-solid)',   bg: 'var(--color-amber-bg)',    text: 'var(--color-amber-text)',   border: 'var(--color-amber-tint)' },
-  red:     { bar: 'var(--color-red-solid)',     bg: 'var(--color-red-bg)',      text: 'var(--color-red-text)',     border: 'var(--color-red-tint)' },
-  blue:    { bar: 'var(--color-blue-500)',      bg: 'var(--color-blue-50)',     text: 'var(--color-blue-800)',     border: 'var(--color-blue-200)' },
-  indigo:  { bar: 'var(--color-indigo-solid)',  bg: 'var(--color-indigo-bg)',   text: 'var(--color-indigo-text)',  border: 'var(--color-indigo-border)' },
-  purple:  { bar: 'var(--color-purple-solid)',  bg: 'var(--color-purple-bg)',   text: 'var(--color-purple-text)',  border: 'var(--color-purple-tint)' },
-  /* Empty/neutral state — a tinted surface tier instead of flat white, so a page
-     full of zero-value cards still reads as part of the same system, not a blank fallback. */
+  green:   { bar: 'var(--color-emerald-solid)', bg: 'var(--surface-card)', text: 'var(--color-emerald-text)', border: 'var(--color-emerald-tint)' },
+  yellow:  { bar: 'var(--color-amber-solid)',   bg: 'var(--surface-card)', text: 'var(--color-amber-text)',   border: 'var(--color-amber-tint)' },
+  red:     { bar: 'var(--color-red-solid)',     bg: 'var(--surface-card)', text: 'var(--color-red-text)',     border: 'var(--color-red-tint)' },
+  blue:    { bar: 'var(--color-blue-500)',      bg: 'var(--surface-card)', text: 'var(--color-blue-800)',     border: 'var(--color-blue-200)' },
+  indigo:  { bar: 'var(--color-indigo-solid)',  bg: 'var(--surface-card)', text: 'var(--color-indigo-text)',  border: 'var(--color-indigo-border)' },
+  purple:  { bar: 'var(--color-purple-solid)',  bg: 'var(--surface-card)', text: 'var(--color-purple-text)',  border: 'var(--color-purple-tint)' },
+  /* Neutral fallback (unused by the dashboards now that cards are always-colored) — a
+     tinted surface tier so a stray zero-value card still reads as part of the system. */
   default: { bar: 'var(--border-strong)', bg: 'var(--color-surface-container-low)', text: 'var(--text-primary)', border: 'var(--border)' },
 };
 
