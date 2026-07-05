@@ -7,6 +7,15 @@
 complete
 
 ## completed
+- **Sidebar redesign.** Modernized the desktop sidebar + mobile nav drawer (`Layout.jsx` +
+  `Layout.module.css`): grouped nav into labeled sections (Overview / People / Duties /
+  Discipline / Workspace for admin; Overview / Duties / Activity for faculty; + System for
+  super-admin); replaced the heavy solid-blue active block with a soft tinted state + colored
+  left indicator bar + blue icon; added a user card (gradient avatar + name + role) and a clean
+  theme-toggle + icon-only logout row (the old toggle looked broken); subtle top→bottom gradient
+  on the sidebar; wider (240px) with more breathing room. Nav definitions moved from flat arrays
+  to grouped `{group, items}`. Removed now-unused Mantine imports (Avatar/UnstyledButton/Divider).
+  Bottom tab bar unchanged. Direction approved via live preview; client build clean.
 - **Stat cards → white/elevated surface.** After the page-canvas gradient shipped, the cool-tinted
   card fills (blue-50 #eff6ff, indigo-bg #eef2ff) blended into the cool canvas (#eef2f9) — blue and
   indigo cards nearly disappeared. Changed all colored `StatCard` accents to a white `--surface-card`

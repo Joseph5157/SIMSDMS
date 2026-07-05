@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import simsLogo from '../assets/sims-logo.png';
 import {
-  AppShell, Drawer, Group, Box, Text, Stack, Divider,
-  UnstyledButton, Avatar, Title, Paper,
+  AppShell, Drawer, Group, Box, Text, Stack, Title, Paper,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -20,38 +19,57 @@ import classes from './Layout.module.css';
 
 // ── Nav link definitions ───────────────────────────────────────────────────────
 
-const adminLinks = [
-  { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',       Icon: IconLayoutDashboard },
-  { to: ROUTES.ADMIN_USERS,           label: 'Users',           Icon: IconUsers },
-  { to: ROUTES.ADMIN_STUDENTS,        label: 'Students',        Icon: IconSchool },
-  { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',        Icon: IconCalendar },
-  { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',      Icon: IconCalendarEvent },
-  { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',      Icon: IconClipboardCheck },
-  { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
-  { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Stu. Viol. Types',   Icon: IconTag },
-  { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',  Icon: IconArrowsLeftRight },
-  { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',        Icon: IconMail },
-  { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',         Icon: IconChartBar },
+// Nav is grouped into labeled sections for hierarchy in the sidebar.
+const adminNav = [
+  { group: 'Overview', items: [
+    { to: ROUTES.ADMIN_DASHBOARD,       label: 'Dashboard',          Icon: IconLayoutDashboard },
+  ]},
+  { group: 'People', items: [
+    { to: ROUTES.ADMIN_USERS,           label: 'Users',              Icon: IconUsers },
+    { to: ROUTES.ADMIN_STUDENTS,        label: 'Students',           Icon: IconSchool },
+  ]},
+  { group: 'Duties', items: [
+    { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',           Icon: IconCalendar },
+    { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',         Icon: IconCalendarEvent },
+    { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',         Icon: IconClipboardCheck },
+    { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',     Icon: IconArrowsLeftRight },
+  ]},
+  { group: 'Discipline', items: [
+    { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
+    { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Stu. Viol. Types',   Icon: IconTag },
+  ]},
+  { group: 'Workspace', items: [
+    { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',           Icon: IconMail },
+    { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',            Icon: IconChartBar },
+  ]},
 ];
 
-const facultyLinks = [
-  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',      Icon: IconLayoutDashboard },
-  { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',       Icon: IconCalendarEvent },
-  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',     Icon: IconClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Student Violations', Icon: IconAlertTriangle },
-  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests',     Icon: IconArrowsLeftRight },
-  { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',       Icon: IconMail },
+const facultyNav = [
+  { group: 'Overview', items: [
+    { to: ROUTES.FACULTY_DASHBOARD,      label: 'Dashboard',          Icon: IconLayoutDashboard },
+  ]},
+  { group: 'Duties', items: [
+    { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',           Icon: IconCalendarEvent },
+    { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',         Icon: IconClipboardCheck },
+    { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests',     Icon: IconArrowsLeftRight },
+  ]},
+  { group: 'Activity', items: [
+    { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Student Violations', Icon: IconAlertTriangle },
+    { to: ROUTES.FACULTY_MESSAGES,       label: 'Messages',           Icon: IconMail },
+  ]},
 ];
 
-const superAdminExtra = [
-  { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard', Icon: IconBolt },
-  { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',   Icon: IconFileText },
+const superAdminNavExtra = [
+  { group: 'System', items: [
+    { to: ROUTES.SUPER_ADMIN_DASHBOARD, label: 'SA Dashboard', Icon: IconBolt },
+    { to: ROUTES.SUPER_ADMIN_AUDIT,     label: 'Audit Logs',   Icon: IconFileText },
+  ]},
 ];
 
-function getLinks(role) {
-  if (role === ROLES.FACULTY)     return facultyLinks;
-  if (role === ROLES.SUPER_ADMIN) return [...adminLinks, ...superAdminExtra];
-  return adminLinks;
+function getNav(role) {
+  if (role === ROLES.FACULTY)     return facultyNav;
+  if (role === ROLES.SUPER_ADMIN) return [...adminNav, ...superAdminNavExtra];
+  return adminNav;
 }
 
 // ── Bottom tab bar — 4 pinned routes per role ──────────────────────────────────
@@ -101,7 +119,7 @@ function NavItem({ to, label, Icon, onClick }) {
         `${classes.navItem} ${isActive ? classes.navItemActive : ''}`
       }
     >
-      <Icon size={16} strokeWidth={1.75} className="shrink-0" />
+      <Icon size={18} strokeWidth={1.75} className="shrink-0" />
       <span>{label}</span>
     </RouterNavLink>
   );
@@ -120,55 +138,52 @@ export default function Layout({ user, children }) {
     window.addEventListener('themechange', handleThemeChange);
     return () => window.removeEventListener('themechange', handleThemeChange);
   }, []);
-  const links      = getLinks(user?.role);
+  const nav        = getNav(user?.role);
   const bottomTabs = getBottomTabs(user?.role);
 
   const sidebarContent = (
-    <Stack h="100%" gap={0} className="overflow-hidden">
-      <Box className={classes.brand}>
-        <Group gap={8} wrap="nowrap">
-          <img src={simsLogo} alt="SIMS" className={`${classes.brandMark} w-full h-full object-contain`} />
-          <Text fw={700} size="sm" c="white" className="tracking-[-0.01em]">
-            SIMS DMS
-          </Text>
-        </Group>
-        <Text size="xs" c="dimmed" mt={2} pl={36}>
-          {getRoleLabel(user?.role)}
-        </Text>
-      </Box>
+    <div className={classes.sidebar}>
+      {/* Brand */}
+      <div className={classes.brand}>
+        <img src={simsLogo} alt="SIMS" className={classes.brandMark} />
+        <div className={classes.brandText}>
+          <span className={classes.brandName}>SIMS DMS</span>
+          <span className={classes.brandRole}>{getRoleLabel(user?.role)}</span>
+        </div>
+      </div>
 
-      <Divider color="rgba(255,255,255,0.08)" />
-
-      <Stack gap={2} p={8} className="flex-1 overflow-y-auto">
-        {links.map((link) => (
-          <NavItem key={link.to} {...link} onClick={closeNav} />
+      {/* Grouped nav */}
+      <nav className={classes.navScroll}>
+        {nav.map((section) => (
+          <div key={section.group} className={classes.navGroup}>
+            <p className={classes.navGroupLabel}>{section.group}</p>
+            {section.items.map((link) => (
+              <NavItem key={link.to} {...link} onClick={closeNav} />
+            ))}
+          </div>
         ))}
-      </Stack>
+      </nav>
 
-      <Divider color="rgba(255,255,255,0.08)" />
-
-      <Box p={10}>
-        <Group gap={8} mb={6} px={4}>
-          <Avatar size={28} radius="xl" color="blue" className="shrink-0">
-            {getInitials(user?.name)}
-          </Avatar>
-          <Text size="xs" fw={600} c="gray.3" className="overflow-hidden text-ellipsis whitespace-nowrap">
-            {user?.name}
-          </Text>
-        </Group>
-        <UnstyledButton
-          onClick={cycleTheme}
-          className="flex items-center gap-1.5 w-full py-[7px] px-2.5 rounded-[7px] text-xs font-medium text-[color:var(--text-muted)] bg-transparent border-none cursor-pointer mb-1.5 transition-[background-color,color] duration-150 hover:bg-[var(--surface-sidebar-hover)] hover:text-[color:var(--text-on-dark)]"
-        >
-          <span className="text-[13px]">{getThemeIcon()}</span>
-          {getThemeLabel()} mode
-        </UnstyledButton>
-        <UnstyledButton onClick={() => logout.mutate()} className={classes.logoutBtn}>
-          <IconLogout size={13} strokeWidth={2} />
-          Log out
-        </UnstyledButton>
-      </Box>
-    </Stack>
+      {/* Footer — user card + actions */}
+      <div className={classes.sidebarFooter}>
+        <div className={classes.userCard}>
+          <div className={classes.userAvatar}>{getInitials(user?.name)}</div>
+          <div className={classes.userInfo}>
+            <span className={classes.userName}>{user?.name}</span>
+            <span className={classes.userRole}>{getRoleLabel(user?.role)}</span>
+          </div>
+        </div>
+        <div className={classes.footerActions}>
+          <button type="button" onClick={cycleTheme} className={classes.themeBtn}>
+            <span className="text-[13px]">{getThemeIcon()}</span>
+            {getThemeLabel()}
+          </button>
+          <button type="button" onClick={() => logout.mutate()} className={classes.logoutBtn} aria-label="Log out">
+            <IconLogout size={16} strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -182,7 +197,7 @@ export default function Layout({ user, children }) {
         withCloseButton={false}
         padding={0}
         styles={{
-          content: { backgroundColor: 'var(--surface-sidebar)' },
+          content: { backgroundColor: '#0f172a' },
           body:    { padding: 0, height: '100%' },
         }}
         hiddenFrom="sm"
@@ -191,11 +206,11 @@ export default function Layout({ user, children }) {
       </Drawer>
 
       <AppShell
-        navbar={{ width: 220, breakpoint: 'sm', collapsed: { mobile: true } }}
+        navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: true } }}
         padding={0}
       >
         {/* Sidebar — desktop only (≥ 640px) */}
-        <AppShell.Navbar style={{ backgroundColor: 'var(--surface-sidebar)', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+        <AppShell.Navbar p={0} style={{ border: 'none' }}>
           {sidebarContent}
         </AppShell.Navbar>
 
