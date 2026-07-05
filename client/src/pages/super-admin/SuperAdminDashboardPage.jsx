@@ -67,7 +67,7 @@ export default function SuperAdminDashboardPage({ user }) {
         <StatCard
           label="Pending approvals"
           value={pendingCount}
-          accent={pendingCount > 0 ? 'red' : 'default'}
+          accent="red"
           sub={pendingCount > 0 ? 'Needs action' : 'All clear'}
           icon="⏳"
           onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending')}

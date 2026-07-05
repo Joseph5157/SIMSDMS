@@ -78,10 +78,10 @@ export default function AdminDashboardPage({ user }) {
       {!isLoading && (
         <div className="grid grid-cols-2 gap-2 mb-4">
           <StatCard compact label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
-          <StatCard compact label="Pending"          value={pendingCount}          accent={pendingCount > 0 ? 'yellow' : 'default'}
+          <StatCard compact label="Pending"          value={pendingCount}          accent="yellow"
             sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-          <StatCard compact label="Cover Requests"   value={openCoverCount}        accent={openCoverCount > 0 ? 'yellow' : 'default'} icon="🔄" />
-          <StatCard compact label="Flagged"          value={pendingFlaggedCount}   accent={pendingFlaggedCount > 0 ? 'red' : 'default'}
+          <StatCard compact label="Cover Requests"   value={openCoverCount}        accent="indigo" icon="🔄" />
+          <StatCard compact label="Flagged"          value={pendingFlaggedCount}   accent="red"
             sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
         </div>
       )}

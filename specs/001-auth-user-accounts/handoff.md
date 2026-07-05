@@ -1,12 +1,21 @@
 # Handoff Report
 
 ## task_id
-001-auth-user-accounts / color-system audit — Fix A (indigo-tint tree-shaking) + Fix F (hardcoded-hex duplicates)
+001-auth-user-accounts / color-system audit — Fix A (indigo-tint tree-shaking) + Fix F (hardcoded-hex duplicates) + always-color stat cards
 
 ## status
 complete
 
 ## completed
+- **Always-color stat cards project-wide.** Product owner wanted the admin dashboard as vibrant
+  as the super-admin one. Root cause: both use `StatCard` with the M3 tonal tokens, but the
+  admin cards used a conditional accent (`value > 0 ? color : 'default'`), so with production
+  data at 0 Pending/Cover/Flagged three cards collapsed to the neutral gray tier. Removed every
+  conditional accent so each card always shows its category color; the `default` tier remains in
+  `StatCard` only as a safety fallback (now unused by any page). Status meaning moves to the
+  `sub` text ("All clear" / "Needs action"). Accents: Admin = Active Faculty blue / Pending amber
+  / Cover Requests indigo / Flagged red; Super Admin = Total Users blue / Faculty green / Admins
+  amber / Pending Approvals red. Verified via live DOM-injection preview on production; build clean.
 - **Audited** the color system for Tailwind ↔ Mantine ↔ M3 inconsistency (verified against
   live production CSS at simsdms-production.up.railway.app, light + dark, desktop + mobile).
 - **Fix A — indigo-tint tree-shaking bug.** `--color-indigo-tint` was declared in the `@theme`
@@ -55,6 +64,8 @@ git diff -- client/src/index.css client/src/components/...               # revie
 - None.
 
 ## files_touched
+- `client/src/pages/admin/AdminDashboardPage.jsx` — always-color the 4 stat cards (drop conditional default)
+- `client/src/pages/super-admin/SuperAdminDashboardPage.jsx` — always-color Pending Approvals card
 - `client/src/index.css` — removed both `--color-indigo-tint` declarations; added explanatory note (Fix A)
 - `client/src/components/CreateUserDrawer.jsx` — tokenized selected-role title + subtitle (Fix F)
 - `client/src/components/Layout.jsx` — tokenized theme-toggle hover colors (Fix F)
