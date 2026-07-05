@@ -53,7 +53,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
     <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground>
       <Drawer.Portal>
         <Drawer.Overlay
-          className="fixed inset-0 z-[39]"
+          className="fixed inset-0 z-[110]"
           style={{
             backgroundColor: 'rgba(0,0,0,0.5)',
             backdropFilter: 'blur(2px)',
@@ -61,7 +61,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
         />
 
         <Drawer.Content
-          className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-40 flex flex-col outline-none max-h-[94dvh] sm:max-h-[85dvh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+          className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-[111] flex flex-col outline-none max-h-[94dvh] sm:max-h-[85dvh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
           style={{
             backgroundColor: 'var(--surface-card)',
           }}

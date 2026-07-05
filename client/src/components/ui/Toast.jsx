@@ -30,7 +30,7 @@ export function ToastProvider({ children }) {
         position: 'fixed',
         bottom: 80,
         right: 16,
-        zIndex: 60,
+        zIndex: 120,
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-2)',
