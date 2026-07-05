@@ -54,8 +54,8 @@ export default function LoginPage() {
     'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-5 sm:px-4 h-14 sm:h-11',
     'text-[var(--text-primary)]',
     'outline-none w-full bg-[var(--surface-page)]',
-    'transition-[border-color] duration-[var(--dur-fast)]',
-    'focus:border-[var(--brand)]',
+    'transition-[border-color,box-shadow] duration-[var(--dur-fast)]',
+    'focus:border-[var(--border-strong)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]',
     login.isPending ? 'opacity-60 cursor-not-allowed' : 'cursor-auto',
   ].join(' ');
 
