@@ -54,7 +54,10 @@
   /* ── Secondary accent role (indigo — already lived in --brand-gradient; now a
      full first-class tint family like the status colors, for M3-style continuity) ── */
   --color-indigo-bg:     #eef2ff;
-  --color-indigo-tint:   #e0e7ff;
+  /* NOTE: no --color-indigo-tint. Nothing references it, so Tailwind tree-shakes
+     the light-mode @theme declaration and only the html.dark override would ship —
+     leaving a token that's empty in light and colored in dark. If indigo ever needs
+     a full tint family, add -tint here AND reference it (see specs/color-system-notes.md). */
   --color-indigo-text:   #3730a3;
   --color-indigo-solid:  #6366f1;
   --color-indigo-border: #c7d2fe;
@@ -393,7 +396,6 @@ html.dark {
   --color-purple-border: #581c87;
 
   --color-indigo-bg:     #1e1b4b;
-  --color-indigo-tint:   #3730a3;
   --color-indigo-text:   #c7d2fe;
   --color-indigo-solid:  #6366f1;
   --color-indigo-border: #4338ca;

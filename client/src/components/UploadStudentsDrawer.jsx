@@ -133,7 +133,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
             border: '1.5px dashed var(--color-blue-200)', borderRadius: 'var(--radius-lg)',
             backgroundColor: 'var(--color-blue-50)', cursor: downloading ? 'not-allowed' : 'pointer',
             fontSize: 'var(--text-card)', fontWeight: 700,
-            color: downloading ? '#93c5fd' : 'var(--brand)',
+            color: downloading ? 'var(--color-blue-300)' : 'var(--brand)',
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
         >

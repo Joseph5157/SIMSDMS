@@ -11,10 +11,10 @@ function RoleButton({ label, subtitle, selected, onClick }) {
       onClick={onClick}
       className={`flex-1 px-2 py-2.5 rounded-xl text-center transition-all duration-150 cursor-pointer border-[1.5px] ${selected ? 'border-[var(--brand)] bg-[var(--color-blue-50)]' : 'border-[var(--border)] bg-[var(--surface-page)]'}`}
     >
-      <p className={`text-sm font-bold mb-0.5 ${selected ? 'text-[#2563eb]' : 'text-[color:var(--text-secondary)]'}`}>
+      <p className={`text-sm font-bold mb-0.5 ${selected ? 'text-[color:var(--brand)]' : 'text-[color:var(--text-secondary)]'}`}>
         {label}
       </p>
-      <p className={`text-[length:var(--text-micro)] ${selected ? 'text-[#60a5fa]' : 'text-[color:var(--text-muted)]'}`}>
+      <p className={`text-[length:var(--text-micro)] ${selected ? 'text-[color:var(--color-blue-400)]' : 'text-[color:var(--text-muted)]'}`}>
         {subtitle}
       </p>
     </button>

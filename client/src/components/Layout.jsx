@@ -158,7 +158,7 @@ export default function Layout({ user, children }) {
         </Group>
         <UnstyledButton
           onClick={cycleTheme}
-          className="flex items-center gap-1.5 w-full py-[7px] px-2.5 rounded-[7px] text-xs font-medium text-[color:var(--text-muted)] bg-transparent border-none cursor-pointer mb-1.5 transition-[background-color,color] duration-150 hover:bg-[#1e293b] hover:text-[color:#f1f5f9]"
+          className="flex items-center gap-1.5 w-full py-[7px] px-2.5 rounded-[7px] text-xs font-medium text-[color:var(--text-muted)] bg-transparent border-none cursor-pointer mb-1.5 transition-[background-color,color] duration-150 hover:bg-[var(--surface-sidebar-hover)] hover:text-[color:var(--text-on-dark)]"
         >
           <span className="text-[13px]">{getThemeIcon()}</span>
           {getThemeLabel()} mode

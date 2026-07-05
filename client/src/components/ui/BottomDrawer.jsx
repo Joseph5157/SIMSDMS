@@ -26,7 +26,7 @@ export const cancelBtnStyle = {
 export function primaryBtnStyle(disabled) {
   return {
     flex: 2, height: 48, borderRadius: 'var(--radius-xl)', border: 'none',
-    background: disabled ? '#93c5fd' : 'var(--brand-gradient-deep)',
+    background: disabled ? 'var(--color-blue-300)' : 'var(--brand-gradient-deep)',
     fontSize: 'var(--text-body)', fontWeight: 700, color: 'var(--text-on-dark)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
