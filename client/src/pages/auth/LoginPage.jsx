@@ -220,21 +220,6 @@ export default function LoginPage() {
             >
               {login.isPending ? 'Signing in...' : 'Sign in'}
             </button>
-
-            {/* Password reset helper */}
-            <div
-              className="rounded-[var(--radius-lg)] px-3.5 py-3 sm:py-2 flex gap-2.5 items-start"
-              style={{
-                backgroundColor: 'var(--color-blue-50)',
-                border: '1px solid var(--color-blue-100)',
-              }}
-            >
-              <span className="text-base shrink-0">🔑</span>
-              <p className="text-[length:var(--text-card)] sm:text-[11px] text-[var(--color-blue-700)] leading-[var(--leading-snug)]">
-                Forgot your password? Send <strong>/resetpassword</strong> to{' '}
-                <strong>@SimsPharmacybot</strong> on Telegram to receive a new temporary password.
-              </p>
-            </div>
           </form>
         </div>
       </div>
