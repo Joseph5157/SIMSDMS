@@ -44,9 +44,13 @@ export default function RecordViolationModal({ open, onClose }) {
   const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
   const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')}`;
   const todaySlots = mySlots.filter(s => String(s.duty_date).slice(0, 10) === todayStr);
-  // Guess session from time of day (IST)
+  // Prefer whichever of today's slots is actively checked in right now. Fall back to a
+  // time-of-day guess (IST) only when nothing is actively checked in, so the field still
+  // pre-fills something reasonable before check-in / after check-out.
+  const activeSlot = todaySlots.find(s => s.attendance?.in_time && !s.attendance?.out_time);
   const currentSession = now.getUTCHours() < 12 ? 'morning' : 'afternoon';
-  const autoSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
+  const fallbackSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
+  const autoSlot = activeSlot ?? fallbackSlot;
 
   // Pre-fill duty slot if not yet set and auto-slot available
   const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
@@ -124,7 +128,7 @@ export default function RecordViolationModal({ open, onClose }) {
               fontSize: 'var(--text-card)', color: 'var(--color-blue-700)',
               fontWeight: 600,
             }}>
-              Recording for: {currentSession === 'morning' ? 'Morning' : 'Afternoon'} session ·{' '}
+              Recording for: {autoSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session ·{' '}
               {new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
             </div>
           ) : (

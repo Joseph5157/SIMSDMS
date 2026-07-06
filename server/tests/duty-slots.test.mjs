@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 const _require = createRequire(import.meta.url);
 
 const prisma     = _require('../lib/prisma');
-const { pickSlot } = _require('../controllers/duty-slots.controller');
+const { pickSlot, getMonthSlots } = _require('../controllers/duty-slots.controller');
 
 function makeReq(b = {}) { return { body: b, user: { id: 'f1', role: 'faculty' }, params: {} }; }
 function makeRes() {
@@ -70,5 +70,43 @@ describe('pickSlot', () => {
     await pickSlot(makeReq(validBody), res);
     expect(res._status).toBe(201);
     expect(res._body).toEqual(slot);
+  });
+});
+
+describe('getMonthSlots', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('includes a slot where the faculty member is the confirmed cover, even with no slots of their own', async () => {
+    const coveredSlot = {
+      id: 's1', faculty_id: 'f2', covered_by: 'f1',
+      duty_date: new Date('2026-06-10'), session_type: 'morning', status: 'covered',
+    };
+    const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([coveredSlot]);
+
+    const req = { params: { year: '2026', month: '6' }, user: { id: 'f1', role: 'faculty' } };
+    const res = makeRes();
+    await getMonthSlots(req, res);
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: [{ faculty_id: 'f1' }, { covered_by: 'f1' }],
+      }),
+    }));
+    expect(res._body.data).toEqual([coveredSlot]);
+    expect(res._body.total).toBe(1);
+  });
+
+  it('selects attendance.in_time/out_time so the frontend can tell which slot is actively checked in', async () => {
+    const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([]);
+
+    const req = { params: { year: '2026', month: '6' }, user: { id: 'f1', role: 'faculty' } };
+    const res = makeRes();
+    await getMonthSlots(req, res);
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({
+        attendance: { select: { in_time: true, out_time: true } },
+      }),
+    }));
   });
 });

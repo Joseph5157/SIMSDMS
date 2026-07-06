@@ -35,6 +35,7 @@ const SLOT_SELECT = {
   created_at: true,
   updated_at: true,
   faculty: { select: { id: true, name: true, email: true, department: true, designation: true } },
+  attendance: { select: { in_time: true, out_time: true } },
 };
 
 // ─── GET /duty-slots/:year/:month ─────────────────────────────────────────────
@@ -47,7 +48,7 @@ async function getMonthSlots(req, res) {
   const where = { duty_date: monthDateRange(year, month) };
 
   if (req.user.role === 'faculty') {
-    where.faculty_id = req.user.id;
+    where.OR = [{ faculty_id: req.user.id }, { covered_by: req.user.id }];
   }
 
   const slots = await prisma.dutySlot.findMany({
