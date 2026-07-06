@@ -12,6 +12,7 @@ export const ROUTES = {
   ADMIN_USERS:            '/admin/users',
   ADMIN_STUDENTS:         '/admin/students',
   ADMIN_CALENDAR:         '/admin/calendar',
+  ADMIN_DUTY_TIMING_SETTINGS: '/admin/duty-timing-settings',
   ADMIN_DUTY_SLOTS:       '/admin/duty-slots',
   ADMIN_ATTENDANCE:       '/admin/attendance',
   ADMIN_VIOLATIONS:       '/admin/violations',
@@ -52,6 +53,7 @@ export const STATUS_COLORS = {
   hidden:           'bg-slate-100 text-slate-400',
   flagged:          'bg-amber-tint text-amber-text',
   not_checked_in:   'bg-slate-100 text-slate-500',
+  upcoming:         'bg-blue-50 text-blue-600',
   checked_in:       'bg-blue-100 text-blue-700',
   checked_out:      'bg-emerald-tint text-emerald-text',
 };
