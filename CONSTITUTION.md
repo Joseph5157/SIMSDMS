@@ -14,7 +14,7 @@
 | Institution | SIMS College of Pharmacy |
 | Purpose | Replace the manual paper-based discipline process with a digital system for managing faculty duties, student violations, and reporting |
 | Scale | Single college, ~20–30 faculty members |
-| Status | Active development — Phase 1 in progress |
+| Status | All three build phases functionally complete (see §8) — now in QA/UAT before production launch |
 
 ---
 
@@ -224,19 +224,23 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 - `violation_types.is_system` — prevents deletion of built-in types
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
+- `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ not_checked_in ≤ auto_checkout`, per session) is enforced at the application layer (`duty-timing-settings.controller.js`), not as a DB constraint — any new code path that writes to `system_config` timing fields directly (bypassing `settingsService`) would skip this check
 
 ---
 
-## 6. API — 95 Endpoints Across 12 Modules
+## 6. API — 97 Endpoints Across 13 Modules
+
+Counts verified directly against `server/routes/*.routes.js` (2026-07) — the previous table's total didn't match its own rows (an old drift, unrelated to any single feature) and undercounted Users & Accounts.
 
 | Module | Count | Base Path |
 |---|---|---|
 | Authentication | 3 | `/auth` |
-| Users & Accounts | 10 | `/users`, `/admin` |
+| Users & Accounts | 12 | `/users`, `/admin` |
 | Students | 10 | `/students` |
 | Duty Calendar | 8 | `/calendar` |
 | Duty Slots | 6 | `/duty-slots` |
 | Duty Attendance | 5 | `/attendance` |
+| Duty Timing Settings | 2 | `/duty-timing-settings` |
 | Violations | 10 | `/violations` |
 | Violation Types | 5 | `/violation-types` |
 | Need Cover | 9 | `/cover-requests` |
@@ -244,7 +248,11 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | Invites | 4 | `/invites` |
 | Reports | 17 | `/reports` |
 
-Full endpoint definitions in `SIMS_API_Endpoints_v2.0.md` (v2.2).
+Reports is 17 endpoints implementing 16 distinct report types — one (`/reports/student-violations/export`) is an export variant of an existing report, not a 17th report.
+
+Not counted above: `POST /bot/webhook/:secret` (`server/routes/bot.routes.js`) — a Telegram-facing webhook receiver, not part of the client-facing API surface this table describes.
+
+Full endpoint definitions in `SIMS_API_Endpoints_v2.0.md` (v2.2) — **this file is now stale against the counts above and should be regenerated/updated to match.**
 
 All endpoints return JSON. All errors follow the format:
 ```json
@@ -290,16 +298,16 @@ Follow this folder structure exactly. Do not reorganise without updating this fi
 
 ## 8. Development Phases
 
-### Phase 1 — MVP (Weeks 1–4) ← CURRENT
-Auth, user accounts, students, duty calendar, slot picking, IN/OUT attendance, core violations. Goal: system is live and usable by real faculty.
+### Phase 1 — MVP (Weeks 1–4) ✅ Built
+Auth, user accounts, students, duty calendar, slot picking, IN/OUT attendance, core violations.
 
-### Phase 2 — Core Complete (Weeks 5–8)
+### Phase 2 — Core Complete (Weeks 5–8) ✅ Built
 Cover requests (Need Cover broadcast), violation flags + audit trail, messaging, Super Admin panel.
 
-### Phase 3 — Full System (Weeks 9–12)
-All 16 reports, role-based dashboards, Telegram notifications, PWA polish, UAT with staff, production launch.
+### Phase 3 — Full System (Weeks 9–12) ✅ Built ← CURRENT (QA/UAT)
+All 16 reports, role-based dashboards, Telegram notifications, PWA polish. Remaining before production launch: UAT with staff, production sign-off.
 
-**Rule: Do not start Phase 2 tasks while Phase 1 has open bugs.**
+All three phases are functionally implemented in code (verified 2026-07: 17 report endpoints, Super Admin panel, PWA/Workbox config, and all 3 required cron jobs are present and passing tests). "Built" here means the code exists and is tested — it does not by itself mean UAT/staff sign-off has happened. Update this line to "Launched" once production UAT is signed off.
 
 ---
 
@@ -327,6 +335,7 @@ These must be implemented by end of Phase 1 for the system to function correctly
 - Never expose the JWT secret, Telegram bot token, or database URL in code or comments
 - Never create a new role or modify role names — system has exactly 3 roles: Super Admin, Admin, Faculty
 - Never change the folder structure without explicit instruction
+- Never hardcode a time-of-day threshold (session start, late cutoff, not-checked-in cutoff, auto clock-out) in application code — always read it from `system_config` via `settingsService.getSettings()`. This is exactly the anti-pattern the Duty Timing Settings feature (§3 Admin permissions, §4 Duty Attendance) was built to eliminate; reintroducing a hardcoded value in a new code path defeats it silently
 
 ---
 
@@ -344,6 +353,6 @@ PORT=3000
 
 ---
 
-*Constitution version: 3.2 — Updated: July 2026*
+*Constitution version: 3.3 — Updated: July 2026*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*
