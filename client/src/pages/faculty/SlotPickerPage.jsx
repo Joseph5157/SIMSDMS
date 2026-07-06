@@ -155,7 +155,7 @@ export default function SlotPickerPage({ user }) {
       )}
 
       {/* ── Calendar ── */}
-      <div style={{
+      <div className="md:max-w-[420px]" style={{
         background: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
         padding: '16px', marginBottom: 20,
       }}>
