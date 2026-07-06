@@ -9,7 +9,7 @@ import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
   IconTag, IconArrowsLeftRight, IconMail, IconChartBar,
-  IconBolt, IconFileText, IconLogout, IconMenu2,
+  IconBolt, IconFileText, IconLogout, IconMenu2, IconClock,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
@@ -33,6 +33,7 @@ const adminNav = [
     { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',         Icon: IconCalendarEvent },
     { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',         Icon: IconClipboardCheck },
     { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',     Icon: IconArrowsLeftRight },
+    { to: ROUTES.ADMIN_DUTY_TIMING_SETTINGS, label: 'Duty Timing Settings', Icon: IconClock },
   ]},
   { group: 'Discipline', items: [
     { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },

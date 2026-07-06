@@ -20,6 +20,7 @@ const STATUS_LABELS = {
   hidden:           'Hidden',
   flagged:          '⚑ Flagged',
   not_checked_in:   'Not in',
+  upcoming:         'Upcoming',
   checked_in:       'Checked in',
   checked_out:      'Checked out',
   super_admin:      'Super Admin',

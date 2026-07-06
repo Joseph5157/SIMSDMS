@@ -86,6 +86,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Manages violation types
 - Confirms or rejects Need Cover requests
 - Configures max cover requests per slot
+- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, not-checked-in cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings such as `cover_ttl_hours` remain Super-Admin-only via `/admin/settings`)
 - Access to all 16 reports
 
 ### Faculty
@@ -138,8 +139,10 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ### Duty Attendance
 - Faculty can only check IN during their assigned duty session window.
-- Late IN is flagged automatically based on the session start time.
-- If faculty do not check OUT, the system auto-clocks them out at 4:30 PM via cron job.
+- Late IN is flagged automatically based on the Admin-configured, per-session late-arrival cutoff (`system_config` — see Duty Timing Settings, §3 Admin permissions). There is no hardcoded time; session start, late cutoff, not-checked-in cutoff, and auto clock-out are each independently configurable for Morning and Afternoon.
+- If faculty do not check OUT, the system auto-clocks them out at the configured per-session auto clock-out time via cron job — Morning and Afternoon may have different times (e.g. 12:00 PM vs 5:00 PM), evaluated independently.
+- A faculty member who has not checked in by the configured not-checked-in cutoff for their session is flagged as such on the live attendance dashboard.
+- Changing a Duty Timing Setting takes effect immediately for future check-ins/clock-outs only — existing `duty_attendance` records are never retroactively recalculated.
 - Admin can override any attendance record but must provide a reason.
 - Auto-out records are flagged (`auto_out = true`) and visible in reports.
 
@@ -207,7 +210,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `cover_requests` | Need Cover broadcasts — open to all faculty, confirmed by Admin |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
-| `system_config` | Single-row system-wide timing thresholds — late detection, auto clock-out, cover TTL |
+| `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session), plus cover TTL |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 
@@ -306,7 +309,7 @@ These must be implemented by end of Phase 1 for the system to function correctly
 
 | Job | Schedule | Action |
 |---|---|---|
-| Auto clock-out | Daily 4:30 PM | Set `out_time = 4:30 PM`, `auto_out = true` for any unchecked-out faculty |
+| Auto clock-out | Every 10 minutes | For each session (Morning/Afternoon) whose Admin-configured auto clock-out time has passed, set `out_time`, `auto_out = true` for any unchecked-out faculty in that session — each session evaluated independently against its own configured time (see Duty Timing Settings, §3 Admin permissions) |
 | Cover request expiry | Every hour | Set status = `expired` where `expires_at < NOW()` and status = `pending` |
 | Calendar auto-close | Daily midnight | Set `is_window_open = false` on the last day of the month |
 
@@ -341,6 +344,6 @@ PORT=3000
 
 ---
 
-*Constitution version: 3.1 — Updated: July 2026*
+*Constitution version: 3.2 — Updated: July 2026*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*

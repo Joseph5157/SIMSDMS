@@ -4,17 +4,23 @@ const prisma = require('../lib/prisma');
 let _cache = null;
 
 const DEFAULTS = {
-  late_threshold_morning_hour:   8,
-  late_threshold_morning_min:    15,
-  late_threshold_afternoon_hour: 13,
-  late_threshold_afternoon_min:  15,
-  auto_checkout_hour:            16,
-  auto_checkout_min:             30,
-  cover_ttl_hours:               48,
   session_start_morning_hour:    8,
   session_start_morning_min:     0,
   session_start_afternoon_hour:  13,
   session_start_afternoon_min:   0,
+  late_threshold_morning_hour:   8,
+  late_threshold_morning_min:    15,
+  late_threshold_afternoon_hour: 13,
+  late_threshold_afternoon_min:  15,
+  not_checked_in_morning_hour:   8,
+  not_checked_in_morning_min:    30,
+  not_checked_in_afternoon_hour: 13,
+  not_checked_in_afternoon_min:  30,
+  auto_checkout_morning_hour:    16,
+  auto_checkout_morning_min:     30,
+  auto_checkout_afternoon_hour:  16,
+  auto_checkout_afternoon_min:   30,
+  cover_ttl_hours:               48,
 };
 
 // Returns the single SystemConfig row, creating it with defaults if absent.

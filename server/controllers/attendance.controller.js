@@ -58,8 +58,14 @@ async function checkIn(req, res) {
   const startMin  = slot.session_type === 'morning'
     ? cfg.session_start_morning_min
     : cfg.session_start_afternoon_min;
+  const autoCheckoutHour = slot.session_type === 'morning'
+    ? cfg.auto_checkout_morning_hour
+    : cfg.auto_checkout_afternoon_hour;
+  const autoCheckoutMin  = slot.session_type === 'morning'
+    ? cfg.auto_checkout_morning_min
+    : cfg.auto_checkout_afternoon_min;
   const windowOpenMins  = Math.max(0, startHour * 60 + startMin - 30);
-  const windowCloseMins = cfg.auto_checkout_hour * 60 + cfg.auto_checkout_min;
+  const windowCloseMins = autoCheckoutHour * 60 + autoCheckoutMin;
 
   if (nowMins < windowOpenMins || nowMins > windowCloseMins) {
     return res.status(409).json({
@@ -147,6 +153,9 @@ async function checkOut(req, res) {
 async function getLive(req, res) {
   const ist       = nowInIST();
   const todayRange = istDayRangeUTC(ist.year, ist.month, ist.day);
+  const nowMins    = ist.hour * 60 + ist.minute;
+
+  const cfg = await settingsService.getSettings();
 
   const slots = await prisma.dutySlot.findMany({
     where: { duty_date: todayRange },
@@ -157,6 +166,18 @@ async function getLive(req, res) {
     },
     orderBy: [{ session_type: 'asc' }, { faculty: { name: 'asc' } }],
   });
+
+  // Not-checked-in cutoff is time-gated: before the configured cutoff a
+  // no-show-yet slot is just "upcoming", not an alert-worthy no-show.
+  function resolveNoAttendanceStatus(sessionType) {
+    const cutoffHour = sessionType === 'morning'
+      ? cfg.not_checked_in_morning_hour
+      : cfg.not_checked_in_afternoon_hour;
+    const cutoffMin  = sessionType === 'morning'
+      ? cfg.not_checked_in_morning_min
+      : cfg.not_checked_in_afternoon_min;
+    return nowMins < cutoffHour * 60 + cutoffMin ? 'upcoming' : 'not_checked_in';
+  }
 
   const result = slots.map((s) => ({
     slot_id:          s.id,
@@ -170,7 +191,7 @@ async function getLive(req, res) {
     session_type:     s.session_type,
     slot_status:      s.status,
     attendance_status: !s.attendance
-      ? 'not_checked_in'
+      ? resolveNoAttendanceStatus(s.session_type)
       : s.attendance.out_time
       ? 'checked_out'
       : 'checked_in',

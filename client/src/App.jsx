@@ -18,6 +18,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import UsersPage          from './pages/admin/UsersPage';
 import StudentsPage       from './pages/admin/StudentsPage';
 import CalendarPage       from './pages/admin/CalendarPage';
+import DutyTimingSettingsPage from './pages/admin/DutyTimingSettingsPage';
 import DutySlotsPage      from './pages/admin/DutySlotsPage';
 import AttendanceLivePage from './pages/admin/AttendanceLivePage';
 import ViolationsPage     from './pages/admin/ViolationsPage';
@@ -115,6 +116,7 @@ function AppRoutes() {
         <Route path="/admin/users"            element={<UsersPage user={user} />} />
         <Route path="/admin/students"         element={<StudentsPage user={user} />} />
         <Route path="/admin/calendar"         element={<CalendarPage user={user} />} />
+        <Route path="/admin/duty-timing-settings" element={<DutyTimingSettingsPage user={user} />} />
         <Route path="/admin/duty-slots"       element={<DutySlotsPage user={user} />} />
         <Route path="/admin/attendance"       element={<AttendanceLivePage user={user} />} />
         <Route path="/admin/violations"       element={<ViolationsPage user={user} />} />

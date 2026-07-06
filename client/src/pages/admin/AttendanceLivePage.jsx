@@ -87,11 +87,14 @@ function FacultyCard({ record, onOverride }) {
     record.attendance_status === 'checked_out' ? 'completed' :
     record.attendance_status === 'checked_in'  ? (record.in_status === 'late' ? 'late' : 'active') :
     record.in_status === 'absent'              ? 'absent' :
+    record.attendance_status === 'upcoming'    ? 'upcoming' :
     'not_checked_in';
 
   const timeLabel =
     record.in_time
       ? `In: ${new Date(record.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+      : record.attendance_status === 'upcoming'
+      ? 'Upcoming'
       : record.attendance_status === 'not_checked_in'
       ? 'Not checked in'
       : '—';
