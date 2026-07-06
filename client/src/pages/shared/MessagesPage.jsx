@@ -147,7 +147,15 @@ export default function MessagesPage({ user }) {
     <Layout user={user}>
       <PageHeader
         title="Messages"
-        action={<Button onClick={() => setCompose(true)} size="sm">+ Compose</Button>}
+        action={
+          <div className="flex flex-col items-center gap-2">
+            {/* Same bg-blue-50/text-blue-600 pill treatment as the "upcoming" status badge (see STATUS_COLORS) */}
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[length:11px] font-semibold bg-blue-50 text-blue-600">
+              New chat-style experience coming soon
+            </span>
+            <Button onClick={() => setCompose(true)} size="sm">+ Compose</Button>
+          </div>
+        }
       />
 
       {/*
