@@ -481,9 +481,6 @@ async function downloadTemplate(req, res) {
     { header: 'Semester',            key: 'semester',            width: 10 },
     { header: 'Batch Year',          key: 'batch_year',          width: 12 },
     { header: 'Academic Year',       key: 'academic_year',       width: 14 },
-    { header: 'Section',             key: 'section',             width: 10 },
-    { header: 'Gender',              key: 'gender',              width: 10 },
-    { header: 'Phone',               key: 'phone',               width: 14 },
   ];
 
   // Style header row
@@ -498,9 +495,9 @@ async function downloadTemplate(req, res) {
   sheet.getRow(1).height = 22;
 
   // Sample rows
-  sheet.addRow({ registration_number: 'BP2023001', student_name: 'Anjali Sharma',   course: 'b_pharm', year: 1, semester: 1, batch_year: 2023, academic_year: '2025-26', section: 'A', gender: 'female', phone: '9876543210' });
-  sheet.addRow({ registration_number: 'PD2022001', student_name: 'Rahul Verma',     course: 'pharm_d', year: 2, semester: 3, batch_year: 2022, academic_year: '2025-26', section: 'B', gender: 'male',   phone: '' });
-  sheet.addRow({ registration_number: 'MP2024001', student_name: 'Priya Nair',      course: 'm_pharm', year: 1, semester: 2, batch_year: 2024, academic_year: '2025-26', section: '',  gender: 'female', phone: '' });
+  sheet.addRow({ registration_number: 'BP2023001', student_name: 'Anjali Sharma',   course: 'b_pharm', year: 1, semester: 1, batch_year: 2023, academic_year: '2025-26' });
+  sheet.addRow({ registration_number: 'PD2022001', student_name: 'Rahul Verma',     course: 'pharm_d', year: 2, semester: 3, batch_year: 2022, academic_year: '2025-26' });
+  sheet.addRow({ registration_number: 'MP2024001', student_name: 'Priya Nair',      course: 'm_pharm', year: 1, semester: 2, batch_year: 2024, academic_year: '2025-26' });
 
   // Light stripe on sample rows
   [2, 3, 4].forEach((n) => {
@@ -513,7 +510,7 @@ async function downloadTemplate(req, res) {
   const notesRow = sheet.addRow(['↑ Replace sample rows above. Keep headers exactly as shown.']);
   notesRow.getCell(1).font      = { italic: true, color: { argb: 'FF64748B' }, size: 9 };
   notesRow.getCell(1).alignment = { horizontal: 'left' };
-  sheet.mergeCells(`A${notesRow.number}:J${notesRow.number}`);
+  sheet.mergeCells(`A${notesRow.number}:G${notesRow.number}`);
 
   const buffer = await workbook.xlsx.writeBuffer();
   res.setHeader('Content-Type',        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
