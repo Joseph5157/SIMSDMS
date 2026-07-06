@@ -20,6 +20,8 @@ const DEFAULTS = {
   auto_checkout_morning_min:     30,
   auto_checkout_afternoon_hour:  16,
   auto_checkout_afternoon_min:   30,
+  // No longer used by cover request expiry (see cover-requests.controller.js) —
+  // superseded by the record-expiry/volunteer-cutoff split.
   cover_ttl_hours:               48,
 };
 

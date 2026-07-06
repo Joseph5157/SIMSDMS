@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
 const logger = require('../lib/logger');
 const telegram = require('../lib/telegram');
+const { istWallToUTC } = require('../lib/time');
 
 const COVER_INCLUDE = {
   dutySlot: {
@@ -59,6 +60,25 @@ async function notifyUser(userId, text) {
   });
 }
 
+// Record expiry — housekeeping only, no functional meaning. Always end of
+// the duty day (23:59:59.999 IST). The existing hourly cron uses this
+// unchanged to flip status -> expired at midnight on the duty date.
+function computeRecordExpiry(dutyDate) {
+  const d = istWallToUTC(dutyDate.getUTCFullYear(), dutyDate.getUTCMonth() + 1, dutyDate.getUTCDate(), 23, 59);
+  d.setUTCSeconds(59, 999);
+  return d;
+}
+
+// Functional cutoff — the actual moment volunteering closes. Reuses the
+// Duty Timing Settings "not-checked-in" cutoff (the same moment the system
+// would flag the original faculty as a no-show). Computed on the fly,
+// never stored.
+function computeVolunteerCutoff(dutyDate, sessionType, cfg) {
+  const hour = sessionType === 'morning' ? cfg.not_checked_in_morning_hour : cfg.not_checked_in_afternoon_hour;
+  const min  = sessionType === 'morning' ? cfg.not_checked_in_morning_min  : cfg.not_checked_in_afternoon_min;
+  return istWallToUTC(dutyDate.getUTCFullYear(), dutyDate.getUTCMonth() + 1, dutyDate.getUTCDate(), hour, min);
+}
+
 // ─── POST /cover-requests — Faculty ───────────────────────────────────────────
 
 async function createCoverRequest(req, res) {
@@ -88,7 +108,15 @@ async function createCoverRequest(req, res) {
     }
 
     const cfg = await settingsService.getSettings();
-    const coverTtlMs = cfg.cover_ttl_hours * 60 * 60 * 1000;
+
+    const volunteerCutoff = computeVolunteerCutoff(slot.duty_date, slot.session_type, cfg);
+    if (new Date() > volunteerCutoff) {
+      return res.status(409).json({
+        error: true,
+        code: 'TOO_LATE',
+        message: 'Too close to this session to post a cover request — a volunteer would not have time to be confirmed.',
+      });
+    }
 
     const coverRequest = await prisma.$transaction(async (tx) => {
       const cr = await tx.coverRequest.create({
@@ -96,7 +124,7 @@ async function createCoverRequest(req, res) {
           duty_slot_id,
           requested_by: req.user.id,
           reason:       reason ?? null,
-          expires_at:   new Date(Date.now() + coverTtlMs),
+          expires_at:   computeRecordExpiry(slot.duty_date),
         },
         include: COVER_INCLUDE,
       });
@@ -164,9 +192,8 @@ async function listCoverRequests(req, res) {
 async function getOpenRequests(req, res) {
   const requests = await prisma.coverRequest.findMany({
     where: {
-      status:       'open',
-      expires_at:   { gt: new Date() },
-      requested_by: { not: req.user.id },
+      status:     'open',
+      expires_at: { gt: new Date() },
     },
     include:  COVER_INCLUDE,
     orderBy:  { created_at: 'desc' },
@@ -212,6 +239,13 @@ async function volunteer(req, res) {
     if (new Date() > coverRequest.expires_at) {
       return res.status(409).json({ error: true, code: 'EXPIRED', message: 'This cover request has expired.' });
     }
+
+    const cfg = await settingsService.getSettings();
+    const volunteerCutoff = computeVolunteerCutoff(coverRequest.dutySlot.duty_date, coverRequest.dutySlot.session_type, cfg);
+    if (new Date() > volunteerCutoff) {
+      return res.status(409).json({ error: true, code: 'VOLUNTEER_WINDOW_CLOSED', message: 'The window to volunteer for this session has closed.' });
+    }
+
     if (coverRequest.requested_by === req.user.id) {
       return res.status(409).json({ error: true, code: 'CONFLICT', message: 'You cannot volunteer for your own cover request.' });
     }

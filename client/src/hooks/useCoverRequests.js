@@ -37,6 +37,7 @@ export function useCreateCoverRequest() {
   return useMutation({
     mutationFn: (data) => api.post('/cover-requests', data),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['openCoverRequests'] });
       qc.invalidateQueries({ queryKey: ['myCoverRequests'] });
       qc.invalidateQueries({ queryKey: ['dutySlots'] });
     },

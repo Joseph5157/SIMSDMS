@@ -117,7 +117,7 @@ export default function CoverRequestsPage({ user }) {
                   {cr.dutySlot?.duty_date && ` · ${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
                 </p>
               </div>
-              <Badge status={cr.status} />
+              <Badge status={cr.status} label={cr.status === 'open' ? (cr.volunteer_id ? 'Volunteer Assigned' : 'Pending') : undefined} />
             </div>
             {cr.reason && (
               <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.4 }}>{cr.reason}</p>
@@ -156,7 +156,7 @@ export default function CoverRequestsPage({ user }) {
                 <Td className="capitalize">{cr.dutySlot?.session_type ?? '—'}</Td>
                 <Td className="max-w-xs truncate text-[var(--text-muted)] text-[length:12px]">{cr.reason ?? '—'}</Td>
                 <Td>{cr.volunteer?.name ?? <span className="text-[var(--text-muted)] text-[length:12px]">No volunteer yet</span>}</Td>
-                <Td><Badge status={cr.status} /></Td>
+                <Td><Badge status={cr.status} label={cr.status === 'open' ? (cr.volunteer_id ? 'Volunteer Assigned' : 'Pending') : undefined} /></Td>
                 <Td className="text-[length:12px] text-[var(--text-muted)]">{new Date(cr.expires_at).toLocaleDateString('en-IN')}</Td>
                 <Td>
                   {cr.status === 'open' && cr.volunteer_id && (
