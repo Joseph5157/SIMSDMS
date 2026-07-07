@@ -64,10 +64,10 @@ export function usePromoteStudent() {
   });
 }
 
-export function useDeactivateStudent() {
+export function useDeleteStudent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id) => api.patch(`/students/${id}/deactivate`),
+    mutationFn: (id) => api.delete(`/students/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
   });
 }
@@ -80,10 +80,11 @@ export function useBulkPromoteStudents() {
   });
 }
 
-export function useBulkDeactivateStudents() {
+export function useBulkDeleteStudents() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (ids) => api.patch('/students/bulk/deactivate', { ids }),
+    // axios DELETE sends a body via the `data` config key.
+    mutationFn: (ids) => api.delete('/students/bulk', { data: { ids } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
   });
 }

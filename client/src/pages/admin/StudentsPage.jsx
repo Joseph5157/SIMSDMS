@@ -13,8 +13,8 @@ import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
 import StudentDetailsDrawer from '../../components/StudentDetailsDrawer';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
-  useStudents, usePromoteStudent, useDeactivateStudent,
-  useBulkPromoteStudents, useBulkDeactivateStudents,
+  useStudents, usePromoteStudent, useDeleteStudent,
+  useBulkPromoteStudents, useBulkDeleteStudents,
 } from '../../hooks/useStudents';
 import { ROUTES } from '../../utils/constants';
 
@@ -167,11 +167,11 @@ export default function StudentsPage({ user }) {
   const [filterSection, setFilterSection] = useState('');
   const [showUpload, setShowUpload]       = useState(false);
   const [promoting, setPromoting]         = useState(null);
-  const [deactivating, setDeactivating]   = useState(null);
+  const [deleting, setDeleting]           = useState(null);
   const [viewingId, setViewingId]         = useState(null);
   const [selectedIds, setSelectedIds]         = useState(new Set());
   const [showBulkPromote, setShowBulkPromote] = useState(false);
-  const [bulkDeactivating, setBulkDeactivating] = useState(false);
+  const [bulkDeleting, setBulkDeleting]       = useState(false);
 
   const debouncedSearch = useDebounce(search, 500);
   const { data, isLoading, isError, refetch } = useStudents({
@@ -182,8 +182,8 @@ export default function StudentsPage({ user }) {
     page,
     limit:   20,
   });
-  const deactivate     = useDeactivateStudent();
-  const bulkDeactivate = useBulkDeactivateStudents();
+  const deleteStudent  = useDeleteStudent();
+  const bulkDelete     = useBulkDeleteStudents();
 
   // Selection is page-scoped — clear it whenever the visible row set changes
   useEffect(() => {
@@ -220,25 +220,32 @@ export default function StudentsPage({ user }) {
     setSearch(''); setPage(1);
   }
 
-  async function handleDeactivate() {
+  async function handleDelete() {
     try {
-      await deactivate.mutateAsync(deactivating.id);
-      toast({ message: 'Student deactivated.' });
-      setDeactivating(null);
+      await deleteStudent.mutateAsync(deleting.id);
+      toast({ message: 'Student permanently deleted.' });
+      setDeleting(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+      setDeleting(null);
     }
   }
 
-  async function handleBulkDeactivate() {
+  async function handleBulkDelete() {
     try {
-      const res = await bulkDeactivate.mutateAsync(Array.from(selectedIds));
-      toast({ message: `Deactivated ${res.data.updated} student${res.data.updated === 1 ? '' : 's'}.` });
+      const res = await bulkDelete.mutateAsync(Array.from(selectedIds));
+      const { deleted, skipped = [] } = res.data;
+      const withRecords = skipped.filter((s) => s.reason === 'has disciplinary records').length;
+      let message = `Permanently deleted ${deleted} student${deleted === 1 ? '' : 's'}.`;
+      if (withRecords > 0) {
+        message += ` ${withRecords} skipped — kept for their disciplinary records.`;
+      }
+      toast({ message, type: withRecords > 0 ? 'info' : 'success' });
       clearSelection();
-      setBulkDeactivating(false);
+      setBulkDeleting(false);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-      setBulkDeactivating(false);
+      setBulkDeleting(false);
     }
   }
 
@@ -349,9 +356,7 @@ export default function StudentsPage({ user }) {
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
               <Button variant="subtle" size="xs" onClick={() => setPromoting(s)}>Promote</Button>
-              {s.status === 'active' && (
-                <Button variant="subtle" size="xs" color="red" onClick={() => setDeactivating(s)}>Deactivate</Button>
-              )}
+              <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(s)}>Delete</Button>
             </div>
           </div>
         ))}
@@ -402,9 +407,7 @@ export default function StudentsPage({ user }) {
                 <Td>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button variant="subtle" size="xs" onClick={() => setPromoting(s)}>Promote</Button>
-                    {s.status === 'active' && (
-                      <Button variant="subtle" size="xs" color="red" onClick={() => setDeactivating(s)}>Deactivate</Button>
-                    )}
+                    <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(s)}>Delete</Button>
                   </div>
                 </Td>
               </Tr>
@@ -444,7 +447,7 @@ export default function StudentsPage({ user }) {
           <div style={{ display: 'flex', gap: 8 }}>
             <Button variant="subtle" size="sm" onClick={clearSelection}>Clear</Button>
             <Button variant="light" size="sm" onClick={() => setShowBulkPromote(true)}>Bulk Promote</Button>
-            <Button variant="light" color="red" size="sm" onClick={() => setBulkDeactivating(true)}>Bulk Deactivate</Button>
+            <Button variant="light" color="red" size="sm" onClick={() => setBulkDeleting(true)}>Bulk Delete</Button>
           </div>
         </div>
       )}
@@ -452,16 +455,16 @@ export default function StudentsPage({ user }) {
       <UploadStudentsDrawer open={showUpload} onClose={() => setShowUpload(false)} />
       <StudentDetailsDrawer studentId={viewingId} onClose={() => setViewingId(null)} />
       {promoting && <PromoteModal open student={promoting} onClose={() => setPromoting(null)} />}
-      {deactivating && (
+      {deleting && (
         <ConfirmDialog
           open
-          onConfirm={handleDeactivate}
-          onCancel={() => setDeactivating(null)}
-          title="Deactivate Student"
-          message={`Are you sure you want to deactivate ${deactivating.student_name}?`}
-          confirmText="Deactivate"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleting(null)}
+          title="Delete Student"
+          message={`Are you sure you want to permanently delete ${deleting.student_name}? This action cannot be undone.`}
+          confirmText="Delete"
           isDangerous
-          isLoading={deactivate.isPending}
+          isLoading={deleteStudent.isPending}
         />
       )}
       {showBulkPromote && (
@@ -472,16 +475,16 @@ export default function StudentsPage({ user }) {
           onDone={() => { setShowBulkPromote(false); clearSelection(); }}
         />
       )}
-      {bulkDeactivating && (
+      {bulkDeleting && (
         <ConfirmDialog
           open
-          onConfirm={handleBulkDeactivate}
-          onCancel={() => setBulkDeactivating(false)}
-          title="Deactivate Students"
-          message={`Are you sure you want to deactivate ${selectedIds.size} student${selectedIds.size === 1 ? '' : 's'}?`}
-          confirmText="Deactivate"
+          onConfirm={handleBulkDelete}
+          onCancel={() => setBulkDeleting(false)}
+          title="Delete Students"
+          message={`Are you sure you want to permanently delete the selected ${selectedIds.size} student${selectedIds.size === 1 ? '' : 's'}? This action cannot be undone.`}
+          confirmText="Delete"
           isDangerous
-          isLoading={bulkDeactivate.isPending}
+          isLoading={bulkDelete.isPending}
         />
       )}
     </Layout>

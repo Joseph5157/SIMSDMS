@@ -377,24 +377,33 @@ async function promoteStudent(req, res) {
   res.json(updated);
 }
 
-// ─── PATCH /students/:id/deactivate ───────────────────────────────────────────
+// ─── DELETE /students/:id ─────────────────────────────────────────────────────
+// Permanent (hard) delete. Students with recorded disciplinary violations are
+// blocked — their violation history (and its audit/photo-access logs) must be
+// preserved, so the admin is told to keep the record instead of destroying it.
 
-async function deactivateStudent(req, res) {
+async function deleteStudent(req, res) {
   const student = await prisma.student.findUnique({ where: { id: req.params.id } });
-  if (!student || student.deleted_at) {
+  if (!student) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student not found.' });
   }
-  if (student.status === 'inactive') {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Student is already inactive.' });
+
+  const violationCount = await prisma.violation.count({ where: { student_id: student.id } });
+  if (violationCount > 0) {
+    return res.status(409).json({
+      error: true, code: 'HAS_VIOLATIONS',
+      message: `Cannot delete ${student.student_name}: they have ${violationCount} disciplinary record${violationCount === 1 ? '' : 's'} that must be preserved.`,
+    });
   }
 
-  const updated = await prisma.student.update({ where: { id: req.params.id }, data: { status: 'inactive' } });
+  await prisma.student.delete({ where: { id: student.id } });
 
   await logAction({
-    actorId: req.user.id, action: 'DEACTIVATE_STUDENT', targetId: student.id, targetType: 'student',
+    actorId: req.user.id, action: 'DELETE_STUDENT', targetId: student.id, targetType: 'student',
+    metadata: { registration_number: student.registration_number, student_name: student.student_name },
   });
 
-  res.json(updated);
+  res.json({ deleted: true });
 }
 
 // ─── PATCH /students/bulk/promote ─────────────────────────────────────────────
@@ -432,38 +441,41 @@ async function bulkPromoteStudents(req, res) {
   res.json({ updated, skipped });
 }
 
-// ─── PATCH /students/bulk/deactivate ──────────────────────────────────────────
+// ─── DELETE /students/bulk ────────────────────────────────────────────────────
+// Permanent (hard) bulk delete. Any selected student that has disciplinary
+// violations is skipped (their history is preserved); the rest are deleted.
 
-async function bulkDeactivateStudents(req, res) {
+async function bulkDeleteStudents(req, res) {
   const { ids } = req.body;
 
   const skipped = [];
-  let updated = 0;
-  const updatedIds = [];
+  let deleted = 0;
+  const deletedIds = [];
 
   await prisma.$transaction(async (tx) => {
     for (const id of ids) {
       const student = await tx.student.findUnique({ where: { id } });
-      if (!student || student.deleted_at) {
+      if (!student) {
         skipped.push({ id, reason: 'not found' });
         continue;
       }
-      if (student.status === 'inactive') {
-        skipped.push({ id, reason: 'already inactive' });
+      const violationCount = await tx.violation.count({ where: { student_id: id } });
+      if (violationCount > 0) {
+        skipped.push({ id, reason: 'has disciplinary records' });
         continue;
       }
-      await tx.student.update({ where: { id }, data: { status: 'inactive' } });
-      updated++;
-      updatedIds.push(id);
+      await tx.student.delete({ where: { id } });
+      deleted++;
+      deletedIds.push(id);
     }
   });
 
   await logAction({
-    actorId: req.user.id, action: 'BULK_DEACTIVATE_STUDENTS', targetType: 'student',
-    metadata: { count: updated, student_ids: updatedIds },
+    actorId: req.user.id, action: 'BULK_DELETE_STUDENTS', targetType: 'student',
+    metadata: { count: deleted, student_ids: deletedIds },
   });
 
-  res.json({ updated, skipped });
+  res.json({ deleted, skipped });
 }
 
 // ─── GET /students/upload-template ────────────────────────────────────────────
@@ -520,6 +532,6 @@ async function downloadTemplate(req, res) {
 
 module.exports = {
   uploadStudents, getUploadLogs, listStudents, getStudent, searchStudents,
-  promoteStudent, deactivateStudent, bulkPromoteStudents, bulkDeactivateStudents,
+  promoteStudent, deleteStudent, bulkPromoteStudents, bulkDeleteStudents,
   downloadTemplate,
 };

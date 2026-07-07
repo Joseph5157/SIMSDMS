@@ -4,7 +4,7 @@ const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
 const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { promoteSchema, bulkPromoteSchema, bulkDeactivateSchema } = require('../schemas/students.schema');
+const { promoteSchema, bulkPromoteSchema, bulkDeleteSchema } = require('../schemas/students.schema');
 const ctrl = require('../controllers/students.controller');
 
 const router = Router();
@@ -62,13 +62,13 @@ router.get('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.getStude
 // PATCH /students/bulk/promote — Admin only (MUST be before /:id/promote — see note above)
 router.patch('/bulk/promote', authorize('admin', 'super_admin'), validate(bulkPromoteSchema), asyncHandler(ctrl.bulkPromoteStudents));
 
-// PATCH /students/bulk/deactivate — Admin only (MUST be before /:id/deactivate — see note above)
-router.patch('/bulk/deactivate', authorize('admin', 'super_admin'), validate(bulkDeactivateSchema), asyncHandler(ctrl.bulkDeactivateStudents));
+// DELETE /students/bulk — Admin only (MUST be before /:id — literal segment first)
+router.delete('/bulk', authorize('admin', 'super_admin'), validate(bulkDeleteSchema), asyncHandler(ctrl.bulkDeleteStudents));
 
 // PATCH /students/:id/promote — Admin only
 router.patch('/:id/promote', authorize('admin', 'super_admin'), validate(promoteSchema), asyncHandler(ctrl.promoteStudent));
 
-// PATCH /students/:id/deactivate — Admin only
-router.patch('/:id/deactivate', authorize('admin', 'super_admin'), asyncHandler(ctrl.deactivateStudent));
+// DELETE /students/:id — Admin only (permanent hard delete)
+router.delete('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.deleteStudent));
 
 module.exports = router;

@@ -10,8 +10,8 @@ const bulkPromoteSchema = promoteSchema.extend({
   ids: z.array(z.string()).min(1),
 });
 
-const bulkDeactivateSchema = z.object({
+const bulkDeleteSchema = z.object({
   ids: z.array(z.string()).min(1),
 });
 
-module.exports = { promoteSchema, bulkPromoteSchema, bulkDeactivateSchema };
+module.exports = { promoteSchema, bulkPromoteSchema, bulkDeleteSchema };
