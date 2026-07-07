@@ -41,6 +41,20 @@ export default function ProfileDrawer({ open, onClose, user }) {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  async function handleAvatarSelect(avatarValue) {
+    setForm((f) => ({ ...f, avatar: avatarValue }));
+    try {
+      await updateProfile.mutateAsync({
+        id: user.id,
+        data: { avatar: avatarValue },
+      });
+      toast({ message: 'Avatar updated.' });
+      onClose();
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed to update avatar.', type: 'error' });
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     try {
@@ -100,11 +114,12 @@ export default function ProfileDrawer({ open, onClose, user }) {
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, avatar: opt.value }))}
+                  onClick={() => handleAvatarSelect(opt.value)}
+                  disabled={updateProfile.isPending}
                   aria-pressed={selected}
                   aria-label={opt.label}
                   title={opt.label}
-                  className="flex flex-col items-center gap-1 py-2 rounded-[var(--radius-lg)] cursor-pointer transition-colors"
+                  className="flex flex-col items-center gap-1 py-2 rounded-[var(--radius-lg)] cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     border: selected ? '2px solid var(--brand)' : '2px solid var(--border)',
                     background: selected ? 'var(--color-blue-50)' : 'var(--surface-page)',
