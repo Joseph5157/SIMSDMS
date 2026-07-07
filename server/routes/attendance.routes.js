@@ -13,6 +13,9 @@ router.use(authenticate);
 // GET /attendance/live — Admin (before /:dutySlotId to avoid param conflict)
 router.get('/live', authorize('admin', 'super_admin'), asyncHandler(ctrl.getLive));
 
+// GET /attendance/mine/summary — Faculty's own personalized attendance dashboard
+router.get('/mine/summary', authorize('faculty'), asyncHandler(ctrl.getMySummary));
+
 // POST /attendance/:dutySlotId/check-in — Faculty
 router.post('/:dutySlotId/check-in', authorize('faculty'), asyncHandler(ctrl.checkIn));
 

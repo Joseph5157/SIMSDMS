@@ -12,6 +12,17 @@ export function useLiveAttendance() {
   });
 }
 
+export function useMyAttendanceSummary(year, month) {
+  return useQuery({
+    queryKey: ['myAttendanceSummary', year, month],
+    queryFn: async () => {
+      const res = await api.get('/attendance/mine/summary', { params: { year, month } });
+      return res.data;
+    },
+    enabled: !!year && !!month,
+  });
+}
+
 export function useAttendance(dutySlotId) {
   return useQuery({
     queryKey: ['attendance', dutySlotId],
@@ -32,6 +43,7 @@ export function useCheckIn() {
       qc.invalidateQueries({ queryKey: ['liveAttendance'] });
       qc.invalidateQueries({ queryKey: ['attendance'] });
       qc.invalidateQueries({ queryKey: ['dutySlots'] });
+      qc.invalidateQueries({ queryKey: ['myAttendanceSummary'] });
     },
   });
 }
@@ -44,6 +56,7 @@ export function useCheckOut() {
       qc.invalidateQueries({ queryKey: ['liveAttendance'] });
       qc.invalidateQueries({ queryKey: ['attendance'] });
       qc.invalidateQueries({ queryKey: ['dutySlots'] });
+      qc.invalidateQueries({ queryKey: ['myAttendanceSummary'] });
     },
   });
 }

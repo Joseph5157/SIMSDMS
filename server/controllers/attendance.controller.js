@@ -1,6 +1,6 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
-const { nowInIST, istDayRangeUTC, isSlotToday } = require('../lib/time');
+const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16,6 +16,15 @@ function resolveInStatus(sessionType, cfg) {
     : cfg.late_threshold_afternoon_min;
   const ist = nowInIST();
   return ist.hour * 60 + ist.minute > thresholdHour * 60 + thresholdMin ? 'late' : 'normal';
+}
+
+// Same month-range convention as duty-slots.controller.js's monthDateRange —
+// duty_date is a @db.Date column (no time component), stored as UTC midnight.
+function monthDateRange(year, month) {
+  return {
+    gte: new Date(year, month - 1, 1),
+    lte: new Date(year, month, 0, 23, 59, 59, 999),
+  };
 }
 
 // Fetches the duty slot and verifies the requesting faculty is either the
@@ -219,6 +228,97 @@ async function getLive(req, res) {
   });
 }
 
+// ─── GET /attendance/mine/summary ─────────────────────────────────────────────
+// Personalized attendance dashboard for the logged-in faculty member — their own
+// duty slots (assigned or covered) for one month, joined with attendance, plus
+// aggregate counts overall and per session. Late/not-checked-in/auto-out are all
+// derived from the same admin-configured system_config thresholds used by the
+// admin live dashboard (getLive) and check-in flow — never hardcoded here.
+
+async function getMySummary(req, res) {
+  const ist = nowInIST();
+  const year  = req.query.year  !== undefined ? parseInt(req.query.year, 10)  : ist.year;
+  const month = req.query.month !== undefined ? parseInt(req.query.month, 10) : ist.month;
+
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Invalid year.' });
+  }
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    return res.status(400).json({ error: true, code: 'BAD_REQUEST', message: 'Month must be between 1 and 12.' });
+  }
+
+  const cfg      = await settingsService.getSettings();
+  const todayStr = formatDateIST(new Date());
+  const nowMins  = ist.hour * 60 + ist.minute;
+
+  const slots = await prisma.dutySlot.findMany({
+    where: {
+      duty_date: monthDateRange(year, month),
+      OR: [{ faculty_id: req.user.id }, { covered_by: req.user.id }],
+    },
+    include: { attendance: true },
+    orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
+  });
+
+  // Mirrors getLive's resolveNoAttendanceStatus, extended across past/future
+  // dates: a past slot's cutoff has necessarily already passed (not_checked_in),
+  // a future slot hasn't started yet (upcoming), only "today" needs the cutoff check.
+  function resolveAttendanceStatus(slot) {
+    if (slot.attendance?.out_time) return 'checked_out';
+    if (slot.attendance?.in_time)  return 'checked_in';
+
+    const slotDateStr = formatDateIST(slot.duty_date);
+    if (slotDateStr > todayStr) return 'upcoming';
+    if (slotDateStr < todayStr) return 'not_checked_in';
+
+    const cutoffHour = slot.session_type === 'morning'
+      ? cfg.not_checked_in_morning_hour
+      : cfg.not_checked_in_afternoon_hour;
+    const cutoffMin  = slot.session_type === 'morning'
+      ? cfg.not_checked_in_morning_min
+      : cfg.not_checked_in_afternoon_min;
+    return nowMins < cutoffHour * 60 + cutoffMin ? 'upcoming' : 'not_checked_in';
+  }
+
+  const history = slots.map((s) => ({
+    slot_id:           s.id,
+    duty_date:         s.duty_date,
+    session_type:      s.session_type,
+    slot_status:       s.status,
+    attendance_status: resolveAttendanceStatus(s),
+    in_time:           s.attendance?.in_time    ?? null,
+    out_time:          s.attendance?.out_time   ?? null,
+    in_status:         s.attendance?.in_status  ?? null,
+    out_status:        s.attendance?.out_status ?? null,
+    auto_out:          s.attendance?.auto_out   ?? false,
+  }));
+
+  function tally(records) {
+    return {
+      total:          records.length,
+      checked_in:     records.filter((r) => !!r.in_time).length,
+      checked_out:    records.filter((r) => !!r.out_time).length,
+      late:           records.filter((r) => r.in_status === 'late').length,
+      not_checked_in: records.filter((r) => r.attendance_status === 'not_checked_in').length,
+      auto_out:       records.filter((r) => r.auto_out).length,
+    };
+  }
+
+  const today = history.find((h) => formatDateIST(h.duty_date) === todayStr) ?? null;
+
+  res.json({
+    year,
+    month,
+    today,
+    summary: {
+      ...tally(history),
+      morning:   tally(history.filter((h) => h.session_type === 'morning')),
+      afternoon: tally(history.filter((h) => h.session_type === 'afternoon')),
+    },
+    data: history,
+  });
+}
+
 // ─── GET /attendance/:dutySlotId ──────────────────────────────────────────────
 
 async function getAttendance(req, res) {
@@ -282,4 +382,4 @@ async function overrideAttendance(req, res) {
   res.json(attendance);
 }
 
-module.exports = { checkIn, checkOut, getLive, getAttendance, overrideAttendance };
+module.exports = { checkIn, checkOut, getLive, getMySummary, getAttendance, overrideAttendance };

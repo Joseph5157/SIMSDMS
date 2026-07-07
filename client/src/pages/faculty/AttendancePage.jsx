@@ -1,26 +1,42 @@
+import { useState } from 'react';
 import Layout, { PageHeader, Card, CardBody } from '../../components/Layout';
 import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
+import StatCard from '../../components/ui/StatCard';
 import EmptyState from '../../components/ui/EmptyState';
+import Skeleton from '../../components/ui/Skeleton';
 import { ClipboardList } from 'lucide-react';
 import { useToast } from '../../components/ui/Toast';
-import { useMonthSlots } from '../../hooks/useDutySlots';
-import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
+import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 
-function SlotAttendanceCard({ slot }) {
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+function todayIST() {
+  return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+function isoDate(d) {
+  return new Date(d).toISOString().slice(0, 10);
+}
+
+// ── One row per duty slot in the history list — check in/out actions only
+// apply to today's own slot; past/future slots are read-only history. ──
+function AttendanceHistoryCard({ record }) {
   const toast = useToast();
-  const { data: att, isLoading } = useAttendance(slot.id);
   const checkIn  = useCheckIn();
   const checkOut = useCheckOut();
+  const isToday  = isoDate(record.duty_date) === todayIST();
 
-  const dateStr = new Date(slot.duty_date).toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' });
+  const dateStr = new Date(record.duty_date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
 
   async function handleIn() {
-    try { await checkIn.mutateAsync(slot.id); toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
+    try { await checkIn.mutateAsync(record.slot_id); toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
     catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
   }
   async function handleOut() {
-    try { await checkOut.mutateAsync(slot.id); toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
+    try { await checkOut.mutateAsync(record.slot_id); toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
     catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
   }
 
@@ -29,46 +45,80 @@ function SlotAttendanceCard({ slot }) {
       <div className="flex items-start justify-between mb-3">
         <div>
           <p className="font-semibold text-[var(--text-primary)]">{dateStr}</p>
-          <p className="text-[length:13px] text-[var(--text-muted)] capitalize">{slot.session_type} session</p>
+          <p className="text-[length:13px] text-[var(--text-muted)] capitalize">{record.session_type} session</p>
         </div>
-        <Badge status={slot.status} />
+        <Badge status={record.slot_status} />
       </div>
 
-      {isLoading ? <p className="text-[length:13px] text-[var(--text-muted)]">Loading attendance…</p> : (
-        <div className="flex items-center gap-4">
-          <div className="text-[length:13px]">
-            <p className="text-[var(--text-muted)] text-xs">Check-in</p>
-            <p className="font-medium">{att?.in_time ? new Date(att.in_time).toLocaleTimeString() : '—'}</p>
-            {att?.in_status && <Badge status={att.in_status} />}
-          </div>
-          <div className="text-[length:13px]">
-            <p className="text-[var(--text-muted)] text-xs">Check-out</p>
-            <p className="font-medium">{att?.out_time ? new Date(att.out_time).toLocaleTimeString() : '—'}</p>
-            {att?.auto_out && <span className="text-xs text-[var(--color-amber-solid)]">Auto</span>}
-          </div>
-          <div className="ml-auto flex gap-2">
-            {!att?.in_time && (
-              <Button size="sm" onClick={handleIn} loading={checkIn.isPending}>Check In</Button>
-            )}
-            {att?.in_time && !att?.out_time && (
-              <Button size="sm" variant="default" onClick={handleOut} loading={checkOut.isPending}>Check Out</Button>
-            )}
-          </div>
+      <div className="flex items-center gap-4">
+        <div className="text-[length:13px]">
+          <p className="text-[var(--text-muted)] text-xs">Check-in</p>
+          <p className="font-medium">{record.in_time ? new Date(record.in_time).toLocaleTimeString() : '—'}</p>
+          {record.in_status && <Badge status={record.in_status} />}
         </div>
-      )}
+        <div className="text-[length:13px]">
+          <p className="text-[var(--text-muted)] text-xs">Check-out</p>
+          <p className="font-medium">{record.out_time ? new Date(record.out_time).toLocaleTimeString() : '—'}</p>
+          {record.auto_out && <span className="text-xs text-[var(--color-amber-solid)]">Auto</span>}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {!record.in_time && !record.out_time && (
+            <Badge status={record.attendance_status} />
+          )}
+          {isToday && !record.in_time && (
+            <Button size="sm" onClick={handleIn} loading={checkIn.isPending}>Check In</Button>
+          )}
+          {isToday && record.in_time && !record.out_time && (
+            <Button size="sm" variant="default" onClick={handleOut} loading={checkOut.isPending}>Check Out</Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SessionBreakdownCard({ label, stats }) {
+  return (
+    <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-4">
+      <p className="text-[length:12px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] mb-3">{label}</p>
+      <div className="grid grid-cols-2 gap-y-2 text-[length:13px]">
+        <span className="text-[var(--text-muted)]">Checked in</span>
+        <span className="text-right font-semibold text-[var(--text-primary)]">{stats.checked_in}</span>
+        <span className="text-[var(--text-muted)]">Checked out</span>
+        <span className="text-right font-semibold text-[var(--text-primary)]">{stats.checked_out}</span>
+        <span className="text-[var(--text-muted)]">Late</span>
+        <span className="text-right font-semibold text-[var(--text-primary)]">{stats.late}</span>
+        <span className="text-[var(--text-muted)]">Not checked in</span>
+        <span className="text-right font-semibold text-[var(--text-primary)]">{stats.not_checked_in}</span>
+        <span className="text-[var(--text-muted)]">Auto clock-out</span>
+        <span className="text-right font-semibold text-[var(--text-primary)]">{stats.auto_out}</span>
+      </div>
     </div>
   );
 }
 
 export default function AttendancePage({ user }) {
-  const now   = new Date();
-  const { data } = useMonthSlots(now.getFullYear(), now.getMonth() + 1);
-  const slots = data?.data ?? [];
+  const now = new Date();
+  const [year, setYear]   = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const todayStr = now.toISOString().slice(0, 10);
-  const today    = slots.filter(s => new Date(s.duty_date).toISOString().slice(0, 10) === todayStr);
-  const upcoming = slots.filter(s => new Date(s.duty_date) > now);
-  const past     = slots.filter(s => new Date(s.duty_date) < now && new Date(s.duty_date).toISOString().slice(0, 10) !== todayStr);
+  const { data, isLoading } = useMyAttendanceSummary(year, month);
+  const records = data?.data ?? [];
+  const summary = data?.summary;
+  const today   = data?.today;
+
+  const todayStr = todayIST();
+  const upcoming = records.filter((r) => isoDate(r.duty_date) > todayStr);
+  const past     = records.filter((r) => isoDate(r.duty_date) < todayStr);
+
+  function prevMonth() {
+    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
+    else setMonth((m) => m - 1);
+  }
+  function nextMonth() {
+    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
+    else setMonth((m) => m + 1);
+  }
 
   function renderGroup(label, group) {
     if (!group.length) return null;
@@ -76,7 +126,7 @@ export default function AttendancePage({ user }) {
       <div className="mb-6">
         <h3 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-3">{label}</h3>
         <div className="space-y-3">
-          {group.map((s) => <SlotAttendanceCard key={s.id} slot={s} />)}
+          {group.map((r) => <AttendanceHistoryCard key={r.slot_id} record={r} />)}
         </div>
       </div>
     );
@@ -84,22 +134,53 @@ export default function AttendancePage({ user }) {
 
   return (
     <Layout user={user}>
-      <PageHeader title="My Attendance" subtitle="Check in and out for your duty sessions" />
-      {!slots.length ? (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon={ClipboardList}
-              title="No duty slots this month"
-              subtitle="The admin will assign your duty slots when the scheduling window opens."
-            />
-          </CardBody>
-        </Card>
+      <PageHeader title="My Attendance" subtitle="Your own check-ins, check-outs, and monthly attendance summary" />
+
+      {/* ── Month nav ── */}
+      <div className="flex items-center justify-between mb-5">
+        <button onClick={prevMonth} className="w-8 h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">‹</button>
+        <p className="font-bold text-[15px] text-[var(--text-primary)]">{MONTH_NAMES[month - 1]} {year}</p>
+        <button onClick={nextMonth} className="w-8 h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">›</button>
+      </div>
+
+      {isLoading ? (
+        <Skeleton height="200px" className="rounded-2xl mb-6" />
       ) : (
         <>
-          {renderGroup("Today's duty", today)}
-          {renderGroup('Upcoming', upcoming)}
-          {renderGroup('Past slots', past)}
+          {/* ── Monthly summary ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-4">
+            <StatCard compact label="Checked in"     value={summary?.checked_in ?? 0}     accent="blue"   icon="✓" />
+            <StatCard compact label="Checked out"    value={summary?.checked_out ?? 0}    accent="green"  icon="✔" />
+            <StatCard compact label="Late arrivals"  value={summary?.late ?? 0}           accent="yellow" icon="⏰" />
+            <StatCard compact label="Not checked in" value={summary?.not_checked_in ?? 0} accent="red"    icon="⚠" />
+            <StatCard compact label="Auto clock-out" value={summary?.auto_out ?? 0}       accent="indigo" icon="🔔" />
+          </div>
+
+          {/* ── Morning / afternoon breakdown ── */}
+          {summary && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              <SessionBreakdownCard label="Morning session"   stats={summary.morning} />
+              <SessionBreakdownCard label="Afternoon session" stats={summary.afternoon} />
+            </div>
+          )}
+
+          {!records.length ? (
+            <Card>
+              <CardBody>
+                <EmptyState
+                  icon={ClipboardList}
+                  title="No duty slots this month"
+                  subtitle="The admin will assign your duty slots when the scheduling window opens."
+                />
+              </CardBody>
+            </Card>
+          ) : (
+            <>
+              {today && renderGroup("Today's duty", [today])}
+              {renderGroup('Upcoming', upcoming)}
+              {renderGroup('Past attendance history', past)}
+            </>
+          )}
         </>
       )}
     </Layout>
