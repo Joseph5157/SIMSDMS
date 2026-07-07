@@ -15,6 +15,8 @@ import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
 import { ROUTES, ROLES } from '../utils/constants';
 import NotificationBell from './NotificationBell';
+import ProfileDrawer from './ProfileDrawer';
+import UserAvatar from './ui/UserAvatar';
 import classes from './Layout.module.css';
 
 // ── Nav link definitions ───────────────────────────────────────────────────────
@@ -101,11 +103,6 @@ function getRoleLabel(role) {
   return '';
 }
 
-function getInitials(name) {
-  if (!name) return '?';
-  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-}
-
 // ── Sidebar nav link ───────────────────────────────────────────────────────────
 
 function NavItem({ to, label, Icon, onClick }) {
@@ -127,6 +124,7 @@ function NavItem({ to, label, Icon, onClick }) {
 
 export default function Layout({ user, children }) {
   const [navOpened, { open: openNav, close: closeNav }] = useDisclosure(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const logout   = useLogout();
   const [theme, setThemeState] = useState(() => getTheme());
@@ -164,13 +162,18 @@ export default function Layout({ user, children }) {
 
       {/* Footer — user card + actions */}
       <div className={classes.sidebarFooter}>
-        <div className={classes.userCard}>
-          <div className={classes.userAvatar}>{getInitials(user?.name)}</div>
+        <button
+          type="button"
+          onClick={() => setProfileOpen(true)}
+          className={classes.userCard}
+          aria-label="Open profile settings"
+        >
+          <UserAvatar user={user} size={32} />
           <div className={classes.userInfo}>
             <span className={classes.userName}>{user?.name}</span>
             <span className={classes.userRole}>{getRoleLabel(user?.role)}</span>
           </div>
-        </div>
+        </button>
         <div className={classes.footerActions}>
           <button type="button" onClick={cycleTheme} className={classes.themeBtn}>
             <span className="text-[13px]">{getThemeIcon()}</span>
@@ -272,6 +275,8 @@ export default function Layout({ user, children }) {
           </RouterNavLink>
         ))}
       </div>
+
+      <ProfileDrawer open={profileOpen} onClose={() => setProfileOpen(false)} user={user} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
 import { getCacheKey, setCacheKey } from '../lib/cache';
+import { saveUserToStorage } from '../lib/auth';
 
 export function useUsers(filters = {}) {
   // Generate cache key based on filters
@@ -63,6 +64,21 @@ export function useResetUserLogin() {
   return useMutation({
     mutationFn: (id) => api.post(`/admin/users/${id}/reset-login`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
+// Self-service profile update (name/department/designation/avatar). Keeps the
+// shared `currentUser` cache (and its sessionStorage mirror) in sync so the
+// sidebar and any other consumer re-render with the new details immediately.
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/users/${id}/profile`, data),
+    onSuccess: (res) => {
+      saveUserToStorage(res.data);
+      qc.setQueryData(['currentUser'], res.data);
+      qc.invalidateQueries({ queryKey: ['users'] });
+    },
   });
 }
 

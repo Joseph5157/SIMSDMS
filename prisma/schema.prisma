@@ -68,6 +68,8 @@ model User {
   role                    Role
   department              String?    @db.VarChar(100)
   designation             String?    @db.VarChar(100)
+  // One of: male_professor, female_professor, admin, super_admin. Null = initials fallback.
+  avatar                  String?    @db.VarChar(30)
   telegram_id             String?    @unique @db.VarChar(50)
   telegram_verified       Boolean    @default(false)
   otp_failed_attempts     Int        @default(0) @db.SmallInt

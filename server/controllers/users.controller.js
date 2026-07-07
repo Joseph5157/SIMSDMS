@@ -15,6 +15,7 @@ const safeUser = (u) => ({
   role: u.role,
   department: u.department,
   designation: u.designation,
+  avatar: u.avatar,
   telegram_id: u.telegram_id,
   telegram_verified: u.telegram_verified,
   status: u.status,
@@ -127,7 +128,7 @@ async function updateProfile(req, res) {
   }
 
   // Whitelist allowed editable fields to prevent mass assignment
-  const allowedFields = ['name', 'phone', 'department', 'designation'];
+  const allowedFields = ['name', 'phone', 'department', 'designation', 'avatar'];
   const updateData = {};
 
   for (const field of allowedFields) {
