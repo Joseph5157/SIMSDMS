@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, AlignLeft, MessageSquare } from 'lucide-react';
 import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 import { useSendMessage } from '../hooks/useMessages';
@@ -31,12 +31,25 @@ const textareaClassName = `${inputClassName} h-auto py-3 px-3.5 leading-[1.5] re
 
 const textareaInline = { fontSize: 16, fontFamily: 'inherit' };
 
-export default function ComposeDrawer({ open, onClose }) {
+export default function ComposeDrawer({ open, onClose, prefill = null }) {
   const toast = useToast();
   const send = useSendMessage();
   const { data: usersData } = useMessageRecipients();
   const [form, setForm] = useState({ to_user_id: '', subject: '', body: '' });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Seed the form each time the drawer opens: a plain compose opens empty, while
+  // a pre-filled flow (e.g. "Request reassignment") opens with recipient/subject/body set.
+  useEffect(() => {
+    if (open) {
+      setForm({
+        to_user_id: prefill?.to_user_id ?? '',
+        subject:    prefill?.subject ?? '',
+        body:       prefill?.body ?? '',
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   async function handleSubmit(e) {
     e.preventDefault();

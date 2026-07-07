@@ -7,12 +7,14 @@ import { Button } from '@mantine/core';
 import { useMonthSlots, useReassignedAway } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
+import { useMessageRecipients } from '../../hooks/useUsers';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
+import ComposeDrawer from '../../components/ComposeDrawer';
 import { ROUTES } from '../../utils/constants';
 
 function todayIST() {
@@ -100,6 +102,26 @@ export default function DashboardPage({ user }) {
 
   // True when this slot was reassigned TO the current faculty (they are the new owner).
   const wasReassignedToMe = (s) => s.reassignments?.[0]?.to_faculty_id === user?.id;
+
+  // "Request reassignment" — opens the message composer pre-filled to an admin.
+  // Plain messaging only (no automation): the admin still reassigns manually.
+  const [reassignReqSlot, setReassignReqSlot] = useState(null);
+  const { data: directory } = useMessageRecipients();
+  const recipients = directory?.data ?? [];
+  const primaryAdmin = recipients.find((u) => u.role === 'admin')
+    ?? recipients.find((u) => u.role === 'super_admin');
+
+  function buildReassignPrefill(slot) {
+    if (!slot) return null;
+    const d = new Date(slot.duty_date);
+    const dateShort = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    const dateLong  = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+    return {
+      to_user_id: primaryAdmin?.id ?? '',
+      subject: `Duty reassignment request — ${dateShort} ${slot.session_type}`,
+      body: `Sir/Madam,\n\nI am unable to attend my ${slot.session_type} duty on ${dateLong}. Kindly reassign it to another faculty member.\n\nReason: `,
+    };
+  }
 
   const canDoViolation = todaySlot && todaySlot.status === 'scheduled';
 
@@ -354,7 +376,14 @@ export default function DashboardPage({ user }) {
                         : ''}
                     </p>
                   </div>
-                  {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
+                    <button
+                      onClick={() => setReassignReqSlot(s)}
+                      style={{ fontSize: 'var(--text-nano)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                      Request reassignment
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -431,6 +460,11 @@ export default function DashboardPage({ user }) {
       </div>
 
       <RecordViolationModal open={showRecordViolation} onClose={() => setShowRecordViolation(false)} />
+      <ComposeDrawer
+        open={!!reassignReqSlot}
+        onClose={() => setReassignReqSlot(null)}
+        prefill={buildReassignPrefill(reassignReqSlot)}
+      />
     </Layout>
   );
 }
