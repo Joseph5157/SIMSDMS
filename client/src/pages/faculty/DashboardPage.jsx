@@ -16,6 +16,7 @@ import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
 import ComposeDrawer from '../../components/ComposeDrawer';
 import { ROUTES } from '../../utils/constants';
+import { IconRefresh } from '@tabler/icons-react';
 
 function todayIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -359,30 +360,40 @@ export default function DashboardPage({ user }) {
             {upcoming.map((s) => {
               const d = new Date(s.duty_date);
               return (
-                <div key={s.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
+                <div key={s.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
                   <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--brand)' }} />
-                  <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-blue-800)', lineHeight: 1 }}>{d.getDate()}</span>
-                    <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--brand)', textTransform: 'uppercase' }}>
-                      {d.toLocaleDateString('en-IN', { month: 'short' })}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
+                      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-blue-800)', lineHeight: 1 }}>{d.getDate()}</span>
+                      <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--brand)', textTransform: 'uppercase' }}>
+                        {d.toLocaleDateString('en-IN', { month: 'short' })}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{s.session_type} session</p>
+                      <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
+                        {d.toLocaleDateString('en-IN', { weekday: 'long' })}
+                        {wasReassignedToMe(s) && s.reassignments[0].fromFaculty?.name
+                          ? ` · reassigned from ${s.reassignments[0].fromFaculty.name}`
+                          : ''}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{s.session_type} session</p>
-                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
-                      {d.toLocaleDateString('en-IN', { weekday: 'long' })}
-                      {wasReassignedToMe(s) && s.reassignments[0].fromFaculty?.name
-                        ? ` · reassigned from ${s.reassignments[0].fromFaculty.name}`
-                        : ''}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
-                    <button
+                  {/* Request reassignment — its own row so the button reads as a clear, tappable action */}
+                  <div className="mt-3 pt-3 border-t border-[var(--divider)] flex justify-end">
+                    <Button
+                      size="sm"
+                      variant="light"
+                      color="blue"
+                      leftSection={<IconRefresh size={15} stroke={2} />}
                       onClick={() => setReassignReqSlot(s)}
-                      style={{ fontSize: 'var(--text-nano)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                      styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
+                    >
                       Request reassignment
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
