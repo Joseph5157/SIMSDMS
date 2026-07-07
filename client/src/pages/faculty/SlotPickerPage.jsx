@@ -5,6 +5,8 @@ import Skeleton from '../../components/ui/Skeleton';
 import { Button, Modal, Text, Group } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
+import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
+import { formatHourMin } from '../../utils/time';
 
 const MONTH_NAMES = [
   'January','February','March','April','May','June',
@@ -40,6 +42,14 @@ export default function SlotPickerPage({ user }) {
 
   const { data: available, isLoading: loadingAvail } = useAvailableSlots(year, month);
   const { data: mySlots,   isLoading: loadingMine }  = useMonthSlots(year, month);
+  const { data: timingSettings } = useDutyTimingSettings();
+
+  const morningStartLabel = timingSettings
+    ? formatHourMin(timingSettings.session_start_morning_hour, timingSettings.session_start_morning_min)
+    : '9:00 AM';
+  const afternoonStartLabel = timingSettings
+    ? formatHourMin(timingSettings.session_start_afternoon_hour, timingSettings.session_start_afternoon_min)
+    : '2:00 PM';
 
   const pick   = usePickSlot();
   const unpick = useUnpickSlot();
@@ -327,7 +337,7 @@ export default function SlotPickerPage({ user }) {
                     onClick={() => handlePick(selected, 'morning')}
                     leftSection={<span style={{ fontSize: 11, background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>AM</span>}
                   >
-                    Pick Morning (9:00 AM)
+                    Pick Morning ({morningStartLabel})
                   </Button>
                 ) : null}
 
@@ -348,7 +358,7 @@ export default function SlotPickerPage({ user }) {
                     style={{ background: 'var(--color-orange-bg)', color: 'var(--color-orange-solid)', border: '1px solid var(--color-orange-border)' }}
                     leftSection={<span style={{ fontSize: 11, background: 'var(--color-orange-border)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>PM</span>}
                   >
-                    Pick Afternoon (2:00 PM)
+                    Pick Afternoon ({afternoonStartLabel})
                   </Button>
                 ) : null}
 

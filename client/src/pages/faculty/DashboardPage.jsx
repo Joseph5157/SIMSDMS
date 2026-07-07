@@ -9,6 +9,8 @@ import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
 import { useMyCoverRequests } from '../../hooks/useCoverRequests';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
+import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
+import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
@@ -57,6 +59,7 @@ export default function DashboardPage({ user }) {
   const { data: violationsData, isLoading: violationsLoading } = useMyViolations({ limit: 5 });
   const { data: inboxData, isLoading: inboxLoading }            = useInbox({ limit: 5 });
   const { data: coverData, isLoading: coverLoading }            = useMyCoverRequests();
+  const { data: timingSettings } = useDutyTimingSettings();
 
   const slots    = slotsData?.data ?? [];
   const today    = todayIST();
@@ -197,7 +200,12 @@ export default function DashboardPage({ user }) {
                     {todaySlot.session_type} session
                   </p>
                   <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-                    {todaySlot.session_type === 'morning' ? 'Starts 9:00 AM' : 'Starts 2:00 PM'}
+                    Starts {timingSettings
+                      ? formatHourMin(
+                          timingSettings[`session_start_${todaySlot.session_type}_hour`],
+                          timingSettings[`session_start_${todaySlot.session_type}_min`],
+                        )
+                      : (todaySlot.session_type === 'morning' ? '9:00 AM' : '2:00 PM')}
                   </p>
                 </div>
                 <Badge status={todaySlot.status} />

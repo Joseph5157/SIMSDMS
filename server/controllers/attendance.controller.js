@@ -47,8 +47,9 @@ async function checkIn(req, res) {
     });
   }
 
-  // Session-window enforcement (ISSUE-04): reject if current IST time is more than
-  // 30 minutes before session start or after the configured auto-checkout time.
+  // Session-window enforcement: reject check-in before the configured session
+  // start time, or after the configured auto-checkout time. No early grace
+  // period — faculty must wait until the session actually starts.
   const cfg = await settingsService.getSettings();
   const ist = nowInIST();
   const nowMins = ist.hour * 60 + ist.minute;
@@ -64,10 +65,18 @@ async function checkIn(req, res) {
   const autoCheckoutMin  = slot.session_type === 'morning'
     ? cfg.auto_checkout_morning_min
     : cfg.auto_checkout_afternoon_min;
-  const windowOpenMins  = Math.max(0, startHour * 60 + startMin - 30);
+  const windowOpenMins  = startHour * 60 + startMin;
   const windowCloseMins = autoCheckoutHour * 60 + autoCheckoutMin;
 
-  if (nowMins < windowOpenMins || nowMins > windowCloseMins) {
+  if (nowMins < windowOpenMins) {
+    return res.status(409).json({
+      error: true,
+      code: 'BEFORE_SESSION_START',
+      message: 'Check-in is allowed only after the session start time.',
+    });
+  }
+
+  if (nowMins > windowCloseMins) {
     return res.status(409).json({
       error: true,
       code: 'OUTSIDE_SESSION_WINDOW',
