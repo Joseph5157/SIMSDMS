@@ -10,6 +10,16 @@ import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+// Compact at-a-glance count shown in the header band (number + muted label).
+function Stat({ n, label }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-[length:18px] font-extrabold leading-none text-[var(--text-primary)]">{n}</span>
+      <span className="text-[length:11px] uppercase tracking-[0.06em] text-[var(--text-muted)]">{label}</span>
+    </div>
+  );
+}
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -79,7 +89,9 @@ export default function DutySlotsPage({ user }) {
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Duty Slots' }]} />
       <PageHeader title="Duty Slots" subtitle="Monthly slot assignments" />
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="max-w-[1080px] mx-auto">
+      {/* Filters + at-a-glance counts — split totals visible without scrolling */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-4 mb-6">
         <Select
           w={100}
           value={String(year)}
@@ -92,7 +104,11 @@ export default function DutySlotsPage({ user }) {
           onChange={(v) => setMonth(Number(v))}
           data={MONTHS.map((m, i) => ({ value: String(i+1), label: m }))}
         />
-        <span className="text-[length:13px] text-[var(--text-muted)]">{slots.length} slot(s) total</span>
+        <div className="flex items-center gap-5 ml-auto">
+          <Stat n={morning.length} label="Morning" />
+          <Stat n={afternoon.length} label="Afternoon" />
+          <Stat n={slots.length} label="Total" />
+        </div>
       </div>
 
       {/* Mobile card list */}
@@ -133,7 +149,14 @@ export default function DutySlotsPage({ user }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <Badge status={s.status} />
                         {isReassignable(s) && (
-                          <Button size="compact-xs" variant="light" onClick={() => openReassign(s)}>Reassign</Button>
+                          <Button
+                            size="sm"
+                            variant="light"
+                            onClick={() => openReassign(s)}
+                            styles={{ root: { minHeight: 'var(--control-min)' } }}
+                          >
+                            Reassign
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -153,22 +176,22 @@ export default function DutySlotsPage({ user }) {
           <div key={session} className="mb-6">
             <h3 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2 capitalize">{session} slots ({group.length})</h3>
             <Table>
-              <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th className="hidden sm:table-cell">Reassignment</Th><Th>Action</Th></tr></thead>
+              <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th>Action</Th></tr></thead>
               <tbody className="divide-y divide-[var(--divider)]">
-                {isLoading && <EmptyRow cols={6} message="Loading…" />}
-                {isError && <ErrorRow cols={6} onRetry={refetch} />}
-                {!isLoading && !isError && !group.length && <EmptyRow cols={6} message={`No ${session} slots.`} />}
+                {isLoading && <EmptyRow cols={5} message="Loading…" />}
+                {isError && <ErrorRow cols={5} onRetry={refetch} />}
+                {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
                 {group.map((s) => (
                   <tr key={s.id}>
-                    <Td className="font-medium">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>
-                    <Td>{s.faculty?.name}</Td>
+                    <Td className="font-medium whitespace-nowrap">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>
+                    <Td>
+                      <span className="text-[var(--text-primary)]">{s.faculty?.name}</span>
+                      {s.reassignments?.length ? (
+                        <span className="block text-[length:12px] text-[var(--color-indigo-text)] mt-0.5">{reassignedFromLabel(s)}</span>
+                      ) : null}
+                    </Td>
                     <Td>{s.faculty?.department ?? '—'}</Td>
                     <Td><Badge status={s.status} /></Td>
-                    <Td className="hidden sm:table-cell">
-                      {s.reassignments?.length
-                        ? <span className="text-[length:12px] text-[var(--color-indigo-text)]">{reassignedFromLabel(s)}</span>
-                        : '—'}
-                    </Td>
                     <Td>
                       {isReassignable(s)
                         ? <Button size="compact-xs" variant="light" onClick={() => openReassign(s)}>Reassign</Button>
@@ -182,30 +205,6 @@ export default function DutySlotsPage({ user }) {
         );
       })}
       </div>
-
-      <div style={{
-        marginTop: 16, padding: '12px 16px',
-        backgroundColor: 'var(--surface-page)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border)',
-      }}>
-        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)', marginBottom: 6 }}>
-          This month summary
-        </p>
-        <div style={{ display: 'flex', gap: 20 }}>
-          <div>
-            <p style={{ fontSize: 20, fontWeight: 'var(--weight-extra)', color: 'var(--text-primary)' }}>
-              {morning?.length ?? 0}
-            </p>
-            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>Morning</p>
-          </div>
-          <div>
-            <p style={{ fontSize: 20, fontWeight: 'var(--weight-extra)', color: 'var(--text-primary)' }}>
-              {afternoon?.length ?? 0}
-            </p>
-            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>Afternoon</p>
-          </div>
-        </div>
       </div>
 
       {/* Reassign Duty modal */}

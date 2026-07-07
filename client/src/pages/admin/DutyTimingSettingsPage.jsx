@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
-import { NumberInput, Button } from '@mantine/core';
+import { NumberInput, Button, Tooltip } from '@mantine/core';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { useToast } from '../../components/ui/Toast';
 import { useDutyTimingSettings, useUpdateDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -16,23 +17,37 @@ const FIELDS = [
   'auto_checkout_afternoon_hour', 'auto_checkout_afternoon_min',
 ];
 
+const ROWS = [
+  { key: 'session_start', label: 'Session start', description: 'When this session begins' },
+  { key: 'late_threshold', label: 'Late-arrival cutoff', description: 'Check-in after this time is flagged late' },
+  { key: 'not_checked_in', label: 'Not-checked-in cutoff', description: 'Flagged on the live dashboard after this time' },
+  { key: 'auto_checkout', label: 'Auto clock-out', description: 'Unchecked-out faculty are clocked out at this time' },
+];
+
 function TimeRow({ label, description, hourKey, minKey, form, setForm }) {
   return (
-    <div className="flex items-end gap-3">
+    <div className="grid grid-cols-[1fr_64px_64px] items-center gap-x-2 py-2 border-b border-b-[var(--border)] last:border-b-0">
+      <div className="flex items-center gap-1.5 min-w-0 pr-2">
+        <span className="text-[13px] text-[var(--text-secondary)] truncate">{label}</span>
+        <Tooltip label={description} withArrow position="top" multiline w={200}>
+          <IconInfoCircle size={13} className="shrink-0 text-[var(--text-muted)]" />
+        </Tooltip>
+      </div>
       <NumberInput
-        label={label}
-        description={description}
+        aria-label={`${label} hour`}
+        size="sm"
+        hideControls
         min={0} max={23} allowDecimal={false}
         value={form[hourKey]}
         onChange={(v) => setForm((f) => ({ ...f, [hourKey]: typeof v === 'number' ? v : 0 }))}
-        w={100}
       />
       <NumberInput
-        label="Minute"
+        aria-label={`${label} minute`}
+        size="sm"
+        hideControls
         min={0} max={59} allowDecimal={false}
         value={form[minKey]}
         onChange={(v) => setForm((f) => ({ ...f, [minKey]: typeof v === 'number' ? v : 0 }))}
-        w={100}
       />
     </div>
   );
@@ -41,38 +56,23 @@ function TimeRow({ label, description, hourKey, minKey, form, setForm }) {
 function SessionSection({ session, form, setForm }) {
   const label = session === 'morning' ? 'Morning' : 'Afternoon';
   return (
-    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4">
-      <p className="text-sm font-semibold text-[var(--text-primary)] mb-4">{label} session</p>
-      <div className="flex flex-col gap-4">
-        <TimeRow
-          label="Session start (hour)"
-          description="When this session begins"
-          hourKey={`session_start_${session}_hour`}
-          minKey={`session_start_${session}_min`}
-          form={form} setForm={setForm}
-        />
-        <TimeRow
-          label="Late-arrival cutoff (hour)"
-          description="Check-in after this time is flagged late"
-          hourKey={`late_threshold_${session}_hour`}
-          minKey={`late_threshold_${session}_min`}
-          form={form} setForm={setForm}
-        />
-        <TimeRow
-          label="Not-checked-in cutoff (hour)"
-          description="Flagged on the live dashboard after this time"
-          hourKey={`not_checked_in_${session}_hour`}
-          minKey={`not_checked_in_${session}_min`}
-          form={form} setForm={setForm}
-        />
-        <TimeRow
-          label="Auto clock-out (hour)"
-          description="Unchecked-out faculty are clocked out at this time"
-          hourKey={`auto_checkout_${session}_hour`}
-          minKey={`auto_checkout_${session}_min`}
-          form={form} setForm={setForm}
-        />
+    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-3.5">
+      <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">{label} session</p>
+      <div className="grid grid-cols-[1fr_64px_64px] gap-x-2 pb-1">
+        <span />
+        <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] text-center">Hour</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.06em] text-[var(--text-muted)] text-center">Min</span>
       </div>
+      {ROWS.map((row) => (
+        <TimeRow
+          key={row.key}
+          label={row.label}
+          description={row.description}
+          hourKey={`${row.key}_${session}_hour`}
+          minKey={`${row.key}_${session}_min`}
+          form={form} setForm={setForm}
+        />
+      ))}
     </div>
   );
 }
@@ -108,8 +108,8 @@ export default function DutyTimingSettingsPage({ user }) {
       {isLoading || !form ? (
         <p className="text-[var(--text-muted)] text-[length:13px]">Loading…</p>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="max-w-[760px] mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
             <SessionSection session="morning" form={form} setForm={setForm} />
             <SessionSection session="afternoon" form={form} setForm={setForm} />
           </div>
@@ -117,7 +117,7 @@ export default function DutyTimingSettingsPage({ user }) {
           <Button onClick={handleSave} loading={updateSettings.isPending}>
             Save Changes
           </Button>
-        </>
+        </div>
       )}
     </Layout>
   );
