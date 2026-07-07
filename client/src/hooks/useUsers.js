@@ -15,7 +15,10 @@ export function useUsers(filters = {}) {
       setCacheKey(cacheKey, res.data);
       return res.data;
     },
-    initialData: cachedData,
+    // getCacheKey returns null on a miss; passing null as initialData makes React
+    // Query treat it as already-loaded fresh data and skip the fetch (staleTime),
+    // leaving never-before-cached filter combos stuck empty. Coerce to undefined.
+    initialData: cachedData ?? undefined,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 }

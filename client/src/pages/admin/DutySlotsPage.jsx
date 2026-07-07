@@ -4,7 +4,7 @@ import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/
 import { Select, Modal, Textarea, Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useMonthSlots, useReassignSlot } from '../../hooks/useDutySlots';
-import { useUsers } from '../../hooks/useUsers';
+import { useMessageRecipients } from '../../hooks/useUsers';
 import { useToast } from '../../components/ui/Toast';
 import Breadcrumb from '../../components/Breadcrumb';
 
@@ -30,8 +30,9 @@ export default function DutySlotsPage({ user }) {
 
   const toast = useToast();
   const reassign = useReassignSlot();
-  const { data: facultyResp } = useUsers({ role: 'faculty', status: 'active', limit: 100 });
-  const facultyList = facultyResp?.data ?? [];
+  // /users/directory — active users, self excluded; filter to faculty for the picker.
+  const { data: facultyResp } = useMessageRecipients();
+  const facultyList = (facultyResp?.data ?? []).filter((u) => u.role === 'faculty');
 
   const [target, setTarget] = useState(null); // slot being reassigned
   const [toFacultyId, setToFacultyId] = useState(null);
