@@ -145,7 +145,7 @@
   --color-divider:             #f1f5f9;
   --color-text-primary:        #0f172a;
   --color-text-secondary:      #475569;
-  --color-text-muted:          #94a3b8;
+  --color-text-muted:          #64748b; /* slate-500 — AA-compliant muted text on white (~4.6:1) */
   --color-text-on-dark:        #f1f5f9;
 
   /* Status shorthand aliases */
@@ -236,7 +236,7 @@
   /* Text */
   --text-primary:   #0f172a;
   --text-secondary: #475569;
-  --text-muted:     #94a3b8;
+  --text-muted:     #64748b; /* slate-500 — AA-compliant muted text on white (~4.6:1) */
   --text-on-dark:   #f1f5f9;
   --text-on-brand:  #ffffff;
 

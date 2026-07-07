@@ -8,10 +8,14 @@ import { useFlaggedViolations, useCompletionRate, useDutyReassignmentReport } fr
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
+import {
+  IconUsers, IconHourglass, IconRefresh, IconFlag,
+  IconClipboardCheck, IconAlertTriangle, IconChartBar, IconBrandTelegram,
+} from '@tabler/icons-react';
 
 const QUICK_ACTIONS = [
-  { label: 'Student Violations', emoji: '⚠️', path: ROUTES.ADMIN_VIOLATIONS,   tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
-  { label: 'Reports',         emoji: '📊', path: ROUTES.ADMIN_REPORTS,         tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
+  { label: 'Student Violations', Icon: IconAlertTriangle, path: ROUTES.ADMIN_VIOLATIONS,   tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)' },
+  { label: 'Reports',            Icon: IconChartBar,      path: ROUTES.ADMIN_REPORTS,       tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
 ];
 
 export default function AdminDashboardPage({ user }) {
@@ -53,6 +57,7 @@ export default function AdminDashboardPage({ user }) {
 
   return (
     <Layout user={user}>
+      <div className="max-w-[1200px] mx-auto">
       {/* ── Header — compact, left-aligned (matches faculty dashboard) ── */}
       <div className="mb-5 pb-4 border-b border-[var(--border)]">
         <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
@@ -66,7 +71,7 @@ export default function AdminDashboardPage({ user }) {
       {/* ── Loading skeleton ── */}
       {isLoading && (
         <>
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} height="68px" className="rounded-xl" />)}
           </div>
           <Skeleton height="140px" className="rounded-xl mb-3" />
@@ -76,20 +81,20 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── KPI grid ── */}
       {!isLoading && (
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <StatCard compact label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4">
+          <StatCard compact label="Active Faculty"   value={activeFaculty}        accent="blue"   icon={<IconUsers size={14} stroke={1.75} />} sub="On roster" />
           <StatCard compact label="Pending"          value={pendingCount}          accent="yellow"
-            sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-          <StatCard compact label="Reassignments"    value={reassignmentCount}     accent="indigo" icon="🔄"
+            sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon={<IconHourglass size={14} stroke={1.75} />} />
+          <StatCard compact label="Reassignments"    value={reassignmentCount}     accent="indigo" icon={<IconRefresh size={14} stroke={1.75} />}
             sub="This month" />
           <StatCard compact label="Flagged"          value={pendingFlaggedCount}   accent="red"
-            sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
+            sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon={<IconFlag size={14} stroke={1.75} />} />
         </div>
       )}
 
       {/* ── Pending account approvals alert ── */}
       {pendingCount > 0 && (
-        <Alert tone="warning" icon="⏳" className="mb-3"
+        <Alert tone="warning" icon={<IconHourglass size={18} stroke={1.9} style={{ color: 'var(--color-amber-solid)' }} />} className="mb-3"
           title={`${pendingCount} account${pendingCount !== 1 ? 's' : ''} awaiting approval`}
           onClick={() => navigate(ROUTES.ADMIN_USERS)}>
           Tap to review and approve.
@@ -98,15 +103,19 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Pending Telegram invites alert ── */}
       {pendingTelegramCount > 0 && (
-        <Alert tone="telegram" icon="📲" className="mb-3"
+        <Alert tone="telegram" icon={<IconBrandTelegram size={18} stroke={1.9} style={{ color: 'var(--color-cyan-solid)' }} />} className="mb-3"
           title={`${pendingTelegramCount} user${pendingTelegramCount !== 1 ? 's' : ''} haven't linked Telegram yet`}
           onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending_telegram')}>
           Resend invite links from the Users page.
         </Alert>
       )}
 
+      {/* ── Main dashboard grid — single column on mobile, two columns on desktop ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 items-start">
+      {/* Left column */}
+      <div className="flex flex-col gap-3">
       {/* ── Today's attendance ── */}
-      <Card className="mb-3">
+      <Card>
         <CardHeader action={rateDelta !== null ? (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 2,
@@ -123,7 +132,7 @@ export default function AdminDashboardPage({ user }) {
             {' vs last mo'}
           </span>
         ) : null}>
-          📋 Today's attendance
+          <span className="inline-flex items-center gap-1.5"><IconClipboardCheck size={15} stroke={1.75} className="shrink-0" />Today's attendance</span>
         </CardHeader>
         <CardBody className="p-0">
           {!liveSlots.length ? (
@@ -173,10 +182,13 @@ export default function AdminDashboardPage({ user }) {
           )}
         </CardBody>
       </Card>
+      </div>{/* /left column */}
 
+      {/* Right column */}
+      <div className="flex flex-col gap-3">
       {/* ── Recent duty reassignments (this month) ── */}
-      <Card className="mb-3">
-        <CardHeader>🔄 Recent duty reassignments</CardHeader>
+      <Card>
+        <CardHeader><span className="inline-flex items-center gap-1.5"><IconRefresh size={15} stroke={1.75} className="shrink-0" />Recent duty reassignments</span></CardHeader>
         <CardBody className="p-0">
           {!reassignments.length ? (
             <p style={{ padding: '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No reassignments this month.</p>
@@ -206,8 +218,8 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Flagged violations requiring review ── */}
       {pendingFlaggedCount > 0 && (
-        <Card className="mb-4">
-          <CardHeader>⚑ Flagged student violations — needs review</CardHeader>
+        <Card>
+          <CardHeader><span className="inline-flex items-center gap-1.5"><IconFlag size={15} stroke={1.75} className="shrink-0" />Flagged student violations — needs review</span></CardHeader>
           <CardBody className="p-0">
             <div className="max-h-[200px] overflow-y-auto">
               {pendingFlaggedViolations.map((v) => (
@@ -241,13 +253,15 @@ export default function AdminDashboardPage({ user }) {
           </CardBody>
         </Card>
       )}
+      </div>{/* /right column */}
+      </div>{/* /main dashboard grid */}
 
       {/* ── Quick actions ── */}
       <div>
         <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 10 }}>
           Quick actions
         </p>
-        <div className="grid grid-cols-2 gap-[10px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
           {QUICK_ACTIONS.map((item) => (
             <button
               key={item.path}
@@ -255,15 +269,16 @@ export default function AdminDashboardPage({ user }) {
               className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-2xl)] px-[14px] py-[14px] cursor-pointer text-left transition-all hover:border-[var(--brand)] hover:-translate-y-px"
               style={{ minHeight: 'var(--control-min)' }}
             >
-              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center text-[length:19px]"
+              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center"
                 style={{ background: item.tint }}>
-                {item.emoji}
+                <item.Icon size={20} stroke={1.9} style={{ color: item.ink }} />
               </span>
               <span style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>{item.label}</span>
             </button>
           ))}
         </div>
       </div>
+      </div>{/* /max-width wrapper */}
     </Layout>
   );
 }

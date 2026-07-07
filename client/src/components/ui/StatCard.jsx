@@ -56,7 +56,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
       {/* Label */}
       <p
         className="m-0 text-[length:var(--text-micro)] font-[600] uppercase tracking-[0.06em] flex items-center gap-1"
-        style={{ color: 'var(--color-slate-400)' }}
+        style={{ color: 'var(--color-slate-500)' }}
       >
         {icon && <span className="text-[13px] shrink-0">{icon}</span>}
         <span className="leading-[1.3]">{label}</span>
