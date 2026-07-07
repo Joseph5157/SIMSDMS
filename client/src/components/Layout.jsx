@@ -275,7 +275,7 @@ export default function Layout({ user, children }) {
 
 export function PageHeader({ title, subtitle, action }) {
   return (
-    <Stack align="center" gap={4} py="lg" mb="md"
+    <Stack align="center" gap={4} py={0} mb={10}
       className="border-b border-b-[var(--border)] text-center"
     >
       <Title order={2} className="text-[length:var(--text-h2)] font-bold leading-[1.3]">

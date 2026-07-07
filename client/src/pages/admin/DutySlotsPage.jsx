@@ -104,7 +104,7 @@ export default function DutySlotsPage({ user }) {
           onChange={(v) => setMonth(Number(v))}
           data={MONTHS.map((m, i) => ({ value: String(i+1), label: m }))}
         />
-        <div className="flex items-center gap-5 ml-auto">
+        <div className="flex items-center gap-5 w-full sm:w-auto sm:ml-auto">
           <Stat n={morning.length} label="Morning" />
           <Stat n={afternoon.length} label="Afternoon" />
           <Stat n={slots.length} label="Total" />
