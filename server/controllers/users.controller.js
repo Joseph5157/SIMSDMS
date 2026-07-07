@@ -71,6 +71,24 @@ async function listUsers(req, res) {
   });
 }
 
+// ─── GET /users/directory — All Auth ──────────────────────────────────────────
+// Minimal recipient list for messaging: active users only, self excluded, no
+// contact/security fields (email, phone, telegram) exposed to non-admins.
+
+async function listDirectory(req, res) {
+  const users = await prisma.user.findMany({
+    where: {
+      deleted_at: null,
+      status: 'active',
+      id: { not: req.user.id },
+    },
+    select: { id: true, name: true, role: true, department: true, designation: true },
+    orderBy: { name: 'asc' },
+  });
+
+  res.json({ data: users });
+}
+
 // ─── GET /users/:id — Admin/Super Admin ───────────────────────────────────────
 
 async function getUser(req, res) {
@@ -396,6 +414,7 @@ async function updateSettings(req, res) {
 module.exports = {
   getMe,
   listUsers,
+  listDirectory,
   getUser,
   updateProfile,
   deactivateUser,

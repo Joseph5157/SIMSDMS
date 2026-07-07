@@ -20,6 +20,17 @@ export function useUsers(filters = {}) {
   });
 }
 
+export function useMessageRecipients() {
+  return useQuery({
+    queryKey: ['users', 'directory'],
+    queryFn: async () => {
+      const res = await api.get('/users/directory');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useDeactivateUser() {
   const qc = useQueryClient();
   return useMutation({

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Users, AlignLeft, MessageSquare } from 'lucide-react';
 import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 import { useSendMessage } from '../hooks/useMessages';
-import { useUsers } from '../hooks/useUsers';
+import { useMessageRecipients } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
 
 function FieldLabel({ label, icon: Icon }) {
@@ -34,7 +34,7 @@ const textareaInline = { fontSize: 16, fontFamily: 'inherit' };
 export default function ComposeDrawer({ open, onClose }) {
   const toast = useToast();
   const send = useSendMessage();
-  const { data: usersData } = useUsers({ limit: 100 });
+  const { data: usersData } = useMessageRecipients();
   const [form, setForm] = useState({ to_user_id: '', subject: '', body: '' });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

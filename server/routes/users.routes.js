@@ -17,6 +17,9 @@ router.get('/me', asyncHandler(ctrl.getMe));
 // GET /users — Admin, Super Admin
 router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listUsers));
 
+// GET /users/directory — All authenticated (minimal fields, for message recipient pickers)
+router.get('/directory', asyncHandler(ctrl.listDirectory));
+
 // GET /users/:id — All authenticated
 router.get('/:id', asyncHandler(ctrl.getUser));
 
