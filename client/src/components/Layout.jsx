@@ -227,6 +227,11 @@ export default function Layout({ user, children }) {
           <NotificationBell />
         </div>
 
+        {/* Desktop top header — visible on desktop only (≥ 640px) */}
+        <div className={classes.desktopHeader}>
+          <NotificationBell />
+        </div>
+
         {/* Main content */}
         <AppShell.Main
           style={{

@@ -223,6 +223,24 @@
   .mobileHeader { display: none; }
 }
 
+/* ── Desktop top header — visible on desktop only (≥ 640px) ── */
+.desktopHeader {
+  position: sticky;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (min-width: 640px) {
+  .desktopHeader { display: flex; }
+}
+
 /* ── Bottom tab bar ── */
 .bottomBar {
   position: fixed;
