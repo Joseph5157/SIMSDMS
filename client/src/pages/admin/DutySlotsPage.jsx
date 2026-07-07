@@ -36,10 +36,32 @@ function isReassignable(s) {
   return s.status === 'scheduled' && isUpcoming(s);
 }
 
+const STATUS_FILTERS = [
+  { value: 'upcoming',  label: 'Upcoming' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'expired',   label: 'Expired' },
+  { value: 'all',       label: 'All' },
+];
+
+// Match a slot against the selected status filter. "Expired" covers past
+// slots that were never completed (still scheduled, or marked absent) —
+// distinct from "Completed" which is past slots that were actually attended.
+function matchesStatusFilter(s, filter) {
+  const upcoming = isUpcoming(s);
+  switch (filter) {
+    case 'upcoming':  return upcoming;
+    case 'completed': return s.status === 'completed';
+    case 'expired':   return !upcoming && s.status !== 'completed';
+    case 'all':       return true;
+    default:          return upcoming;
+  }
+}
+
 export default function DutySlotsPage({ user }) {
   const now = new Date();
-  const [year,  setYear]  = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year,   setYear]   = useState(now.getFullYear());
+  const [month,  setMonth]  = useState(now.getMonth() + 1);
+  const [statusFilter, setStatusFilter] = useState('upcoming');
 
   const { data, isLoading, isError, refetch } = useMonthSlots(year, month);
 
@@ -54,9 +76,11 @@ export default function DutySlotsPage({ user }) {
   const [reason, setReason] = useState('');
 
   const slots = data?.data ?? [];
-  // Filter to show only upcoming slots (today and future), excluding past slots
-  const morning   = slots.filter((s) => s.session_type === 'morning' && isUpcoming(s));
-  const afternoon = slots.filter((s) => s.session_type === 'afternoon' && isUpcoming(s));
+  // Default view shows only upcoming slots; admin can switch to Completed / Expired / All
+  // to pull up history without mixing it into the active list.
+  const filteredSlots = slots.filter((s) => matchesStatusFilter(s, statusFilter));
+  const morning   = filteredSlots.filter((s) => s.session_type === 'morning');
+  const afternoon = filteredSlots.filter((s) => s.session_type === 'afternoon');
 
   function openReassign(slot) {
     setTarget(slot);
@@ -90,6 +114,8 @@ export default function DutySlotsPage({ user }) {
     return r ? `↩ from ${r.fromFaculty?.name ?? '—'}` : '—';
   }
 
+  const statusFilterLabel = (STATUS_FILTERS.find((f) => f.value === statusFilter)?.label ?? 'Upcoming').toLowerCase();
+
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Duty Slots' }]} />
@@ -110,10 +136,16 @@ export default function DutySlotsPage({ user }) {
           onChange={(v) => setMonth(Number(v))}
           data={MONTHS.map((m, i) => ({ value: String(i+1), label: m }))}
         />
+        <Select
+          w={130}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v ?? 'upcoming')}
+          data={STATUS_FILTERS}
+        />
         <div className="flex items-center gap-5 w-full sm:w-auto sm:ml-auto">
           <Stat n={morning.length} label="Morning" />
           <Stat n={afternoon.length} label="Afternoon" />
-          <Stat n={slots.length} label="Total" />
+          <Stat n={filteredSlots.length} label="Total" />
         </div>
       </div>
 
@@ -133,7 +165,7 @@ export default function DutySlotsPage({ user }) {
                   <ErrorBlock onRetry={refetch} />
                 ) : !group.length ? (
                   <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
-                    No {session} slots
+                    No {statusFilterLabel} {session} slots
                   </div>
                 ) : (
                   group.map((s) => (
@@ -186,7 +218,7 @@ export default function DutySlotsPage({ user }) {
               <tbody className="divide-y divide-[var(--divider)]">
                 {isLoading && <EmptyRow cols={5} message="Loading…" />}
                 {isError && <ErrorRow cols={5} onRetry={refetch} />}
-                {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${session} slots.`} />}
+                {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${statusFilterLabel} ${session} slots.`} />}
                 {group.map((s) => (
                   <tr key={s.id}>
                     <Td className="font-medium whitespace-nowrap">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>
