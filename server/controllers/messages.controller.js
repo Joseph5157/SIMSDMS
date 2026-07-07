@@ -19,6 +19,12 @@ async function sendMessage(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Recipient not found or inactive.' });
   }
 
+  // Messaging is restricted to admin↔faculty communication — faculty may not
+  // message other faculty. Admin/super_admin can message anyone.
+  if (req.user.role === 'faculty' && recipient.role === 'faculty') {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Faculty can only message admins.' });
+  }
+
   const message = await prisma.message.create({
     data: { from_user_id: req.user.id, to_user_id, subject, body },
     include: MESSAGE_INCLUDE,

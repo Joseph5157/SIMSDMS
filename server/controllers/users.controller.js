@@ -74,14 +74,24 @@ async function listUsers(req, res) {
 // ─── GET /users/directory — All Auth ──────────────────────────────────────────
 // Minimal recipient list for messaging: active users only, self excluded, no
 // contact/security fields (email, phone, telegram) exposed to non-admins.
+//
+// Messaging is restricted to admin↔faculty communication — faculty may not
+// message other faculty. Admin/super_admin can still message everyone
+// (including each other) for internal coordination.
 
 async function listDirectory(req, res) {
+  const where = {
+    deleted_at: null,
+    status: 'active',
+    id: { not: req.user.id },
+  };
+
+  if (req.user.role === 'faculty') {
+    where.role = { in: ['admin', 'super_admin'] };
+  }
+
   const users = await prisma.user.findMany({
-    where: {
-      deleted_at: null,
-      status: 'active',
-      id: { not: req.user.id },
-    },
+    where,
     select: { id: true, name: true, role: true, department: true, designation: true },
     orderBy: { name: 'asc' },
   });
