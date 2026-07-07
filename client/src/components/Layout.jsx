@@ -164,7 +164,7 @@ export default function Layout({ user, children }) {
       <div className={classes.sidebarFooter}>
         <button
           type="button"
-          onClick={() => setProfileOpen(true)}
+          onClick={() => { setProfileOpen(true); closeNav(); }}
           className={classes.userCard}
           aria-label="Open profile settings"
         >
