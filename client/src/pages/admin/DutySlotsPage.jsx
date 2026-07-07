@@ -25,10 +25,15 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Check if a slot is upcoming (today or in the future)
+function isUpcoming(s) {
+  return String(s.duty_date).slice(0, 10) >= todayStr();
+}
+
 // A duty can be reassigned only while it is still scheduled and its date has not
 // passed — matching the server-side guard.
 function isReassignable(s) {
-  return s.status === 'scheduled' && String(s.duty_date).slice(0, 10) >= todayStr();
+  return s.status === 'scheduled' && isUpcoming(s);
 }
 
 export default function DutySlotsPage({ user }) {
@@ -49,8 +54,9 @@ export default function DutySlotsPage({ user }) {
   const [reason, setReason] = useState('');
 
   const slots = data?.data ?? [];
-  const morning   = slots.filter((s) => s.session_type === 'morning');
-  const afternoon = slots.filter((s) => s.session_type === 'afternoon');
+  // Filter to show only upcoming slots (today and future), excluding past slots
+  const morning   = slots.filter((s) => s.session_type === 'morning' && isUpcoming(s));
+  const afternoon = slots.filter((s) => s.session_type === 'afternoon' && isUpcoming(s));
 
   function openReassign(slot) {
     setTarget(slot);
