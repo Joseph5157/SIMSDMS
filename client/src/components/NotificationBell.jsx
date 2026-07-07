@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useNotifications, useMarkAsRead } from '../hooks/useNotifications';
+import { useInbox } from '../hooks/useMessages';
 
 function formatTime(isoString) {
   if (!isoString) return '';
@@ -42,6 +43,7 @@ export default function NotificationBell() {
   const navigate = useNavigate();
   const { notifications, unreadCount, isConnected } = useNotifications();
   const markAsRead = useMarkAsRead();
+  const { data: inboxData } = useInbox({ limit: 50 });
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -61,7 +63,26 @@ export default function NotificationBell() {
     }
   }, [dropdownOpen]);
 
-  const recentNotifications = notifications.slice(0, 10);
+  // Get unread messages and convert to notification format
+  const inboxMessages = inboxData?.data ?? [];
+  const unreadMessages = inboxMessages.filter((m) => !m.is_read).map((m) => ({
+    id: `msg-${m.id}`,
+    type: 'message',
+    title: m.sender?.name || 'Unknown sender',
+    message: m.subject || '(No subject)',
+    createdAt: m.created_at,
+    readAt: m.is_read ? m.created_at : null,
+    actionUrl: '/messages',
+    messageId: m.id,
+  }));
+
+  // Combine notifications and messages, then take top 10
+  const allItems = [...unreadMessages, ...notifications];
+  const recentNotifications = allItems.slice(0, 10);
+
+  // Calculate total unread count (messages + notifications)
+  const messageUnreadCount = unreadMessages.length;
+  const totalUnreadCount = messageUnreadCount + unreadCount;
 
   return (
     <div className="relative inline-block">
@@ -75,15 +96,15 @@ export default function NotificationBell() {
           }
           setDropdownOpen(!dropdownOpen);
         }}
-        aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+        aria-label={`Notifications ${totalUnreadCount > 0 ? `(${totalUnreadCount} unread)` : ''}`}
         aria-pressed={dropdownOpen}
-        title={`${unreadCount} unread notifications`}
+        title={`${totalUnreadCount} unread notifications`}
         className="bg-transparent border-none cursor-pointer w-11 h-11 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
       >
         <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
-        {unreadCount > 0 && (
+        {totalUnreadCount > 0 && (
           <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[var(--color-red-solid)] text-white text-[length:var(--text-micro)] font-bold flex items-center justify-center border-2 border-white">
-            {unreadCount > 9 ? '9+' : unreadCount}
+            {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
           </span>
         )}
       </button>
@@ -172,15 +193,25 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
+          {(notifications.length > 0 || unreadMessages.length > 0) && (
             <div className="px-4 py-3 border-t border-[var(--divider)] text-center">
-              <Link
-                to="/notifications"
-                onClick={() => setDropdownOpen(false)}
-                className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
-              >
-                View all notifications
-              </Link>
+              {unreadMessages.length > 0 ? (
+                <Link
+                  to="/messages"
+                  onClick={() => setDropdownOpen(false)}
+                  className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
+                >
+                  View all messages
+                </Link>
+              ) : (
+                <Link
+                  to="/notifications"
+                  onClick={() => setDropdownOpen(false)}
+                  className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
+                >
+                  View all notifications
+                </Link>
+              )}
             </div>
           )}
         </div>
