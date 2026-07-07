@@ -287,7 +287,7 @@ async function monthlyDutyCoverage(req, res) {
     select: { status: true, session_type: true },
   });
 
-  const summary = { total: slots.length, completed: 0, absent: 0, cover_pending: 0, covered: 0, scheduled: 0, morning: 0, afternoon: 0 };
+  const summary = { total: slots.length, completed: 0, absent: 0, scheduled: 0, morning: 0, afternoon: 0 };
   for (const s of slots) {
     summary[s.status]       = (summary[s.status]       ?? 0) + 1;
     summary[s.session_type] = (summary[s.session_type] ?? 0) + 1;
@@ -326,21 +326,82 @@ async function unassignedFacultyReport(req, res) {
   res.json({ year, month, data: unassigned, total: unassigned.length, sessions_required: required });
 }
 
-// 13. Cover Request Summary
-async function coverRequestSummary(req, res) {
+// 13. Duty Reassignment Report — history + per-faculty duty counts.
+async function dutyReassignmentReport(req, res) {
   const year  = parseInt(req.query.year  ?? new Date().getFullYear(),  10);
   const month = parseInt(req.query.month ?? new Date().getMonth() + 1, 10);
+  const range = monthRange(year, month);
 
-  const requests = await prisma.coverRequest.findMany({
-    where: { dutySlot: { duty_date: monthRange(year, month) } },
-    select: { status: true, created_at: true, confirmed_at: true },
+  const reassignments = await prisma.dutyReassignment.findMany({
+    where: { duty_date: range },
+    orderBy: [{ duty_date: 'asc' }, { created_at: 'asc' }],
+    select: {
+      id: true,
+      duty_date: true,
+      session_type: true,
+      reason: true,
+      created_at: true,
+      fromFaculty:  { select: { id: true, name: true } },
+      toFaculty:    { select: { id: true, name: true } },
+      reassignedBy: { select: { id: true, name: true } },
+      dutySlot: {
+        select: {
+          status: true,
+          attendance: { select: { in_time: true, out_time: true } },
+        },
+      },
+    },
   });
 
-  const summary = { total: requests.length, open: 0, covered: 0, expired: 0, cancelled: 0 };
-  for (const r of requests) summary[r.status] = (summary[r.status] ?? 0) + 1;
-  summary.fulfillment_rate = requests.length ? ((summary.covered / requests.length) * 100).toFixed(1) : '0.0';
+  const history = reassignments.map((r) => ({
+    id:            r.id,
+    duty_date:     r.duty_date,
+    session_type:  r.session_type,
+    from_faculty:  r.fromFaculty,
+    to_faculty:    r.toFaculty,
+    reason:        r.reason,
+    reassigned_by: r.reassignedBy,
+    reassigned_at: r.created_at,
+    final_status:  r.dutySlot.status,
+    final_attendance: r.dutySlot.attendance
+      ? (r.dutySlot.attendance.out_time ? 'checked_out' : r.dutySlot.attendance.in_time ? 'checked_in' : 'recorded')
+      : 'none',
+  }));
 
-  res.json({ year, month, ...summary });
+  // Per-faculty duty counts. Final = duties the faculty currently holds this
+  // month; Received/Away = reassignments to/from them; Regular back-derives the
+  // duties they originally held (Final = Regular + Received − Away).
+  const faculty = await prisma.user.findMany({
+    where:   { role: 'faculty', status: 'active', deleted_at: null },
+    select:  { id: true, name: true, department: true },
+    orderBy: { name: 'asc' },
+  });
+
+  const [finalCounts, receivedCounts, awayCounts] = await Promise.all([
+    prisma.dutySlot.groupBy({ by: ['faculty_id'],      where: { duty_date: range }, _count: { id: true } }),
+    prisma.dutyReassignment.groupBy({ by: ['to_faculty_id'],   where: { duty_date: range }, _count: { id: true } }),
+    prisma.dutyReassignment.groupBy({ by: ['from_faculty_id'], where: { duty_date: range }, _count: { id: true } }),
+  ]);
+  const finalMap    = new Map(finalCounts.map(c => [c.faculty_id, c._count.id]));
+  const receivedMap = new Map(receivedCounts.map(c => [c.to_faculty_id, c._count.id]));
+  const awayMap     = new Map(awayCounts.map(c => [c.from_faculty_id, c._count.id]));
+
+  const counts = faculty.map((f) => {
+    const finalDuties = finalMap.get(f.id) ?? 0;
+    const received    = receivedMap.get(f.id) ?? 0;
+    const away        = awayMap.get(f.id) ?? 0;
+    return {
+      faculty_id: f.id,
+      name:       f.name,
+      department: f.department,
+      regular:    finalDuties - received + away,
+      received,
+      away,
+      final:      finalDuties,
+    };
+  });
+
+  res.json({ year, month, history, total: history.length, counts });
 }
 
 // 14. Session Completion Rate (last 6 months)
@@ -402,5 +463,5 @@ module.exports = {
   monthlyAttendanceSummary, lateArrivalReport, absentFacultyReport, autoClockOutReport,
   attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport, facultyViolationActivity, violationTypeBreakdown,
   pendingFinesSummary, flaggedViolationsReport, monthlyDutyCoverage, unassignedFacultyReport,
-  coverRequestSummary, sessionCompletionRate, studentUploadHistory, activeStudentRoster,
+  dutyReassignmentReport, sessionCompletionRate, studentUploadHistory, activeStudentRoster,
 };

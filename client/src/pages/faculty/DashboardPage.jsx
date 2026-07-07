@@ -4,17 +4,15 @@ import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
 import { Button } from '@mantine/core';
-import { useMonthSlots } from '../../hooks/useDutySlots';
+import { useMonthSlots, useReassignedAway } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
-import { useMyCoverRequests } from '../../hooks/useCoverRequests';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
-import PostCoverBroadcastModal from '../../components/faculty/PostCoverBroadcastModal';
 import { ROUTES } from '../../utils/constants';
 
 function todayIST() {
@@ -52,13 +50,12 @@ export default function DashboardPage({ user }) {
   const month = now.getMonth() + 1;
 
   const [showRecordViolation, setShowRecordViolation] = useState(false);
-  const [showRequestCover, setShowRequestCover]       = useState(false);
   const [dismissedAlerts, setDismissedAlerts]         = useState(new Set());
 
   const { data: slotsData, isLoading: slotsLoading, isError: slotsError, refetch: refetchSlots } = useMonthSlots(year, month);
   const { data: violationsData, isLoading: violationsLoading } = useMyViolations({ limit: 5 });
   const { data: inboxData, isLoading: inboxLoading }            = useInbox({ limit: 5 });
-  const { data: coverData, isLoading: coverLoading }            = useMyCoverRequests();
+  const { data: reassignedAwayData, isLoading: reassignLoading } = useReassignedAway(year, month);
   const { data: timingSettings } = useDutyTimingSettings();
 
   const slots    = slotsData?.data ?? [];
@@ -99,25 +96,18 @@ export default function DashboardPage({ user }) {
   const showClockOutWarning = att?.in_time && !att?.out_time && minsUntilEnd !== null && minsUntilEnd >= 0 && minsUntilEnd <= 15;
   const wasAutoClocked = !!att?.auto_out;
 
-  const activeCoverRequests = (coverData?.data ?? []).filter((r) => r.status === 'open');
-  const myOpenRequests      = activeCoverRequests.filter((r) => r.requested_by === user?.id);
-  const volunteeredFor      = activeCoverRequests.filter((r) => r.volunteer_id === user?.id);
+  const reassignedAway = reassignedAwayData?.data ?? [];
 
-  const canDoViolation = todaySlot && ['scheduled', 'covered', 'cover_pending'].includes(todaySlot.status);
+  // True when this slot was reassigned TO the current faculty (they are the new owner).
+  const wasReassignedToMe = (s) => s.reassignments?.[0]?.to_faculty_id === user?.id;
+
+  const canDoViolation = todaySlot && todaySlot.status === 'scheduled';
 
   // ── Single, priority-ordered, dismissible alert (never stack banners) ──
   const alertCandidates = [
     showClockOutWarning && {
       key: 'clockout', tone: 'warning', icon: '⏰', title: 'Remember to clock out',
       body: `Your ${todaySlot?.session_type} session ends in ${minsUntilEnd} min. Clock out before auto-out kicks in.`,
-    },
-    activeCoverRequests.length > 0 && {
-      key: 'cover', tone: 'warning', icon: '🔄',
-      title: myOpenRequests.length > 0
-        ? `${myOpenRequests.length} open cover request${myOpenRequests.length > 1 ? 's' : ''} — awaiting a volunteer`
-        : `You are volunteered to cover ${volunteeredFor.length} slot${volunteeredFor.length > 1 ? 's' : ''}`,
-      body: `${activeCoverRequests.length} active cover request${activeCoverRequests.length > 1 ? 's' : ''} total`,
-      action: <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.FACULTY_COVER_REQUESTS)}>View →</Button>,
     },
     wasAutoClocked && {
       key: 'autoclock', tone: 'info', icon: '🔔', title: 'You were auto clocked out',
@@ -134,8 +124,8 @@ export default function DashboardPage({ user }) {
     return { date: d, iso, isToday: i === 0, slot: slots.find((s) => isoDate(s.duty_date) === iso) };
   });
 
-  // ── Unified recent-activity feed (violations logged, messages, cover-request changes) ──
-  const activityLoading = violationsLoading || inboxLoading || coverLoading;
+  // ── Unified recent-activity feed (violations logged, messages, duty reassignments) ──
+  const activityLoading = violationsLoading || inboxLoading || reassignLoading;
   const activityItems = [
     ...(violationsData?.data ?? []).map((v) => ({
       id: `v-${v.id}`, icon: '⚠️', accent: 'red', timestamp: v.created_at,
@@ -145,13 +135,11 @@ export default function DashboardPage({ user }) {
       id: `m-${m.id}`, icon: '✉️', accent: 'blue', timestamp: m.created_at, unread: !m.is_read,
       text: `Message: ${m.subject}`,
     })),
-    ...(coverData?.data ?? [])
-      .filter((c) => c.requested_by === user?.id || c.volunteer_id === user?.id)
-      .map((c) => ({
-        id: `c-${c.id}`, icon: '🔄', accent: 'indigo', timestamp: c.updated_at ?? c.created_at,
-        text: c.requested_by === user?.id ? 'Cover request posted' : 'Volunteered to cover a slot',
-        status: c.status,
-      })),
+    ...reassignedAway.map((r) => ({
+      id: `ra-${r.id}`, icon: '🔄', accent: 'indigo', timestamp: r.created_at,
+      text: `Duty reassigned to ${r.toFaculty?.name ?? 'another faculty'}`,
+      status: 'reassigned',
+    })),
   ]
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 6);
@@ -262,15 +250,10 @@ export default function DashboardPage({ user }) {
       </section>
 
       {/* ── 2. Quick actions ── */}
-      {!slotsLoading && !slotsError && slots.length > 0 && (
+      {!slotsLoading && !slotsError && canDoViolation && (
         <section className="mb-4 flex gap-2 flex-wrap">
-          {canDoViolation && (
-            <Button size="md" variant="light" leftSection={<span>⚠️</span>} onClick={() => setShowRecordViolation(true)}>
-              Record Student Violation
-            </Button>
-          )}
-          <Button size="md" variant="light" leftSection={<span>🔄</span>} onClick={() => setShowRequestCover(true)}>
-            Request Cover
+          <Button size="md" variant="light" leftSection={<span>⚠️</span>} onClick={() => setShowRecordViolation(true)}>
+            Record Student Violation
           </Button>
         </section>
       )}
@@ -366,9 +349,12 @@ export default function DashboardPage({ user }) {
                     <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{s.session_type} session</p>
                     <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
                       {d.toLocaleDateString('en-IN', { weekday: 'long' })}
+                      {wasReassignedToMe(s) && s.reassignments[0].fromFaculty?.name
+                        ? ` · reassigned from ${s.reassignments[0].fromFaculty.name}`
+                        : ''}
                     </p>
                   </div>
-                  <Badge status={s.status} />
+                  {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
                 </div>
               );
             })}
@@ -376,7 +362,41 @@ export default function DashboardPage({ user }) {
         </div>
       )}
 
-      {/* ── 6. Recent activity — unified feed (violations logged, messages, cover-request updates) ── */}
+      {/* ── 5b. Reassigned away — duties moved off this faculty by admin ── */}
+      {reassignedAway.length > 0 && (
+        <div className="mb-4">
+          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            Reassigned away
+          </p>
+          <div className="flex flex-col gap-2">
+            {reassignedAway.map((r) => {
+              const d = new Date(r.duty_date);
+              return (
+                <div key={r.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
+                  <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--color-indigo-solid)' }} />
+                  <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-indigo-bg)] flex flex-col items-center justify-center">
+                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-indigo-text)', lineHeight: 1 }}>{d.getDate()}</span>
+                    <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--color-indigo-text)', textTransform: 'uppercase' }}>
+                      {d.toLocaleDateString('en-IN', { month: 'short' })}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                      {r.session_type} session
+                    </p>
+                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
+                      Reassigned to {r.toFaculty?.name ?? '—'}{r.reason ? ` · ${r.reason}` : ''}
+                    </p>
+                  </div>
+                  <Badge status="reassigned" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 6. Recent activity — unified feed (violations logged, messages, duty reassignments) ── */}
       <div>
         <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
           Recent activity
@@ -411,7 +431,6 @@ export default function DashboardPage({ user }) {
       </div>
 
       <RecordViolationModal open={showRecordViolation} onClose={() => setShowRecordViolation(false)} />
-      <PostCoverBroadcastModal open={showRequestCover} onClose={() => setShowRequestCover(false)} />
     </Layout>
   );
 }

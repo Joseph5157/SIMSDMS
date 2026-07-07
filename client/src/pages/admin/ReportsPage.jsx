@@ -7,7 +7,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
   useAttendanceOverrides, useStudentViolations, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
-  useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useCoverRequestSummary,
+  useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useDutyReassignmentReport,
   useCompletionRate, useUploadHistory, useActiveStudents,
 } from '../../hooks/useReports';
 import { useToast } from '../../components/ui/Toast';
@@ -31,7 +31,7 @@ const REPORTS = [
   // Duty & Coverage group
   { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-[var(--color-emerald-bg)]',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
   { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--color-amber-bg)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
-  { id: 'cover-requests',       group: 'Duty & Coverage', emoji: '🔄', color: 'bg-[var(--color-cyan-bg)]',   label: 'Cover Request Summary', desc: 'Broadcast outcomes and fulfilment rate' },
+  { id: 'duty-reassignments',   group: 'Duty & Coverage', emoji: '🔄', color: 'bg-[var(--color-indigo-bg)]', label: 'Duty Reassignments',    desc: 'Reassignment history and per-faculty duty counts' },
   { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-[var(--color-emerald-bg)]',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
   { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-[var(--color-red-bg)]',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
@@ -212,8 +212,8 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
     case 'duty-coverage': return (
       <div className="grid grid-cols-3 gap-3">
         {[['Total slots', data.total], ['Completed', data.completed], ['Absent', data.absent],
-          ['Cover pending', data.cover_pending], ['Covered', data.covered], ['Scheduled', data.scheduled],
-          ['Morning', data.morning], ['Afternoon', data.afternoon], ['Completion rate', `${data.completion_rate}%`],
+          ['Scheduled', data.scheduled], ['Morning', data.morning], ['Afternoon', data.afternoon],
+          ['Completion rate', `${data.completion_rate}%`],
         ].map(([label, value]) => (
           <div key={label} className="bg-surface-container-low rounded-xl p-4">
             <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
@@ -240,16 +240,49 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
-    case 'cover-requests': return (
-      <div className="grid grid-cols-3 gap-3">
-        {[['Total', data.total], ['Open', data.open], ['Covered', data.covered],
-          ['Expired', data.expired], ['Cancelled', data.cancelled], ['Fulfillment rate', `${data.fulfillment_rate}%`],
-        ].map(([label, value]) => (
-          <div key={label} className="bg-surface-container-low rounded-xl p-4">
-            <p className="text-[length:11px] text-[var(--text-muted)]">{label}</p>
-            <p className="text-[length:20px] font-bold text-[var(--text-primary)] mt-1">{value}</p>
-          </div>
-        ))}
+    case 'duty-reassignments': return (
+      <div className="flex flex-col gap-6">
+        {/* Per-faculty duty counts */}
+        <div>
+          <h4 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2">Duty counts</h4>
+          <Table>
+            <thead><tr><Th>Faculty</Th><Th>Regular</Th><Th>Received</Th><Th>Reassigned away</Th><Th>Final duties</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.counts?.length && <EmptyRow cols={5} />}
+              {data.counts?.map((c) => (
+                <tr key={c.faculty_id}>
+                  <Td className="font-medium">{c.name}</Td>
+                  <Td>{c.regular}</Td>
+                  <Td>{c.received}</Td>
+                  <Td>{c.away}</Td>
+                  <Td className="font-semibold">{c.final}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+
+        {/* Reassignment history */}
+        <div>
+          <h4 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2">Reassignment history</h4>
+          <Table>
+            <thead><tr><Th>Date</Th><Th>Session</Th><Th>From</Th><Th>To</Th><Th>Reason</Th><Th>By</Th><Th>Attendance</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.history?.length && <EmptyRow cols={7} message="No reassignments this month." />}
+              {data.history?.map((r) => (
+                <tr key={r.id}>
+                  <Td className="font-medium">{new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Td>
+                  <Td className="capitalize">{r.session_type}</Td>
+                  <Td>{r.from_faculty?.name}</Td>
+                  <Td>{r.to_faculty?.name}</Td>
+                  <Td className="text-[length:12px] text-[var(--text-muted)]">{r.reason ?? '—'}</Td>
+                  <Td>{r.reassigned_by?.name}</Td>
+                  <Td className="capitalize">{r.final_attendance?.replace('_', ' ')}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
       </div>
     );
 
@@ -442,7 +475,7 @@ function ReportView({ id }) {
     'flagged-violations':   useFlaggedViolations,
     'duty-coverage':        useDutyCoverage,
     'unassigned-faculty':   useUnassignedFacultyReport,
-    'cover-requests':       useCoverRequestSummary,
+    'duty-reassignments':   useDutyReassignmentReport,
     'completion-rate':      useCompletionRate,
     'upload-history':       useUploadHistory,
     'active-students':      useActiveStudents,

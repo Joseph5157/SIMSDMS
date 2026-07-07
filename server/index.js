@@ -36,7 +36,6 @@ const dutySlotsRoutes = require('./routes/duty-slots.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
 const violationsRoutes = require('./routes/violations.routes');
 const violationTypesRoutes  = require('./routes/violation-types.routes');
-const coverRequestsRoutes   = require('./routes/cover-requests.routes');
 const messagesRoutes        = require('./routes/messages.routes');
 const reportsRoutes         = require('./routes/reports.routes');
 const { startCronJobs } = require('./lib/cron');
@@ -142,7 +141,6 @@ app.use('/duty-slots', dutySlotsRoutes);
 app.use('/attendance', attendanceRoutes);
 app.use('/violations', violationsRoutes);
 app.use('/violation-types', violationTypesRoutes);
-app.use('/cover-requests',  coverRequestsRoutes);
 app.use('/messages',        messagesRoutes);
 app.use('/reports',         reportsRoutes);
 

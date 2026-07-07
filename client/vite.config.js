@@ -29,7 +29,7 @@ export default defineConfig({
             urlPattern: ({ url }) => {
               const api = ['/auth', '/users', '/admin', '/students', '/calendar',
                            '/duty-slots', '/attendance', '/violations', '/violation-types',
-                           '/cover-requests', '/messages', '/reports', '/health', '/invites'];
+                           '/messages', '/reports', '/health', '/invites'];
               return api.some(p => url.pathname.startsWith(p));
             },
             handler: 'NetworkFirst',
@@ -75,7 +75,6 @@ export default defineConfig({
       '/attendance':      { target: 'http://localhost:3000', changeOrigin: true },
       '/violations':      { target: 'http://localhost:3000', changeOrigin: true },
       '/violation-types': { target: 'http://localhost:3000', changeOrigin: true },
-      '/cover-requests':  { target: 'http://localhost:3000', changeOrigin: true },
       '/messages':        { target: 'http://localhost:3000', changeOrigin: true },
       '/reports':         { target: 'http://localhost:3000', changeOrigin: true },
       '/health':          { target: 'http://localhost:3000', changeOrigin: true },

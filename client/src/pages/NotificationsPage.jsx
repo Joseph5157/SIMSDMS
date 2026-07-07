@@ -12,7 +12,7 @@ import { ROUTES } from '../utils/constants';
 function getNotificationTypeLabel(type) {
   const labels = {
     duty_assigned: 'Duty Assigned',
-    cover_request: 'Cover Request',
+    duty_reassigned: 'Duty Reassigned',
     violation: 'Student Violation',
     message: 'Message',
     system: 'System',
@@ -23,7 +23,7 @@ function getNotificationTypeLabel(type) {
 function getTypeColor(type) {
   const colors = {
     duty_assigned: 'var(--color-blue-600)',
-    cover_request: 'var(--color-amber-600)',
+    duty_reassigned: 'var(--color-indigo-600)',
     violation: 'var(--color-red-600)',
     message: 'var(--color-cyan-600)',
     system: 'var(--color-slate-600)',
@@ -164,7 +164,7 @@ export default function NotificationsPage({ user }) {
 
       {/* Filters */}
       <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {['all', 'unread', 'duty_assigned', 'cover_request', 'violation', 'message'].map((f) => (
+        {['all', 'unread', 'duty_assigned', 'duty_reassigned', 'violation', 'message'].map((f) => (
           <button
             key={f}
             onClick={() => { setFilter(f); setPage(1); }}

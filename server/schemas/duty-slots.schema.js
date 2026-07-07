@@ -13,4 +13,9 @@ const adminAssignSchema = z.object({
   session_type: z.enum(['morning', 'afternoon']),
 });
 
-module.exports = { pickSlotSchema, adminAssignSchema };
+const reassignSlotSchema = z.object({
+  to_faculty_id: z.string().uuid('Invalid faculty ID.'),
+  reason: z.string().min(1).max(500).optional(),
+});
+
+module.exports = { pickSlotSchema, adminAssignSchema, reassignSlotSchema };

@@ -84,16 +84,15 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Reviews and resolves flagged violation records
 - Views all violations, can hide records
 - Manages violation types
-- Confirms or rejects Need Cover requests
-- Configures max cover requests per slot
-- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, not-checked-in cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings such as `cover_ttl_hours` remain Super-Admin-only via `/admin/settings`)
+- Reassigns a faculty member's duty slot to another faculty member from the Duty Slots section when the original faculty cannot attend (Admin Duty Reassignment)
+- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, not-checked-in cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings remain Super-Admin-only via `/admin/settings`)
 - Access to all 16 reports
 
 ### Faculty
 - Picks their own duty slots during the open window
 - Checks IN and OUT for their own duty sessions
 - Records student violations during their duty
-- Posts "Need Cover" broadcast when unable to attend a duty slot
+- Messages the Admin to request a duty reassignment when unable to attend a duty slot (the Admin performs the actual reassignment)
 - Flags their own violation records for review
 - Views own duty history, violations recorded, pending requests
 - Can send/receive internal messages
@@ -135,7 +134,6 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Admin can also manually close the window early at any time.
 - If faculty do not pick slots before window closes, Admin manually assigns their slots.
 - Number of sessions per faculty per month is configurable by Admin (default: 3).
-- Maximum cover requests per duty slot is configurable by Admin — not a fixed number.
 
 ### Duty Attendance
 - Faculty can only check IN during their assigned duty session window.
@@ -158,15 +156,26 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Admin can hide a violation record — hidden records are not physically deleted.
 - All changes to violations are tracked in `violation_audit_log` — this log is immutable.
 
-### Need Cover (replaces Reschedule Requests)
-- Faculty post a "Need Cover" broadcast when they cannot attend a duty slot.
-- The broadcast is visible to all other faculty — not a one-to-one request.
-- Any available faculty can volunteer to cover the slot.
-- Admin confirms or rejects the cover assignment.
-- Unanswered broadcasts auto-expire after 48 hours (cron job checks `expires_at`).
+### Admin Duty Reassignment (replaces Need Cover / Volunteer)
+- When a faculty member cannot attend a duty, they **message the Admin** via the
+  Messages section explaining why. Messaging is communication only — it never
+  changes a duty automatically.
+- The Admin manually reassigns the duty from the **Duty Slots** section, choosing
+  another faculty member and optionally recording a reason. This is an
+  admin-controlled action, not a volunteer/broadcast system.
+- Only still-`scheduled` duties whose date has not passed and that have no recorded
+  attendance can be reassigned.
+- On reassignment the slot's `faculty_id` is updated in place to the new faculty and
+  one immutable row is written to `duty_reassignments` (from/to faculty, reason,
+  admin, timestamp). Attendance, "My Slots", and duty counts then follow the new
+  owner; only the new faculty may check in. The original faculty sees the duty under
+  "Reassigned Away".
+- There is exactly one concept — **Reassigned Duty**. Do not model "extra duty",
+  "additional duty", "volunteer duty", or "admin assigned duty" as separate concepts.
+- Both faculty are notified via Telegram when a reassignment happens.
 
 ### Notifications
-- All system notifications (duty window open, cover requests, reminders, admin-triggered
+- All system notifications (duty window open, duty reassignments, reminders, admin-triggered
   password resets) are sent via Telegram Bot only.
 - No email, no SMTP, no SMS — Telegram is the sole notification channel.
 - Telegram is notification-only. It plays no role in login or session issuance (see
@@ -207,20 +216,20 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `violations` | All recorded student violations — includes `is_flagged` for review and photo fields as foundation |
 | `violation_audit_log` | Immutable change history scoped to violation records only |
 | `admin_audit_log` | Immutable system-level audit trail — session resets, account changes, hard deletes, settings |
-| `cover_requests` | Need Cover broadcasts — open to all faculty, confirmed by Admin |
+| `duty_reassignments` | Admin duty reassignment history — from/to faculty, reason, admin, timestamp |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
-| `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session), plus cover TTL |
+| `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session) |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 
-> **Removed**: `correction_requests` (replaced by `violations.is_flagged`), `reschedule_requests` (replaced by `cover_requests`), `otp_sessions` (Telegram OTP login was built and then abandoned in favor of email/password — see §4 Authentication)
+> **Removed**: `correction_requests` (replaced by `violations.is_flagged`), `reschedule_requests` then `cover_requests` (the Need Cover / Volunteer workflow was built and then removed in favor of Admin Duty Reassignment — `duty_reassignments`, see §4), `otp_sessions` (Telegram OTP login was built and then abandoned in favor of email/password — see §4 Authentication)
 
 ### Key Schema Rules
 - `admin_audit_log` — system-level actions only (password resets, account changes, hard deletes). Never mix with `violation_audit_log`
 - `violations.is_flagged` — set by Faculty to request Admin review; resolved via `flag_resolved_by` + `flag_resolved_at`
 - `violations.photo_path` / `violations.photo_expires_at` — foundation columns, not used in Phase 1
-- `cover_requests.expires_at` — used by cron for 48hr auto-expiry
+- `duty_reassignments` — append-only history; the current owner of a slot is always `duty_slots.faculty_id`, and the latest reassignment row (if any) describes who it was moved from and by whom
 - `violation_types.is_system` — prevents deletion of built-in types
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
@@ -228,9 +237,9 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 97 Endpoints Across 13 Modules
+## 6. API — 90 Endpoints Across 12 Modules
 
-Counts verified directly against `server/routes/*.routes.js` (2026-07) — the previous table's total didn't match its own rows (an old drift, unrelated to any single feature) and undercounted Users & Accounts.
+Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`).
 
 | Module | Count | Base Path |
 |---|---|---|
@@ -238,12 +247,11 @@ Counts verified directly against `server/routes/*.routes.js` (2026-07) — the p
 | Users & Accounts | 12 | `/users`, `/admin` |
 | Students | 10 | `/students` |
 | Duty Calendar | 8 | `/calendar` |
-| Duty Slots | 6 | `/duty-slots` |
+| Duty Slots | 8 | `/duty-slots` |
 | Duty Attendance | 5 | `/attendance` |
 | Duty Timing Settings | 2 | `/duty-timing-settings` |
 | Violations | 10 | `/violations` |
 | Violation Types | 5 | `/violation-types` |
-| Need Cover | 9 | `/cover-requests` |
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
 | Reports | 17 | `/reports` |
@@ -302,7 +310,7 @@ Follow this folder structure exactly. Do not reorganise without updating this fi
 Auth, user accounts, students, duty calendar, slot picking, IN/OUT attendance, core violations.
 
 ### Phase 2 — Core Complete (Weeks 5–8) ✅ Built
-Cover requests (Need Cover broadcast), violation flags + audit trail, messaging, Super Admin panel.
+Cover requests (Need Cover broadcast — later removed in favor of Admin Duty Reassignment, see §4), violation flags + audit trail, messaging, Super Admin panel.
 
 ### Phase 3 — Full System (Weeks 9–12) ✅ Built ← CURRENT (QA/UAT)
 All 16 reports, role-based dashboards, Telegram notifications, PWA polish. Remaining before production launch: UAT with staff, production sign-off.
@@ -318,8 +326,9 @@ These must be implemented by end of Phase 1 for the system to function correctly
 | Job | Schedule | Action |
 |---|---|---|
 | Auto clock-out | Every 10 minutes | For each session (Morning/Afternoon) whose Admin-configured auto clock-out time has passed, set `out_time`, `auto_out = true` for any unchecked-out faculty in that session — each session evaluated independently against its own configured time (see Duty Timing Settings, §3 Admin permissions) |
-| Cover request expiry | Every hour | Set status = `expired` where `expires_at < NOW()` and status = `pending` |
-| Calendar auto-close | Daily midnight | Set `is_window_open = false` on the last day of the month |
+| Calendar auto-close | 23:55 IST daily | Set `is_window_open = false` on the last day of the month |
+
+> The former hourly **Cover request expiry** job was removed together with the Need Cover / Volunteer workflow (see §4 Admin Duty Reassignment).
 
 ---
 
@@ -353,6 +362,6 @@ PORT=3000
 
 ---
 
-*Constitution version: 3.3 — Updated: July 2026*
+*Constitution version: 3.4 — Updated: July 2026 (removed Need Cover / Volunteer workflow; added Admin Duty Reassignment — §3, §4, §5, §6, §9)*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*

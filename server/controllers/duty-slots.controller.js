@@ -1,5 +1,8 @@
 const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
+const telegram = require('../lib/telegram');
+const { logAction } = require('../services/audit.service');
+const { formatDateIST } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -24,18 +27,36 @@ function monthDateRange(year, month) {
   };
 }
 
+// Latest reassignment carried on each slot so the UI can label an active slot
+// as "reassigned to you" / "originally assigned to …". History rows never change
+// once written, so the most recent one describes the current owner.
+const LATEST_REASSIGNMENT_SELECT = {
+  orderBy: { created_at: 'desc' },
+  take: 1,
+  select: {
+    id: true,
+    from_faculty_id: true,
+    to_faculty_id: true,
+    reason: true,
+    created_at: true,
+    fromFaculty: { select: { id: true, name: true } },
+    toFaculty: { select: { id: true, name: true } },
+    reassignedBy: { select: { id: true, name: true } },
+  },
+};
+
 const SLOT_SELECT = {
   id: true,
   faculty_id: true,
   duty_date: true,
   session_type: true,
   status: true,
-  covered_by: true,
   created_by: true,
   created_at: true,
   updated_at: true,
   faculty: { select: { id: true, name: true, email: true, department: true, designation: true } },
   attendance: { select: { in_time: true, out_time: true } },
+  reassignments: LATEST_REASSIGNMENT_SELECT,
 };
 
 // ─── GET /duty-slots/:year/:month ─────────────────────────────────────────────
@@ -48,7 +69,7 @@ async function getMonthSlots(req, res) {
   const where = { duty_date: monthDateRange(year, month) };
 
   if (req.user.role === 'faculty') {
-    where.OR = [{ faculty_id: req.user.id }, { covered_by: req.user.id }];
+    where.faculty_id = req.user.id;
   }
 
   const slots = await prisma.dutySlot.findMany({
@@ -233,8 +254,8 @@ async function unpickSlot(req, res) {
     });
   }
 
-  // Only scheduled slots can be unpicked — cover_pending/covered/completed/absent
-  // all indicate activity that prevents removal.
+  // Only scheduled slots can be unpicked — completed/absent indicate activity
+  // that prevents removal.
   if (slot.status !== 'scheduled') {
     return res.status(409).json({
       error: true,
@@ -318,7 +339,19 @@ async function getSlot(req, res) {
     select: {
       ...SLOT_SELECT,
       attendance: true,
-      coverRequests: { orderBy: { created_at: 'desc' }, take: 1 },
+      reassignments: {
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          from_faculty_id: true,
+          to_faculty_id: true,
+          reason: true,
+          created_at: true,
+          fromFaculty: { select: { id: true, name: true } },
+          toFaculty: { select: { id: true, name: true } },
+          reassignedBy: { select: { id: true, name: true } },
+        },
+      },
     },
   });
 
@@ -333,6 +366,144 @@ async function getSlot(req, res) {
   res.json(slot);
 }
 
+// ─── POST /duty-slots/:id/reassign — Admin ────────────────────────────────────
+// Admin-controlled duty reassignment. Moves an upcoming, un-attended duty from
+// its current faculty to another faculty member. The slot's faculty_id is
+// updated in place and a duty_reassignments history row is written; attendance,
+// duty counts and My Slots then all follow the new owner automatically.
+
+async function reassignSlot(req, res) {
+  const { to_faculty_id, reason } = req.body;
+
+  const slot = await prisma.dutySlot.findUnique({
+    where: { id: req.params.id },
+    include: {
+      attendance: true,
+      faculty: { select: { id: true, name: true, telegram_id: true } },
+    },
+  });
+
+  if (!slot) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
+  }
+
+  // Only still-scheduled duties can be reassigned — completed/absent slots are
+  // history and must not be rewritten.
+  if (slot.status !== 'scheduled') {
+    return res.status(409).json({
+      error: true,
+      code: 'SLOT_NOT_REASSIGNABLE',
+      message: `This duty cannot be reassigned because its status is '${slot.status}'.`,
+    });
+  }
+
+  // Never reassign a past duty.
+  if (formatDateIST(slot.duty_date) < formatDateIST(new Date())) {
+    return res.status(409).json({
+      error: true,
+      code: 'PAST_DUTY',
+      message: 'This duty date has already passed and cannot be reassigned.',
+    });
+  }
+
+  // Attendance already recorded means the duty is in progress/done.
+  if (slot.attendance) {
+    return res.status(409).json({
+      error: true,
+      code: 'ATTENDANCE_EXISTS',
+      message: 'Attendance has already been recorded for this duty and it cannot be reassigned.',
+    });
+  }
+
+  if (to_faculty_id === slot.faculty_id) {
+    return res.status(409).json({
+      error: true,
+      code: 'SAME_FACULTY',
+      message: 'The duty is already assigned to this faculty member.',
+    });
+  }
+
+  const toFaculty = await prisma.user.findUnique({ where: { id: to_faculty_id } });
+  if (!toFaculty || toFaculty.deleted_at || toFaculty.role !== 'faculty' || toFaculty.status !== 'active') {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Target faculty member not found or inactive.' });
+  }
+
+  const fromFacultyId = slot.faculty_id;
+
+  const [updatedSlot, reassignment] = await prisma.$transaction([
+    prisma.dutySlot.update({
+      where: { id: slot.id },
+      data:  { faculty_id: to_faculty_id },
+      select: SLOT_SELECT,
+    }),
+    prisma.dutyReassignment.create({
+      data: {
+        duty_slot_id:    slot.id,
+        from_faculty_id: fromFacultyId,
+        to_faculty_id,
+        duty_date:       slot.duty_date,
+        session_type:    slot.session_type,
+        reason:          reason ?? null,
+        reassigned_by:   req.user.id,
+      },
+    }),
+  ]);
+
+  await logAction({
+    actorId:    req.user.id,
+    action:     'REASSIGN_DUTY',
+    targetId:   slot.id,
+    targetType: 'duty_slot',
+    metadata:   { from_faculty_id: fromFacultyId, to_faculty_id, duty_date: formatDateIST(slot.duty_date), session_type: slot.session_type, reason: reason ?? null },
+  });
+
+  res.json({ slot: updatedSlot, reassignment });
+
+  // Fire-and-forget Telegram notifications to both faculty — never block/fail the response.
+  const dutyDate = formatDateIST(slot.duty_date);
+  if (slot.faculty.telegram_id) {
+    telegram.sendMessage(slot.faculty.telegram_id,
+      `🔄 <b>Duty Reassigned Away</b>\n\nYour duty on <b>${dutyDate}</b> (${slot.session_type}) has been reassigned to <b>${toFaculty.name}</b> by the admin.` +
+      (reason ? `\nReason: ${reason}` : '')
+    ).catch((err) => logger.warn(`[reassign-notify] from-faculty notify failed: ${err.message}`));
+  }
+  if (toFaculty.telegram_id) {
+    telegram.sendMessage(toFaculty.telegram_id,
+      `🔄 <b>Duty Reassigned to You</b>\n\nYou have been assigned a duty on <b>${dutyDate}</b> (${slot.session_type}) by the admin (originally assigned to ${slot.faculty.name}).`
+    ).catch((err) => logger.warn(`[reassign-notify] to-faculty notify failed: ${err.message}`));
+  }
+}
+
+// ─── GET /duty-slots/reassigned-away/:year/:month — Faculty ───────────────────
+// Duties this faculty member had that were reassigned away from them. These no
+// longer appear in their active slots (the slot's faculty_id moved), so they are
+// surfaced separately from the reassignment history.
+
+async function getReassignedAway(req, res) {
+  const params = parseYearMonth(req, res);
+  if (!params) return;
+  const { year, month } = params;
+
+  const rows = await prisma.dutyReassignment.findMany({
+    where: {
+      from_faculty_id: req.user.id,
+      duty_date: monthDateRange(year, month),
+    },
+    orderBy: [{ duty_date: 'asc' }],
+    select: {
+      id: true,
+      duty_date: true,
+      session_type: true,
+      reason: true,
+      created_at: true,
+      toFaculty:    { select: { id: true, name: true } },
+      reassignedBy: { select: { id: true, name: true } },
+    },
+  });
+
+  res.json({ data: rows, total: rows.length });
+}
+
 module.exports = {
   getMonthSlots,
   getAvailableSlots,
@@ -340,4 +511,6 @@ module.exports = {
   unpickSlot,
   adminAssign,
   getSlot,
+  reassignSlot,
+  getReassignedAway,
 };

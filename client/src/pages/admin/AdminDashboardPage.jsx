@@ -4,8 +4,7 @@ import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
-import { useCoverRequests } from '../../hooks/useCoverRequests';
-import { useFlaggedViolations, useCompletionRate } from '../../hooks/useReports';
+import { useFlaggedViolations, useCompletionRate, useDutyReassignmentReport } from '../../hooks/useReports';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
@@ -26,7 +25,7 @@ export default function AdminDashboardPage({ user }) {
   const { data: pendingUsers }       = useUsers({ status: 'pending' });
   const { data: pendingTelegramUsers } = useUsers({ status: 'pending_telegram' });
   const { data: liveData }           = useLiveAttendance();
-  const { data: openCovers }         = useCoverRequests({ status: 'open' });
+  const { data: reassignReport }     = useDutyReassignmentReport({ year: now.getFullYear(), month: now.getMonth() + 1 });
   const { data: flagged }            = useFlaggedViolations();
 
   // Completion rate trend (this month vs last month)
@@ -40,7 +39,8 @@ export default function AdminDashboardPage({ user }) {
   const activeFaculty       = allUsers?.data?.filter((u) => u.role === 'faculty').length ?? 0;
   const pendingCount        = pendingUsers?.meta?.total  ?? pendingUsers?.data?.length ?? 0;
   const pendingTelegramCount = pendingTelegramUsers?.meta?.total ?? pendingTelegramUsers?.data?.length ?? 0;
-  const openCoverCount      = openCovers?.meta?.total    ?? openCovers?.data?.length ?? 0;
+  const reassignments       = reassignReport?.history ?? [];
+  const reassignmentCount   = reassignReport?.total ?? 0;
   const pendingFlaggedCount = flagged?.pending_count ?? 0;
 
   const liveSlots    = liveData?.data ?? [];
@@ -80,7 +80,8 @@ export default function AdminDashboardPage({ user }) {
           <StatCard compact label="Active Faculty"   value={activeFaculty}        accent="blue"   icon="👥" />
           <StatCard compact label="Pending"          value={pendingCount}          accent="yellow"
             sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon="⏳" />
-          <StatCard compact label="Cover Requests"   value={openCoverCount}        accent="indigo" icon="🔄" />
+          <StatCard compact label="Reassignments"    value={reassignmentCount}     accent="indigo" icon="🔄"
+            sub="This month" />
           <StatCard compact label="Flagged"          value={pendingFlaggedCount}   accent="red"
             sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon="⚑" />
         </div>
@@ -151,7 +152,7 @@ export default function AdminDashboardPage({ user }) {
                   >
                     <div className="flex-1 min-w-0">
                       <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.covering_faculty ? `${s.faculty?.name} → ${s.covering_faculty?.name}` : s.faculty?.name}
+                        {s.faculty?.name}
                       </p>
                     </div>
                     <span className="shrink-0 mr-[10px]"
@@ -173,29 +174,29 @@ export default function AdminDashboardPage({ user }) {
         </CardBody>
       </Card>
 
-      {/* ── Open cover requests ── */}
+      {/* ── Recent duty reassignments (this month) ── */}
       <Card className="mb-3">
-        <CardHeader>🔄 Open cover requests</CardHeader>
+        <CardHeader>🔄 Recent duty reassignments</CardHeader>
         <CardBody className="p-0">
-          {!openCovers?.data?.length ? (
-            <p style={{ padding: '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No open cover requests.</p>
+          {!reassignments.length ? (
+            <p style={{ padding: '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No reassignments this month.</p>
           ) : (
             <div className="max-h-[180px] overflow-y-auto">
-              {openCovers.data.slice(0, 8).map((cr) => (
+              {reassignments.slice(0, 8).map((r) => (
                 <div
-                  key={cr.id}
+                  key={r.id}
                   className="flex items-center justify-between px-4 py-[6px] border-b border-[var(--divider)] gap-[10px]"
                 >
                   <div className="min-w-0 flex-1">
                     <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {cr.requester?.name}
+                      {r.from_faculty?.name} → {r.to_faculty?.name}
                     </p>
                     <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
-                      {cr.dutySlot?.session_type}
-                      {cr.dutySlot?.duty_date && ` · ${new Date(cr.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
+                      {r.session_type}
+                      {r.duty_date && ` · ${new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
                     </p>
                   </div>
-                  <Badge status={cr.volunteer_id ? 'pending' : 'open'} />
+                  <Badge status="reassigned" />
                 </div>
               ))}
             </div>

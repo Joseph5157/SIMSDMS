@@ -1,8 +1,8 @@
 const settingsService = require('../services/settings.service');
 const { logAction } = require('../services/audit.service');
 
-// Only these 16 fields are exposed here — cover_ttl_hours and any other
-// system_config fields stay on the Super-Admin-only /admin/settings endpoint.
+// Only these 16 timing fields are exposed here — any other system_config
+// fields stay on the Super-Admin-only /admin/settings endpoint.
 const TIMING_FIELDS = [
   'session_start_morning_hour', 'session_start_morning_min',
   'session_start_afternoon_hour', 'session_start_afternoon_min',

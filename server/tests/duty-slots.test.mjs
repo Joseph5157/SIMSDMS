@@ -76,23 +76,21 @@ describe('pickSlot', () => {
 describe('getMonthSlots', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('includes a slot where the faculty member is the confirmed cover, even with no slots of their own', async () => {
-    const coveredSlot = {
-      id: 's1', faculty_id: 'f2', covered_by: 'f1',
-      duty_date: new Date('2026-06-10'), session_type: 'morning', status: 'covered',
+  it('scopes a faculty member to the slots they currently own (faculty_id only)', async () => {
+    const ownSlot = {
+      id: 's1', faculty_id: 'f1',
+      duty_date: new Date('2026-06-10'), session_type: 'morning', status: 'scheduled',
     };
-    const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([coveredSlot]);
+    const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([ownSlot]);
 
     const req = { params: { year: '2026', month: '6' }, user: { id: 'f1', role: 'faculty' } };
     const res = makeRes();
     await getMonthSlots(req, res);
 
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: expect.objectContaining({
-        OR: [{ faculty_id: 'f1' }, { covered_by: 'f1' }],
-      }),
+      where: expect.objectContaining({ faculty_id: 'f1' }),
     }));
-    expect(res._body.data).toEqual([coveredSlot]);
+    expect(res._body.data).toEqual([ownSlot]);
     expect(res._body.total).toBe(1);
   });
 

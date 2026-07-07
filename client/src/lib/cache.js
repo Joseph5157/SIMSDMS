@@ -4,7 +4,6 @@ export const CACHE_TTL = {
   STUDENTS: 10 * 60 * 1000,    // 10 minutes
   USERS: 10 * 60 * 1000,       // 10 minutes
   DUTY_SLOTS: 15 * 60 * 1000,  // 15 minutes
-  COVER_REQUESTS: 10 * 60 * 1000, // 10 minutes
   VIOLATIONS: 10 * 60 * 1000,  // 10 minutes
   MESSAGES: 5 * 60 * 1000,     // 5 minutes
   ATTENDANCE: 15 * 60 * 1000,  // 15 minutes

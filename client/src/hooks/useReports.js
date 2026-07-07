@@ -23,7 +23,7 @@ export const usePendingFines         = (p) => useReport('pending-fines',        
 export const useFlaggedViolations    = (p) => useReport('flagged-violations',    p);
 export const useDutyCoverage         = (p) => useReport('duty-coverage',         p);
 export const useUnassignedFacultyReport = (p) => useReport('unassigned-faculty', p);
-export const useCoverRequestSummary  = (p) => useReport('cover-requests',        p);
+export const useDutyReassignmentReport = (p) => useReport('duty-reassignments',  p);
 export const useCompletionRate       = (p) => useReport('completion-rate',       p);
 export const useUploadHistory        = (p) => useReport('upload-history',        p);
 export const useActiveStudents       = (p) => useReport('active-students',       p);

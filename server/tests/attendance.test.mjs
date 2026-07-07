@@ -117,16 +117,14 @@ describe('getMySummary', () => {
     );
   });
 
-  it('scopes slots to the requesting faculty as assignee or covering faculty', async () => {
+  it('scopes slots to the requesting faculty as the current owner (faculty_id only)', async () => {
     vi.spyOn(settingsService, 'getSettings').mockResolvedValue(cutoffPendingSettings);
     const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([]);
     const res = makeRes();
     await getMySummary(makeReq({ year, month }), res);
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [{ faculty_id: 'f1' }, { covered_by: 'f1' }],
-        }),
+        where: expect.objectContaining({ faculty_id: 'f1' }),
       }),
     );
   });

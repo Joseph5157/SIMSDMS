@@ -55,3 +55,26 @@ export function useAdminAssignSlot() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dutySlots'] }),
   });
 }
+
+// Admin-controlled duty reassignment. Moves an upcoming, un-attended duty to
+// another faculty member and records the change in reassignment history.
+export function useReassignSlot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, to_faculty_id, reason }) =>
+      api.post(`/duty-slots/${id}/reassign`, { to_faculty_id, reason }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['dutySlots'] }),
+  });
+}
+
+// Faculty view of duties that were reassigned away from them for a month.
+export function useReassignedAway(year, month) {
+  return useQuery({
+    queryKey: ['reassignedAway', year, month],
+    queryFn: async () => {
+      const res = await api.get(`/duty-slots/reassigned-away/${year}/${month}`);
+      return res.data;
+    },
+    enabled: !!year && !!month,
+  });
+}

@@ -27,15 +27,16 @@ function monthDateRange(year, month) {
   };
 }
 
-// Fetches the duty slot and verifies the requesting faculty is either the
-// originally assigned faculty OR the confirmed covering faculty.
+// Fetches the duty slot and verifies the requesting faculty is its current
+// owner. After an admin reassignment the slot's faculty_id is the new faculty,
+// so ownership is always a single faculty_id check.
 async function resolveSlotForFaculty(slotId, facultyId, res) {
   const slot = await prisma.dutySlot.findUnique({ where: { id: slotId } });
   if (!slot) {
     res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
     return null;
   }
-  if (slot.faculty_id !== facultyId && slot.covered_by !== facultyId) {
+  if (slot.faculty_id !== facultyId) {
     res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'This is not your duty slot.' });
     return null;
   }
@@ -105,7 +106,7 @@ async function checkIn(req, res) {
 
   const in_status = resolveInStatus(slot.session_type, cfg);
 
-  // faculty_id is the actual performer (covering faculty if covered, original if not)
+  // faculty_id is the slot's current owner (the actual performer).
   let attendance;
   if (existing) {
     attendance = await prisma.dutyAttendance.update({
@@ -165,8 +166,8 @@ async function checkOut(req, res) {
 
 // ─── GET /attendance/live ─────────────────────────────────────────────────────
 // Live admin dashboard for the current duty day.
-// Includes covering_faculty so the admin can see who is actually performing
-// a covered slot, and performed_by_id which is the attendance record's faculty.
+// performed_by_id is the attendance record's faculty (the slot's current owner,
+// including any admin reassignment).
 
 async function getLive(req, res) {
   const ist       = nowInIST();
@@ -178,8 +179,7 @@ async function getLive(req, res) {
   const slots = await prisma.dutySlot.findMany({
     where: { duty_date: todayRange },
     include: {
-      faculty:         { select: { id: true, name: true, email: true, department: true } },
-      coveringFaculty: { select: { id: true, name: true, email: true, department: true } },
+      faculty:    { select: { id: true, name: true, email: true, department: true } },
       attendance: true,
     },
     orderBy: [{ session_type: 'asc' }, { faculty: { name: 'asc' } }],
@@ -200,9 +200,6 @@ async function getLive(req, res) {
   const result = slots.map((s) => ({
     slot_id:          s.id,
     faculty:          s.faculty,
-    // Non-null only when DutySlot.covered_by is set (i.e. cover was confirmed).
-    // Distinguishes original assigned faculty from the person physically on duty.
-    covering_faculty: s.coveringFaculty ?? null,
     // ID of the person whose check-in was recorded (the actual duty performer).
     performed_by_id:  s.attendance?.faculty_id ?? null,
     duty_date:        s.duty_date,
@@ -230,7 +227,7 @@ async function getLive(req, res) {
 
 // ─── GET /attendance/mine/summary ─────────────────────────────────────────────
 // Personalized attendance dashboard for the logged-in faculty member — their own
-// duty slots (assigned or covered) for one month, joined with attendance, plus
+// duty slots (as currently assigned) for one month, joined with attendance, plus
 // aggregate counts overall and per session. Late/not-checked-in/auto-out are all
 // derived from the same admin-configured system_config thresholds used by the
 // admin live dashboard (getLive) and check-in flow — never hardcoded here.
@@ -254,7 +251,7 @@ async function getMySummary(req, res) {
   const slots = await prisma.dutySlot.findMany({
     where: {
       duty_date: monthDateRange(year, month),
-      OR: [{ faculty_id: req.user.id }, { covered_by: req.user.id }],
+      faculty_id: req.user.id,
     },
     include: { attendance: true },
     orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
@@ -327,12 +324,8 @@ async function getAttendance(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
   }
 
-  // Faculty can view attendance for slots they are assigned to or confirmed to cover.
-  if (
-    req.user.role === 'faculty' &&
-    slot.faculty_id !== req.user.id &&
-    slot.covered_by !== req.user.id
-  ) {
+  // Faculty can view attendance only for slots they currently own.
+  if (req.user.role === 'faculty' && slot.faculty_id !== req.user.id) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Access denied.' });
   }
 
@@ -368,8 +361,8 @@ async function overrideAttendance(req, res) {
   if (attendance) {
     attendance = await prisma.dutyAttendance.update({ where: { id: attendance.id }, data });
   } else {
-    // When creating from scratch, use the slot's faculty_id as the record owner.
-    // Covered slots retain the original faculty as the administrative record holder.
+    // When creating from scratch, use the slot's faculty_id as the record owner
+    // (the current owner after any reassignment).
     attendance = await prisma.dutyAttendance.create({
       data: { duty_slot_id: slot.id, faculty_id: slot.faculty_id, ...data },
     });

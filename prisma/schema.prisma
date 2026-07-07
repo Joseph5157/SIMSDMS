@@ -32,8 +32,6 @@ enum SlotStatus {
   scheduled
   completed
   absent
-  cover_pending
-  covered
 }
 
 enum AttendanceInStatus {
@@ -45,13 +43,6 @@ enum AttendanceInStatus {
 enum AttendanceOutStatus {
   normal
   auto
-}
-
-enum CoverStatus {
-  open
-  covered
-  expired
-  cancelled
 }
 
 enum RecordStatus {
@@ -99,16 +90,15 @@ model User {
   createdRelinkTokens      TelegramRelinkToken[] @relation("CreatedRelinkTokens")
   dutySlots                DutySlot[]            @relation("FacultyDutySlots")
   createdDutySlots         DutySlot[]            @relation("CreatedDutySlots")
-  coveredSlots             DutySlot[]            @relation("CoveredSlots")
   attendance               DutyAttendance[]      @relation("FacultyAttendance")
   overriddenAttendance     DutyAttendance[]      @relation("OverriddenAttendance")
   violations               Violation[]           @relation("RecordedViolations")
   flagResolvedViolations   Violation[]           @relation("FlagResolvedViolations")
   violationAuditLogs       ViolationAuditLog[]
   adminAuditLogsAsActor    AdminAuditLog[]       @relation("AuditActor")
-  coverRequestsPosted      CoverRequest[]        @relation("CoverRequested")
-  coverRequestsVolunteered CoverRequest[]        @relation("CoverVolunteer")
-  coverRequestsConfirmed   CoverRequest[]        @relation("CoverConfirmed")
+  reassignmentsFrom        DutyReassignment[]    @relation("ReassignedFrom")
+  reassignmentsTo          DutyReassignment[]    @relation("ReassignedTo")
+  reassignmentsMade        DutyReassignment[]    @relation("ReassignedBy")
   calendarOpened           CalendarConfig[]
   messagesSent             Message[]             @relation("MessageSender")
   messagesReceived         Message[]             @relation("MessageReceiver")
@@ -210,18 +200,16 @@ model DutySlot {
   duty_date    DateTime    @db.Date
   session_type SessionType
   status       SlotStatus  @default(scheduled)
-  covered_by   String?
   created_by   String
   created_at   DateTime    @default(now())
   updated_at   DateTime    @updatedAt
 
   faculty         User  @relation("FacultyDutySlots", fields: [faculty_id], references: [id])
-  coveringFaculty User? @relation("CoveredSlots", fields: [covered_by], references: [id])
   creator         User  @relation("CreatedDutySlots", fields: [created_by], references: [id])
 
   attendance    DutyAttendance?
   violations    Violation[]
-  coverRequests CoverRequest[]
+  reassignments DutyReassignment[]
 
   @@unique([duty_date, session_type])
   @@index([faculty_id, duty_date])
@@ -343,28 +331,34 @@ model AdminAuditLog {
   @@map("admin_audit_log")
 }
 
-// ─── 11. Cover Requests ──────────────────────────────────────────────────────
+// ─── 11. Duty Reassignments ──────────────────────────────────────────────────
+// Admin-controlled duty reassignment. When an admin reassigns a duty slot to a
+// different faculty member, the slot's faculty_id is updated in place and one
+// immutable history row is written here recording who it moved from/to, why, and
+// by which admin. This history drives the "Reassigned Away" / "Reassigned To"
+// views and the reassignment report. duty_date + session_type are denormalised
+// so history survives independently of the (mutated) slot.
 
-model CoverRequest {
-  id           String      @id @default(uuid())
-  duty_slot_id String
-  requested_by String
-  reason       String?     @db.Text
-  status       CoverStatus @default(open)
-  volunteer_id String?
-  confirmed_by String?
-  confirmed_at DateTime?
-  expires_at   DateTime
-  created_at   DateTime    @default(now())
-  updated_at   DateTime    @updatedAt
+model DutyReassignment {
+  id              String      @id @default(uuid())
+  duty_slot_id    String
+  from_faculty_id String
+  to_faculty_id   String
+  duty_date       DateTime    @db.Date
+  session_type    SessionType
+  reason          String?     @db.Text
+  reassigned_by   String
+  created_at      DateTime    @default(now())
 
-  dutySlot    DutySlot @relation(fields: [duty_slot_id], references: [id])
-  requester   User     @relation("CoverRequested", fields: [requested_by], references: [id])
-  volunteer   User?    @relation("CoverVolunteer", fields: [volunteer_id], references: [id])
-  confirmedBy User?    @relation("CoverConfirmed", fields: [confirmed_by], references: [id])
+  dutySlot     DutySlot @relation(fields: [duty_slot_id], references: [id])
+  fromFaculty  User     @relation("ReassignedFrom", fields: [from_faculty_id], references: [id])
+  toFaculty    User     @relation("ReassignedTo", fields: [to_faculty_id], references: [id])
+  reassignedBy User     @relation("ReassignedBy", fields: [reassigned_by], references: [id])
 
-  @@index([status, expires_at])
-  @@map("cover_requests")
+  @@index([from_faculty_id])
+  @@index([to_faculty_id])
+  @@index([duty_slot_id])
+  @@map("duty_reassignments")
 }
 
 // ─── 12. Calendar Config ─────────────────────────────────────────────────────
@@ -376,7 +370,6 @@ model CalendarConfig {
   blocked_dates               Json      @default("[]")
   working_days                Json      @default("[]")
   sessions_per_faculty        Int       @default(3) @db.SmallInt
-  max_cover_requests_per_slot Int       @default(3) @db.SmallInt
   is_window_open              Boolean   @default(false)
   opened_by                   String?
   opened_at                   DateTime?
@@ -435,7 +428,6 @@ model SystemConfig {
   auto_checkout_morning_min      Int      @default(30) @db.SmallInt
   auto_checkout_afternoon_hour   Int      @default(16) @db.SmallInt
   auto_checkout_afternoon_min    Int      @default(30) @db.SmallInt
-  cover_ttl_hours                Int      @default(48) @db.SmallInt
   updated_by                     String?
   updated_at                     DateTime @updatedAt
 

@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
-  IconTag, IconArrowsLeftRight, IconMail, IconChartBar,
+  IconTag, IconMail, IconChartBar,
   IconBolt, IconFileText, IconLogout, IconMenu2, IconClock,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
@@ -32,7 +32,6 @@ const adminNav = [
     { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',           Icon: IconCalendar },
     { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',         Icon: IconCalendarEvent },
     { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',         Icon: IconClipboardCheck },
-    { to: ROUTES.ADMIN_COVER_REQUESTS,  label: 'Cover Requests',     Icon: IconArrowsLeftRight },
     { to: ROUTES.ADMIN_DUTY_TIMING_SETTINGS, label: 'Duty Timing Settings', Icon: IconClock },
   ]},
   { group: 'Discipline', items: [
@@ -52,7 +51,6 @@ const facultyNav = [
   { group: 'Duties', items: [
     { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',           Icon: IconCalendarEvent },
     { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',         Icon: IconClipboardCheck },
-    { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover Requests',     Icon: IconArrowsLeftRight },
   ]},
   { group: 'Activity', items: [
     { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Student Violations', Icon: IconAlertTriangle },
@@ -80,7 +78,6 @@ const facultyBottomTabs = [
   { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',  Icon: IconCalendarEvent },
   { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attend', Icon: IconClipboardCheck },
   { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Issues', Icon: IconAlertTriangle },
-  { to: ROUTES.FACULTY_COVER_REQUESTS, label: 'Cover',  Icon: IconArrowsLeftRight },
 ];
 
 const adminBottomTabs = [

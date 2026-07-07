@@ -24,8 +24,8 @@ function getNotificationColor(type) {
   switch (type) {
     case 'duty_assigned':
       return 'var(--color-blue-50)';
-    case 'cover_request':
-      return 'var(--color-amber-bg)';
+    case 'duty_reassigned':
+      return 'var(--color-indigo-bg)';
     case 'violation':
       return 'var(--color-red-bg)';
     case 'message':

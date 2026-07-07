@@ -23,14 +23,12 @@ import DutySlotsPage      from './pages/admin/DutySlotsPage';
 import AttendanceLivePage from './pages/admin/AttendanceLivePage';
 import ViolationsPage     from './pages/admin/ViolationsPage';
 import ViolationTypesPage from './pages/admin/ViolationTypesPage';
-import CoverRequestsAdminPage from './pages/admin/CoverRequestsPage';
 import ReportsPage        from './pages/admin/ReportsPage';
 
 import DashboardPage          from './pages/faculty/DashboardPage';
 import SlotPickerPage         from './pages/faculty/SlotPickerPage';
 import AttendancePage         from './pages/faculty/AttendancePage';
 import ViolationRecorderPage  from './pages/faculty/ViolationRecorderPage';
-import FacultyCoverRequestsPage from './pages/faculty/CoverRequestsPage';
 
 import MessagesPage     from './pages/shared/MessagesPage';
 import NotificationsPage from './pages/NotificationsPage';
@@ -121,7 +119,6 @@ function AppRoutes() {
         <Route path="/admin/attendance"       element={<AttendanceLivePage user={user} />} />
         <Route path="/admin/violations"       element={<ViolationsPage user={user} />} />
         <Route path="/admin/violation-types"  element={<ViolationTypesPage user={user} />} />
-        <Route path="/admin/cover-requests"   element={<CoverRequestsAdminPage user={user} />} />
         <Route path="/admin/messages"         element={<MessagesPage user={user} />} />
         <Route path="/admin/reports"          element={<ReportsPage user={user} />} />
       </Route>
@@ -132,7 +129,6 @@ function AppRoutes() {
         <Route path="/faculty/slots"          element={<SlotPickerPage user={user} />} />
         <Route path="/faculty/attendance"     element={<AttendancePage user={user} />} />
         <Route path="/faculty/violations"     element={<ViolationRecorderPage user={user} />} />
-        <Route path="/faculty/cover-requests" element={<FacultyCoverRequestsPage user={user} />} />
         <Route path="/faculty/messages"       element={<MessagesPage user={user} />} />
       </Route>
 

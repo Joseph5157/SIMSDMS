@@ -89,20 +89,7 @@ async function autoClockOut() {
   }
 }
 
-// ─── 2. Cover request expiry — every hour ─────────────────────────────────────
-
-async function expireCoverRequests() {
-  const result = await prisma.coverRequest.updateMany({
-    where: { status: 'open', expires_at: { lt: new Date() } },
-    data:  { status: 'expired' },
-  });
-
-  if (result.count > 0) {
-    logger.info(`[cron] Cover request expiry: ${result.count} request(s) expired.`);
-  }
-}
-
-// ─── 3. Calendar auto-close — 23:55 IST on the last day of the month ─────────
+// ─── 2. Calendar auto-close — 23:55 IST on the last day of the month ─────────
 // Fires at 23:55 IST so faculty have the full last day to pick slots.
 
 async function autoCloseCalendar() {
@@ -133,14 +120,6 @@ async function safeAutoClockOut() {
   }
 }
 
-async function safeExpireCoverRequests() {
-  try {
-    await expireCoverRequests();
-  } catch (err) {
-    logger.error('[cron] expireCoverRequests failed:', err.message);
-  }
-}
-
 async function safeAutoCloseCalendar() {
   try {
     await autoCloseCalendar();
@@ -153,7 +132,6 @@ async function safeAutoCloseCalendar() {
 
 function startCronJobs() {
   cron.schedule('*/10 * * * *', safeAutoClockOut,        { timezone: 'Asia/Kolkata' });
-  cron.schedule('0  *  * * *',  safeExpireCoverRequests,  { timezone: 'Asia/Kolkata' });
   cron.schedule('55 23 * * *',  safeAutoCloseCalendar,    { timezone: 'Asia/Kolkata' });
 
   logger.info('[cron] All scheduled jobs registered.');

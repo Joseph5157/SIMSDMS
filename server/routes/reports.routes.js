@@ -27,7 +27,7 @@ router.get('/pending-fines',        asyncHandler(ctrl.pendingFinesSummary));
 router.get('/flagged-violations',   asyncHandler(ctrl.flaggedViolationsReport));
 router.get('/duty-coverage',        validateQuery(yearMonthQuery),          asyncHandler(ctrl.monthlyDutyCoverage));
 router.get('/unassigned-faculty',   validateQuery(yearMonthQuery),          asyncHandler(ctrl.unassignedFacultyReport));
-router.get('/cover-requests',       validateQuery(yearMonthQuery),          asyncHandler(ctrl.coverRequestSummary));
+router.get('/duty-reassignments',   validateQuery(yearMonthQuery),          asyncHandler(ctrl.dutyReassignmentReport));
 router.get('/completion-rate',      asyncHandler(ctrl.sessionCompletionRate));
 router.get('/upload-history',       asyncHandler(ctrl.studentUploadHistory));
 router.get('/active-students',      validateQuery(activeStudentsQuery),     asyncHandler(ctrl.activeStudentRoster));
