@@ -46,10 +46,10 @@ export default function SlotPickerPage({ user }) {
 
   const morningStartLabel = timingSettings
     ? formatHourMin(timingSettings.session_start_morning_hour, timingSettings.session_start_morning_min)
-    : '9:00 AM';
+    : '8:00 AM';
   const afternoonStartLabel = timingSettings
     ? formatHourMin(timingSettings.session_start_afternoon_hour, timingSettings.session_start_afternoon_min)
-    : '2:00 PM';
+    : '1:00 PM';
 
   const pick   = usePickSlot();
   const unpick = useUnpickSlot();

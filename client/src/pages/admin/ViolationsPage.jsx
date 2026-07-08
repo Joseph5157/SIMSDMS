@@ -146,6 +146,15 @@ export default function ViolationsPage({ user }) {
               {v.is_flagged && <Badge status="pending" label="Flagged" />}
               <Badge status={v.record_status} />
             </div>
+            <div style={{ display: 'flex', gap: 2, flexShrink: 0, marginLeft: 4 }}>
+              {v.is_flagged && !v.flag_resolved_at && (
+                <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Resolve</Button>
+              )}
+              {v.record_status === 'active' && (
+                <Button variant="subtle" size="xs" onClick={() => setHiding(v)}>Hide</Button>
+              )}
+              <Button variant="subtle" size="xs" onClick={() => setAuditing(v.id)}>Log</Button>
+            </div>
           </div>
         ))}
       </div>

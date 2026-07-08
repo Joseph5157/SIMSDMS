@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useNotifications, useMarkAsRead } from '../hooks/useNotifications';
+import { useNavigate } from 'react-router-dom';
+import { useMarkMessageRead } from '../hooks/useNotifications';
 import { useInbox } from '../hooks/useMessages';
 
 function formatTime(isoString) {
@@ -21,31 +21,20 @@ function formatTime(isoString) {
   return date.toLocaleDateString();
 }
 
-function getNotificationColor(type) {
-  switch (type) {
-    case 'duty_assigned':
-      return 'var(--color-blue-50)';
-    case 'duty_reassigned':
-      return 'var(--color-indigo-bg)';
-    case 'violation':
-      return 'var(--color-red-bg)';
-    case 'message':
-      return 'var(--color-cyan-bg)';
-    default:
-      return 'var(--color-slate-50)';
-  }
-}
-
-export default function NotificationBell() {
+export default function NotificationBell({ user, role }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const navigate = useNavigate();
-  const { notifications, unreadCount, isConnected } = useNotifications();
-  const markAsRead = useMarkAsRead();
+  const markRead = useMarkMessageRead();
   const { data: inboxData } = useInbox({ limit: 50 });
 
-  // Close dropdown on outside click
+  const messagesBase = role === 'faculty' ? '/faculty/messages' : '/admin/messages';
+  const inboxMessages = inboxData?.data ?? [];
+  const unreadMessages = inboxMessages.filter((m) => !m.is_read);
+
+  const totalUnreadCount = unreadMessages.length;
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -63,42 +52,22 @@ export default function NotificationBell() {
     }
   }, [dropdownOpen]);
 
-  // Get unread messages and convert to notification format
-  const inboxMessages = inboxData?.data ?? [];
-  const unreadMessages = inboxMessages.filter((m) => !m.is_read).map((m) => ({
-    id: `msg-${m.id}`,
-    type: 'message',
-    title: m.sender?.name || 'Unknown sender',
-    message: m.subject || '(No subject)',
-    createdAt: m.created_at,
-    readAt: m.is_read ? m.created_at : null,
-    actionUrl: '/messages',
-    messageId: m.id,
-  }));
-
-  // Combine notifications and messages, then take top 10
-  const allItems = [...unreadMessages, ...notifications];
-  const recentNotifications = allItems.slice(0, 10);
-
-  // Calculate total unread count (messages + notifications)
-  const messageUnreadCount = unreadMessages.length;
-  const totalUnreadCount = messageUnreadCount + unreadCount;
+  function handleItemClick(message) {
+    if (!message.is_read) {
+      markRead.mutate(message.id);
+    }
+    setDropdownOpen(false);
+    navigate(messagesBase);
+  }
 
   return (
     <div className="relative inline-block">
-      {/* Bell button */}
       <button
         ref={buttonRef}
-        onClick={() => {
-          if (window.innerWidth < 640) {
-            navigate('/notifications');
-            return;
-          }
-          setDropdownOpen(!dropdownOpen);
-        }}
-        aria-label={`Notifications ${totalUnreadCount > 0 ? `(${totalUnreadCount} unread)` : ''}`}
+        onClick={() => setDropdownOpen(!dropdownOpen)}
+        aria-label={`Messages ${totalUnreadCount > 0 ? `(${totalUnreadCount} unread)` : ''}`}
         aria-pressed={dropdownOpen}
-        title={`${totalUnreadCount} unread notifications`}
+        title={`${totalUnreadCount} unread messages`}
         className="bg-transparent border-none cursor-pointer w-11 h-11 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
       >
         <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
@@ -109,7 +78,6 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown panel */}
       {dropdownOpen && (
         <div
           ref={dropdownRef}
@@ -120,98 +88,59 @@ export default function NotificationBell() {
             maxHeight: 500,
           }}
           role="region"
-          aria-label="Notifications"
+          aria-label="Messages"
         >
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--divider)]">
             <p className="text-[length:var(--text-body)] font-[var(--weight-semibold)] text-[color:var(--text-primary)] m-0">
-              Notifications
+              Messages
             </p>
-            {!isConnected && (
-              <span className="text-[length:var(--text-micro)] text-[color:var(--color-amber-text)] bg-[var(--color-amber-bg)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
-                Offline
-              </span>
-            )}
           </div>
 
-          {/* Notifications list */}
           <div className="flex-1 overflow-y-auto max-h-[400px]">
-            {recentNotifications.length === 0 ? (
+            {unreadMessages.length === 0 ? (
               <div className="px-4 py-8 text-center text-[color:var(--text-muted)] text-[length:var(--text-card)]">
-                No notifications
+                No unread messages
               </div>
             ) : (
-              recentNotifications.map((notif) => (
+              unreadMessages.map((m) => (
                 <div
-                  key={notif.id}
-                  className="px-4 py-3 border-b border-[var(--divider)] cursor-pointer transition-colors duration-[var(--dur-fast)]"
-                  style={{
-                    backgroundColor: notif.readAt ? 'transparent' : getNotificationColor(notif.type),
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = notif.readAt
-                      ? 'var(--color-slate-50)'
-                      : getNotificationColor(notif.type);
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = notif.readAt ? 'transparent' : getNotificationColor(notif.type);
-                  }}
-                  onClick={() => {
-                    if (!notif.readAt) {
-                      markAsRead(notif.id);
-                    }
-                    if (notif.actionUrl) {
-                      window.location.href = notif.actionUrl;
-                    }
-                  }}
+                  key={m.id}
+                  className="px-4 py-3 border-b border-[var(--divider)] cursor-pointer transition-colors duration-[var(--dur-fast)] bg-[var(--color-cyan-bg)]"
+                  onClick={() => handleItemClick(m)}
                   role="button"
                   tabIndex={0}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[color:var(--text-primary)] m-0 mb-0.5 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {notif.title}
+                        {m.sender?.name || 'Unknown sender'}
                       </p>
-                      <p className="text-[length:var(--text-small)] text-[color:var(--text-secondary)] m-0 mb-1 leading-[var(--leading-snug)]">
-                        {notif.message}
+                      <p className="text-[length:var(--text-small)] text-[color:var(--text-secondary)] m-0 mb-1 leading-[var(--leading-snug)] line-clamp-2">
+                        {m.subject || '(No subject)'}
                       </p>
                       <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] m-0">
-                        {formatTime(notif.createdAt)}
+                        {formatTime(m.created_at)}
                       </p>
                     </div>
-                    {!notif.readAt && (
-                      <div
-                        className="w-2 h-2 rounded-full bg-[var(--color-blue-500)] shrink-0 mt-1"
-                        title="Unread"
-                        aria-label="Unread"
-                      />
-                    )}
+                    <div
+                      className="w-2 h-2 rounded-full bg-[var(--color-blue-500)] shrink-0 mt-1"
+                      title="Unread"
+                      aria-label="Unread"
+                    />
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          {/* Footer */}
-          {(notifications.length > 0 || unreadMessages.length > 0) && (
+          {unreadMessages.length > 0 && (
             <div className="px-4 py-3 border-t border-[var(--divider)] text-center">
-              {unreadMessages.length > 0 ? (
-                <Link
-                  to="/messages"
-                  onClick={() => setDropdownOpen(false)}
-                  className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
-                >
-                  View all messages
-                </Link>
-              ) : (
-                <Link
-                  to="/notifications"
-                  onClick={() => setDropdownOpen(false)}
-                  className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)]"
-                >
-                  View all notifications
-                </Link>
-              )}
+              <button
+                onClick={() => { setDropdownOpen(false); navigate(messagesBase); }}
+                className="text-[color:var(--color-blue-600)] no-underline text-[length:var(--text-card)] font-[var(--weight-semibold)] transition-colors duration-[var(--dur-fast)] hover:text-[color:var(--color-blue-700)] bg-transparent border-none cursor-pointer"
+              >
+                View all messages
+              </button>
             </div>
           )}
         </div>

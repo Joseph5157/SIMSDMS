@@ -121,12 +121,14 @@ async function changePassword(req, res) {
     // Hash new password and update
     const newPasswordHash = await bcrypt.hash(new_password, 12);
 
-    await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         password_hash: newPasswordHash,
         must_change_password: false,
+        session_version: { increment: 1 },
       },
+      select: { id: true, role: true, session_version: true },
     });
 
     // Log password change
@@ -138,6 +140,14 @@ async function changePassword(req, res) {
       targetType: 'user',
       metadata: { changed_by: 'self' },
     });
+
+    // Reissue JWT with new session_version so the current session stays valid
+    const newToken = jwt.sign(
+      { sub: updated.id, role: updated.role, session_version: updated.session_version },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    );
+    res.cookie('sims_token', newToken, authCookieOptions());
 
     res.json({ message: 'Password changed successfully.' });
   } catch (err) {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../utils/api';
 import { loadUserFromStorage, saveUserToStorage, clearUserStorage } from '../lib/auth';
+import { clearAllCache } from '../lib/cache';
 
 export function useCurrentUser() {
   const cachedUser = loadUserFromStorage();
@@ -49,7 +50,11 @@ export function useLogout() {
     mutationFn: () => api.post('/auth/logout'),
     onSuccess: () => {
       clearUserStorage();
+      clearAllCache();
       qc.clear();
+      if ('caches' in window) {
+        caches.delete('sims-api').catch(() => {});
+      }
       window.location.href = '/login';
     },
   });

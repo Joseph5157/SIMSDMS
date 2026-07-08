@@ -91,10 +91,15 @@ export default function DashboardPage({ user }) {
   }
 
   // Clock-out warnings: check if checked-in but not out, and session ends within 15 min
-  const sessionEndHour = todaySlot?.session_type === 'morning' ? 13 : 18;
+  const sessionEndHour = todaySlot?.session_type === 'morning'
+    ? timingSettings?.auto_checkout_morning_hour
+    : timingSettings?.auto_checkout_afternoon_hour;
+  const sessionEndMin = todaySlot?.session_type === 'morning'
+    ? timingSettings?.auto_checkout_morning_min
+    : timingSettings?.auto_checkout_afternoon_min;
   const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-  const minsUntilEnd = todaySlot
-    ? (sessionEndHour - nowIST.getUTCHours()) * 60 - nowIST.getUTCMinutes()
+  const minsUntilEnd = todaySlot && sessionEndHour != null
+    ? (sessionEndHour - nowIST.getUTCHours()) * 60 + ((sessionEndMin ?? 0) - nowIST.getUTCMinutes())
     : null;
   const showClockOutWarning = att?.in_time && !att?.out_time && minsUntilEnd !== null && minsUntilEnd >= 0 && minsUntilEnd <= 15;
   const wasAutoClocked = !!att?.auto_out;
@@ -216,7 +221,7 @@ export default function DashboardPage({ user }) {
                           timingSettings[`session_start_${todaySlot.session_type}_hour`],
                           timingSettings[`session_start_${todaySlot.session_type}_min`],
                         )
-                      : (todaySlot.session_type === 'morning' ? '9:00 AM' : '2:00 PM')}
+                      : (todaySlot.session_type === 'morning' ? '8:00 AM' : '1:00 PM')}
                   </p>
                 </div>
                 <Badge status={todaySlot.status} />

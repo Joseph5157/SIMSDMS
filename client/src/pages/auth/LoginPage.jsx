@@ -44,7 +44,13 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      if (err.response?.status === 429) {
+        setError('Too many login attempts. Please wait and try again.');
+      } else if (err.response?.status === 503) {
+        setError('Service temporarily unavailable. Please try again.');
+      } else {
+        setError('Invalid email or password. Please try again.');
+      }
     }
   };
 

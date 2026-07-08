@@ -1,9 +1,7 @@
 const { Router } = require('express');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
-const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
-const { updateSettingsSchema } = require('../schemas/settings.schema');
 const ctrl = require('../controllers/users.controller');
 
 const router = Router();
@@ -22,8 +20,5 @@ router.delete('/hard-delete/:resource/:id', asyncHandler(ctrl.hardDelete));
 
 // GET /admin/settings
 router.get('/settings', asyncHandler(ctrl.getSettings));
-
-// PATCH /admin/settings
-router.patch('/settings', validate(updateSettingsSchema), asyncHandler(ctrl.updateSettings));
 
 module.exports = router;

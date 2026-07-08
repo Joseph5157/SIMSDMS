@@ -17,12 +17,10 @@ const { nowInIST, istDayRangeUTC, istWallToUTC } = require('./time');
 async function autoClockOut() {
   const ist = nowInIST();
   const nowMins = ist.hour * 60 + ist.minute;
-  // Upper bound only — catches today AND any prior-day record that never got
-  // closed (e.g. this job didn't run because the DB was down at cutoff time).
-  // Without this, a single missed run leaves those records open forever,
-  // since tomorrow's run only ever looks at tomorrow's date.
   const throughToday = istDayRangeUTC(ist.year, ist.month, ist.day).lte;
+  const cfg = await settingsService.getSettings();
 
+  // ── Auto clock-out (checked-in, no check-out) ──
   const openAttendance = await prisma.dutyAttendance.findMany({
     where: {
       dutySlot: { duty_date: { lte: throughToday } },
@@ -32,64 +30,114 @@ async function autoClockOut() {
     select: { id: true, duty_slot_id: true, dutySlot: { select: { duty_date: true, session_type: true } } },
   });
 
-  if (openAttendance.length === 0) return;
+  if (openAttendance.length > 0) {
+    const byGroup = new Map();
+    for (const a of openAttendance) {
+      const d = a.dutySlot.duty_date;
+      const sessionType = a.dutySlot.session_type;
+      const key = `${d.toISOString().slice(0, 10)}:${sessionType}`;
+      if (!byGroup.has(key)) byGroup.set(key, { date: d, sessionType, attendanceIds: [], slotIds: [] });
+      const group = byGroup.get(key);
+      group.attendanceIds.push(a.id);
+      group.slotIds.push(a.duty_slot_id);
+    }
 
-  const cfg = await settingsService.getSettings();
+    let closedCount = 0;
+    for (const { date, sessionType, attendanceIds, slotIds } of byGroup.values()) {
+      const isToday = date.getUTCFullYear() === ist.year
+        && date.getUTCMonth() + 1 === ist.month
+        && date.getUTCDate() === ist.day;
 
-  // Group by (duty date, session type) so a Morning cutoff never touches an
-  // Afternoon record and vice versa, and each group's attendance+slot updates
-  // can be committed atomically together (a mid-run DB drop can't leave one
-  // written without the other).
-  const byGroup = new Map();
-  for (const a of openAttendance) {
-    const d = a.dutySlot.duty_date;
-    const sessionType = a.dutySlot.session_type;
-    const key = `${d.toISOString().slice(0, 10)}:${sessionType}`;
-    if (!byGroup.has(key)) byGroup.set(key, { date: d, sessionType, attendanceIds: [], slotIds: [] });
-    const group = byGroup.get(key);
-    group.attendanceIds.push(a.id);
-    group.slotIds.push(a.duty_slot_id);
+      const cutoffHour = sessionType === 'morning' ? cfg.auto_checkout_morning_hour : cfg.auto_checkout_afternoon_hour;
+      const cutoffMin  = sessionType === 'morning' ? cfg.auto_checkout_morning_min  : cfg.auto_checkout_afternoon_min;
+
+      if (isToday && nowMins < cutoffHour * 60 + cutoffMin) continue;
+
+      const autoOutUTC = istWallToUTC(
+        date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(),
+        cutoffHour, cutoffMin,
+      );
+
+      await prisma.$transaction([
+        prisma.dutyAttendance.updateMany({
+          where: { id: { in: attendanceIds } },
+          data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
+        }),
+        prisma.dutySlot.updateMany({
+          where: { id: { in: slotIds } },
+          data:  { status: 'completed' },
+        }),
+      ]);
+
+      closedCount += attendanceIds.length;
+    }
+
+    if (closedCount > 0) {
+      logger.info(`[cron] Auto clock-out: ${closedCount} record(s) closed.`);
+    }
   }
 
-  let closedCount = 0;
-
-  for (const { date, sessionType, attendanceIds, slotIds } of byGroup.values()) {
-    const isToday = date.getUTCFullYear() === ist.year
-      && date.getUTCMonth() + 1 === ist.month
-      && date.getUTCDate() === ist.day;
-
-    const cutoffHour = sessionType === 'morning' ? cfg.auto_checkout_morning_hour : cfg.auto_checkout_afternoon_hour;
-    const cutoffMin  = sessionType === 'morning' ? cfg.auto_checkout_morning_min  : cfg.auto_checkout_afternoon_min;
-
-    // A prior-day straggler's cutoff has always passed by definition; only
-    // today's groups need to wait for their own session's cutoff time.
-    if (isToday && nowMins < cutoffHour * 60 + cutoffMin) continue;
-
-    const autoOutUTC = istWallToUTC(
-      date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate(),
-      cutoffHour, cutoffMin,
-    );
-
-    await prisma.$transaction([
-      prisma.dutyAttendance.updateMany({
-        where: { id: { in: attendanceIds } },
-        data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
-      }),
-      prisma.dutySlot.updateMany({
-        where: { id: { in: slotIds } },
-        data:  { status: 'completed' },
-      }),
-    ]);
-
-    closedCount += attendanceIds.length;
-  }
-
-  if (closedCount > 0) {
-    logger.info(`[cron] Auto clock-out: ${closedCount} record(s) closed.`);
+  // ── No-show → absent (scheduled, never checked in, past cutoff) ──
+  const absentCount = await markNoShowAbsent(throughToday, nowMins, ist, cfg);
+  if (absentCount > 0) {
+    logger.info(`[cron] No-show absent: ${absentCount} slot(s) marked absent.`);
   }
 }
 
-// ─── 2. Calendar auto-close — 23:55 IST on the last day of the month ─────────
+// ─── 2. Mark no-show slots absent — runs with auto clock-out ─────────────────
+// After a session's auto-checkout time has passed, any scheduled slot that has
+// never been checked into is marked absent — both the duty_slot status and the
+// attendance record (with in_status='absent'). This is the sole path that
+// produces absent records; reports depend on it.
+
+async function markNoShowAbsent(throughToday, nowMins, ist, cfg) {
+  const openSlots = await prisma.dutySlot.findMany({
+    where: {
+      duty_date: { lte: throughToday },
+      status: 'scheduled',
+      attendance: null,
+    },
+    select: { id: true, duty_date: true, session_type: true, faculty_id: true },
+  });
+
+  if (openSlots.length === 0) return 0;
+
+  const idsToMark = [];
+
+  for (const slot of openSlots) {
+    const isToday = slot.duty_date.getUTCFullYear() === ist.year
+      && slot.duty_date.getUTCMonth() + 1 === ist.month
+      && slot.duty_date.getUTCDate() === ist.day;
+
+    const cutoffHour = slot.session_type === 'morning' ? cfg.auto_checkout_morning_hour : cfg.auto_checkout_afternoon_hour;
+    const cutoffMin  = slot.session_type === 'morning' ? cfg.auto_checkout_morning_min  : cfg.auto_checkout_afternoon_min;
+
+    if (isToday && nowMins < cutoffHour * 60 + cutoffMin) continue;
+
+    idsToMark.push(slot);
+  }
+
+  if (idsToMark.length === 0) return 0;
+
+  for (const slot of idsToMark) {
+    await prisma.$transaction([
+      prisma.dutyAttendance.create({
+        data: {
+          duty_slot_id: slot.id,
+          faculty_id: slot.faculty_id,
+          in_status: 'absent',
+        },
+      }),
+      prisma.dutySlot.update({
+        where: { id: slot.id },
+        data: { status: 'absent' },
+      }),
+    ]);
+  }
+
+  return idsToMark.length;
+}
+// ─── 3. Calendar auto-close — 23:55 IST on the last day of the month ─────────
 // Fires at 23:55 IST so faculty have the full last day to pick slots.
 
 async function autoCloseCalendar() {

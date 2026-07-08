@@ -227,6 +227,14 @@ export default function UsersPage({ user }) {
                 <Badge status="flagged" label="⚠ Notify failed" />
               )}
             </div>
+            <RowMenu
+              user={u}
+              userRole={user.role}
+              onDeactivate={setDeactivatingUser}
+              onReactivate={setReactivatingUser}
+              onResetPassword={setResettingPassword}
+              onDelete={setDeletingUser}
+            />
           </div>
         ))}
       </div>

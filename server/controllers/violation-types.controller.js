@@ -93,6 +93,25 @@ async function deactivateViolationType(req, res) {
   res.json(updated);
 }
 
+// ─── PATCH /violation-types/:id/reactivate ──────────────────────────────────
+
+async function reactivateViolationType(req, res) {
+  const type = await prisma.violationType.findUnique({ where: { id: req.params.id } });
+  if (!type) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation type not found.' });
+  }
+  if (type.is_active) {
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Student violation type is already active.' });
+  }
+
+  const updated = await prisma.violationType.update({
+    where: { id: req.params.id },
+    data:  { is_active: true },
+  });
+
+  res.json(updated);
+}
+
 // ─── DELETE /violation-types/:id ─────────────────────────────────────────────
 
 async function deleteViolationType(req, res) {
@@ -124,5 +143,6 @@ module.exports = {
   createViolationType,
   updateViolationType,
   deactivateViolationType,
+  reactivateViolationType,
   deleteViolationType,
 };

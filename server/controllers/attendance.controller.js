@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
+const { logAction } = require('../services/audit.service');
 const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST } = require('../lib/time');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -371,6 +372,14 @@ async function overrideAttendance(req, res) {
   if (out_time) {
     await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'completed' } });
   }
+
+  logAction({
+    actorId: req.user.id,
+    action: 'ATTENDANCE_OVERRIDE',
+    targetId: slot.id,
+    targetType: 'duty_slot',
+    metadata: { ...data, in_time: data.in_time?.toISOString(), out_time: data.out_time?.toISOString() },
+  }).catch(() => {});
 
   res.json(attendance);
 }

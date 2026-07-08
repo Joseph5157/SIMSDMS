@@ -62,13 +62,13 @@ router.get('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.getStude
 // PATCH /students/bulk/promote — Admin only (MUST be before /:id/promote — see note above)
 router.patch('/bulk/promote', authorize('admin', 'super_admin'), validate(bulkPromoteSchema), asyncHandler(ctrl.bulkPromoteStudents));
 
-// DELETE /students/bulk — Admin only (MUST be before /:id — literal segment first)
-router.delete('/bulk', authorize('admin', 'super_admin'), validate(bulkDeleteSchema), asyncHandler(ctrl.bulkDeleteStudents));
+// DELETE /students/bulk — Super Admin only (hard delete)
+router.delete('/bulk', authorize('super_admin'), validate(bulkDeleteSchema), asyncHandler(ctrl.bulkDeleteStudents));
 
 // PATCH /students/:id/promote — Admin only
 router.patch('/:id/promote', authorize('admin', 'super_admin'), validate(promoteSchema), asyncHandler(ctrl.promoteStudent));
 
-// DELETE /students/:id — Admin only (permanent hard delete)
-router.delete('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.deleteStudent));
+// DELETE /students/:id — Super Admin only (hard delete)
+router.delete('/:id', authorize('super_admin'), asyncHandler(ctrl.deleteStudent));
 
 module.exports = router;

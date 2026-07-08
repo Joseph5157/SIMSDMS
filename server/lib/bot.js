@@ -326,6 +326,7 @@ async function handlePasswordReset(chatId) {
         password_hash: passwordHash,
         must_change_password: true,
         last_password_reset_at: now,
+        session_version: { increment: 1 },
       },
     });
 

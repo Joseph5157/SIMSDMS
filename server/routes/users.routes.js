@@ -20,8 +20,8 @@ router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listUsers))
 // GET /users/directory — All authenticated (minimal fields, for message recipient pickers)
 router.get('/directory', asyncHandler(ctrl.listDirectory));
 
-// GET /users/:id — All authenticated
-router.get('/:id', asyncHandler(ctrl.getUser));
+// GET /users/:id — Admin, Super Admin
+router.get('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.getUser));
 
 // PATCH /users/:id/profile — All authenticated (faculty: own only; admin+ can patch anyone)
 router.patch('/:id/profile', validate(updateProfileSchema), asyncHandler(ctrl.updateProfile));

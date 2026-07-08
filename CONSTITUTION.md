@@ -68,7 +68,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 ### Super Admin
 - Full unrestricted access to all modules, roles, and data in the system
 - Manages Admin accounts (create, deactivate)
-- Resets any user's login session or password (including locked accounts) — generates a temporary password, forces a change on next login, and notifies the user via Telegram
+- Resets any user's login session or password (including locked accounts) — generates a temporary password, forces a change on next login, and notifies the user via Telegram. Self-service reset via Telegram bot (`/resetpassword`) is also available to any linked user; Super Admin reset is the only path for users without a linked Telegram.
 - Views all audit logs across all roles and modules
 - Configures system-wide settings
 - Can permanently hard-delete any record — the only role that can do this
@@ -96,6 +96,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Flags their own violation records for review
 - Views own duty history, violations recorded, pending requests
 - Can send/receive internal messages
+- Can reset own password via Telegram bot (`/resetpassword`) if Telegram is linked
 
 ---
 
@@ -119,11 +120,17 @@ These are non-negotiable rules encoded in the planning document. Every feature m
   per-account failed-attempt lockout counter — brute-force defense is IP-level rate limiting
   only.
 - All routes except `/auth/login` require a valid JWT.
+- **Self-service password reset via Telegram**: A linked user can send `/resetpassword` to the
+  Telegram bot. This generates a new temporary password, sets `must_change_password = true`,
+  increments `session_version` (revoking any existing session), and sends the temporary
+  password back via Telegram. Rate-limited to 1 reset per hour per user.
 - **Admin-triggered password reset**: Super Admin can trigger a password reset for any user.
   This generates a new temporary password, sets `must_change_password = true`, increments
   `session_version` (revoking any existing session), and notifies the user of the temporary
-  password via Telegram — no email, no SMS. This is the system's only "forgot password"
-  recovery path; there is no self-service reset.
+  password via Telegram — no email, no SMS.
+- `session_version` is incremented on self password change (`POST /auth/change-password`),
+  self-service bot reset, and admin-triggered reset — the JWT cookie is reissued on self
+  change so the user's current session is not invalidated.
 
 ### Duty Calendar
 - Admin manually opens the scheduling window whenever ready — it does not auto-open.
@@ -198,11 +205,11 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - **Exception — messages**: a `messages` row is physically deleted when both `deleted_by_sender = true` and `deleted_by_receiver = true`. This is the only non-Super-Admin physical delete permitted in the system. It is intentional: retaining abandoned message rows indefinitely after both parties have dismissed them provides no audit value and would accumulate unbounded storage. The `violation_audit_log` and `admin_audit_log` tables remain fully immutable and are unaffected by this exception.
 - All tables use UUID primary keys — never sequential integers.
 - All monetary values use `DECIMAL(8,2)` — never floats.
-- Every table has `created_at` and `updated_at` timestamps.
+- Every data table has `created_at`; mutable tables also have `updated_at`. Immutable audit/cross-reference tables (`admin_audit_log`, `violation_audit_log`, `messages`, `duty_reassignments`, `telegram_relink_tokens`, `student_upload_log`) omit `updated_at` by design — rows are never updated after creation.
 
 ---
 
-## 5. Database — 14 Tables
+## 5. Database — 16 Tables
 
 All migrations must match this schema exactly. Full column definitions in `SIMS_Database_Schema_v2.1.md`.
 
@@ -222,6 +229,8 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session) |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
+| `pending_invites` | Temporary invite tokens for new account activation via Telegram |
+| `telegram_relink_tokens` | Temporary tokens for relinking an existing user to a new Telegram account |
 
 > **Removed**: `correction_requests` (replaced by `violations.is_flagged`), `reschedule_requests` then `cover_requests` (the Need Cover / Volunteer workflow was built and then removed in favor of Admin Duty Reassignment — `duty_reassignments`, see §4), `otp_sessions` (Telegram OTP login was built and then abandoned in favor of email/password — see §4 Authentication)
 

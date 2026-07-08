@@ -3,6 +3,7 @@ import { FileText, Download } from 'lucide-react';
 import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
+import { Checkbox } from '@mantine/core';
 import api from '../utils/api';
 
 const REQUIRED_COLUMNS = [
@@ -28,6 +29,8 @@ export default function UploadStudentsDrawer({ open, onClose }) {
   const [result, setResult]       = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [showErrors, setShowErrors]   = useState(false);
+  const [dryRun, setDryRun]           = useState(false);
+  const [deactivateMissing, setDeactivateMissing] = useState(false);
 
   async function handleDownloadTemplate() {
     setDownloading(true);
@@ -49,9 +52,13 @@ export default function UploadStudentsDrawer({ open, onClose }) {
   async function handleUpload() {
     if (!file) return;
     try {
-      const res = await upload.mutateAsync(file);
+      const res = await upload.mutateAsync({ file, dryRun, deactivateMissing });
       setResult(res.data);
-      toast({ message: `Upload complete: ${res.data.added_count} added, ${res.data.updated_count} updated, ${res.data.deactivated_count} deactivated.` });
+      if (res.data.dry_run) {
+        toast({ message: `Preview: ${res.data.would_add} to add, ${res.data.would_update} to update, ${res.data.would_deactivate} to deactivate.` });
+      } else {
+        toast({ message: `Upload complete: ${res.data.added_count} added, ${res.data.updated_count} updated${deactivateMissing ? `, ${res.data.deactivated_count} deactivated` : ''}.` });
+      }
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Upload failed.', type: 'error' });
     }
@@ -61,7 +68,11 @@ export default function UploadStudentsDrawer({ open, onClose }) {
     setFile(null);
     setResult(null);
     setShowErrors(false);
+    setDryRun(false);
+    setDeactivateMissing(false);
     onClose();
+  }
+
   }
 
   return (
@@ -69,7 +80,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
       open={open}
       onClose={handleClose}
       title="Upload students"
-      subtitle="Excel .xlsx — syncs and replaces current records"
+      subtitle="Excel .xlsx — upserts matching registration numbers, optionally deactivates missing students"
       footer={
         <>
           <button type="button" onClick={handleClose} style={cancelBtnStyle}>Close</button>
@@ -80,7 +91,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
             style={primaryBtnStyle(upload.isPending || !file)}
           >
             {upload.isPending && <DrawerSpinner />}
-            {upload.isPending ? 'Uploading…' : 'Upload'}
+            {upload.isPending ? (dryRun ? 'Previewing…' : 'Uploading…') : (dryRun ? 'Preview' : 'Upload')}
           </button>
         </>
       }
@@ -178,21 +189,53 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           />
         </label>
 
+        {/* Options */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+          <Checkbox
+            label="Dry run — preview changes without saving"
+            checked={dryRun}
+            onChange={(e) => setDryRun(e.currentTarget.checked)}
+            styles={{ label: { fontSize: 'var(--text-small)', color: 'var(--text-secondary)' } }}
+          />
+          <Checkbox
+            label="Deactivate students in the same course/year not in this file"
+            checked={deactivateMissing}
+            onChange={(e) => setDeactivateMissing(e.currentTarget.checked)}
+            styles={{ label: { fontSize: 'var(--text-small)', color: 'var(--text-secondary)' } }}
+          />
+        </div>
+
         {/* Result */}
         {result && (
           <div style={{
-            backgroundColor: 'var(--color-emerald-bg)',
-            border: '1px solid var(--color-emerald-border)',
+            backgroundColor: result.dry_run ? 'var(--color-blue-bg)' : 'var(--color-emerald-bg)',
+            border: `1px solid ${result.dry_run ? 'var(--color-blue-200)' : 'var(--color-emerald-border)'}`,
             borderRadius: 'var(--radius-lg)',
             padding: '12px 14px',
             marginBottom: 20,
           }}>
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-emerald-text)', fontWeight: 600, marginBottom: 4 }}>
-              Upload complete
+            <p style={{
+              fontSize: 'var(--text-card)',
+              color: result.dry_run ? 'var(--brand)' : 'var(--color-emerald-text)',
+              fontWeight: 600, marginBottom: 4,
+            }}>
+              {result.dry_run ? 'Dry run preview' : 'Upload complete'}
             </p>
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-emerald-text)' }}>
-              Added: {result.added_count} · Updated: {result.updated_count} · Deactivated: {result.deactivated_count}
-            </p>
+            {result.dry_run ? (
+              <>
+                <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>
+                  Would add: {result.would_add} · Would update: {result.would_update} · Would deactivate: {result.would_deactivate}
+                </p>
+                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
+                  {result.valid_rows} valid row{result.valid_rows !== 1 ? 's' : ''}
+                  {result.invalid_rows > 0 && ` · ${result.invalid_rows} row${result.invalid_rows !== 1 ? 's' : ''} with errors`}
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--color-emerald-text)' }}>
+                Added: {result.added_count} · Updated: {result.updated_count}{deactivateMissing ? ` · Deactivated: ${result.deactivated_count}` : ''}
+              </p>
+            )}
             {result.error_count > 0 && (
               <div style={{ marginTop: 8 }}>
                 <button

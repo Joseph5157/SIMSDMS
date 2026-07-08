@@ -317,6 +317,14 @@ async function adminAssign(req, res) {
       });
     });
 
+    logAction({
+      actorId: req.user.id,
+      action: 'ADMIN_ASSIGN_SLOT',
+      targetId: slot.id,
+      targetType: 'duty_slot',
+      metadata: { faculty_id, duty_date, session_type },
+    }).catch((err) => logger.error('Failed to log ADMIN_ASSIGN_SLOT:', err));
+
     return res.status(201).json(slot);
   } catch (err) {
     if (err.code === 'SLOT_TAKEN' || err.code === 'P2002') {

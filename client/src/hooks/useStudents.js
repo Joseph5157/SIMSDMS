@@ -37,10 +37,14 @@ export function useStudentSearch(q) {
 export function useUploadStudents() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (file) => {
+    mutationFn: ({ file, dryRun = false, deactivateMissing = false }) => {
       const form = new FormData();
       form.append('file', file);
-      return api.post('/students/upload', form);
+      const params = new URLSearchParams();
+      if (dryRun) params.append('dry_run', 'true');
+      if (deactivateMissing) params.append('deactivate_missing', 'true');
+      const qs = params.toString();
+      return api.post(`/students/upload${qs ? '?' + qs : ''}`, form);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['students'] }),
   });

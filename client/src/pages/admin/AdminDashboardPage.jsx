@@ -6,7 +6,7 @@ import Alert from '../../components/ui/Alert';
 import { Modal } from '@mantine/core';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
-import { useFlaggedViolations, useCompletionRate, useDutyReassignmentReport } from '../../hooks/useReports';
+import { useFlaggedViolations, useDutyReassignmentReport } from '../../hooks/useReports';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
@@ -29,22 +29,14 @@ export default function AdminDashboardPage({ user }) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  const { data: allUsers, isLoading }  = useUsers({ status: 'active' });
+  const { data: allUsers, isLoading }  = useUsers({ role: 'faculty', status: 'active', limit: '100' });
   const { data: pendingUsers }       = useUsers({ status: 'pending' });
   const { data: pendingTelegramUsers } = useUsers({ status: 'pending_telegram' });
   const { data: liveData }           = useLiveAttendance();
   const { data: reassignReport }     = useDutyReassignmentReport({ year: now.getFullYear(), month: now.getMonth() + 1 });
   const { data: flagged }            = useFlaggedViolations();
 
-  // Completion rate trend (this month vs last month)
-  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const { data: crThis } = useCompletionRate({ year: now.getFullYear(), month: now.getMonth() + 1 });
-  const { data: crLast } = useCompletionRate({ year: lastMonthDate.getFullYear(), month: lastMonthDate.getMonth() + 1 });
-  const rateThis = crThis?.data?.completion_rate ?? null;
-  const rateLast = crLast?.data?.completion_rate ?? null;
-  const rateDelta = rateThis !== null && rateLast !== null ? Math.round(rateThis - rateLast) : null;
-
-  const activeFaculty       = allUsers?.data?.filter((u) => u.role === 'faculty').length ?? 0;
+  const activeFaculty       = allUsers?.meta?.total ?? allUsers?.data?.length ?? 0;
   const pendingCount        = pendingUsers?.meta?.total  ?? pendingUsers?.data?.length ?? 0;
   const pendingTelegramCount = pendingTelegramUsers?.meta?.total ?? pendingTelegramUsers?.data?.length ?? 0;
   const reassignments       = reassignReport?.history ?? [];
@@ -63,7 +55,6 @@ export default function AdminDashboardPage({ user }) {
 
   // Active faculty merged with today's live duty/attendance, for the "Active Faculty" detail modal.
   const activeFacultyList = (allUsers?.data ?? [])
-    .filter((u) => u.role === 'faculty')
     .map((f) => ({ ...f, todaySlot: liveSlots.find((s) => s.faculty?.id === f.id) ?? null }));
 
   return (
@@ -163,22 +154,7 @@ export default function AdminDashboardPage({ user }) {
       <div className="flex flex-col gap-3 h-full">
       {/* ── Today's attendance ── */}
       <Card className="flex flex-col flex-1">
-        <CardHeader action={rateDelta !== null ? (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 2,
-            fontSize: 'var(--text-micro)', fontWeight: 700,
-            padding: '2px 6px', borderRadius: 'var(--radius-md)',
-            ...(rateDelta > 0
-              ? { background: 'var(--color-emerald-bg)', color: 'var(--color-emerald-text)' }
-              : rateDelta < 0
-              ? { background: 'var(--color-red-bg)', color: 'var(--color-red-text)' }
-              : { background: 'var(--surface-page)', color: 'var(--text-muted)' }),
-          }}>
-            {rateDelta > 0 ? '▲' : rateDelta < 0 ? '▼' : '—'}
-            {rateDelta !== 0 ? ` ${Math.abs(rateDelta)}%` : null}
-            {' vs last mo'}
-          </span>
-        ) : null}>
+        <CardHeader>
           <span className="inline-flex items-center gap-1.5"><IconClipboardCheck size={15} stroke={1.75} className="shrink-0" />Today's attendance</span>
         </CardHeader>
         <CardBody className="p-0 flex-1 flex flex-col min-h-0">

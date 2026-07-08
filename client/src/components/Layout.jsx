@@ -227,12 +227,12 @@ export default function Layout({ user, children }) {
           <span className="text-sm font-bold text-[color:var(--text-primary)] tracking-[-0.01em]">
             SIMS DMS
           </span>
-          <NotificationBell />
+          <NotificationBell role={user?.role} />
         </div>
 
         {/* Desktop top header — visible on desktop only (≥ 640px) */}
         <div className={classes.desktopHeader}>
-          <NotificationBell />
+          <NotificationBell role={user?.role} />
         </div>
 
         {/* Main content */}

@@ -33,7 +33,7 @@ export default function SuperAdminDashboardPage({ user }) {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  const { data: allUsers }     = useUsers();
+  const { data: allUsers }     = useUsers({ limit: '100' });
   const { data: pendingUsers } = useUsers({ status: 'pending' });
   const { data: auditData }    = useAuditLogs({ limit: 10 });
 

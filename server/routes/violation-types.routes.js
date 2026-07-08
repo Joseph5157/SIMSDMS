@@ -19,6 +19,9 @@ router.post('/', authorize('admin', 'super_admin'), validate(createViolationType
 // PATCH /violation-types/:id/deactivate — Admin
 router.patch('/:id/deactivate', authorize('admin', 'super_admin'), asyncHandler(ctrl.deactivateViolationType));
 
+// PATCH /violation-types/:id/reactivate — Admin
+router.patch('/:id/reactivate', authorize('admin', 'super_admin'), asyncHandler(ctrl.reactivateViolationType));
+
 // PATCH /violation-types/:id — Admin
 router.patch('/:id', authorize('admin', 'super_admin'), validate(updateViolationTypeSchema), asyncHandler(ctrl.updateViolationType));
 
