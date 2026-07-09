@@ -4,7 +4,7 @@
 004-faculty-attendance-dashboard / personalized attendance dashboard for faculty (direct implementation, no spec/plan docs by owner's choice)
 
 ## status
-partial
+complete — verified end-to-end in a real browser (2026-07-09, follow-up session; see amendment at the bottom of this file)
 
 ## completed
 - New backend endpoint `GET /attendance/mine/summary?year=&month=` (`server/controllers/attendance.controller.js` `getMySummary`, mounted in `server/routes/attendance.routes.js` before the generic `/:dutySlotId` route, `authorize('faculty')`). Defaults to the current IST month when `year`/`month` are omitted. Scopes duty slots to the requesting faculty as either the assigned faculty or the confirmed covering faculty (`OR: [{ faculty_id }, { covered_by }]` — same pattern `duty-slots.controller.js`'s `getMonthSlots` already uses).
@@ -45,3 +45,18 @@ npx vite build (in client/)                 # succeeded, pre-existing chunk-size
 - This feature was implemented without a live database or browser — **must be validated against a real dev stack before being considered production-ready**, per failed_or_blocked above.
 - Confirm the `checked_in`/`checked_out` counting convention (cumulative "ever happened this month" rather than the admin live dashboard's mutually-exclusive current-state) matches the intended meaning of those two dashboard tiles.
 - The Admin's existing "Live Attendance" dashboard (all faculty, today only) was left untouched — confirm that's sufficient and no admin-side "view one faculty's personalized history" drill-down is also wanted (the new endpoint is faculty-scoped to `req.user.id` only; an admin-facing equivalent would need a separate authorized endpoint).
+
+---
+
+## Amendment — 2026-07-09 (browser verification)
+
+The `failed_or_blocked` limitation above has been resolved: this feature was verified end-to-end in a real browser against a disposable local Postgres instance (not mocked Prisma).
+
+**What was tested:** seeded one faculty with a realistic mix of duty slots for the current month — a normal on-time completed duty, a late-arrival auto-clocked-out duty, a past duty with no attendance at all (absent), today's duty (unchecked-in), and a future scheduled duty — then loaded `/faculty/attendance` and confirmed every number by hand:
+- Summary tiles (checked in 2 / checked out 2 / late 1 / not-checked-in 2 / auto-clockout 1) matched the seed exactly.
+- Morning/afternoon breakdown cards matched the per-session split exactly.
+- Today's duty card correctly showed the live Check In button and "Not in" state.
+- Upcoming section showed the future slot as "Upcoming".
+- Past attendance history rendered all three attendance states (on-time, late+auto, absent) with correct badges and timestamps.
+
+**Outcome:** no bugs found — the implementation was correct as originally written. The two open questions below (about the counting convention and the admin drill-down) remain open product decisions, not implementation gaps; nothing in the code needed to change.
