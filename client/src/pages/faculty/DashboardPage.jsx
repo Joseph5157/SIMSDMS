@@ -7,14 +7,15 @@ import { Button } from '@mantine/core';
 import { useMonthSlots, useReassignedAway } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
-import { useMessageRecipients } from '../../hooks/useUsers';
 import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
+import { useSentReassignmentRequests } from '../../hooks/useDutyReassignmentRequests';
 import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
-import ComposeDrawer from '../../components/ComposeDrawer';
+import RequestReassignmentModal from '../../components/faculty/RequestReassignmentModal';
+import PendingReassignmentRequests from '../../components/faculty/PendingReassignmentRequests';
 import { ROUTES } from '../../utils/constants';
 import { IconRefresh } from '@tabler/icons-react';
 
@@ -109,24 +110,18 @@ export default function DashboardPage({ user }) {
   // True when this slot was reassigned TO the current faculty (they are the new owner).
   const wasReassignedToMe = (s) => s.reassignments?.[0]?.to_faculty_id === user?.id;
 
-  // "Request reassignment" — opens the message composer pre-filled to an admin.
-  // Plain messaging only (no automation): the admin still reassigns manually.
+  // "Request reassignment" — opens a dedicated request popup (faculty picks a
+  // colleague directly; the colleague must accept before the duty transfers).
+  // This replaced the old message-to-admin flow (Admin reassignment remains a
+  // separate, always-available method — see duty-slots.controller.js).
   const [reassignReqSlot, setReassignReqSlot] = useState(null);
-  const { data: directory } = useMessageRecipients();
-  const recipients = directory?.data ?? [];
-  const primaryAdmin = recipients.find((u) => u.role === 'admin')
-    ?? recipients.find((u) => u.role === 'super_admin');
+  const { data: sentRequestsData } = useSentReassignmentRequests();
+  const sentRequests = sentRequestsData?.data ?? [];
 
-  function buildReassignPrefill(slot) {
-    if (!slot) return null;
-    const d = new Date(slot.duty_date);
-    const dateShort = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-    const dateLong  = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-    return {
-      to_user_id: primaryAdmin?.id ?? '',
-      subject: `Duty reassignment request — ${dateShort} ${slot.session_type}`,
-      body: `Sir/Madam,\n\nI am unable to attend my ${slot.session_type} duty on ${dateLong}. Kindly reassign it to another faculty member.\n\nReason: `,
-    };
+  // Latest sent request (of any status) for a given slot, so the UI can show
+  // "requested to X — pending/accepted/declined" on the upcoming-duty row.
+  function sentRequestFor(slotId) {
+    return sentRequests.find((r) => r.dutySlot.id === slotId);
   }
 
   const canDoViolation = todaySlot && todaySlot.status === 'scheduled';
@@ -355,6 +350,9 @@ export default function DashboardPage({ user }) {
         </div>
       )}
 
+      {/* ── 4b. Incoming reassignment requests — need this faculty's accept/reject ── */}
+      <PendingReassignmentRequests />
+
       {/* ── 5. Upcoming duties (beyond the 7-day strip — duty cadence is sparse) ── */}
       {upcoming.length > 0 && (
         <div className="mb-4">
@@ -364,6 +362,8 @@ export default function DashboardPage({ user }) {
           <div className="flex flex-col gap-2">
             {upcoming.map((s) => {
               const d = new Date(s.duty_date);
+              const sentReq = sentRequestFor(s.id);
+              const hasPendingRequest = sentReq?.status === 'pending';
               return (
                 <div key={s.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
                   <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--brand)' }} />
@@ -381,6 +381,8 @@ export default function DashboardPage({ user }) {
                         {wasReassignedToMe(s) && s.reassignments[0].fromFaculty?.name
                           ? ` · reassigned from ${s.reassignments[0].fromFaculty.name}`
                           : ''}
+                        {hasPendingRequest ? ` · requested to ${sentReq.toFaculty?.name} — pending` : ''}
+                        {sentReq?.status === 'declined' ? ` · ${sentReq.toFaculty?.name} declined` : ''}
                       </p>
                     </div>
                     <div className="shrink-0">
@@ -388,18 +390,20 @@ export default function DashboardPage({ user }) {
                     </div>
                   </div>
                   {/* Request reassignment — its own row so the button reads as a clear, tappable action */}
-                  <div className="mt-3 pt-3 border-t border-[var(--divider)] flex justify-end">
-                    <Button
-                      size="sm"
-                      variant="light"
-                      color="blue"
-                      leftSection={<IconRefresh size={15} stroke={2} />}
-                      onClick={() => setReassignReqSlot(s)}
-                      styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
-                    >
-                      Request reassignment
-                    </Button>
-                  </div>
+                  {!hasPendingRequest && (
+                    <div className="mt-3 pt-3 border-t border-[var(--divider)] flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="light"
+                        color="blue"
+                        leftSection={<IconRefresh size={15} stroke={2} />}
+                        onClick={() => setReassignReqSlot(s)}
+                        styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
+                      >
+                        Request reassignment
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -476,11 +480,7 @@ export default function DashboardPage({ user }) {
       </div>
 
       <RecordViolationModal open={showRecordViolation} onClose={() => setShowRecordViolation(false)} />
-      <ComposeDrawer
-        open={!!reassignReqSlot}
-        onClose={() => setReassignReqSlot(null)}
-        prefill={buildReassignPrefill(reassignReqSlot)}
-      />
+      <RequestReassignmentModal slot={reassignReqSlot} onClose={() => setReassignReqSlot(null)} />
     </Layout>
   );
 }

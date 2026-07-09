@@ -36,9 +36,17 @@ function ViolationRow({ v }) {
 export default function StudentDetailsDrawer({ studentId, onClose }) {
   const { data: student, isLoading } = useStudent(studentId);
   const { data: violations, isLoading: violationsLoading } = useViolations(
-    { student_id: studentId, limit: 10 },
+    { student_id: studentId, limit: 100 },
     { enabled: !!studentId },
   );
+
+  const violationList = violations?.data ?? [];
+  const breakdown = new Map();
+  for (const v of violationList) {
+    const name = v.violationType?.name ?? 'Other';
+    breakdown.set(name, (breakdown.get(name) ?? 0) + 1);
+  }
+  const breakdownEntries = Array.from(breakdown.entries()).sort((a, b) => b[1] - a[1]);
 
   return (
     <BottomDrawer
@@ -70,19 +78,21 @@ export default function StudentDetailsDrawer({ studentId, onClose }) {
               <InfoRow label="Academic year" value={student.academic_year} />
             </div>
 
-            <p className={`${sectionTitle} mb-2`}>Contact</p>
+            <p className={`${sectionTitle} mb-2`}>Violation Summary</p>
             <div className="mb-4">
-              <InfoRow label="Phone" value={student.phone} />
-              <InfoRow label="Gender" value={student.gender} />
+              <InfoRow label="Total Violations" value={violationsLoading ? '—' : violationList.length} />
+              {!violationsLoading && breakdownEntries.map(([name, count]) => (
+                <InfoRow key={name} label={name} value={count} />
+              ))}
             </div>
 
-            <p className={`${sectionTitle} mb-2`}>Recent student violations</p>
+            <p className={`${sectionTitle} mb-2`}>Complete Violation History</p>
             <div className="mb-2">
               {violationsLoading && <p className="text-[length:var(--text-card)] text-[var(--text-muted)] py-2">Loading…</p>}
-              {!violationsLoading && !violations?.data?.length && (
+              {!violationsLoading && !violationList.length && (
                 <p className="text-[length:var(--text-card)] text-[var(--text-muted)] py-2">No student violations recorded.</p>
               )}
-              {violations?.data?.map((v) => <ViolationRow key={v.id} v={v} />)}
+              {violationList.map((v) => <ViolationRow key={v.id} v={v} />)}
             </div>
           </>
         )}

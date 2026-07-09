@@ -36,8 +36,10 @@ const dutySlotsRoutes = require('./routes/duty-slots.routes');
 const attendanceRoutes = require('./routes/attendance.routes');
 const violationsRoutes = require('./routes/violations.routes');
 const violationTypesRoutes  = require('./routes/violation-types.routes');
+const dutyReassignmentRequestsRoutes = require('./routes/duty-reassignment-requests.routes');
 const messagesRoutes        = require('./routes/messages.routes');
 const reportsRoutes         = require('./routes/reports.routes');
+const analyticsRoutes       = require('./routes/analytics.routes');
 const { startCronJobs } = require('./lib/cron');
 
 const app = express();
@@ -141,8 +143,10 @@ app.use('/duty-slots', dutySlotsRoutes);
 app.use('/attendance', attendanceRoutes);
 app.use('/violations', violationsRoutes);
 app.use('/violation-types', violationTypesRoutes);
+app.use('/duty-reassignment-requests', dutyReassignmentRequestsRoutes);
 app.use('/messages',        messagesRoutes);
 app.use('/reports',         reportsRoutes);
+app.use('/analytics',       analyticsRoutes);
 
 // ─── Static frontend (production only) ───────────────────────────────────────
 if (process.env.NODE_ENV === 'production') {

@@ -92,7 +92,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Picks their own duty slots during the open window
 - Checks IN and OUT for their own duty sessions
 - Records student violations during their duty
-- Messages the Admin to request a duty reassignment when unable to attend a duty slot (the Admin performs the actual reassignment)
+- Requests a duty reassignment directly from a colleague when unable to attend a duty slot — selects an eligible faculty member, who must accept before the duty transfers (Faculty-Requested Reassignment, §4). This is a dedicated request/accept workflow, not the messaging system. Admin can still reassign any duty directly and unilaterally at any time (Admin Duty Reassignment, §4) — the two methods are independent.
 - Flags their own violation records for review
 - Views own duty history, violations recorded, pending requests
 - Can send/receive internal messages
@@ -163,23 +163,47 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Admin can hide a violation record — hidden records are not physically deleted.
 - All changes to violations are tracked in `violation_audit_log` — this log is immutable.
 
-### Admin Duty Reassignment (replaces Need Cover / Volunteer)
-- When a faculty member cannot attend a duty, they **message the Admin** via the
-  Messages section explaining why. Messaging is communication only — it never
-  changes a duty automatically.
-- The Admin manually reassigns the duty from the **Duty Slots** section, choosing
-  another faculty member and optionally recording a reason. This is an
-  admin-controlled action, not a volunteer/broadcast system.
-- Only still-`scheduled` duties whose date has not passed and that have no recorded
-  attendance can be reassigned.
+### Duty Reassignment — Two Independent Methods (replaces Need Cover / Volunteer)
+There is exactly one concept — **Reassigned Duty** — reachable by two independent
+methods. Do not model "extra duty", "additional duty", "volunteer duty", or "admin
+assigned duty" as separate concepts. Both methods write to the same
+`duty_reassignments` history table (§5), so reports and dashboards never need to
+merge two sources of truth.
+
+Shared eligibility rule for **both** methods: only a still-`scheduled` duty slot
+whose date has not passed and that has no recorded attendance can be reassigned.
+
+**Method 1 — Admin Duty Reassignment (direct, no approval needed).**
+- The Admin manually reassigns any eligible duty from the **Duty Slots** section,
+  choosing another faculty member and optionally recording a reason. This is an
+  admin-controlled action, not a volunteer/broadcast system — it takes effect
+  immediately, with no acceptance step.
 - On reassignment the slot's `faculty_id` is updated in place to the new faculty and
   one immutable row is written to `duty_reassignments` (from/to faculty, reason,
-  admin, timestamp). Attendance, "My Slots", and duty counts then follow the new
-  owner; only the new faculty may check in. The original faculty sees the duty under
-  "Reassigned Away".
-- There is exactly one concept — **Reassigned Duty**. Do not model "extra duty",
-  "additional duty", "volunteer duty", or "admin assigned duty" as separate concepts.
-- Both faculty are notified via Telegram when a reassignment happens.
+  admin as `reassigned_by`, timestamp).
+- Both faculty are notified via Telegram when this happens.
+
+**Method 2 — Faculty-Requested Reassignment (peer-to-peer, requires acceptance).**
+- A faculty member who cannot attend a duty selects an eligible colleague directly
+  from **My Slots** ("Request Reassignment") — never via the messaging system, which
+  remains general Admin↔Faculty communication only and plays no role in this
+  workflow.
+- Eligible colleagues are: active faculty, excluding the requester, excluding anyone
+  who already holds a duty at the same date/session.
+- This creates a `pending` row in `duty_reassignment_requests`. The target faculty
+  is notified via Telegram and sees the request on their dashboard with
+  Accept/Reject actions. **No duty changes hands until the target faculty accepts** —
+  this is the key difference from Method 1.
+- On acceptance: the slot's `faculty_id` transfers (same effect as Method 1), one row
+  is written to `duty_reassignments` (`reassigned_by` = the accepting faculty, since
+  they are the one whose approval executed the transfer), the request row is marked
+  `approved`, and any other still-pending requests for the same slot are
+  auto-`declined` (the slot is spoken for). Both faculty are notified via Telegram.
+- On rejection: only the request row is marked `declined` — the duty stays with the
+  original faculty, who may request a different colleague or use Method 1 via the
+  Admin.
+- Eligibility (scheduled / not past / no attendance) is re-checked at acceptance
+  time as well as at request time, since time may have passed between the two.
 
 ### Notifications
 - All system notifications (duty window open, duty reassignments, reminders, admin-triggered
@@ -209,7 +233,7 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ---
 
-## 5. Database — 16 Tables
+## 5. Database — 17 Tables
 
 All migrations must match this schema exactly. Full column definitions in `SIMS_Database_Schema_v2.1.md`.
 
@@ -223,7 +247,8 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `violations` | All recorded student violations — includes `is_flagged` for review and photo fields as foundation |
 | `violation_audit_log` | Immutable change history scoped to violation records only |
 | `admin_audit_log` | Immutable system-level audit trail — session resets, account changes, hard deletes, settings |
-| `duty_reassignments` | Admin duty reassignment history — from/to faculty, reason, admin, timestamp |
+| `duty_reassignments` | Reassignment history — from/to faculty, reason, `reassigned_by` (admin or accepting faculty), timestamp. Shared by both reassignment methods (§4) |
+| `duty_reassignment_requests` | Faculty-Requested Reassignment (Method 2, §4) — pending/approved/declined requests between faculty; ephemeral workflow state, not history (history lives in `duty_reassignments` once approved) |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
 | `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session) |
@@ -238,7 +263,8 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 - `admin_audit_log` — system-level actions only (password resets, account changes, hard deletes). Never mix with `violation_audit_log`
 - `violations.is_flagged` — set by Faculty to request Admin review; resolved via `flag_resolved_by` + `flag_resolved_at`
 - `violations.photo_path` / `violations.photo_expires_at` — foundation columns, not used in Phase 1
-- `duty_reassignments` — append-only history; the current owner of a slot is always `duty_slots.faculty_id`, and the latest reassignment row (if any) describes who it was moved from and by whom
+- `duty_reassignments` — append-only history; the current owner of a slot is always `duty_slots.faculty_id`, and the latest reassignment row (if any) describes who it was moved from and by whom. Written by both reassignment methods (§4) — `reassigned_by` is the admin for Method 1, the accepting faculty for Method 2
+- `duty_reassignment_requests` — mutable workflow state (`pending` → `approved`/`declined`), not history. `status` is a plain string, not an enum, matching the Prisma model. Accepting one request auto-declines any other pending requests for the same `duty_slot_id`
 - `violation_types.is_system` — prevents deletion of built-in types
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
@@ -246,9 +272,9 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 90 Endpoints Across 12 Modules
+## 6. API — 100 Endpoints Across 14 Modules
 
-Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`).
+Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2).
 
 | Module | Count | Base Path |
 |---|---|---|
@@ -264,8 +290,14 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
 | Reports | 17 | `/reports` |
+| Analytics | 5 | `/analytics` |
+| Duty Reassignment Requests | 5 | `/duty-reassignment-requests` |
 
 Reports is 17 endpoints implementing 16 distinct report types — one (`/reports/student-violations/export`) is an export variant of an existing report, not a 17th report.
+
+Analytics (5): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (Phase 1; see `specs/004-student-analytics-dashboard/handoff.md` for phase status).
+
+Duty Reassignment Requests (5): `POST /`, `GET /`, `GET /sent`, `GET /eligible-faculty/:dutySlotId`, `PATCH /:id` — faculty only. Implements Method 2 of §4 Duty Reassignment.
 
 Not counted above: `POST /bot/webhook/:secret` (`server/routes/bot.routes.js`) — a Telegram-facing webhook receiver, not part of the client-facing API surface this table describes.
 
@@ -371,6 +403,6 @@ PORT=3000
 
 ---
 
-*Constitution version: 3.4 — Updated: July 2026 (removed Need Cover / Volunteer workflow; added Admin Duty Reassignment — §3, §4, §5, §6, §9)*
+*Constitution version: 3.5 — Updated: July 2026 (added Faculty-Requested Reassignment as Method 2 alongside Admin Duty Reassignment — §3, §4, §5, §6; added `duty_reassignment_requests` table; added the Analytics module to §6, previously undocumented)*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*
