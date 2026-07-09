@@ -54,6 +54,7 @@ export default function RecordViolationModal({ open, onClose }) {
   const currentSession = now.getUTCHours() < 12 ? 'morning' : 'afternoon';
   const fallbackSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
   const autoSlot = activeSlot ?? fallbackSlot;
+  const sessionActive = Boolean(activeSlot);
 
   // Pre-fill duty slot if not yet set and auto-slot available
   const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
@@ -118,6 +119,23 @@ export default function RecordViolationModal({ open, onClose }) {
 
   const formBody = (
     <div className="flex flex-col">
+
+      {/* ── Session status ── */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 14px', marginBottom: 16,
+          background: sessionActive ? 'var(--color-emerald-bg)' : 'var(--color-amber-bg)',
+          border: `1px solid ${sessionActive ? 'var(--color-emerald-border)' : 'var(--color-amber-border)'}`,
+          borderRadius: 'var(--radius-lg)',
+          color: sessionActive ? 'var(--color-emerald-text)' : 'var(--color-amber-text)',
+          fontSize: 'var(--text-card)', fontWeight: 600,
+        }}
+      >
+        {sessionActive
+          ? `✓ Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+          : '⚠️ Student violations can only be recorded during an active duty session.'}
+      </div>
 
       {/* ── Quick-add toggle ── */}
       <div className="flex items-center justify-between pb-4">

@@ -32,6 +32,7 @@ export default function FormModal({
       size={size}
       fullScreen={isMobile}
       centered
+      zIndex={115}
     >
       <Modal.Overlay />
       <Modal.Content
