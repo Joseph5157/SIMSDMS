@@ -18,8 +18,8 @@ router.use(authenticate);
 // POST /violations — Faculty
 router.post('/', authorize('faculty'), validate(createViolationSchema), asyncHandler(ctrl.createViolation));
 
-// GET /violations — Admin
-router.get('/', authorize('admin', 'super_admin'), asyncHandler(ctrl.listViolations));
+// GET /violations — Admin & Faculty (faculty see only their own due to authorization in controller)
+router.get('/', authorize('faculty', 'admin', 'super_admin'), asyncHandler(ctrl.listViolations));
 
 // GET /violations/my — Faculty (MUST be before /:id)
 router.get('/my', authorize('faculty'), asyncHandler(ctrl.myViolations));

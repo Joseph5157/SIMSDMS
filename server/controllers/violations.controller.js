@@ -110,7 +110,8 @@ async function createViolation(req, res) {
   res.status(201).json(violation);
 }
 
-// ─── GET /violations — Admin ──────────────────────────────────────────────────
+// ─── GET /violations — Admin & Faculty ────────────────────────────────────────
+// Faculty can only see their own violations; Admin can see all or filter by faculty
 
 async function listViolations(req, res) {
   const { student_id, faculty_id, date, violation_type_id, record_status, is_flagged, page = '1', limit = '20' } = req.query;
@@ -120,13 +121,20 @@ async function listViolations(req, res) {
 
   const where = {};
   if (student_id)       where.student_id       = student_id;
-  if (faculty_id)       where.faculty_id        = faculty_id;
   if (violation_type_id) where.violation_type_id = violation_type_id;
   if (record_status)    where.record_status     = record_status;
   if (is_flagged !== undefined) where.is_flagged = is_flagged === 'true';
   if (date) {
     const d = new Date(date);
     where.dutySlot = { duty_date: { gte: d, lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999) } };
+  }
+
+  // Authorization: Faculty can only see their own violations
+  if (req.user.role === 'faculty') {
+    where.faculty_id = req.user.id;
+  } else if (faculty_id) {
+    // Admin can filter by any faculty
+    where.faculty_id = faculty_id;
   }
 
   const [total, violations] = await Promise.all([

@@ -59,13 +59,13 @@ export default function StudentDetailsDrawer({ studentId, onClose }) {
           <>
             <div className="flex items-center gap-2 mb-4">
               <Badge status={student.status} />
-              {student.section && <Badge status="open" label={`Section ${student.section}`} />}
             </div>
 
             <p className={`${sectionTitle} mb-2`}>Academic</p>
             <div className="mb-4">
               <InfoRow label="Course" value={COURSE_LABELS[student.course] ?? student.course} />
-              <InfoRow label="Year / Semester" value={`${student.year} / ${student.semester}`} />
+              <InfoRow label="Year" value={student.year} />
+              <InfoRow label="Semester" value={student.semester} />
               <InfoRow label="Batch year" value={student.batch_year} />
               <InfoRow label="Academic year" value={student.academic_year} />
             </div>

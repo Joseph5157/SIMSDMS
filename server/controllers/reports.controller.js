@@ -154,7 +154,7 @@ async function studentViolationHistory(req, res) {
   res.json({ data: violations, total, shown: violations.length });
 }
 
-// 6b. Student Violation History — Export (.xlsx, all matching rows, no cap)
+// 6b. Student Violation History — Export (.xlsx, all matching rows, no cap, NO fine amounts)
 async function studentViolationHistoryExport(req, res) {
   const where = studentViolationWhere(req.query);
   const violations = await _getStudentViolations(where);
@@ -164,7 +164,7 @@ async function studentViolationHistoryExport(req, res) {
     { header: 'Student Name',           key: 'name',        width: 24 },
     { header: 'Course',                 key: 'course',      width: 12 },
     { header: 'Student Violation Type', key: 'type',        width: 22 },
-    { header: 'Fine (₹)',               key: 'fine',        width: 12 },
+    { header: 'Status',                 key: 'status',      width: 14 },
     { header: 'Faculty',                key: 'faculty',     width: 22 },
     { header: 'Duty Date',              key: 'duty_date',   width: 14 },
     { header: 'Recorded At',            key: 'created_at',  width: 18 },
@@ -173,13 +173,46 @@ async function studentViolationHistoryExport(req, res) {
     name:       v.student?.student_name,
     course:     v.student?.course,
     type:       v.violationType?.name,
-    fine:       v.is_warning_only ? 'Warning only' : Number(v.fine_amount ?? 0),
+    status:     v.is_warning_only ? 'Warning only' : 'Recorded',
     faculty:    v.faculty?.name,
     duty_date:  v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
     created_at: new Date(v.created_at).toLocaleString('en-IN'),
   })));
 
   sendWorkbook(res, buffer, `student-violations-${dateSuffix(req.query)}.xlsx`);
+}
+
+// 6c. Daily Violation Report
+async function dailyViolationReport(req, res) {
+  const { date } = req.params; // YYYY-MM-DD format
+  const d = new Date(`${date}T00:00:00Z`);
+  const range = {
+    gte: d,
+    lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+  };
+
+  const violations = await _getStudentViolations({
+    ...studentViolationWhere({}),
+    dutySlot: { duty_date: range },
+  });
+
+  res.json({ date, data: violations, total: violations.length });
+}
+
+// 6d. Weekly Violation Report
+async function weeklyViolationReport(req, res) {
+  const { from_date, to_date } = req.query; // YYYY-MM-DD format
+  const fromDate = new Date(`${from_date}T00:00:00Z`);
+  const toDate = new Date(`${to_date}T23:59:59Z`);
+
+  const range = { gte: fromDate, lte: toDate };
+
+  const violations = await _getStudentViolations({
+    ...studentViolationWhere({}),
+    dutySlot: { duty_date: range },
+  });
+
+  res.json({ from_date, to_date, data: violations, total: violations.length });
 }
 
 // 7. Faculty Violation Activity
@@ -461,7 +494,7 @@ async function activeStudentRoster(req, res) {
 
 module.exports = {
   monthlyAttendanceSummary, lateArrivalReport, absentFacultyReport, autoClockOutReport,
-  attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport, facultyViolationActivity, violationTypeBreakdown,
+  attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport, dailyViolationReport, weeklyViolationReport, facultyViolationActivity, violationTypeBreakdown,
   pendingFinesSummary, flaggedViolationsReport, monthlyDutyCoverage, unassignedFacultyReport,
   dutyReassignmentReport, sessionCompletionRate, studentUploadHistory, activeStudentRoster,
 };

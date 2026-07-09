@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { useViolations, useHideViolation, useResolveFlag, useViolationAuditLog } from '../../hooks/useViolations';
+import { useUsers } from '../../hooks/useUsers';
 import Breadcrumb from '../../components/Breadcrumb';
 
 function ResolveFlagModal({ violation, onClose }) {
@@ -73,12 +74,13 @@ function AuditModal({ violationId, onClose }) {
 export default function ViolationsPage({ user }) {
   const toast = useToast();
   const [page, setPage]       = useState(1);
-  const [filters, setFilters] = useState({ record_status: '', is_flagged: '' });
+  const [filters, setFilters] = useState({ record_status: '', is_flagged: '', faculty_id: '' });
   const [resolving, setResolving] = useState(null);
   const [auditing,  setAuditing]  = useState(null);
   const [hiding,    setHiding]    = useState(null);
 
   const { data, isLoading, isError, refetch } = useViolations({ ...filters, page, limit: 20 });
+  const { data: facultyData } = useUsers({ role: 'faculty' });
   const hide = useHideViolation();
 
   async function handleHide() {
@@ -97,6 +99,14 @@ export default function ViolationsPage({ user }) {
       <PageHeader title="Student Violations" subtitle="All recorded student violations" />
 
       <div className="flex flex-wrap gap-3 mb-4">
+        <Select
+          w={144}
+          placeholder="All faculty"
+          clearable
+          value={filters.faculty_id || null}
+          onChange={(value) => { setFilters(f => ({ ...f, faculty_id: value ?? '' })); setPage(1); }}
+          data={facultyData?.data?.map((f) => ({ value: f.id, label: f.name })) || []}
+        />
         <Select
           w={144}
           placeholder="All status"

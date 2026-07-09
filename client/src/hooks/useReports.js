@@ -27,3 +27,25 @@ export const useDutyReassignmentReport = (p) => useReport('duty-reassignments', 
 export const useCompletionRate       = (p) => useReport('completion-rate',       p);
 export const useUploadHistory        = (p) => useReport('upload-history',        p);
 export const useActiveStudents       = (p) => useReport('active-students',       p);
+
+export const useDailyViolationReport = (date) => {
+  return useQuery({
+    queryKey: ['report', 'daily-violations', date],
+    queryFn: async () => {
+      const res = await api.get(`/reports/student-violations/daily/${date}`);
+      return res.data;
+    },
+    enabled: !!date,
+  });
+};
+
+export const useWeeklyViolationReport = (from_date, to_date) => {
+  return useQuery({
+    queryKey: ['report', 'weekly-violations', from_date, to_date],
+    queryFn: async () => {
+      const res = await api.get('/reports/student-violations/weekly', { params: { from_date, to_date } });
+      return res.data;
+    },
+    enabled: !!from_date && !!to_date,
+  });
+};

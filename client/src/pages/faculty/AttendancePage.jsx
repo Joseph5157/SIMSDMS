@@ -176,7 +176,7 @@ export default function AttendancePage({ user }) {
             </Card>
           ) : (
             <>
-              {today && renderGroup("Today's duty", [today])}
+              {today && today.length > 0 && renderGroup("Today's duty", today)}
               {renderGroup('Upcoming', upcoming)}
               {renderGroup('Past attendance history', past)}
             </>

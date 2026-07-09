@@ -8,7 +8,7 @@ import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
   useAttendanceOverrides, useStudentViolations, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
   useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useDutyReassignmentReport,
-  useCompletionRate, useUploadHistory, useActiveStudents,
+  useCompletionRate, useUploadHistory, useActiveStudents, useDailyViolationReport, useWeeklyViolationReport,
 } from '../../hooks/useReports';
 import { useToast } from '../../components/ui/Toast';
 import api from '../../utils/api';
@@ -366,23 +366,43 @@ const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-no
 function StudentViolationReportCard() {
   const toast = useToast();
   const now = new Date();
-  const [mode, setMode]   = useState('monthly'); // 'monthly' | 'yearly' | 'overall'
+  const [mode, setMode]   = useState('monthly'); // 'monthly' | 'yearly' | 'overall' | 'daily' | 'weekly'
   const [year, setYear]   = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
+  const [dailyDate, setDailyDate] = useState(now.toISOString().split('T')[0]);
+  const [weeklyFromDate, setWeeklyFromDate] = useState(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString().split('T')[0]);
+  const [weeklyToDate, setWeeklyToDate] = useState(now.toISOString().split('T')[0]);
   const [downloading, setDownloading] = useState(false);
 
   const params = mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {};
   const { data, isLoading, isError, refetch } = useStudentViolations(params);
+  const { data: dailyData, isLoading: dailyLoading } = useDailyViolationReport(mode === 'daily' ? dailyDate : null);
+  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyViolationReport(mode === 'weekly' ? weeklyFromDate : null, mode === 'weekly' ? weeklyToDate : null);
 
-  async function handleDownload() {
+  async function handleDownload(format = 'xlsx') {
     setDownloading(true);
     try {
-      const res = await api.get('/reports/student-violations/export', { params, responseType: 'blob' });
+      let endpoint = '/reports/student-violations/export';
+      let downloadParams = params;
+      let filename = '';
+
+      if (mode === 'daily') {
+        endpoint = `/reports/student-violations/daily/${dailyDate}`;
+        filename = `student-violations-${dailyDate}`;
+      } else if (mode === 'weekly') {
+        endpoint = '/reports/student-violations/weekly';
+        downloadParams = { from_date: weeklyFromDate, to_date: weeklyToDate };
+        filename = `student-violations-${weeklyFromDate}-to-${weeklyToDate}`;
+      } else {
+        const suffix = mode === 'monthly' ? `${year}-${String(month).padStart(2, '0')}` : mode === 'yearly' ? String(year) : 'all-time';
+        filename = `student-violations-${suffix}`;
+      }
+
+      const res = await api.get(endpoint, { params: downloadParams, responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
-      const suffix = mode === 'monthly' ? `${year}-${String(month).padStart(2, '0')}` : mode === 'yearly' ? String(year) : 'all-time';
       const a = document.createElement('a');
       a.href = url;
-      a.download = `student-violations-${suffix}.xlsx`;
+      a.download = `${filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -397,22 +417,24 @@ function StudentViolationReportCard() {
       <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
         <div>
           <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--brand)] mb-1">Main report</p>
-          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">⚠️ Student Monthly Violation Report</h2>
-          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — monthly, yearly, or overall</p>
+          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">⚠️ Student Violation Report</h2>
+          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — daily, weekly, monthly, yearly, or overall</p>
         </div>
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={downloading || isLoading || !data?.data?.length}
-          className="shrink-0 h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
-        >
-          {downloading ? 'Preparing…' : '⬇ Download Excel'}
-        </button>
+        <div className="shrink-0 flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleDownload('xlsx')}
+            disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
+            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+          >
+            {downloading ? 'Preparing…' : '⬇ Excel'}
+          </button>
+        </div>
       </div>
 
       {/* Mode switcher */}
-      <div className="flex gap-2 mb-4">
-        {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['overall', 'Overall']].map(([m, label]) => (
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall']].map(([m, label]) => (
           <button
             key={m}
             type="button"
@@ -428,27 +450,74 @@ function StudentViolationReportCard() {
         ))}
       </div>
 
-      {/* Year / Month pickers depending on mode */}
+      {/* Date pickers depending on mode */}
       {mode !== 'overall' && (
-        <div className="flex gap-2 mb-5">
-          <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
-            {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
-          </select>
-          {mode === 'monthly' && (
-            <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
-              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-            </select>
+        <div className="flex gap-2 mb-5 flex-wrap">
+          {(mode === 'monthly' || mode === 'yearly') && (
+            <>
+              <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
+              </select>
+              {mode === 'monthly' && (
+                <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                  {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                </select>
+              )}
+            </>
+          )}
+          {mode === 'daily' && (
+            <input
+              type="date"
+              value={dailyDate}
+              onChange={(e) => setDailyDate(e.target.value)}
+              className={selectCls}
+              style={{ fontSize: 16 }}
+            />
+          )}
+          {mode === 'weekly' && (
+            <>
+              <input
+                type="date"
+                value={weeklyFromDate}
+                onChange={(e) => setWeeklyFromDate(e.target.value)}
+                className={selectCls}
+                style={{ fontSize: 16 }}
+                placeholder="From"
+              />
+              <input
+                type="date"
+                value={weeklyToDate}
+                onChange={(e) => setWeeklyToDate(e.target.value)}
+                className={selectCls}
+                style={{ fontSize: 16 }}
+                placeholder="To"
+              />
+            </>
           )}
         </div>
       )}
 
-      {!isLoading && data && (
+      {!isLoading && data && mode !== 'daily' && mode !== 'weekly' && (
         <p className="text-[length:12px] text-[var(--text-muted)] mb-3">
           Showing {data.shown ?? data.data?.length ?? 0} of {data.total ?? 0} student violation{(data.total ?? 0) === 1 ? '' : 's'}
         </p>
       )}
 
-      <ReportSection id="student-violations" data={data} isLoading={isLoading} isError={isError} refetch={refetch} />
+      {!dailyLoading && dailyData && mode === 'daily' && (
+        <p className="text-[length:12px] text-[var(--text-muted)] mb-3">
+          {dailyData.data?.length ?? 0} violation{(dailyData.data?.length ?? 0) === 1 ? '' : 's'} on {new Date(dailyDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      )}
+
+      {!weeklyLoading && weeklyData && mode === 'weekly' && (
+        <p className="text-[length:12px] text-[var(--text-muted)] mb-3">
+          {weeklyData.data?.length ?? 0} violation{(weeklyData.data?.length ?? 0) === 1 ? '' : 's'} from {new Date(weeklyFromDate).toLocaleDateString('en-IN')} to {new Date(weeklyToDate).toLocaleDateString('en-IN')}
+        </p>
+      )}
+
+      {mode === 'daily' && <ReportSection id="student-violations" data={dailyData} isLoading={dailyLoading} isError={false} refetch={() => {}} />}
+      {mode === 'weekly' && <ReportSection id="student-violations" data={weeklyData} isLoading={weeklyLoading} isError={false} refetch={() => {}} />}
+      {mode !== 'daily' && mode !== 'weekly' && <ReportSection id="student-violations" data={data} isLoading={isLoading} isError={isError} refetch={refetch} />}
     </div>
   );
 }

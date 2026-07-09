@@ -164,7 +164,6 @@ export default function StudentsPage({ user }) {
   const [search, setSearch] = useState('');
   const [filterCourse,  setFilterCourse]  = useState('');
   const [filterYear,    setFilterYear]    = useState('');
-  const [filterSection, setFilterSection] = useState('');
   const [showUpload, setShowUpload]       = useState(false);
   const [promoting, setPromoting]         = useState(null);
   const [deleting, setDeleting]           = useState(null);
@@ -178,7 +177,6 @@ export default function StudentsPage({ user }) {
     search:  debouncedSearch,
     course:  filterCourse  || undefined,
     year:    filterYear    || undefined,
-    section: filterSection || undefined,
     page,
     limit:   20,
   });
@@ -188,7 +186,7 @@ export default function StudentsPage({ user }) {
   // Selection is page-scoped — clear it whenever the visible row set changes
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [page, filterCourse, filterYear, filterSection, debouncedSearch]);
+  }, [page, filterCourse, filterYear, debouncedSearch]);
 
   const pageIds     = (data?.data ?? []).map((s) => s.id);
   const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
@@ -216,7 +214,7 @@ export default function StudentsPage({ user }) {
   }
 
   function resetFilters() {
-    setFilterCourse(''); setFilterYear(''); setFilterSection('');
+    setFilterCourse(''); setFilterYear('');
     setSearch(''); setPage(1);
   }
 
@@ -249,7 +247,7 @@ export default function StudentsPage({ user }) {
     }
   }
 
-  const hasFilters = filterCourse || filterYear || filterSection || search;
+  const hasFilters = filterCourse || filterYear || search;
 
   return (
     <Layout user={user}>
@@ -293,14 +291,6 @@ export default function StudentsPage({ user }) {
         >
           <option value="">All years</option>
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
-        </select>
-        <select
-          value={filterSection}
-          onChange={(e) => { setFilterSection(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterSection ? 'var(--text-primary)' : 'var(--text-muted)' }}
-        >
-          <option value="">All sections</option>
-          {['A','B','C','D'].map((s) => <option key={s} value={s}>Section {s}</option>)}
         </select>
         {hasFilters && (
           <button onClick={resetFilters} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}>
@@ -349,7 +339,7 @@ export default function StudentsPage({ user }) {
                   {s.student_name}
                 </p>
                 <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
-                  {s.registration_number} · {COURSE_LABELS[s.course] ?? s.course} · Yr {s.year} Sem {s.semester}{s.section ? ` · ${s.section}` : ''}
+                  {s.registration_number} · {COURSE_LABELS[s.course] ?? s.course} · Yr {s.year}, Sem {s.semester}
                 </p>
               </div>
               <Badge status={s.status} />
@@ -377,8 +367,8 @@ export default function StudentsPage({ user }) {
               <Th>Reg. No.</Th>
               <Th>Name</Th>
               <Th>Course</Th>
-              <Th>Yr / Sem</Th>
-              <Th>Section</Th>
+              <Th>Year</Th>
+              <Th>Semester</Th>
               <Th>Batch</Th>
               <Th>Acad. Year</Th>
               <Th>Status</Th>
@@ -386,9 +376,9 @@ export default function StudentsPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && Array.from({ length: 10 }).map((_, i) => <TableRowSkeleton key={i} cols={10} />)}
-            {isError && <ErrorRow cols={10} onRetry={refetch} />}
-            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={10} />}
+            {isLoading && Array.from({ length: 10 }).map((_, i) => <TableRowSkeleton key={i} cols={9} />)}
+            {isError && <ErrorRow cols={9} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={9} />}
             {data?.data?.map((s) => (
               <Tr key={s.id} onClick={() => setViewingId(s.id)}>
                 <Td>
@@ -399,8 +389,8 @@ export default function StudentsPage({ user }) {
                 <Td className="font-mono text-xs">{s.registration_number}</Td>
                 <Td className="font-medium text-[var(--text-primary)]">{s.student_name}</Td>
                 <Td>{COURSE_LABELS[s.course] ?? s.course}</Td>
-                <Td>{s.year} / {s.semester}</Td>
-                <Td>{s.section ?? '—'}</Td>
+                <Td>{s.year}</Td>
+                <Td>{s.semester}</Td>
                 <Td>{s.batch_year}</Td>
                 <Td>{s.academic_year}</Td>
                 <Td><Badge status={s.status} /></Td>

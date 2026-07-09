@@ -302,7 +302,7 @@ async function getMySummary(req, res) {
     };
   }
 
-  const today = history.find((h) => formatDateIST(h.duty_date) === todayStr) ?? null;
+  const today = history.filter((h) => formatDateIST(h.duty_date) === todayStr);
 
   res.json({
     year,

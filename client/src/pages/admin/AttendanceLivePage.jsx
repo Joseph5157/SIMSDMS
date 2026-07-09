@@ -141,12 +141,14 @@ export default function AttendanceLivePage({ user }) {
     ? new Date(dataUpdatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     : '—';
 
+  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Attendance' }]} />
       <PageHeader
         title="Live Attendance"
-        subtitle={`Today · Refreshes every 30s · Last updated ${lastUpdate}`}
+        subtitle={`${today} · Refreshes every 30s · Last updated ${lastUpdate}`}
       />
 
       {/* Stat pills */}

@@ -73,8 +73,6 @@ export default function UploadStudentsDrawer({ open, onClose }) {
     onClose();
   }
 
-  }
-
   return (
     <BottomDrawer
       open={open}
