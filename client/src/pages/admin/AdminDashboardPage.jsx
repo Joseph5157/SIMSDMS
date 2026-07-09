@@ -4,9 +4,12 @@ import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
 import { Modal } from '@mantine/core';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useFlaggedViolations, useDutyReassignmentReport } from '../../hooks/useReports';
+import { useDeleteViolation } from '../../hooks/useViolations';
+import { useToast } from '../../components/ui/Toast';
 import { ResolveFlagModal } from './ViolationsPage';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
@@ -26,6 +29,20 @@ export default function AdminDashboardPage({ user }) {
   // Which summary-card detail modal is open: 'faculty' | 'reassignments' | 'flagged' | null
   const [activeModal, setActiveModal] = useState(null);
   const [resolvingViolation, setResolvingViolation] = useState(null);
+  const [deletingFlagged, setDeletingFlagged] = useState(null);
+  const [flaggedShowCount, setFlaggedShowCount] = useState(5);
+  const toast = useToast();
+  const deleteViolation = useDeleteViolation();
+
+  async function handleDeleteFlagged() {
+    try {
+      await deleteViolation.mutateAsync({ id: deletingFlagged.id });
+      toast({ message: 'Student violation deleted.' });
+      setDeletingFlagged(null);
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+    }
+  }
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -52,7 +69,7 @@ export default function AdminDashboardPage({ user }) {
   const lateCount    = liveSlots.filter((s) => s.in_status === 'late').length;
 
   const allFlaggedViolations = (flagged?.data ?? []).filter((v) => v.is_flagged);
-  const pendingFlaggedViolations = allFlaggedViolations.slice(0, 5);
+  const pendingFlaggedViolations = allFlaggedViolations.slice(0, flaggedShowCount);
   const hasFlagged = pendingFlaggedCount > 0;
 
   // Active faculty merged with today's live duty/attendance, for the "Active Faculty" detail modal.
@@ -250,7 +267,26 @@ export default function AdminDashboardPage({ user }) {
            to match the left column's height instead of leaving a gap below it. ── */}
       {hasFlagged && (
         <Card className="flex flex-col flex-1">
-          <CardHeader><span className="inline-flex items-center gap-1.5"><IconFlag size={15} stroke={1.75} className="shrink-0" />Flagged student violations — needs review</span></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2 flex-1">
+              <span className="inline-flex items-center gap-1.5"><IconFlag size={15} stroke={1.75} className="shrink-0" />Flagged student violations — needs review</span>
+              <select
+                value={flaggedShowCount}
+                onChange={(e) => setFlaggedShowCount(Number(e.target.value))}
+                aria-label="Number of flagged violations to show"
+                style={{
+                  fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-secondary)',
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
+                  padding: '2px 6px', background: 'var(--surface-card)', cursor: 'pointer',
+                }}
+              >
+                {[3, 5, 10, 20].map((n) => <option key={n} value={n}>Show {n}</option>)}
+              </select>
+            </div>
+          </CardHeader>
+          <div className="px-4 pt-1.5 pb-0.5 shrink-0" style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
+            Total: <strong style={{ color: 'var(--text-secondary)' }}>{pendingFlaggedCount}</strong> · Showing: {pendingFlaggedViolations.length} latest
+          </div>
           <CardBody className="p-0 flex-1 flex flex-col min-h-0">
             <div className="flex-1 min-h-0 overflow-y-auto">
               {pendingFlaggedViolations.map((v) => (
@@ -377,6 +413,9 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Flagged violations detail modal ── */}
       <Modal opened={activeModal === 'flagged'} onClose={() => setActiveModal(null)} title="Flagged Student Violations" size="lg" centered>
+        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: -8, marginBottom: 12 }}>
+          {allFlaggedViolations.length} Pending Review{allFlaggedViolations.length === 1 ? '' : 's'}
+        </p>
         <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
           {!allFlaggedViolations.length ? (
             <p style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No flagged violations.</p>
@@ -388,20 +427,30 @@ export default function AdminDashboardPage({ user }) {
                   <Badge status="flagged" />
                 </div>
                 <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
+                  {v.student?.registration_number} · {v.student?.course ?? '—'}
+                </p>
+                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
                   {v.violationType?.name} · Recorded by {v.faculty?.name ?? '—'}
                 </p>
                 <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
-                  {new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  Duty {v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
+                  {' · Recorded '}{new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </p>
                 {v.flag_note && (
                   <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-secondary)', marginTop: 3 }}>Note: {v.flag_note}</p>
                 )}
-                <div className="pt-2 mt-2 border-t border-[var(--divider)] text-right">
+                <div className="pt-2 mt-2 border-t border-[var(--divider)] flex items-center justify-end gap-4">
+                  <button
+                    onClick={() => setDeletingFlagged(v)}
+                    style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-600)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                  >
+                    Delete
+                  </button>
                   <button
                     onClick={() => setResolvingViolation(v)}
                     style={{ fontSize: 'var(--text-micro)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
                   >
-                    Review →
+                    ✅ Mark as Reviewed →
                   </button>
                 </div>
               </div>
@@ -421,6 +470,26 @@ export default function AdminDashboardPage({ user }) {
       </Modal>
 
       <ResolveFlagModal violation={resolvingViolation} onClose={() => setResolvingViolation(null)} />
+      {deletingFlagged && (
+        <ConfirmDialog
+          open
+          title="Delete Student Violation"
+          message={
+            <>
+              Are you sure you want to delete this student violation record? This cannot be undone from the app.
+              <br /><br />
+              <strong>Student:</strong> {deletingFlagged.student?.student_name}<br />
+              <strong>Violation:</strong> {deletingFlagged.violationType?.name}<br />
+              <strong>Date:</strong> {new Date(deletingFlagged.created_at).toLocaleDateString('en-IN')}
+            </>
+          }
+          confirmText="Delete Permanently"
+          isDangerous
+          isLoading={deleteViolation.isPending}
+          onConfirm={handleDeleteFlagged}
+          onCancel={() => setDeletingFlagged(null)}
+        />
+      )}
     </Layout>
   );
 }

@@ -159,9 +159,18 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Photo attachments are removed from all phases — violations are text-only records.
 - Faculty can flag their own violation record for Admin review (replaces correction request module).
 - A flagged violation sets `is_flagged = true` on the violation row — no separate table or module.
-- Admin reviews and resolves flags. Resolution is logged in `violation_audit_log`.
-- Admin can hide a violation record — hidden records are not physically deleted.
-- All changes to violations are tracked in `violation_audit_log` — this log is immutable.
+- Admin reviews and resolves flags directly from the Flagged Student Violations dashboard
+  card's review popup (Mark as Reviewed) or from the Student Violations page — both call the
+  same resolve-flag endpoint.
+- Admin can delete any violation record; Faculty can delete only violations they personally
+  recorded. Deletion is a soft delete (`Violation.deleted_at`) — the deleted record is excluded
+  from every read path (lists, dashboards, reports, analytics, counts) but the row is kept,
+  consistent with the "all deletes are soft deletes" rule below. Deletion is tracked only in
+  `admin_audit_log` (Admin → Audit Logs), not `violation_audit_log` — there is no per-violation
+  "Log"/history UI anywhere in the app. (Replaces the earlier Hide action and per-violation
+  Audit Log view, removed 2026-07 — see version history.)
+- `violation_audit_log` still records created/edited/flagged/flag_resolved changes internally
+  for accountability, but has no UI surface — it is not the same log as `admin_audit_log`.
 
 ### Duty Reassignment — Two Independent Methods (replaces Need Cover / Volunteer)
 There is exactly one concept — **Reassigned Duty** — reachable by two independent
@@ -262,6 +271,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 ### Key Schema Rules
 - `admin_audit_log` — system-level actions only (password resets, account changes, hard deletes). Never mix with `violation_audit_log`
 - `violations.is_flagged` — set by Faculty to request Admin review; resolved via `flag_resolved_by` + `flag_resolved_at`
+- `violations.deleted_at` — soft-delete for the Delete action (§4 Violations); excluded from every read path across controllers, not just a display filter
 - `violations.photo_path` / `violations.photo_expires_at` — foundation columns, not used in Phase 1
 - `duty_reassignments` — append-only history; the current owner of a slot is always `duty_slots.faculty_id`, and the latest reassignment row (if any) describes who it was moved from and by whom. Written by both reassignment methods (§4) — `reassigned_by` is the admin for Method 1, the accepting faculty for Method 2
 - `duty_reassignment_requests` — mutable workflow state (`pending` → `approved`/`declined`), not history. `status` is a plain string, not an enum, matching the Prisma model. Accepting one request auto-declines any other pending requests for the same `duty_slot_id`
@@ -272,9 +282,9 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 109 Endpoints Across 14 Modules
+## 6. API — 108 Endpoints Across 14 Modules
 
-Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2).
+Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2). Violations dropped from 10 to 9 endpoints (2026-07): `PATCH /:id/hide` and `GET /:id/audit-log` were removed (Hide and the per-violation Log view no longer exist anywhere in the app) and `DELETE /:id` was added (soft-delete, §4 Violations).
 
 | Module | Count | Base Path |
 |---|---|---|
@@ -285,7 +295,7 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 | Duty Slots | 7 | `/duty-slots` |
 | Duty Attendance | 5 | `/attendance` |
 | Duty Timing Settings | 2 | `/duty-timing-settings` |
-| Violations | 10 | `/violations` |
+| Violations | 9 | `/violations` |
 | Violation Types | 5 | `/violation-types` |
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
@@ -403,6 +413,7 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.10 — Updated: July 2026 (Violation Delete + Flagged Review workflow — §4 Violations: replaced the Hide action and per-violation Log/Audit view with Delete (soft delete via `violations.deleted_at`, excluded from every read path); Admin can delete any violation, Faculty only their own; deletion tracked in `admin_audit_log` only. The Flagged Student Violations dashboard card gained a configurable show-count (3/5/10/20) and its review popup gained registration number/course/duty date detail plus a Delete action alongside the existing Mark as Reviewed. Added `users.title` / `pending_invites.title` (salutation shown in dashboard greetings, distinct from `designation`). Added an S.No column to the faculty Student Violations table and to the Student Violation Report's Excel/PDF exports — §5, §6, Violations module 10→9 endpoints, total 109→108)*
 *Constitution version: 3.9 — Updated: July 2026 (P28 Enhanced Reports System — added PDF export via `pdfkit` alongside the existing Excel export for the Student Violation Report's five period variants (daily/weekly/monthly/yearly/overall); fixed a bug where Daily/Weekly "Excel" downloads saved a corrupt JSON-as-xlsx file; added Course/Academic Year/Violation Type/Faculty filters to the Student Violation Report, applied consistently across all five periods; closed a pre-existing gap where the Daily/Weekly report routes had no Zod query validation — §6, Reports module 17→22 endpoints, total 104→109)*
 *Constitution version: 3.8 — Updated: July 2026 (removed faculty slot-unpick entirely — `DELETE /duty-slots/:id/unpick` and its UI dropped; a picked slot is now final and can only change owner via Admin Duty Reassignment or Faculty-Requested Reassignment, §3, §4, §6; Duty Slots module 8→7 endpoints, total 105→104)*
 *Constitution version: 3.7 — Updated: July 2026 (dropped the unused `Student.section` column entirely — Year/Semester were already independent fields everywhere in the UI; removed the not-checked-in cutoff concept from Duty Timing Settings — §3, §4, §5 — a not-yet-checked-in faculty member now always shows "Not checked in" from session start to auto clock-out, no separate time-gated stage)*

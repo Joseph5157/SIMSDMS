@@ -30,4 +30,8 @@ const resolveFlagSchema = z.object({
   reason: z.string().min(1, 'Resolution reason is required.').max(500),
 });
 
-module.exports = { createViolationSchema, editViolationSchema, flagViolationSchema, resolveFlagSchema };
+const deleteViolationSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
+module.exports = { createViolationSchema, editViolationSchema, flagViolationSchema, resolveFlagSchema, deleteViolationSchema };

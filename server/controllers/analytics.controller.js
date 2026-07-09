@@ -52,7 +52,7 @@ function extraFilters({ violation_type_id, course, year, academic_year }) {
 }
 
 function analyticsWhere(query) {
-  return { record_status: 'active', created_at: resolveDateRange(query), ...extraFilters(query) };
+  return { record_status: 'active', deleted_at: null, created_at: resolveDateRange(query), ...extraFilters(query) };
 }
 
 // 1. Dashboard Summary Cards
@@ -94,7 +94,7 @@ async function trend(req, res) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const year = d.getFullYear(), month = d.getMonth() + 1;
     const count = await prisma.violation.count({
-      where: { ...base, record_status: 'active', created_at: monthRange(year, month) },
+      where: { ...base, record_status: 'active', deleted_at: null, created_at: monthRange(year, month) },
     });
     data.push({ year, month, count });
   }

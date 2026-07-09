@@ -24,7 +24,7 @@ function yearRange(year) {
 // the related Student; `violation_type_id`/`faculty_id` filter on the
 // violation row directly.
 function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id }) {
-  const where = { record_status: 'active' };
+  const where = { record_status: 'active', deleted_at: null };
   if (student_id)        where.student_id = student_id;
   if (violation_type_id) where.violation_type_id = violation_type_id;
   if (faculty_id)         where.faculty_id = faculty_id;
@@ -172,6 +172,7 @@ async function studentViolationHistory(req, res) {
 // variants — deliberately excludes fine_amount (P28: violation reports focus
 // on discipline tracking, not financial reporting).
 const STUDENT_VIOLATION_EXPORT_COLUMNS = [
+  { header: 'S.No',                   key: 'sno',         width: 6  },
   { header: 'Registration Number',    key: 'reg_no',      width: 22 },
   { header: 'Student Name',           key: 'name',        width: 24 },
   { header: 'Course',                 key: 'course',      width: 12 },
@@ -182,8 +183,9 @@ const STUDENT_VIOLATION_EXPORT_COLUMNS = [
   { header: 'Recorded At',            key: 'created_at',  width: 18 },
 ];
 
-function mapViolationExportRow(v) {
+function mapViolationExportRow(v, i) {
   return {
+    sno:        i + 1,
     reg_no:     v.student?.registration_number,
     name:       v.student?.student_name,
     course:     v.student?.course,
@@ -300,6 +302,7 @@ function computeViolationSummary(violations) {
 }
 
 const STUDENT_VIOLATION_PDF_COLUMNS = [
+  { header: 'S.No',           key: 'sno',        width: 26 },
   { header: 'Student',        key: 'name',      width: 95 },
   { header: 'Reg No',         key: 'reg_no',     width: 80 },
   { header: 'Course',         key: 'course',     width: 50 },
@@ -308,8 +311,9 @@ const STUDENT_VIOLATION_PDF_COLUMNS = [
   { header: 'Date',           key: 'duty_date',  width: 65 },
 ];
 
-function mapViolationPdfRow(v) {
+function mapViolationPdfRow(v, i) {
   return {
+    sno:       i + 1,
     name:      v.student?.student_name,
     reg_no:    v.student?.registration_number,
     course:    v.student?.course,
@@ -375,7 +379,7 @@ async function facultyViolationActivity(req, res) {
 
   const grouped = await prisma.violation.groupBy({
     by: ['faculty_id'],
-    where: { created_at: monthRange(year, month), record_status: 'active' },
+    where: { created_at: monthRange(year, month), record_status: 'active', deleted_at: null },
     _count: { id: true },
     _sum:   { fine_amount: true },
   });
@@ -403,7 +407,7 @@ async function violationTypeBreakdown(req, res) {
 
   const grouped = await prisma.violation.groupBy({
     by: ['violation_type_id'],
-    where: { created_at: monthRange(year, month), record_status: 'active' },
+    where: { created_at: monthRange(year, month), record_status: 'active', deleted_at: null },
     _count: { id: true },
     _sum:   { fine_amount: true },
   });
@@ -424,7 +428,7 @@ async function violationTypeBreakdown(req, res) {
 // 9. Pending Fines Summary
 async function pendingFinesSummary(req, res) {
   const violations = await prisma.violation.findMany({
-    where: { record_status: 'active', is_warning_only: false, fine_amount: { gt: 0 } },
+    where: { record_status: 'active', deleted_at: null, is_warning_only: false, fine_amount: { gt: 0 } },
     include: {
       student:       { select: { registration_number: true, student_name: true, course: true, semester_or_year: true } },
       violationType: { select: { name: true } },
@@ -444,15 +448,17 @@ async function pendingFinesSummary(req, res) {
 async function flaggedViolationsReport(req, res) {
   const violations = await prisma.violation.findMany({
     where: {
+      deleted_at: null,
       OR: [
         { is_flagged: true },
         { flag_resolved_at: { not: null } },
       ],
     },
     include: {
-      student:       { select: { student_name: true, registration_number: true } },
+      student:       { select: { student_name: true, registration_number: true, course: true } },
       faculty:       { select: { name: true } },
       violationType: { select: { name: true } },
+      dutySlot:      { select: { duty_date: true } },
     },
     orderBy: { created_at: 'desc' },
   });

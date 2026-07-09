@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const { isSlotToday } = require('../lib/time');
+const { logAction } = require('../services/audit.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -119,7 +120,7 @@ async function listViolations(req, res) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
-  const where = {};
+  const where = { deleted_at: null };
   if (student_id)       where.student_id       = student_id;
   if (violation_type_id) where.violation_type_id = violation_type_id;
   if (record_status)    where.record_status     = record_status;
@@ -159,7 +160,7 @@ async function myViolations(req, res) {
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
-  const where = { faculty_id: req.user.id };
+  const where = { faculty_id: req.user.id, deleted_at: null };
   if (record_status)    where.record_status = record_status;
   if (is_flagged !== undefined) where.is_flagged = is_flagged === 'true';
 
@@ -185,7 +186,7 @@ async function getViolation(req, res) {
     include: VIOLATION_INCLUDE,
   });
 
-  if (!violation) {
+  if (!violation || violation.deleted_at) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
 
@@ -202,7 +203,7 @@ async function getViolation(req, res) {
 async function editViolation(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
-  if (!violation) {
+  if (!violation || violation.deleted_at) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (violation.faculty_id !== req.user.id) {
@@ -241,43 +242,12 @@ async function editViolation(req, res) {
   res.json(updated);
 }
 
-// ─── PATCH /violations/:id/hide — Admin ───────────────────────────────────────
-
-async function hideViolation(req, res) {
-  const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
-
-  if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
-  }
-  if (violation.record_status === 'hidden') {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Student violation is already hidden.' });
-  }
-
-  const oldSnapshot = snapshotViolation(violation);
-
-  const updated = await prisma.violation.update({
-    where: { id: req.params.id },
-    data:  { record_status: 'hidden' },
-    include: VIOLATION_INCLUDE,
-  });
-
-  await auditViolation({
-    violationId: violation.id,
-    changedBy:   req.user.id,
-    changeType:  'hidden',
-    oldData:     oldSnapshot,
-    newData:     snapshotViolation(updated),
-  });
-
-  res.json(updated);
-}
-
 // ─── PATCH /violations/:id/flag — Faculty ─────────────────────────────────────
 
 async function flagViolation(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
-  if (!violation) {
+  if (!violation || violation.deleted_at) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (violation.faculty_id !== req.user.id) {
@@ -308,7 +278,7 @@ async function flagViolation(req, res) {
 async function resolveFlag(req, res) {
   const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
 
-  if (!violation) {
+  if (!violation || violation.deleted_at) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
   }
   if (!violation.is_flagged) {
@@ -340,29 +310,53 @@ async function resolveFlag(req, res) {
   res.json(updated);
 }
 
+// ─── DELETE /violations/:id — Admin (any) / Faculty (own only) ────────────────
+// Soft delete: sets deleted_at, excluding the record from every read path
+// (lists, counts, dashboards, reports, analytics) while keeping the row —
+// only Super Admin can hard-delete, per the constitution. Tracked in
+// admin_audit_log only; the per-violation audit log has no UI surface left
+// after the Hide/Log removal.
+
+async function deleteViolation(req, res) {
+  const violation = await prisma.violation.findUnique({
+    where: { id: req.params.id },
+    include: {
+      student:       { select: { student_name: true } },
+      violationType: { select: { name: true } },
+    },
+  });
+
+  if (!violation || violation.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
+  }
+  if (req.user.role === 'faculty' && violation.faculty_id !== req.user.id) {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only delete your own student violations.' });
+  }
+
+  await prisma.violation.update({
+    where: { id: req.params.id },
+    data:  { deleted_at: new Date() },
+  });
+
+  await logAction({
+    actorId:    req.user.id,
+    action:     'DELETE_VIOLATION',
+    targetId:   violation.id,
+    targetType: 'violation',
+    metadata: {
+      student_name:   violation.student?.student_name,
+      violation_type: violation.violationType?.name,
+      reason:         req.body?.reason,
+    },
+  });
+
+  res.json({ success: true });
+}
+
 // ─── GET /violations/:id/photo — Foundation placeholder ───────────────────────
 
 async function getPhoto(req, res) {
   res.status(501).json({ error: true, code: 'NOT_IMPLEMENTED', message: 'Photo access is not available in Phase 1.' });
-}
-
-// ─── GET /violations/:id/audit-log — Admin ────────────────────────────────────
-
-async function getAuditLog(req, res) {
-  const violation = await prisma.violation.findUnique({ where: { id: req.params.id } });
-  if (!violation) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student violation not found.' });
-  }
-
-  const logs = await prisma.violationAuditLog.findMany({
-    where: { violation_id: req.params.id },
-    orderBy: { created_at: 'asc' },
-    include: {
-      changedBy: { select: { id: true, name: true, email: true, role: true } },
-    },
-  });
-
-  res.json({ data: logs, total: logs.length });
 }
 
 module.exports = {
@@ -371,9 +365,8 @@ module.exports = {
   myViolations,
   getViolation,
   editViolation,
-  hideViolation,
+  deleteViolation,
   flagViolation,
   resolveFlag,
   getPhoto,
-  getAuditLog,
 };

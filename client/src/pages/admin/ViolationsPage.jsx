@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
-import { Button, TextInput, Select, Modal } from '@mantine/core';
+import { Button, TextInput, Select } from '@mantine/core';
 import { LineChart, BarChart } from '@mantine/charts';
 import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
@@ -9,7 +9,7 @@ import FormModal from '../../components/ui/FormModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
-import { useViolations, useHideViolation, useResolveFlag, useViolationAuditLog } from '../../hooks/useViolations';
+import { useViolations, useDeleteViolation, useResolveFlag } from '../../hooks/useViolations';
 import { useUsers } from '../../hooks/useUsers';
 import {
   useAnalyticsSummary,
@@ -401,43 +401,22 @@ export function ResolveFlagModal({ violation, onClose }) {
   );
 }
 
-function AuditModal({ violationId, onClose }) {
-  const { data } = useViolationAuditLog(violationId);
-  return (
-    <Modal opened={!!violationId} onClose={onClose} title="Student Violation Audit Log" size="lg" centered>
-      <div className="space-y-2">
-        {data?.data?.map((log) => (
-          <div key={log.id} className="border border-[var(--border)] rounded-lg p-3 text-[length:13px]">
-            <div className="flex justify-between text-[length:11px] text-[var(--text-muted)] mb-1">
-              <span>{log.changedBy?.name} · <Badge status={log.change_type} label={log.change_type} /></span>
-              <span>{new Date(log.created_at).toLocaleString()}</span>
-            </div>
-            {log.reason && <p className="text-[var(--text-secondary)]">{log.reason}</p>}
-          </div>
-        ))}
-        {!data?.data?.length && <p className="text-[var(--text-muted)] text-[length:13px]">No audit entries.</p>}
-      </div>
-    </Modal>
-  );
-}
-
 export default function ViolationsPage({ user }) {
   const toast = useToast();
   const [page, setPage]       = useState(1);
   const [filters, setFilters] = useState({ record_status: '', is_flagged: '', faculty_id: '' });
   const [resolving, setResolving] = useState(null);
-  const [auditing,  setAuditing]  = useState(null);
-  const [hiding,    setHiding]    = useState(null);
+  const [deleting,  setDeleting]  = useState(null);
 
   const { data, isLoading, isError, refetch } = useViolations({ ...filters, page, limit: 20 });
   const { data: facultyData } = useUsers({ role: 'faculty' });
-  const hide = useHideViolation();
+  const deleteViolation = useDeleteViolation();
 
-  async function handleHide() {
+  async function handleDelete() {
     try {
-      await hide.mutateAsync(hiding.id);
-      toast({ message: 'Student violation hidden.' });
-      setHiding(null);
+      await deleteViolation.mutateAsync({ id: deleting.id });
+      toast({ message: 'Student violation deleted.' });
+      setDeleting(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
@@ -514,10 +493,7 @@ export default function ViolationsPage({ user }) {
               {v.is_flagged && !v.flag_resolved_at && (
                 <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Resolve</Button>
               )}
-              {v.record_status === 'active' && (
-                <Button variant="subtle" size="xs" onClick={() => setHiding(v)}>Hide</Button>
-              )}
-              <Button variant="subtle" size="xs" onClick={() => setAuditing(v.id)}>Log</Button>
+              <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(v)}>Delete</Button>
             </div>
           </div>
         ))}
@@ -555,10 +531,7 @@ export default function ViolationsPage({ user }) {
                     {v.is_flagged && !v.flag_resolved_at && (
                       <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Resolve</Button>
                     )}
-                    {v.record_status === 'active' && (
-                      <Button variant="subtle" size="xs" onClick={() => setHiding(v)}>Hide</Button>
-                    )}
-                    <Button variant="subtle" size="xs" onClick={() => setAuditing(v.id)}>Log</Button>
+                    <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(v)}>Delete</Button>
                   </div>
                 </Td>
               </tr>
@@ -570,17 +543,24 @@ export default function ViolationsPage({ user }) {
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
 
       {resolving && <ResolveFlagModal violation={resolving} onClose={() => setResolving(null)} />}
-      {auditing  && <AuditModal violationId={auditing} onClose={() => setAuditing(null)} />}
-      {hiding && (
+      {deleting && (
         <ConfirmDialog
           open
-          title="Hide Student Violation"
-          message="Hide this student violation record? It will no longer appear in the active list."
-          confirmText="Hide"
+          title="Delete Student Violation"
+          message={
+            <>
+              Are you sure you want to delete this student violation record? This cannot be undone from the app.
+              <br /><br />
+              <strong>Student:</strong> {deleting.student?.student_name}<br />
+              <strong>Violation:</strong> {deleting.violationType?.name}<br />
+              <strong>Date:</strong> {deleting.dutySlot?.duty_date ? new Date(deleting.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}
+            </>
+          }
+          confirmText="Delete Permanently"
           isDangerous
-          isLoading={hide.isPending}
-          onConfirm={handleHide}
-          onCancel={() => setHiding(null)}
+          isLoading={deleteViolation.isPending}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleting(null)}
         />
       )}
     </Layout>

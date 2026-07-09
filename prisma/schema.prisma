@@ -286,6 +286,7 @@ model Violation {
   record_status     RecordStatus @default(active)
   photo_path        String?      @db.VarChar(500)
   photo_expires_at  DateTime?
+  deleted_at        DateTime?
   created_at        DateTime     @default(now())
   updated_at        DateTime     @updatedAt
 

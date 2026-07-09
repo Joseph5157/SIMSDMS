@@ -124,7 +124,7 @@ async function deleteViolationType(req, res) {
   }
 
   // Prevent delete if violations already reference this type
-  const usageCount = await prisma.violation.count({ where: { violation_type_id: req.params.id } });
+  const usageCount = await prisma.violation.count({ where: { violation_type_id: req.params.id, deleted_at: null } });
   if (usageCount > 0) {
     return res.status(409).json({
       error: true,

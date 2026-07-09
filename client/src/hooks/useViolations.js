@@ -33,11 +33,18 @@ export function useCreateViolation() {
   });
 }
 
-export function useHideViolation() {
+// Soft-deletes a violation (deleted_at) — invalidates broadly since a delete can
+// shift counts across the violations list, dashboards, every report, and analytics.
+export function useDeleteViolation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id) => api.patch(`/violations/${id}/hide`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['violations'] }),
+    mutationFn: ({ id, reason }) => api.delete(`/violations/${id}`, { data: reason ? { reason } : undefined }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['violations'] });
+      qc.invalidateQueries({ queryKey: ['myViolations'] });
+      qc.invalidateQueries({ queryKey: ['report'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
+    },
   });
 }
 
@@ -45,7 +52,10 @@ export function useFlagViolation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, flag_note }) => api.patch(`/violations/${id}/flag`, { flag_note }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['myViolations'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['myViolations'] });
+      qc.invalidateQueries({ queryKey: ['report', 'flagged-violations'] });
+    },
   });
 }
 
@@ -60,13 +70,3 @@ export function useResolveFlag() {
   });
 }
 
-export function useViolationAuditLog(id) {
-  return useQuery({
-    queryKey: ['violationAudit', id],
-    queryFn: async () => {
-      const res = await api.get(`/violations/${id}/audit-log`);
-      return res.data;
-    },
-    enabled: !!id,
-  });
-}

@@ -384,7 +384,7 @@ async function deleteStudent(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student not found.' });
   }
 
-  const violationCount = await prisma.violation.count({ where: { student_id: student.id } });
+  const violationCount = await prisma.violation.count({ where: { student_id: student.id, deleted_at: null } });
   if (violationCount > 0) {
     return res.status(409).json({
       error: true, code: 'HAS_VIOLATIONS',
