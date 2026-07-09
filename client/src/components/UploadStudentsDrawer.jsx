@@ -17,7 +17,6 @@ const REQUIRED_COLUMNS = [
 ];
 
 const OPTIONAL_COLUMNS = [
-  { name: 'Section', note: 'A / B / C' },
   { name: 'Gender',  note: 'male / female / other' },
   { name: 'Phone',   note: 'for notifications' },
 ];

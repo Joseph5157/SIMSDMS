@@ -4,7 +4,7 @@
 004-student-analytics-dashboard / Task 11 — P24 Backend + Frontend (Phase 1: Critical)
 
 ## status
-complete (Phase 1 only — see open_questions_for_owner for Phase 2/3 scope)
+complete — all 3 phases built (Phase 1 verified in browser; Phases 2–3 built + build-clean, browser verification pending per owner's "build first, verify later"). See the "Phases 2–3" amendment at the bottom.
 
 ## completed
 - **Backend**: `server/controllers/analytics.controller.js` (new) with 5 endpoints, all admin/super_admin only:
@@ -73,3 +73,24 @@ pg_ctl stop                               # torn down after verification
 ## open_questions_for_owner
 - **Scope for Phase 2/3** (P24 problem doc): trend line graph, course-wise/year-wise bar charts, individual-student popup (partially done via `StudentDetailsDrawer`, already updated), faculty recording analysis, calendar heatmap, Excel/PDF export. The backend `trend` endpoint is already built (see completed) but has no frontend chart yet. Confirm whether to proceed with Phase 2 next, and whether to adopt `@mantine/charts` at that point for the line/heatmap visuals (Phase 1's bar chart didn't need it).
 - The `StudentDetailsDrawer` "Complete Violation History" is capped at 100 records per student (existing API limit) — fine today, but if any student's violation count could realistically approach that, this will silently truncate. No action needed now.
+
+---
+
+## Amendment — 2026-07-09 — Phases 2 & 3 built
+
+**Phase 2 (High)** — added to the dashboard:
+- `GET /analytics/course-analysis`, `GET /analytics/year-analysis` (new backend endpoints; both aggregate in JS since `course`/`year` live on Student, not Violation).
+- Frontend: adopted `@mantine/charts` (+ `recharts` peer) — a real charting dep, matching the existing Mantine theme (see deviations). Added a **Violation Trend** line chart (wires up the previously-unused `/analytics/trend`), plus **Violations by Course** and **Violations by Year** bar charts.
+- Individual student profile (spec §8) was already delivered in Phase 1 via `StudentDetailsDrawer`.
+
+**Phase 3 (Medium)** — added to the dashboard:
+- `GET /analytics/faculty-analysis` (violations per recording faculty; groupBy since `faculty_id` is on Violation), `GET /analytics/heatmap` (violation counts per IST calendar day, bucketed in JS), `GET /analytics/export/counselling` (repeat-violators list as .xlsx via the existing `lib/excel` helper — no fine amounts, matching the reports export).
+- Frontend: **Recorded By (Faculty)** horizontal bar list, a **Violation Heatmap** (GitHub-contribution-style calendar grid, green→red, no charting dep), and an **⬇ Excel** button on the counselling table.
+- `computeRepeatViolators` was extracted so the JSON endpoint and the Excel export share one implementation.
+
+Analytics module is now **10 endpoints** (was 5). CONSTITUTION.md §6 updated (v3.6), total 100→105.
+
+**Verification status:** `npm run build --workspace=client` clean; backend `node --check` + full `require()` load clean. Browser verification of the Phase 2/3 UI is still pending (owner asked to build the remaining phases first and verify together afterward). When verifying, seed multi-month violation data to exercise the trend line (all current seed data lands in one month, so the trend shows a single spike — correct, but not a rich curve).
+
+## deviations_from_constitution (Phase 2 addition)
+- **Added `@mantine/charts` + `recharts`** as new client dependencies. The constitution's tech-stack table (§2) lists Tailwind + Mantine but no charting library; Phase 1's bars were plain CSS. This was the pre-flagged open question from the Phase 1 handoff ("if Phase 2 needs a real line chart, a charting library decision will be needed") — resolved in favour of `@mantine/charts` because it renders through the same `mantineTheme` tokens already in `App.jsx`, so charts inherit the brand palette with zero extra theming. A `form-data` high-severity advisory pulled in transitively was resolved with `npm audit fix` (0 vulnerabilities after). If the owner prefers no charting dep, the three Recharts-based charts (trend line, course bar, year bar) would need reverting to CSS bars; the heatmap already uses no dep.

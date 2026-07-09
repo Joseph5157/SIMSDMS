@@ -147,8 +147,8 @@ export default function AttendanceLivePage({ user }) {
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Attendance' }]} />
       <PageHeader
-        title="Live Attendance"
-        subtitle={`${today} · Refreshes every 30s · Last updated ${lastUpdate}`}
+        title={<>Live Attendance <span className="font-normal text-[color:var(--text-muted)]">— {today}</span></>}
+        subtitle={`Refreshes every 30s · Last updated ${lastUpdate}`}
       />
 
       {/* Stat pills */}

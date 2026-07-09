@@ -272,7 +272,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 100 Endpoints Across 14 Modules
+## 6. API — 105 Endpoints Across 14 Modules
 
 Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2).
 
@@ -290,12 +290,12 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
 | Reports | 17 | `/reports` |
-| Analytics | 5 | `/analytics` |
+| Analytics | 10 | `/analytics` |
 | Duty Reassignment Requests | 5 | `/duty-reassignment-requests` |
 
 Reports is 17 endpoints implementing 16 distinct report types — one (`/reports/student-violations/export`) is an export variant of an existing report, not a 17th report.
 
-Analytics (5): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (Phase 1; see `specs/004-student-analytics-dashboard/handoff.md` for phase status).
+Analytics (10): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel export; see `specs/004-student-analytics-dashboard/handoff.md`).
 
 Duty Reassignment Requests (5): `POST /`, `GET /`, `GET /sent`, `GET /eligible-faculty/:dutySlotId`, `PATCH /:id` — faculty only. Implements Method 2 of §4 Duty Reassignment.
 
@@ -403,6 +403,7 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.6 — Updated: July 2026 (§6 Analytics module grew 5→10 endpoints as P24 Phases 2–3 were built — trend/course/year charts, faculty analysis, calendar heatmap, counselling-list Excel export; total 100→105)*
 *Constitution version: 3.5 — Updated: July 2026 (added Faculty-Requested Reassignment as Method 2 alongside Admin Duty Reassignment — §3, §4, §5, §6; added `duty_reassignment_requests` table; added the Analytics module to §6, previously undocumented)*
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*

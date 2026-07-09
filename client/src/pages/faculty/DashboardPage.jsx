@@ -7,7 +7,7 @@ import { Button } from '@mantine/core';
 import { useMonthSlots, useReassignedAway } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
-import { useAttendance, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
+import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { useSentReassignmentRequests } from '../../hooks/useDutyReassignmentRequests';
 import { formatHourMin } from '../../utils/time';
@@ -46,6 +46,73 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+// One hero card for a single duty session today. Each of a faculty member's
+// today sessions (morning / afternoon) renders its own independent card with
+// its own check-in / check-out controls (P29).
+function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPending, onCheckIn, onCheckOut }) {
+  const startLabel = timingSettings
+    ? formatHourMin(
+        timingSettings[`session_start_${session.session_type}_hour`],
+        timingSettings[`session_start_${session.session_type}_min`],
+      )
+    : (session.session_type === 'morning' ? '8:00 AM' : '1:00 PM');
+
+  return (
+    <div style={{
+      borderRadius: 'var(--radius-3xl)', padding: 20, position: 'relative', overflow: 'hidden',
+      background: 'var(--brand-gradient-deep)',
+      boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)',
+    }}>
+      <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.12)' }} />
+      <div style={{ position: 'relative' }}>
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+              📋 Today's duty
+            </p>
+            <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-on-dark)', lineHeight: 1.1, textTransform: 'capitalize' }}>
+              {session.session_type} session
+            </p>
+            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+              Starts {startLabel}
+            </p>
+          </div>
+          <Badge status={session.slot_status} />
+        </div>
+
+        {session.in_time && session.out_time ? (
+          <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-on-dark)' }}>
+            ✓ Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            {' · '}out {new Date(session.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        ) : session.in_time ? (
+          <>
+            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
+              ● Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <Button size="md" color="dark" fullWidth loading={checkOutPending}
+              onClick={() => onCheckOut(session.slot_id)}
+              style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
+              Check Out
+            </Button>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+              ● Not checked in
+            </p>
+            <Button size="md" color="dark" fullWidth loading={checkInPending}
+              onClick={() => onCheckIn(session.slot_id)}
+              style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
+              Check In
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage({ user }) {
   const navigate = useNavigate();
   const toast = useToast();
@@ -64,46 +131,60 @@ export default function DashboardPage({ user }) {
 
   const slots    = slotsData?.data ?? [];
   const today    = todayIST();
-  const todaySlot = slots.find((s) => isoDate(s.duty_date) === today);
-  const { data: attData, isLoading: attLoading, isError: attError, error: attErrorObj, refetch: refetchAtt } = useAttendance(todaySlot?.id);
   const upcoming  = slots.filter((s) => isoDate(s.duty_date) > today).slice(0, 3);
 
-  // 404 means "no attendance record yet" (not checked in) — that's expected, not an error.
-  const attNotCheckedIn = attErrorObj?.response?.status === 404;
-  const att = attData;
+  // Today's attendance comes from the per-session summary endpoint, which returns
+  // EVERY session the faculty has today with its own attendance state — a faculty
+  // with both a morning and afternoon duty gets two independent cards (P29). The
+  // old code used slots.find(), which silently showed only the first session.
+  const { data: summary, isLoading: summaryLoading, isError: summaryError, refetch: refetchSummary } = useMyAttendanceSummary(year, month);
+  const SESSION_ORDER = { morning: 0, afternoon: 1 };
+  const todaySessions = (summary?.today ?? [])
+    .slice()
+    .sort((a, b) => SESSION_ORDER[a.session_type] - SESSION_ORDER[b.session_type]);
+
   const checkIn  = useCheckIn();
   const checkOut = useCheckOut();
+  const [busySlot, setBusySlot] = useState(null);
 
-  async function handleCheckIn() {
+  async function handleCheckIn(slotId) {
+    setBusySlot(slotId);
     try {
-      await checkIn.mutateAsync(todaySlot.id);
+      await checkIn.mutateAsync(slotId);
       toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' });
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Check-in failed.', type: 'error' });
+    } finally {
+      setBusySlot(null);
     }
   }
-  async function handleCheckOut() {
+  async function handleCheckOut(slotId) {
+    setBusySlot(slotId);
     try {
-      await checkOut.mutateAsync(todaySlot.id);
+      await checkOut.mutateAsync(slotId);
       toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' });
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Check-out failed.', type: 'error' });
+    } finally {
+      setBusySlot(null);
     }
   }
 
-  // Clock-out warnings: check if checked-in but not out, and session ends within 15 min
-  const sessionEndHour = todaySlot?.session_type === 'morning'
-    ? timingSettings?.auto_checkout_morning_hour
-    : timingSettings?.auto_checkout_afternoon_hour;
-  const sessionEndMin = todaySlot?.session_type === 'morning'
-    ? timingSettings?.auto_checkout_morning_min
-    : timingSettings?.auto_checkout_afternoon_min;
+  // Minutes until a given session's configured auto clock-out time (per session).
   const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-  const minsUntilEnd = todaySlot && sessionEndHour != null
-    ? (sessionEndHour - nowIST.getUTCHours()) * 60 + ((sessionEndMin ?? 0) - nowIST.getUTCMinutes())
-    : null;
-  const showClockOutWarning = att?.in_time && !att?.out_time && minsUntilEnd !== null && minsUntilEnd >= 0 && minsUntilEnd <= 15;
-  const wasAutoClocked = !!att?.auto_out;
+  function minsUntilSessionEnd(sessionType) {
+    const h = timingSettings?.[`auto_checkout_${sessionType}_hour`];
+    const m = timingSettings?.[`auto_checkout_${sessionType}_min`];
+    if (h == null) return null;
+    return (h - nowIST.getUTCHours()) * 60 + ((m ?? 0) - nowIST.getUTCMinutes());
+  }
+  // A session that is checked-in-not-out and within 15 min of its auto clock-out.
+  const clockoutSession = todaySessions.find((s) => {
+    if (!s.in_time || s.out_time) return false;
+    const mins = minsUntilSessionEnd(s.session_type);
+    return mins !== null && mins >= 0 && mins <= 15;
+  });
+  const autoClockedSession = todaySessions.find((s) => s.auto_out);
 
   const reassignedAway = reassignedAwayData?.data ?? [];
 
@@ -124,17 +205,17 @@ export default function DashboardPage({ user }) {
     return sentRequests.find((r) => r.dutySlot.id === slotId);
   }
 
-  const canDoViolation = todaySlot && todaySlot.status === 'scheduled';
+  const canDoViolation = todaySessions.some((s) => s.slot_status === 'scheduled');
 
   // ── Single, priority-ordered, dismissible alert (never stack banners) ──
   const alertCandidates = [
-    showClockOutWarning && {
+    clockoutSession && {
       key: 'clockout', tone: 'warning', icon: '⏰', title: 'Remember to clock out',
-      body: `Your ${todaySlot?.session_type} session ends in ${minsUntilEnd} min. Clock out before auto-out kicks in.`,
+      body: `Your ${clockoutSession.session_type} session ends in ${minsUntilSessionEnd(clockoutSession.session_type)} min. Clock out before auto-out kicks in.`,
     },
-    wasAutoClocked && {
+    autoClockedSession && {
       key: 'autoclock', tone: 'info', icon: '🔔', title: 'You were auto clocked out',
-      body: 'The system recorded your check-out automatically at session end.',
+      body: `The system recorded your ${autoClockedSession.session_type} check-out automatically at session end.`,
     },
   ].filter(Boolean);
   const activeAlert = alertCandidates.find((a) => !dismissedAlerts.has(a.key));
@@ -179,83 +260,33 @@ export default function DashboardPage({ user }) {
         </p>
       </div>
 
-      {/* ── 1. Today's duty — hero ── */}
+      {/* ── 1. Today's duty — hero (one card per session; P29) ── */}
       <section className="mb-4">
-        {slotsLoading ? (
+        {summaryLoading ? (
           <>
             <Skeleton height="160px" className="rounded-2xl mb-4" />
             <Skeleton height="44px" className="rounded-xl mb-4" />
             <Skeleton height="120px" className="rounded-xl mb-4" />
             <Skeleton height="120px" className="rounded-xl" />
           </>
-        ) : slotsError ? (
+        ) : summaryError ? (
           <Alert tone="danger" icon="⚠️" title="Couldn't load today's duty"
-            action={<Button variant="outline" size="sm" onClick={() => refetchSlots()}>Retry</Button>}>
+            action={<Button variant="outline" size="sm" onClick={() => refetchSummary()}>Retry</Button>}>
             Check your connection and try again.
           </Alert>
-        ) : todaySlot ? (
-          <div style={{
-            borderRadius: 'var(--radius-3xl)', padding: 20, position: 'relative', overflow: 'hidden',
-            background: 'var(--brand-gradient-deep)',
-            boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)',
-          }}>
-            {/* decorative glow */}
-            <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.12)' }} />
-            <div style={{ position: 'relative' }}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                    📋 Today's duty
-                  </p>
-                  <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-on-dark)', lineHeight: 1.1, textTransform: 'capitalize' }}>
-                    {todaySlot.session_type} session
-                  </p>
-                  <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-                    Starts {timingSettings
-                      ? formatHourMin(
-                          timingSettings[`session_start_${todaySlot.session_type}_hour`],
-                          timingSettings[`session_start_${todaySlot.session_type}_min`],
-                        )
-                      : (todaySlot.session_type === 'morning' ? '8:00 AM' : '1:00 PM')}
-                  </p>
-                </div>
-                <Badge status={todaySlot.status} />
-              </div>
-
-              {attError && !attNotCheckedIn ? (
-                <Alert tone="warning" icon="⚠️" title="Couldn't load check-in status"
-                  action={<Button variant="white" size="sm" onClick={() => refetchAtt()}>Retry</Button>}>
-                  Check your connection and try again.
-                </Alert>
-              ) : att?.in_time && att?.out_time ? (
-                <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-on-dark)' }}>
-                  ✓ Checked in {new Date(att.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  {' · '}out {new Date(att.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              ) : att?.in_time ? (
-                <>
-                  <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
-                    ● Checked in {new Date(att.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  <Button size="md" color="dark" fullWidth loading={checkOut.isPending} disabled={attLoading}
-                    onClick={handleCheckOut}
-                    style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
-                    Check Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
-                    ● Not checked in
-                  </p>
-                  <Button size="md" color="dark" fullWidth loading={checkIn.isPending} disabled={attLoading}
-                    onClick={handleCheckIn}
-                    style={{ background: 'var(--surface-card)', color: 'var(--brand)', fontWeight: 700 }}>
-                    Check In
-                  </Button>
-                </>
-              )}
-            </div>
+        ) : todaySessions.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {todaySessions.map((s) => (
+              <TodaySessionCard
+                key={s.slot_id}
+                session={s}
+                timingSettings={timingSettings}
+                checkInPending={checkIn.isPending && busySlot === s.slot_id}
+                checkOutPending={checkOut.isPending && busySlot === s.slot_id}
+                onCheckIn={handleCheckIn}
+                onCheckOut={handleCheckOut}
+              />
+            ))}
           </div>
         ) : (
           <div className="flex items-center gap-3 bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-3xl)] px-[18px] py-5">
@@ -302,7 +333,7 @@ export default function DashboardPage({ user }) {
       )}
 
       {/* ── 3b. Zero-state guidance ── */}
-      {!todaySlot && slots.length === 0 && !slotsLoading && !slotsError && (
+      {!todaySessions.length && slots.length === 0 && !slotsLoading && !slotsError && (
         <section className="mb-5">
           <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-xl)] px-5 py-6 text-center">
             <p style={{ fontSize: 'var(--text-h2)', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>

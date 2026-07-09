@@ -1,4 +1,7 @@
 const prisma = require('../lib/prisma');
+const { buildWorkbook, sendWorkbook } = require('../lib/excel');
+
+const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
 
 function monthRange(year, month) {
   return {
@@ -122,16 +125,16 @@ async function violationTypeAnalysis(req, res) {
   res.json({ data });
 }
 
-// 4. Repeat Violators — students above the threshold, with their most frequent
-// violation type ("main issue"), sorted by violation count descending.
-async function repeatViolators(req, res) {
-  const where     = analyticsWhere(req.query);
-  const threshold = req.query.threshold ?? 3;
+// Shared computation for the repeat-violators list — used by both the JSON
+// endpoint and the counselling-list Excel export so the two never drift.
+async function computeRepeatViolators(query) {
+  const where     = analyticsWhere(query);
+  const threshold = query.threshold ?? 3;
 
   const grouped = await prisma.violation.groupBy({ by: ['student_id'], where, _count: { id: true } });
   const repeatIds = grouped.filter((g) => g._count.id > threshold).map((g) => g.student_id);
 
-  if (!repeatIds.length) return res.json({ data: [], total: 0, threshold });
+  if (!repeatIds.length) return { data: [], threshold };
 
   const [students, violations] = await Promise.all([
     prisma.student.findMany({
@@ -170,7 +173,113 @@ async function repeatViolators(req, res) {
     })
     .sort((a, b) => b.violation_count - a.violation_count);
 
+  return { data, threshold };
+}
+
+// 4. Repeat Violators — students above the threshold, with their most frequent
+// violation type ("main issue"), sorted by violation count descending.
+async function repeatViolators(req, res) {
+  const { data, threshold } = await computeRepeatViolators(req.query);
   res.json({ data, total: data.length, threshold });
+}
+
+// 6. Course-Wise Violation Analysis — bar chart data. `course` lives on Student,
+// not Violation, so this can't be a Prisma groupBy; aggregated in JS instead
+// (bounded by the same date-range/filter set as every other endpoint here).
+async function courseAnalysis(req, res) {
+  const where = analyticsWhere(req.query);
+  const violations = await prisma.violation.findMany({ where, select: { student: { select: { course: true } } } });
+
+  const counts = new Map();
+  for (const v of violations) {
+    const c = v.student?.course ?? 'Unknown';
+    counts.set(c, (counts.get(c) ?? 0) + 1);
+  }
+
+  const data = Array.from(counts, ([course, count]) => ({ course, count })).sort((a, b) => b.count - a.count);
+  res.json({ data });
+}
+
+// 7. Academic Year-Wise Violation Analysis — same JS-aggregation reasoning as above.
+async function yearAnalysis(req, res) {
+  const where = analyticsWhere(req.query);
+  const violations = await prisma.violation.findMany({ where, select: { student: { select: { year: true } } } });
+
+  const counts = new Map();
+  for (const v of violations) {
+    const y = v.student?.year ?? 0;
+    counts.set(y, (counts.get(y) ?? 0) + 1);
+  }
+
+  const data = Array.from(counts, ([year, count]) => ({ year, count })).sort((a, b) => a.year - b.year);
+  res.json({ data });
+}
+
+// 8. Faculty Recording Analysis — how many violations each faculty recorded.
+// `faculty_id` lives on Violation directly, so a groupBy works here.
+async function facultyAnalysis(req, res) {
+  const where = analyticsWhere(req.query);
+  const grouped = await prisma.violation.groupBy({ by: ['faculty_id'], where, _count: { id: true } });
+
+  const faculty = await prisma.user.findMany({
+    where: { id: { in: grouped.map((g) => g.faculty_id) } },
+    select: { id: true, name: true, department: true },
+  });
+  const fMap = new Map(faculty.map((f) => [f.id, f]));
+
+  const data = grouped
+    .map((g) => ({
+      faculty_id: g.faculty_id,
+      name:       fMap.get(g.faculty_id)?.name ?? 'Unknown',
+      department: fMap.get(g.faculty_id)?.department ?? null,
+      count:      g._count.id,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  res.json({ data });
+}
+
+// 9. Calendar Heatmap — violation counts per calendar day across the selected
+// range. Prisma can't group by a date-truncated timestamp portably, so the
+// created_at values are fetched and bucketed per IST day in JS.
+async function heatmap(req, res) {
+  const where = analyticsWhere(req.query);
+  const violations = await prisma.violation.findMany({ where, select: { created_at: true } });
+
+  const counts = new Map();
+  for (const v of violations) {
+    // Bucket by IST calendar day (UTC + 5:30).
+    const ist = new Date(v.created_at.getTime() + 5.5 * 3600000);
+    const key = ist.toISOString().slice(0, 10);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  const data = Array.from(counts, ([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
+  res.json({ data, max: data.reduce((m, d) => Math.max(m, d.count), 0) });
+}
+
+// 11. Export — Counselling list (repeat violators) as .xlsx. Deliberately omits
+// fine amounts, matching the student-violation export in reports.controller.js.
+async function exportCounselling(req, res) {
+  const { data, threshold } = await computeRepeatViolators(req.query);
+
+  const buffer = await buildWorkbook('Counselling List', [
+    { header: 'Registration Number', key: 'reg_no',      width: 22 },
+    { header: 'Student Name',         key: 'name',        width: 24 },
+    { header: 'Course',               key: 'course',      width: 12 },
+    { header: 'Year',                 key: 'year',        width: 8 },
+    { header: 'Violation Count',      key: 'count',       width: 16 },
+    { header: 'Main Issue',           key: 'main_issue',  width: 22 },
+  ], data.map((s) => ({
+    reg_no:     s.registration_number,
+    name:       s.student_name,
+    course:     COURSE_LABELS[s.course] ?? s.course,
+    year:       s.year,
+    count:      s.violation_count,
+    main_issue: s.main_issue ?? '—',
+  })));
+
+  sendWorkbook(res, buffer, `counselling-list-threshold-${threshold}.xlsx`);
 }
 
 // 5. Filter Options — dynamic dropdown sources (never hardcoded per the P24 spec).
@@ -190,4 +299,7 @@ async function filterOptions(req, res) {
   });
 }
 
-module.exports = { summary, trend, violationTypeAnalysis, repeatViolators, filterOptions };
+module.exports = {
+  summary, trend, violationTypeAnalysis, repeatViolators, filterOptions,
+  courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounselling,
+};
