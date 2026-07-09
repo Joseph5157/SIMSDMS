@@ -11,8 +11,6 @@ const FIELDS = [
   'session_start_afternoon_hour', 'session_start_afternoon_min',
   'late_threshold_morning_hour', 'late_threshold_morning_min',
   'late_threshold_afternoon_hour', 'late_threshold_afternoon_min',
-  'not_checked_in_morning_hour', 'not_checked_in_morning_min',
-  'not_checked_in_afternoon_hour', 'not_checked_in_afternoon_min',
   'auto_checkout_morning_hour', 'auto_checkout_morning_min',
   'auto_checkout_afternoon_hour', 'auto_checkout_afternoon_min',
 ];
@@ -20,7 +18,6 @@ const FIELDS = [
 const ROWS = [
   { key: 'session_start', label: 'Session start', description: 'When this session begins' },
   { key: 'late_threshold', label: 'Late-arrival cutoff', description: 'Check-in after this time is flagged late' },
-  { key: 'not_checked_in', label: 'Not-checked-in cutoff', description: 'Flagged on the live dashboard after this time' },
   { key: 'auto_checkout', label: 'Auto clock-out', description: 'Unchecked-out faculty are clocked out at this time' },
 ];
 
@@ -103,7 +100,7 @@ export default function DutyTimingSettingsPage({ user }) {
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Duty Timing Settings' }]} />
-      <PageHeader title="Duty Timing Settings" subtitle="Session start times, late cutoffs, not-checked-in cutoffs, and auto clock-out — per session" />
+      <PageHeader title="Duty Timing Settings" subtitle="Session start times, late cutoffs, and auto clock-out — per session" />
 
       {isLoading || !form ? (
         <p className="text-[var(--text-muted)] text-[length:13px]">Loading…</p>

@@ -15,7 +15,6 @@ const COLUMN_MAP = {
   'course':              'course',
   'year':                'year',
   'semester':            'semester',
-  'section':             'section',
   'batch year':          'batch_year',
   'batch_year':          'batch_year',
   'gender':              'gender',
@@ -61,7 +60,6 @@ function parseWorkbook(workbook) {
     const semesterRaw  = get('semester');
     const acYear       = get('academic_year');
     const batchYearRaw = get('batch_year');
-    const section      = get('section') || null;
     const gender       = get('gender')  || null;
     const phone        = get('phone')   || null;
 
@@ -93,7 +91,6 @@ function parseWorkbook(workbook) {
       year,
       semester,
       semester_or_year:    `Year ${year} Sem ${semester}`,
-      section,
       batch_year,
       gender,
       phone,
@@ -282,14 +279,13 @@ async function getUploadLogs(req, res) {
 // ─── GET /students ─────────────────────────────────────────────────────────────
 
 async function listStudents(req, res) {
-  const { course, year, section, status, search, page = '1', limit = '20' } = req.query;
+  const { course, year, status, search, page = '1', limit = '20' } = req.query;
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
 
   const where = { deleted_at: null };
   if (course)  where.course  = course;
   if (year)    where.year    = parseInt(year, 10);
-  if (section) where.section = section;
   if (status)  where.status  = status;
   if (search) {
     where.OR = [
@@ -339,7 +335,7 @@ async function searchStudents(req, res) {
     },
     select: {
       id: true, registration_number: true, student_name: true,
-      course: true, year: true, semester: true, section: true,
+      course: true, year: true, semester: true,
       batch_year: true, academic_year: true, gender: true,
     },
     orderBy: { student_name: 'asc' },

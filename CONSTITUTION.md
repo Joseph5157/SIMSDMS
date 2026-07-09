@@ -85,7 +85,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Views all violations, can hide records
 - Manages violation types
 - Reassigns a faculty member's duty slot to another faculty member from the Duty Slots section when the original faculty cannot attend (Admin Duty Reassignment)
-- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, not-checked-in cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings remain Super-Admin-only via `/admin/settings`)
+- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings remain Super-Admin-only via `/admin/settings`)
 - Access to all 16 reports
 
 ### Faculty
@@ -144,9 +144,9 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 
 ### Duty Attendance
 - Faculty can only check IN during their assigned duty session window.
-- Late IN is flagged automatically based on the Admin-configured, per-session late-arrival cutoff (`system_config` — see Duty Timing Settings, §3 Admin permissions). There is no hardcoded time; session start, late cutoff, not-checked-in cutoff, and auto clock-out are each independently configurable for Morning and Afternoon.
+- Late IN is flagged automatically based on the Admin-configured, per-session late-arrival cutoff (`system_config` — see Duty Timing Settings, §3 Admin permissions). There is no hardcoded time; session start, late cutoff, and auto clock-out are each independently configurable for Morning and Afternoon.
 - If faculty do not check OUT, the system auto-clocks them out at the configured per-session auto clock-out time via cron job — Morning and Afternoon may have different times (e.g. 12:00 PM vs 5:00 PM), evaluated independently.
-- A faculty member who has not checked in by the configured not-checked-in cutoff for their session is flagged as such on the live attendance dashboard.
+- A faculty member who has not checked in is shown as "Not checked in" on the live attendance dashboard from that session's configured start time until its auto clock-out — a stageless rule with no separate not-checked-in cutoff (removed 2026-07, see version history).
 - Changing a Duty Timing Setting takes effect immediately for future check-ins/clock-outs only — existing `duty_attendance` records are never retroactively recalculated.
 - Admin can override any attendance record but must provide a reason.
 - Auto-out records are flagged (`auto_out = true`) and visible in reports.
@@ -251,7 +251,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `duty_reassignment_requests` | Faculty-Requested Reassignment (Method 2, §4) — pending/approved/declined requests between faculty; ephemeral workflow state, not history (history lives in `duty_reassignments` once approved) |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
-| `system_config` | Single-row system-wide timing thresholds — session start, late detection, not-checked-in cutoff, and auto clock-out (each per Morning/Afternoon session) |
+| `system_config` | Single-row system-wide timing thresholds — session start, late detection, and auto clock-out (each per Morning/Afternoon session) |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 | `pending_invites` | Temporary invite tokens for new account activation via Telegram |
@@ -268,7 +268,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 - `violation_types.is_system` — prevents deletion of built-in types
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
-- `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ not_checked_in ≤ auto_checkout`, per session) is enforced at the application layer (`duty-timing-settings.controller.js`), not as a DB constraint — any new code path that writes to `system_config` timing fields directly (bypassing `settingsService`) would skip this check
+- `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ auto_checkout`, per session) is enforced at the application layer (`duty-timing-settings.controller.js`), not as a DB constraint — any new code path that writes to `system_config` timing fields directly (bypassing `settingsService`) would skip this check
 
 ---
 
@@ -403,6 +403,7 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.7 — Updated: July 2026 (dropped the unused `Student.section` column entirely — Year/Semester were already independent fields everywhere in the UI; removed the not-checked-in cutoff concept from Duty Timing Settings — §3, §4, §5 — a not-yet-checked-in faculty member now always shows "Not checked in" from session start to auto clock-out, no separate time-gated stage)*
 *Constitution version: 3.6 — Updated: July 2026 (§6 Analytics module grew 5→10 endpoints as P24 Phases 2–3 were built — trend/course/year charts, faculty analysis, calendar heatmap, counselling-list Excel export; total 100→105)*
 *Constitution version: 3.5 — Updated: July 2026 (added Faculty-Requested Reassignment as Method 2 alongside Admin Duty Reassignment — §3, §4, §5, §6; added `duty_reassignment_requests` table; added the Analytics module to §6, previously undocumented)*
 *All decisions in this file were confirmed by the project owner across planning sessions.*

@@ -186,16 +186,17 @@ async function getLive(req, res) {
     orderBy: [{ session_type: 'asc' }, { faculty: { name: 'asc' } }],
   });
 
-  // Not-checked-in cutoff is time-gated: before the configured cutoff a
-  // no-show-yet slot is just "upcoming", not an alert-worthy no-show.
+  // A no-show-yet slot is "upcoming" until its session actually starts, then
+  // "not_checked_in" for the rest of the session — no separate time-gated
+  // cutoff stage (P26: not-checked-in cutoff removed).
   function resolveNoAttendanceStatus(sessionType) {
-    const cutoffHour = sessionType === 'morning'
-      ? cfg.not_checked_in_morning_hour
-      : cfg.not_checked_in_afternoon_hour;
-    const cutoffMin  = sessionType === 'morning'
-      ? cfg.not_checked_in_morning_min
-      : cfg.not_checked_in_afternoon_min;
-    return nowMins < cutoffHour * 60 + cutoffMin ? 'upcoming' : 'not_checked_in';
+    const startHour = sessionType === 'morning'
+      ? cfg.session_start_morning_hour
+      : cfg.session_start_afternoon_hour;
+    const startMin  = sessionType === 'morning'
+      ? cfg.session_start_morning_min
+      : cfg.session_start_afternoon_min;
+    return nowMins < startHour * 60 + startMin ? 'upcoming' : 'not_checked_in';
   }
 
   const result = slots.map((s) => ({
@@ -259,8 +260,8 @@ async function getMySummary(req, res) {
   });
 
   // Mirrors getLive's resolveNoAttendanceStatus, extended across past/future
-  // dates: a past slot's cutoff has necessarily already passed (not_checked_in),
-  // a future slot hasn't started yet (upcoming), only "today" needs the cutoff check.
+  // dates: a past slot's session has necessarily already started (not_checked_in),
+  // a future slot hasn't started yet (upcoming), only "today" needs the session-start check.
   function resolveAttendanceStatus(slot) {
     if (slot.attendance?.out_time) return 'checked_out';
     if (slot.attendance?.in_time)  return 'checked_in';
@@ -269,13 +270,13 @@ async function getMySummary(req, res) {
     if (slotDateStr > todayStr) return 'upcoming';
     if (slotDateStr < todayStr) return 'not_checked_in';
 
-    const cutoffHour = slot.session_type === 'morning'
-      ? cfg.not_checked_in_morning_hour
-      : cfg.not_checked_in_afternoon_hour;
-    const cutoffMin  = slot.session_type === 'morning'
-      ? cfg.not_checked_in_morning_min
-      : cfg.not_checked_in_afternoon_min;
-    return nowMins < cutoffHour * 60 + cutoffMin ? 'upcoming' : 'not_checked_in';
+    const startHour = slot.session_type === 'morning'
+      ? cfg.session_start_morning_hour
+      : cfg.session_start_afternoon_hour;
+    const startMin  = slot.session_type === 'morning'
+      ? cfg.session_start_morning_min
+      : cfg.session_start_afternoon_min;
+    return nowMins < startHour * 60 + startMin ? 'upcoming' : 'not_checked_in';
   }
 
   const history = slots.map((s) => ({
