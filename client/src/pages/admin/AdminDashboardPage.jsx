@@ -7,6 +7,7 @@ import { Modal } from '@mantine/core';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useFlaggedViolations, useDutyReassignmentReport } from '../../hooks/useReports';
+import { ResolveFlagModal } from './ViolationsPage';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
@@ -24,6 +25,7 @@ export default function AdminDashboardPage({ user }) {
   const navigate = useNavigate();
   // Which summary-card detail modal is open: 'faculty' | 'reassignments' | 'flagged' | null
   const [activeModal, setActiveModal] = useState(null);
+  const [resolvingViolation, setResolvingViolation] = useState(null);
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -394,6 +396,14 @@ export default function AdminDashboardPage({ user }) {
                 {v.flag_note && (
                   <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-secondary)', marginTop: 3 }}>Note: {v.flag_note}</p>
                 )}
+                <div className="pt-2 mt-2 border-t border-[var(--divider)] text-right">
+                  <button
+                    onClick={() => setResolvingViolation(v)}
+                    style={{ fontSize: 'var(--text-micro)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
+                  >
+                    Review →
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -409,6 +419,8 @@ export default function AdminDashboardPage({ user }) {
           </div>
         )}
       </Modal>
+
+      <ResolveFlagModal violation={resolvingViolation} onClose={() => setResolvingViolation(null)} />
     </Layout>
   );
 }

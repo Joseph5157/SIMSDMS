@@ -27,9 +27,6 @@ router.get('/reassigned-away/:year/:month', authorize('faculty'), asyncHandler(c
 // GET /duty-slots/:year/:month — All Auth
 router.get('/:year/:month', asyncHandler(ctrl.getMonthSlots));
 
-// DELETE /duty-slots/:id/unpick — Faculty
-router.delete('/:id/unpick', authorize('faculty'), asyncHandler(ctrl.unpickSlot));
-
 // POST /duty-slots/:id/reassign — Admin
 router.post('/:id/reassign', authorize('admin', 'super_admin'), validate(reassignSlotSchema), asyncHandler(ctrl.reassignSlot));
 

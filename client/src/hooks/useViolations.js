@@ -53,7 +53,10 @@ export function useResolveFlag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason }) => api.patch(`/violations/${id}/resolve-flag`, { reason }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['violations'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['violations'] });
+      qc.invalidateQueries({ queryKey: ['report', 'flagged-violations'] });
+    },
   });
 }
 

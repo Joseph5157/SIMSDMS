@@ -274,7 +274,6 @@ export default function CalendarPage({ user }) {
               </div>
             </div>
 
-            <p className="text-xs text-[var(--text-muted)] mt-2">Red = blocked (holiday). Working days: all non-blocked dates.</p>
           </div>
 
           {/* Calendar legend */}
@@ -283,31 +282,12 @@ export default function CalendarPage({ user }) {
             backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border)',
           }}>
-            <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', marginBottom: 10 }}>
-              Calendar legend
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--color-red-bg)', border: '1px solid var(--color-red-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'var(--text-small)', color: 'var(--color-red-600)', fontWeight: 'var(--weight-bold)' }}>1</div>
-                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Red — blocked holiday date</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'var(--text-small)', color: 'var(--color-emerald-text)', fontWeight: 'var(--weight-bold)' }}>2</div>
-                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Green — working day</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                  backgroundColor: 'var(--surface-card)', border: '1px solid var(--border-strong)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'var(--text-small)', color: 'var(--text-secondary)', fontWeight: 'var(--weight-bold)' }}>3</div>
-                <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Default — normal working day</span>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--color-red-bg)', border: '1px solid var(--color-red-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 'var(--text-small)', color: 'var(--color-red-600)', fontWeight: 'var(--weight-bold)' }}>1</div>
+              <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Red — Blocked Date</span>
             </div>
           </div>
 

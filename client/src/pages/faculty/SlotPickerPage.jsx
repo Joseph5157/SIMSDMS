@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import Skeleton from '../../components/ui/Skeleton';
-import { Button, Modal, Text, Group } from '@mantine/core';
+import { Button } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
-import { useAvailableSlots, useMonthSlots, usePickSlot, useUnpickSlot } from '../../hooks/useDutySlots';
+import { useAvailableSlots, useMonthSlots, usePickSlot } from '../../hooks/useDutySlots';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { formatHourMin } from '../../utils/time';
 
@@ -28,8 +28,6 @@ export default function SlotPickerPage({ user }) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selected, setSelected] = useState(null); // dateStr of tapped cell
   const [pickingId, setPickingId] = useState(null);
-  const [unpickTarget, setUnpickTarget] = useState(null); // slot to confirm unpick
-  const [unpicking, setUnpicking] = useState(false);
   const panelRef = useRef(null);
 
   // When a date is selected, scroll its session panel into view so the
@@ -51,8 +49,7 @@ export default function SlotPickerPage({ user }) {
     ? formatHourMin(timingSettings.session_start_afternoon_hour, timingSettings.session_start_afternoon_min)
     : '1:00 PM';
 
-  const pick   = usePickSlot();
-  const unpick = useUnpickSlot();
+  const pick = usePickSlot();
 
   async function handlePick(dateStr, session) {
     const key = `${dateStr}|${session}`;
@@ -65,20 +62,6 @@ export default function SlotPickerPage({ user }) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     } finally {
       setPickingId(null);
-    }
-  }
-
-  async function confirmUnpick() {
-    if (!unpickTarget) return;
-    setUnpicking(true);
-    try {
-      await unpick.mutateAsync(unpickTarget.id);
-      toast({ message: 'Slot unpicked.' });
-      setUnpickTarget(null);
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    } finally {
-      setUnpicking(false);
     }
   }
 
@@ -325,9 +308,6 @@ export default function SlotPickerPage({ user }) {
                 {pickedMorn ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Morning picked</span>
-                    {picked.morning?.status === 'scheduled' && (
-                      <button onClick={() => setUnpickTarget(picked.morning)} style={{ fontSize: 12, color: 'var(--color-red-solid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
-                    )}
                   </div>
                 ) : hasMorn ? (
                   <Button
@@ -345,9 +325,6 @@ export default function SlotPickerPage({ user }) {
                 {pickedAftern ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
                     <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Afternoon picked</span>
-                    {picked.afternoon?.status === 'scheduled' && (
-                      <button onClick={() => setUnpickTarget(picked.afternoon)} style={{ fontSize: 12, color: 'var(--color-red-solid)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Unpick</button>
-                    )}
                   </div>
                 ) : hasAftern ? (
                   <Button
@@ -364,7 +341,7 @@ export default function SlotPickerPage({ user }) {
 
                 {remainingSlots <= 0 && !pickedMorn && !pickedAftern && (
                   <p style={{ fontSize: 12, color: 'var(--color-amber-text)', margin: 0, textAlign: 'center' }}>
-                    You've reached your {requiredSlots}-slot limit. Unpick a slot to choose a different one.
+                    You've reached your {requiredSlots}-slot limit. To change a picked slot, ask your Admin to reassign it, or request a reassignment from a colleague.
                   </p>
                 )}
               </div>
@@ -421,40 +398,6 @@ export default function SlotPickerPage({ user }) {
           </div>
         )}
       </div>
-      {/* ── Unpick confirmation modal ── */}
-      <Modal
-        opened={!!unpickTarget}
-        onClose={() => !unpicking && setUnpickTarget(null)}
-        title="Unpick this slot?"
-        centered
-        size="sm"
-        withCloseButton={!unpicking}
-      >
-        {unpickTarget && (
-          <>
-            <Text size="sm" c="dimmed" mb="lg">
-              You are about to remove your{' '}
-              <strong style={{ textTransform: 'capitalize' }}>{unpickTarget.session_type}</strong>{' '}
-              slot on{' '}
-              <strong>
-                {(() => {
-                  const d = new Date(String(unpickTarget.duty_date).slice(0, 10));
-                  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
-                })()}
-              </strong>
-              . This slot will be released and available for others to pick.
-            </Text>
-            <Group justify="flex-end" gap="sm">
-              <Button variant="default" onClick={() => setUnpickTarget(null)} disabled={unpicking}>
-                Cancel
-              </Button>
-              <Button color="red" onClick={confirmUnpick} loading={unpicking}>
-                Unpick
-              </Button>
-            </Group>
-          </>
-        )}
-      </Modal>
     </Layout>
   );
 }

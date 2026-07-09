@@ -8,7 +8,8 @@ export function useMonthSlots(year, month) {
       const res = await api.get(`/duty-slots/${year}/${month}`);
       return res.data;
     },
-    staleTime: 0, // picks must reflect immediately after pick/unpick
+    staleTime: 0,          // picks must reflect immediately after picking
+    refetchInterval: 30_000, // P26: other faculty's picks show up without a manual refresh
     enabled: !!year && !!month,
   });
 }
@@ -21,6 +22,7 @@ export function useAvailableSlots(year, month) {
       return res.data;
     },
     staleTime: 0,          // always re-fetch — slot availability changes as others pick
+    refetchInterval: 30_000, // P26: other faculty's picks show up without a manual refresh
     retry: false,          // 409 WINDOW_CLOSED is not a network error, don't retry
     enabled: !!year && !!month,
   });
@@ -30,17 +32,6 @@ export function usePickSlot() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => api.post('/duty-slots/pick', data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['availableSlots'] });
-      qc.invalidateQueries({ queryKey: ['dutySlots'] });
-    },
-  });
-}
-
-export function useUnpickSlot() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id) => api.delete(`/duty-slots/${id}/unpick`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['availableSlots'] });
       qc.invalidateQueries({ queryKey: ['dutySlots'] });

@@ -89,7 +89,7 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Access to all 16 reports
 
 ### Faculty
-- Picks their own duty slots during the open window
+- Picks their own duty slots during the open window — the pick is final; a faculty member cannot unpick a slot themselves. Changing a picked slot's owner is only possible via Admin Duty Reassignment or Faculty-Requested Reassignment (§4)
 - Checks IN and OUT for their own duty sessions
 - Records student violations during their duty
 - Requests a duty reassignment directly from a colleague when unable to attend a duty slot — selects an eligible faculty member, who must accept before the duty transfers (Faculty-Requested Reassignment, §4). This is a dedicated request/accept workflow, not the messaging system. Admin can still reassign any duty directly and unilaterally at any time (Admin Duty Reassignment, §4) — the two methods are independent.
@@ -272,9 +272,9 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 105 Endpoints Across 14 Modules
+## 6. API — 104 Endpoints Across 14 Modules
 
-Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2).
+Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2).
 
 | Module | Count | Base Path |
 |---|---|---|
@@ -282,7 +282,7 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 | Users & Accounts | 12 | `/users`, `/admin` |
 | Students | 10 | `/students` |
 | Duty Calendar | 8 | `/calendar` |
-| Duty Slots | 8 | `/duty-slots` |
+| Duty Slots | 7 | `/duty-slots` |
 | Duty Attendance | 5 | `/attendance` |
 | Duty Timing Settings | 2 | `/duty-timing-settings` |
 | Violations | 10 | `/violations` |
@@ -403,6 +403,7 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.8 — Updated: July 2026 (removed faculty slot-unpick entirely — `DELETE /duty-slots/:id/unpick` and its UI dropped; a picked slot is now final and can only change owner via Admin Duty Reassignment or Faculty-Requested Reassignment, §3, §4, §6; Duty Slots module 8→7 endpoints, total 105→104)*
 *Constitution version: 3.7 — Updated: July 2026 (dropped the unused `Student.section` column entirely — Year/Semester were already independent fields everywhere in the UI; removed the not-checked-in cutoff concept from Duty Timing Settings — §3, §4, §5 — a not-yet-checked-in faculty member now always shows "Not checked in" from session start to auto clock-out, no separate time-gated stage)*
 *Constitution version: 3.6 — Updated: July 2026 (§6 Analytics module grew 5→10 endpoints as P24 Phases 2–3 were built — trend/course/year charts, faculty analysis, calendar heatmap, counselling-list Excel export; total 100→105)*
 *Constitution version: 3.5 — Updated: July 2026 (added Faculty-Requested Reassignment as Method 2 alongside Admin Duty Reassignment — §3, §4, §5, §6; added `duty_reassignment_requests` table; added the Analytics module to §6, previously undocumented)*

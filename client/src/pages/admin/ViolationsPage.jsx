@@ -361,7 +361,7 @@ function DisciplineAnalytics() {
   );
 }
 
-function ResolveFlagModal({ violation, onClose }) {
+export function ResolveFlagModal({ violation, onClose }) {
   const toast = useToast();
   const resolve = useResolveFlag();
   const [reason, setReason] = useState('');

@@ -14,6 +14,7 @@ import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
+import MyViolationsSummary from '../../components/faculty/MyViolationsSummary';
 import RequestReassignmentModal from '../../components/faculty/RequestReassignmentModal';
 import PendingReassignmentRequests from '../../components/faculty/PendingReassignmentRequests';
 import { ROUTES } from '../../utils/constants';
@@ -475,6 +476,11 @@ export default function DashboardPage({ user }) {
           </div>
         </div>
       )}
+
+      {/* ── 5c. My violations — personalized summary + history (P25) ── */}
+      <div className="mb-5">
+        <MyViolationsSummary />
+      </div>
 
       {/* ── 6. Recent activity — unified feed (violations logged, messages, duty reassignments) ── */}
       <div>

@@ -226,67 +226,6 @@ async function pickSlot(req, res) {
   }
 }
 
-// ─── DELETE /duty-slots/:id/unpick ────────────────────────────────────────────
-
-async function unpickSlot(req, res) {
-  const slot = await prisma.dutySlot.findUnique({ where: { id: req.params.id } });
-
-  if (!slot) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
-  }
-
-  if (slot.faculty_id !== req.user.id) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only unpick your own slots.' });
-  }
-
-  const year = slot.duty_date.getFullYear();
-  const month = slot.duty_date.getMonth() + 1;
-
-  const config = await prisma.calendarConfig.findUnique({
-    where: { config_month_config_year: { config_month: month, config_year: year } },
-  });
-
-  if (!config || !config.is_window_open) {
-    return res.status(409).json({
-      error: true,
-      code: 'WINDOW_CLOSED',
-      message: 'The scheduling window is closed. You can no longer unpick this slot.',
-    });
-  }
-
-  // Only scheduled slots can be unpicked — completed/absent indicate activity
-  // that prevents removal.
-  if (slot.status !== 'scheduled') {
-    return res.status(409).json({
-      error: true,
-      code: 'SLOT_NOT_UNPICKABLE',
-      message: `This slot cannot be unpicked because its status is '${slot.status}'.`,
-    });
-  }
-
-  const attendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
-  if (attendance) {
-    return res.status(409).json({
-      error: true,
-      code: 'ATTENDANCE_EXISTS',
-      message: 'Attendance has already been recorded for this slot.',
-    });
-  }
-
-  const violationCount = await prisma.violation.count({ where: { duty_slot_id: slot.id } });
-  if (violationCount > 0) {
-    return res.status(409).json({
-      error: true,
-      code: 'VIOLATIONS_EXIST',
-      message: 'Student violations have been recorded for this slot and it cannot be removed.',
-    });
-  }
-
-  await prisma.dutySlot.delete({ where: { id: slot.id } });
-
-  res.json({ message: 'Slot unpicked successfully.' });
-}
-
 // ─── POST /duty-slots/admin-assign ───────────────────────────────────────────
 // Uses the DB unique constraint on (duty_date, session_type) as the definitive
 // guard and wraps the existence check + insert in a transaction.
@@ -516,7 +455,6 @@ module.exports = {
   getMonthSlots,
   getAvailableSlots,
   pickSlot,
-  unpickSlot,
   adminAssign,
   getSlot,
   reassignSlot,
