@@ -10,6 +10,8 @@ import {
   useFlaggedViolations, useDutyCoverage, useUnassignedFacultyReport, useDutyReassignmentReport,
   useCompletionRate, useUploadHistory, useActiveStudents, useDailyViolationReport, useWeeklyViolationReport,
 } from '../../hooks/useReports';
+import { useAnalyticsFilterOptions } from '../../hooks/useAnalytics';
+import { useUsers } from '../../hooks/useUsers';
 import { useToast } from '../../components/ui/Toast';
 import api from '../../utils/api';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -339,15 +341,14 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
     case 'student-violations': return (
       <Table>
-        <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Fine</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
+        <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={6} />}
+          {!data.data?.length && <EmptyRow cols={5} />}
           {data.data?.map((v) => (
             <tr key={v.id}>
               <Td className="font-medium">{v.student?.student_name}</Td>
               <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
               <Td>{v.violationType?.name}</Td>
-              <Td>{v.is_warning_only ? 'Warning' : `₹${v.fine_amount}`}</Td>
               <Td>{v.faculty?.name}</Td>
               <Td className="text-[length:12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
             </tr>
@@ -374,26 +375,45 @@ function StudentViolationReportCard() {
   const [weeklyToDate, setWeeklyToDate] = useState(now.toISOString().split('T')[0]);
   const [downloading, setDownloading] = useState(false);
 
-  const params = mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {};
+  // ── Filters (Course / Academic Year / Violation Type / Faculty) ──────────
+  const { data: filterOptions } = useAnalyticsFilterOptions();
+  const { data: facultyData }   = useUsers({ role: 'faculty', status: 'active' });
+  const [course, setCourse]                 = useState('');
+  const [studentYear, setStudentYear]       = useState('');
+  const [violationTypeId, setViolationTypeId] = useState('');
+  const [facultyId, setFacultyId]           = useState('');
+
+  const filterParams = {
+    ...(course && { course }),
+    ...(studentYear && { student_year: studentYear }),
+    ...(violationTypeId && { violation_type_id: violationTypeId }),
+    ...(facultyId && { faculty_id: facultyId }),
+  };
+
+  const params = { ...(mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {}), ...filterParams };
   const { data, isLoading, isError, refetch } = useStudentViolations(params);
-  const { data: dailyData, isLoading: dailyLoading } = useDailyViolationReport(mode === 'daily' ? dailyDate : null);
-  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyViolationReport(mode === 'weekly' ? weeklyFromDate : null, mode === 'weekly' ? weeklyToDate : null);
+  const { data: dailyData, isLoading: dailyLoading } = useDailyViolationReport(mode === 'daily' ? dailyDate : null, filterParams);
+  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyViolationReport(mode === 'weekly' ? weeklyFromDate : null, mode === 'weekly' ? weeklyToDate : null, filterParams);
 
   async function handleDownload(format = 'xlsx') {
     setDownloading(true);
     try {
-      let endpoint = '/reports/student-violations/export';
-      let downloadParams = params;
+      const variant = format === 'pdf' ? 'pdf' : 'export';
+      let endpoint;
+      let downloadParams;
       let filename = '';
 
       if (mode === 'daily') {
-        endpoint = `/reports/student-violations/daily/${dailyDate}`;
-        filename = `student-violations-${dailyDate}`;
+        endpoint = `/reports/student-violations/daily/${dailyDate}/${variant}`;
+        downloadParams = filterParams;
+        filename = `student-violations-daily-${dailyDate}`;
       } else if (mode === 'weekly') {
-        endpoint = '/reports/student-violations/weekly';
-        downloadParams = { from_date: weeklyFromDate, to_date: weeklyToDate };
-        filename = `student-violations-${weeklyFromDate}-to-${weeklyToDate}`;
+        endpoint = `/reports/student-violations/weekly/${variant}`;
+        downloadParams = { from_date: weeklyFromDate, to_date: weeklyToDate, ...filterParams };
+        filename = `student-violations-weekly-${weeklyFromDate}-to-${weeklyToDate}`;
       } else {
+        endpoint = `/reports/student-violations/${variant}`;
+        downloadParams = params;
         const suffix = mode === 'monthly' ? `${year}-${String(month).padStart(2, '0')}` : mode === 'yearly' ? String(year) : 'all-time';
         filename = `student-violations-${suffix}`;
       }
@@ -428,6 +448,14 @@ function StudentViolationReportCard() {
             className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
           >
             {downloading ? 'Preparing…' : '⬇ Excel'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDownload('pdf')}
+            disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
+            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {downloading ? 'Preparing…' : '⬇ PDF'}
           </button>
         </div>
       </div>
@@ -496,6 +524,26 @@ function StudentViolationReportCard() {
           )}
         </div>
       )}
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-5 flex-wrap">
+        <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+          <option value="">All Courses</option>
+          {(filterOptions?.courses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={studentYear} onChange={(e) => setStudentYear(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+          <option value="">All Years</option>
+          {(filterOptions?.years ?? []).map((y) => <option key={y} value={y}>Year {y}</option>)}
+        </select>
+        <select value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+          <option value="">All Violation Types</option>
+          {(filterOptions?.violation_types ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+          <option value="">All Faculty</option>
+          {(facultyData?.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </div>
 
       {!isLoading && data && mode !== 'daily' && mode !== 'weekly' && (
         <p className="text-[length:12px] text-[var(--text-muted)] mb-3">

@@ -1,5 +1,8 @@
 const prisma = require('../lib/prisma');
 const { buildWorkbook, sendWorkbook } = require('../lib/excel');
+const { buildReportPdf, sendPdf } = require('../lib/pdf');
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function monthRange(year, month) {
   return {
@@ -15,11 +18,22 @@ function yearRange(year) {
   };
 }
 
-// Shared filter builder for the student violation report + its export —
-// year+month = one month, year alone = whole year, neither = all-time.
-function studentViolationWhere({ student_id, year, month }) {
+// Shared filter builder for the student violation report + its export (and,
+// since P28, the daily/weekly variants too) — year+month = one month, year
+// alone = whole year, neither = all-time. `course`/`student_year` filter on
+// the related Student; `violation_type_id`/`faculty_id` filter on the
+// violation row directly.
+function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id }) {
   const where = { record_status: 'active' };
-  if (student_id) where.student_id = student_id;
+  if (student_id)        where.student_id = student_id;
+  if (violation_type_id) where.violation_type_id = violation_type_id;
+  if (faculty_id)         where.faculty_id = faculty_id;
+  if (course || student_year) {
+    where.student = {
+      ...(course && { course }),
+      ...(student_year && { year: student_year }),
+    };
+  }
   if (year && month) where.dutySlot = { duty_date: monthRange(parseInt(year, 10), parseInt(month, 10)) };
   else if (year)     where.dutySlot = { duty_date: yearRange(parseInt(year, 10)) };
   return where;
@@ -154,21 +168,22 @@ async function studentViolationHistory(req, res) {
   res.json({ data: violations, total, shown: violations.length });
 }
 
-// 6b. Student Violation History — Export (.xlsx, all matching rows, no cap, NO fine amounts)
-async function studentViolationHistoryExport(req, res) {
-  const where = studentViolationWhere(req.query);
-  const violations = await _getStudentViolations(where);
+// Shared export shape for the student violation report + its daily/weekly/PDF
+// variants — deliberately excludes fine_amount (P28: violation reports focus
+// on discipline tracking, not financial reporting).
+const STUDENT_VIOLATION_EXPORT_COLUMNS = [
+  { header: 'Registration Number',    key: 'reg_no',      width: 22 },
+  { header: 'Student Name',           key: 'name',        width: 24 },
+  { header: 'Course',                 key: 'course',      width: 12 },
+  { header: 'Student Violation Type', key: 'type',        width: 22 },
+  { header: 'Status',                 key: 'status',      width: 14 },
+  { header: 'Faculty',                key: 'faculty',     width: 22 },
+  { header: 'Duty Date',              key: 'duty_date',   width: 14 },
+  { header: 'Recorded At',            key: 'created_at',  width: 18 },
+];
 
-  const buffer = await buildWorkbook('Student Violations', [
-    { header: 'Registration Number',    key: 'reg_no',      width: 22 },
-    { header: 'Student Name',           key: 'name',        width: 24 },
-    { header: 'Course',                 key: 'course',      width: 12 },
-    { header: 'Student Violation Type', key: 'type',        width: 22 },
-    { header: 'Status',                 key: 'status',      width: 14 },
-    { header: 'Faculty',                key: 'faculty',     width: 22 },
-    { header: 'Duty Date',              key: 'duty_date',   width: 14 },
-    { header: 'Recorded At',            key: 'created_at',  width: 18 },
-  ], violations.map((v) => ({
+function mapViolationExportRow(v) {
+  return {
     reg_no:     v.student?.registration_number,
     name:       v.student?.student_name,
     course:     v.student?.course,
@@ -177,42 +192,180 @@ async function studentViolationHistoryExport(req, res) {
     faculty:    v.faculty?.name,
     duty_date:  v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
     created_at: new Date(v.created_at).toLocaleString('en-IN'),
-  })));
+  };
+}
+
+// 6b. Student Violation History — Export (.xlsx, all matching rows, no cap, NO fine amounts)
+async function studentViolationHistoryExport(req, res) {
+  const where = studentViolationWhere(req.query);
+  const violations = await _getStudentViolations(where);
+
+  const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
 
   sendWorkbook(res, buffer, `student-violations-${dateSuffix(req.query)}.xlsx`);
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 // 6c. Daily Violation Report
 async function dailyViolationReport(req, res) {
   const { date } = req.params; // YYYY-MM-DD format
+  if (!DATE_RE.test(date)) {
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
+  }
   const d = new Date(`${date}T00:00:00Z`);
   const range = {
     gte: d,
     lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
   };
 
-  const violations = await _getStudentViolations({
-    ...studentViolationWhere({}),
-    dutySlot: { duty_date: range },
-  });
+  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+  const violations = await _getStudentViolations(where);
 
   res.json({ date, data: violations, total: violations.length });
 }
 
+// 6c-export. Daily Violation Report — Export (.xlsx, NO fine amounts)
+async function dailyViolationReportExport(req, res) {
+  const { date } = req.params;
+  if (!DATE_RE.test(date)) {
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
+  }
+  const d = new Date(`${date}T00:00:00Z`);
+  const range = {
+    gte: d,
+    lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+  };
+  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+  const violations = await _getStudentViolations(where);
+
+  const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
+  sendWorkbook(res, buffer, `student-violations-daily-${date}.xlsx`);
+}
+
 // 6d. Weekly Violation Report
 async function weeklyViolationReport(req, res) {
-  const { from_date, to_date } = req.query; // YYYY-MM-DD format
+  const { from_date, to_date, ...filters } = req.query; // YYYY-MM-DD format
   const fromDate = new Date(`${from_date}T00:00:00Z`);
   const toDate = new Date(`${to_date}T23:59:59Z`);
 
   const range = { gte: fromDate, lte: toDate };
 
-  const violations = await _getStudentViolations({
-    ...studentViolationWhere({}),
-    dutySlot: { duty_date: range },
-  });
+  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: range } };
+  const violations = await _getStudentViolations(where);
 
   res.json({ from_date, to_date, data: violations, total: violations.length });
+}
+
+// 6d-export. Weekly Violation Report — Export (.xlsx, NO fine amounts)
+async function weeklyViolationReportExport(req, res) {
+  const { from_date, to_date, ...filters } = req.query;
+  const fromDate = new Date(`${from_date}T00:00:00Z`);
+  const toDate = new Date(`${to_date}T23:59:59Z`);
+
+  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: { gte: fromDate, lte: toDate } } };
+  const violations = await _getStudentViolations(where);
+
+  const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
+  sendWorkbook(res, buffer, `student-violations-weekly-${from_date}-to-${to_date}.xlsx`);
+}
+
+// ─── PDF export (P28) ──────────────────────────────────────────────────────
+// Summary aggregates are computed in-memory from the already-fetched list
+// (no `take` cap on export, so every matching row is in hand already) rather
+// than a second groupBy query — cheap at this dataset's scale and avoids a
+// redundant round trip.
+function computeViolationSummary(violations) {
+  const studentIds = new Set(violations.map((v) => v.student_id));
+  const facultyIds = new Set(violations.map((v) => v.faculty_id));
+  const typeIds    = new Set(violations.map((v) => v.violation_type_id));
+
+  const typeCounts = new Map();
+  for (const v of violations) {
+    const name = v.violationType?.name ?? 'Other';
+    typeCounts.set(name, (typeCounts.get(name) ?? 0) + 1);
+  }
+  let mostCommon = '—', mostCommonCount = 0;
+  for (const [name, count] of typeCounts) {
+    if (count > mostCommonCount) { mostCommon = name; mostCommonCount = count; }
+  }
+
+  return [
+    { label: 'Total Violations',            value: violations.length },
+    { label: 'Most Common Violation',       value: violations.length ? `${mostCommon} (${mostCommonCount} cases)` : '—' },
+    { label: 'Students Involved',           value: studentIds.size },
+    { label: 'Faculty Recordings',          value: facultyIds.size },
+    { label: 'Violation Types Recorded',    value: typeIds.size },
+  ];
+}
+
+const STUDENT_VIOLATION_PDF_COLUMNS = [
+  { header: 'Student',        key: 'name',      width: 95 },
+  { header: 'Reg No',         key: 'reg_no',     width: 80 },
+  { header: 'Course',         key: 'course',     width: 50 },
+  { header: 'Violation Type', key: 'type',       width: 90 },
+  { header: 'Faculty',        key: 'faculty',    width: 90 },
+  { header: 'Date',           key: 'duty_date',  width: 65 },
+];
+
+function mapViolationPdfRow(v) {
+  return {
+    name:      v.student?.student_name,
+    reg_no:    v.student?.registration_number,
+    course:    v.student?.course,
+    type:      v.violationType?.name,
+    faculty:   v.faculty?.name,
+    duty_date: v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
+  };
+}
+
+async function _sendStudentViolationPdf(where, { title, subtitle, filenameSuffix }, res) {
+  const violations = await _getStudentViolations(where);
+  const buffer = await buildReportPdf({
+    title,
+    subtitle,
+    summary: computeViolationSummary(violations),
+    columns: STUDENT_VIOLATION_PDF_COLUMNS,
+    rows: violations.map(mapViolationPdfRow),
+  });
+  sendPdf(res, buffer, `student-violations-${filenameSuffix}.pdf`);
+}
+
+// 6b-pdf. Student Violation Report — PDF (monthly / yearly / overall, inferred from query)
+async function studentViolationReportPdfExport(req, res) {
+  const { year, month } = req.query;
+  const where = studentViolationWhere(req.query);
+  const subtitle = year && month
+    ? `Monthly — ${MONTH_NAMES[month - 1]} ${year}`
+    : year ? `Yearly — ${year}` : 'Overall (All time)';
+
+  await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle, filenameSuffix: dateSuffix(req.query) }, res);
+}
+
+// 6c-pdf. Daily Violation Report — PDF
+async function dailyViolationReportPdfExport(req, res) {
+  const { date } = req.params;
+  if (!DATE_RE.test(date)) {
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
+  }
+  const d = new Date(`${date}T00:00:00Z`);
+  const range = {
+    gte: d,
+    lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
+  };
+  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+
+  await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Daily — ${date}`, filenameSuffix: `daily-${date}` }, res);
+}
+
+// 6d-pdf. Weekly Violation Report — PDF
+async function weeklyViolationReportPdfExport(req, res) {
+  const { from_date, to_date, ...filters } = req.query;
+  const fromDate = new Date(`${from_date}T00:00:00Z`);
+  const toDate = new Date(`${to_date}T23:59:59Z`);
+  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: { gte: fromDate, lte: toDate } } };
+
+  await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Weekly — ${from_date} to ${to_date}`, filenameSuffix: `weekly-${from_date}-to-${to_date}` }, res);
 }
 
 // 7. Faculty Violation Activity
@@ -494,7 +647,11 @@ async function activeStudentRoster(req, res) {
 
 module.exports = {
   monthlyAttendanceSummary, lateArrivalReport, absentFacultyReport, autoClockOutReport,
-  attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport, dailyViolationReport, weeklyViolationReport, facultyViolationActivity, violationTypeBreakdown,
+  attendanceOverrideLog, studentViolationHistory, studentViolationHistoryExport,
+  dailyViolationReport, dailyViolationReportExport, dailyViolationReportPdfExport,
+  weeklyViolationReport, weeklyViolationReportExport, weeklyViolationReportPdfExport,
+  studentViolationReportPdfExport,
+  facultyViolationActivity, violationTypeBreakdown,
   pendingFinesSummary, flaggedViolationsReport, monthlyDutyCoverage, unassignedFacultyReport,
   dutyReassignmentReport, sessionCompletionRate, studentUploadHistory, activeStudentRoster,
 };

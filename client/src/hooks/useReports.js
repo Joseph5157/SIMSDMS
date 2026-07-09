@@ -28,22 +28,22 @@ export const useCompletionRate       = (p) => useReport('completion-rate',      
 export const useUploadHistory        = (p) => useReport('upload-history',        p);
 export const useActiveStudents       = (p) => useReport('active-students',       p);
 
-export const useDailyViolationReport = (date) => {
+export const useDailyViolationReport = (date, filters = {}) => {
   return useQuery({
-    queryKey: ['report', 'daily-violations', date],
+    queryKey: ['report', 'daily-violations', date, filters],
     queryFn: async () => {
-      const res = await api.get(`/reports/student-violations/daily/${date}`);
+      const res = await api.get(`/reports/student-violations/daily/${date}`, { params: filters });
       return res.data;
     },
     enabled: !!date,
   });
 };
 
-export const useWeeklyViolationReport = (from_date, to_date) => {
+export const useWeeklyViolationReport = (from_date, to_date, filters = {}) => {
   return useQuery({
-    queryKey: ['report', 'weekly-violations', from_date, to_date],
+    queryKey: ['report', 'weekly-violations', from_date, to_date, filters],
     queryFn: async () => {
-      const res = await api.get('/reports/student-violations/weekly', { params: { from_date, to_date } });
+      const res = await api.get('/reports/student-violations/weekly', { params: { from_date, to_date, ...filters } });
       return res.data;
     },
     enabled: !!from_date && !!to_date,
