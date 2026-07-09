@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Building2, IdCard, Mail, KeyRound, ChevronRight } from 'lucide-react';
+import { User, Building2, IdCard, Tag, Mail, KeyRound, ChevronRight } from 'lucide-react';
 import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
 import UserAvatar from './ui/UserAvatar';
 import { useUpdateProfile } from '../hooks/useUsers';
@@ -25,7 +25,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
   const location = useLocation();
   const updateProfile = useUpdateProfile();
 
-  const [form, setForm] = useState({ name: '', department: '', designation: '', avatar: null });
+  const [form, setForm] = useState({ name: '', department: '', designation: '', title: '', avatar: null });
 
   // Seed the form each time the drawer opens with the latest profile data.
   useEffect(() => {
@@ -34,6 +34,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
         name:        user?.name ?? '',
         department:  user?.department ?? '',
         designation: user?.designation ?? '',
+        title:       user?.title ?? '',
         avatar:      user?.avatar ?? null,
       });
     }
@@ -64,6 +65,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
           name:        form.name.trim(),
           department:  form.department.trim() || undefined,
           designation: form.designation.trim() || undefined,
+          title:       form.title.trim() || undefined,
           avatar:      form.avatar,
         },
       });
@@ -159,6 +161,12 @@ export default function ProfileDrawer({ open, onClose, user }) {
         <div>
           <FieldLabel label="Designation" icon={IdCard} />
           <input value={form.designation} onChange={set('designation')} className={inputClassName} style={inputInline} />
+        </div>
+
+        <div>
+          <FieldLabel label="Title" icon={Tag} />
+          <input value={form.title} onChange={set('title')} placeholder="Dr. / Prof. / Mr." className={inputClassName} style={inputInline} />
+          <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-1">Shown in your dashboard greeting.</p>
         </div>
 
         <div>

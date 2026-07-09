@@ -24,6 +24,13 @@ function todayIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
+}
+
 function isoDate(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
@@ -254,7 +261,7 @@ export default function DashboardPage({ user }) {
       {/* ── Header — left-aligned, avatar/notifications live in the shared chrome ── */}
       <div className="mb-5 pb-4 border-b border-[var(--border)]">
         <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-          Hi, {user?.name?.split(' ')[0]}
+          Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name?.split(' ')[0]}
         </p>
         <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
           {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}

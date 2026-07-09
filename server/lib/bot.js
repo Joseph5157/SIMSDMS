@@ -153,7 +153,7 @@ async function handleInviteActivation(chatId, token) {
       // Raw SQL used here because Prisma does not support FOR UPDATE natively — this is
       // the sole constitution exception for non-report raw SQL in this file.
       const invites = await tx.$queryRaw`
-        SELECT id, name, email, phone, role, department, designation, invited_by
+        SELECT id, name, email, phone, role, department, designation, title, invited_by
         FROM pending_invites
         WHERE invite_token = ${token}
         AND invite_expires_at > NOW()
@@ -199,6 +199,7 @@ async function handleInviteActivation(chatId, token) {
           role: invite.role,
           department: invite.department || null,
           designation: invite.designation || null,
+          title: invite.title || null,
           telegram_id: chatId,
           telegram_verified: true,
           status: 'active',

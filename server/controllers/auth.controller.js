@@ -72,6 +72,7 @@ async function login(req, res) {
       role: user.role,
       department: user.department,
       designation: user.designation,
+      title: user.title,
       telegram_verified: user.telegram_verified,
       status: user.status,
       must_change_password: user.must_change_password,

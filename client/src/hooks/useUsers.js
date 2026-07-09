@@ -67,7 +67,7 @@ export function useResetUserLogin() {
   });
 }
 
-// Self-service profile update (name/department/designation/avatar). Keeps the
+// Self-service profile update (name/department/designation/title/avatar). Keeps the
 // shared `currentUser` cache (and its sessionStorage mirror) in sync so the
 // sidebar and any other consumer re-render with the new details immediately.
 export function useUpdateProfile() {

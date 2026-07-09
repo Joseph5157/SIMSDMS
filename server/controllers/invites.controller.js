@@ -13,6 +13,7 @@ const safeInvite = (invite) => ({
   role: invite.role,
   department: invite.department,
   designation: invite.designation,
+  title: invite.title,
   invite_expires_at: invite.invite_expires_at,
   invited_by: invite.invited_by,
   created_at: invite.created_at,
@@ -23,7 +24,7 @@ const safeInvite = (invite) => ({
  * Create a new pending invite for a user
  */
 async function createInvite(req, res) {
-  const { name, email, phone, role, department, designation } = req.body;
+  const { name, email, phone, role, department, designation, title } = req.body;
 
   // Role-scope guard: admin can only invite faculty
   if (req.user.role === 'admin' && role !== 'faculty') {
@@ -76,6 +77,7 @@ async function createInvite(req, res) {
       role,
       department: department || null,
       designation: designation || null,
+      title: title || null,
       invite_token: token,
       invite_expires_at: expiresAt,
       invited_by: req.user.id,

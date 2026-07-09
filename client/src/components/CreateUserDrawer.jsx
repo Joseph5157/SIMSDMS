@@ -24,7 +24,7 @@ function RoleButton({ label, subtitle, selected, onClick }) {
 export default function CreateUserDrawer({ open, onClose, onSubmit, loading, actorRole }) {
   const [form, setForm] = useState({
     name: '', email: '', role: 'faculty',
-    department: '', designation: '', phone: '',
+    department: '', designation: '', title: '', phone: '',
   });
   const [inviteLink, setInviteLink] = useState(null);
   const [invitedName, setInvitedName] = useState('');
@@ -45,7 +45,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
   }
 
   function resetAndClose() {
-    setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', phone: '' });
+    setForm({ name: '', email: '', role: 'faculty', department: '', designation: '', title: '', phone: '' });
     setInviteLink(null);
     setInvitedName('');
     onClose();
@@ -154,7 +154,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           <p className={sectionTitle}>
             Identity
           </p>
-          <TextInput label="Full name" placeholder="Dr. Priya Sharma" value={form.name} onChange={set('name')} required autoComplete="name" />
+          <TextInput label="Full name" placeholder="Priya Sharma" value={form.name} onChange={set('name')} required autoComplete="name" />
           <TextInput label="Email" type="email" placeholder="priya@sims.edu.in" value={form.email} onChange={set('email')} required autoComplete="email" />
 
           <p className={sectionTitle}>
@@ -172,6 +172,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           </p>
           <TextInput label="Department" placeholder="Pharmacology" value={form.department} onChange={set('department')} />
           <TextInput label="Designation" placeholder="Assistant Professor" value={form.designation} onChange={set('designation')} />
+          <TextInput label="Title" placeholder="Dr. / Prof. / Mr." value={form.title} onChange={set('title')} />
 
           <p className={sectionTitle}>
             Contact

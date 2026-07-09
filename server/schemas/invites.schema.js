@@ -7,6 +7,7 @@ const createInviteSchema = z.object({
   role: z.enum(['admin', 'faculty']),
   department: z.string().trim().max(100).optional().nullable(),
   designation: z.string().trim().max(100).optional().nullable(),
+  title: z.string().trim().max(20).optional().nullable(),
 });
 
 module.exports = { createInviteSchema };
