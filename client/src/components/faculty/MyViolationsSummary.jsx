@@ -19,7 +19,7 @@ function mostCommonType(violations) {
   for (const [name, count] of counts) {
     if (count > topCount) { top = name; topCount = count; }
   }
-  return top ?? '—';
+  return top ? `${top} - ${topCount}` : '—';
 }
 
 export default function MyViolationsSummary() {

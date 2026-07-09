@@ -62,18 +62,19 @@ export default function ViolationRecorderPage({ user }) {
       <Table>
         <thead>
           <tr>
-            <Th>Student</Th><Th>Type</Th><Th>Fine</Th><Th>Date</Th><Th>Status</Th><Th />
+            <Th>Student</Th><Th>Course</Th><Th>Type</Th><Th>Fine</Th><Th>Date</Th><Th>Status</Th><Th />
           </tr>
         </thead>
         <tbody>
-          {isLoading && <EmptyRow cols={6} message="Loading…" />}
-          {!isLoading && !data?.data?.length && <EmptyRow cols={6} message="No student violations recorded." />}
+          {isLoading && <EmptyRow cols={7} message="Loading…" />}
+          {!isLoading && !data?.data?.length && <EmptyRow cols={7} message="No student violations recorded." />}
           {data?.data?.map((v) => (
             <tr key={v.id}>
               <Td>
                 <p className="font-medium">{v.student?.student_name}</p>
                 <p className="text-xs text-[var(--text-muted)]">{v.student?.registration_number}</p>
               </Td>
+              <Td>{v.student?.course ?? '—'}</Td>
               <Td>{v.violationType?.name}</Td>
               <Td>{v.is_warning_only ? <span className="text-xs text-[var(--text-muted)]">Warning</span> : `₹${v.fine_amount}`}</Td>
               <Td className="text-xs">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
