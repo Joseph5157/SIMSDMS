@@ -44,7 +44,7 @@ export const STATUS_COLORS = {
   reassigned:       'bg-indigo-bg text-indigo-text',
   normal:           'bg-emerald-tint text-emerald-text',
   late:             'bg-amber-tint text-amber-text',
-  hidden:           'bg-slate-100 text-slate-400',
+  hidden:           'bg-slate-100 text-slate-500',
   flagged:          'bg-amber-tint text-amber-text',
   not_checked_in:   'bg-slate-100 text-slate-500',
   upcoming:         'bg-blue-50 text-blue-700',

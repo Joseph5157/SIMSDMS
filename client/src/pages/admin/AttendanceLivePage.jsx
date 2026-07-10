@@ -78,9 +78,9 @@ function StatPill({ label, count, color }) {
 // ── Faculty card ──────────────────────────────────────────────────────────────
 function FacultyCard({ record, onOverride }) {
   const borderCls =
-    record.attendance_status === 'checked_in'  && record.in_status === 'late'    ? 'border-l-amber-500' :
-    record.attendance_status === 'checked_in'  || record.attendance_status === 'checked_out' ? 'border-l-green-500' :
-    record.in_status === 'absent'              ? 'border-l-red-500' :
+    record.attendance_status === 'checked_in'  && record.in_status === 'late'    ? 'border-l-amber-600' :
+    record.attendance_status === 'checked_in'  || record.attendance_status === 'checked_out' ? 'border-l-emerald-600' :
+    record.in_status === 'absent'              ? 'border-l-red-600' :
     'border-l-[var(--border)]';
 
   const statusBadge =

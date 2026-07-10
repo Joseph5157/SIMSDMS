@@ -46,9 +46,20 @@ export default function NotificationBell({ user, role }) {
       }
     }
 
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setDropdownOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+
     if (dropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
     }
   }, [dropdownOpen]);
 
@@ -72,7 +83,7 @@ export default function NotificationBell({ user, role }) {
       >
         <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
         {totalUnreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[var(--color-red-solid)] text-white text-[length:var(--text-micro)] font-bold flex items-center justify-center border-2 border-white">
+          <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[var(--color-red-solid)] text-white text-[length:var(--text-micro)] font-bold flex items-center justify-center border-2 border-[var(--surface-card)]">
             {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
           </span>
         )}
