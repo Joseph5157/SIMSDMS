@@ -109,7 +109,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
         {/* Avatar picker */}
         <div>
           <FieldLabel label="Avatar" />
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {AVATAR_OPTIONS.map((opt) => {
               const selected = form.avatar === opt.value;
               return (

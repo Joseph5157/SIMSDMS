@@ -1,5 +1,6 @@
 import { Button } from '@mantine/core';
 import { useToast } from '../ui/Toast';
+import Skeleton from '../ui/Skeleton';
 import { usePendingReassignmentRequests, useRespondToReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
 
 export default function PendingReassignmentRequests() {
@@ -8,7 +9,20 @@ export default function PendingReassignmentRequests() {
   const respond = useRespondToReassignmentRequest();
 
   const requests = data?.data ?? [];
-  if (isLoading || !requests.length) return null;
+
+  if (isLoading) {
+    return (
+      <div className="mb-4">
+        <Skeleton height="11px" width="180px" className="mb-3" />
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
+          <Skeleton height="14px" width="70%" className="mb-2" />
+          <Skeleton height="11px" width="40%" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!requests.length) return null;
 
   async function handleRespond(id, status) {
     try {
