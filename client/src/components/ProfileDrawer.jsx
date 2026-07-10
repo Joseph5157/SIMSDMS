@@ -7,9 +7,9 @@ import { useUpdateProfile } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
 import { AVATAR_OPTIONS } from '../utils/avatars';
 
-function FieldLabel({ label, icon: Icon }) {
+function FieldLabel({ label, icon: Icon, htmlFor }) {
   return (
-    <label className="flex items-center gap-[5px] text-[length:var(--text-micro)] font-bold text-[color:var(--text-secondary)] uppercase tracking-[0.08em] mb-1.5">
+    <label htmlFor={htmlFor} className="flex items-center gap-[5px] text-[length:var(--text-micro)] font-bold text-[color:var(--text-secondary)] uppercase tracking-[0.08em] mb-1.5">
       {Icon && <Icon size={11} strokeWidth={2.5} />}
       {label}
     </label>
@@ -149,29 +149,29 @@ export default function ProfileDrawer({ open, onClose, user }) {
         </div>
 
         <div>
-          <FieldLabel label="Name" icon={User} />
-          <input value={form.name} onChange={set('name')} required className={inputClassName} style={inputInline} />
+          <FieldLabel label="Name" icon={User} htmlFor="profile-name" />
+          <input id="profile-name" value={form.name} onChange={set('name')} required className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Department" icon={Building2} />
-          <input value={form.department} onChange={set('department')} className={inputClassName} style={inputInline} />
+          <FieldLabel label="Department" icon={Building2} htmlFor="profile-department" />
+          <input id="profile-department" value={form.department} onChange={set('department')} className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Designation" icon={IdCard} />
-          <input value={form.designation} onChange={set('designation')} className={inputClassName} style={inputInline} />
+          <FieldLabel label="Designation" icon={IdCard} htmlFor="profile-designation" />
+          <input id="profile-designation" value={form.designation} onChange={set('designation')} className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Title" icon={Tag} />
-          <input value={form.title} onChange={set('title')} placeholder="Dr. / Prof. / Mr." className={inputClassName} style={inputInline} />
+          <FieldLabel label="Title" icon={Tag} htmlFor="profile-title" />
+          <input id="profile-title" value={form.title} onChange={set('title')} placeholder="Dr. / Prof. / Mr." className={inputClassName} style={inputInline} />
           <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-1">Shown in your dashboard greeting.</p>
         </div>
 
         <div>
-          <FieldLabel label="Email" icon={Mail} />
-          <input value={user?.email ?? ''} disabled className={`${inputClassName} opacity-60 cursor-not-allowed`} style={inputInline} />
+          <FieldLabel label="Email" icon={Mail} htmlFor="profile-email" />
+          <input id="profile-email" value={user?.email ?? ''} disabled className={`${inputClassName} opacity-60 cursor-not-allowed`} style={inputInline} />
           <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-1">Managed by administrators.</p>
         </div>
 

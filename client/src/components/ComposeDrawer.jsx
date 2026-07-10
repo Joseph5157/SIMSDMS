@@ -5,9 +5,9 @@ import { useSendMessage } from '../hooks/useMessages';
 import { useMessageRecipients } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
 
-function FieldLabel({ label, icon: Icon }) {
+function FieldLabel({ label, icon: Icon, htmlFor }) {
   return (
-    <label className="flex items-center gap-[5px] text-[length:var(--text-micro)] font-bold text-[color:var(--text-secondary)] uppercase tracking-[0.08em] mb-1.5">
+    <label htmlFor={htmlFor} className="flex items-center gap-[5px] text-[length:var(--text-micro)] font-bold text-[color:var(--text-secondary)] uppercase tracking-[0.08em] mb-1.5">
       {Icon && <Icon size={11} strokeWidth={2.5} />}
       {label}
     </label>
@@ -89,8 +89,8 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 pt-4 px-5 pb-2">
 
         <div>
-          <FieldLabel label="To" icon={Users} />
-          <select value={form.to_user_id} onChange={set('to_user_id')} className={selectClassName} style={selectInline}>
+          <FieldLabel label="To" icon={Users} htmlFor="compose-to" />
+          <select id="compose-to" value={form.to_user_id} onChange={set('to_user_id')} className={selectClassName} style={selectInline}>
             <option value="">Select recipient…</option>
             {usersData?.data?.map((u) => (
               <option key={u.id} value={u.id}>{u.name} ({u.role.replace(/_/g, ' ')})</option>
@@ -99,8 +99,9 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
         </div>
 
         <div>
-          <FieldLabel label="Subject" icon={AlignLeft} />
+          <FieldLabel label="Subject" icon={AlignLeft} htmlFor="compose-subject" />
           <input
+            id="compose-subject"
             placeholder="Re: Duty schedule"
             value={form.subject}
             onChange={set('subject')}
@@ -110,8 +111,9 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
         </div>
 
         <div>
-          <FieldLabel label="Message" icon={MessageSquare} />
+          <FieldLabel label="Message" icon={MessageSquare} htmlFor="compose-message" />
           <textarea
+            id="compose-message"
             rows={5}
             value={form.body}
             onChange={set('body')}
