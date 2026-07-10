@@ -54,6 +54,7 @@ export default function RequestReassignmentModal({ slot, onClose }) {
             onChange={setToFacultyId}
             disabled={eligibleLoading}
             nothingFoundMessage="No eligible faculty found for this date/session"
+            comboboxProps={{ withinPortal: false }}
           />
 
           <Textarea

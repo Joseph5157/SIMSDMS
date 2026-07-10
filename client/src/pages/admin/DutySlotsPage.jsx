@@ -276,6 +276,7 @@ export default function DutySlotsPage({ user }) {
               value={toFacultyId}
               onChange={setToFacultyId}
               nothingFoundMessage="No faculty found"
+              comboboxProps={{ withinPortal: false }}
             />
 
             <Textarea
