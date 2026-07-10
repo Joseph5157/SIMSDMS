@@ -218,6 +218,13 @@ whose date has not passed and that has no recorded attendance can be reassigned.
 - All system notifications (duty window open, duty reassignments, reminders, admin-triggered
   password resets) are sent via Telegram Bot only.
 - No email, no SMTP, no SMS — Telegram is the sole notification channel.
+- The Faculty-Requested Reassignment notification (Method 2, above) carries inline
+  **Accept**/**Reject** buttons so the target faculty can respond directly from Telegram
+  without opening the app. Tapping a button routes through the same `respondToRequestCore`
+  logic as the in-app PATCH endpoint (`server/controllers/duty-reassignment-requests.controller.js`),
+  so eligibility/authorization can never diverge between the two entry points. This is
+  currently the only notification with inline buttons — deliberately scoped narrow to limit
+  webhook surface area; other notification types remain plain text.
 - Telegram is notification-only. It plays no role in login or session issuance (see
   Authentication) — a user with no Telegram linked can still log in with email + password,
   they simply won't receive Telegram notifications.
@@ -413,6 +420,7 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.11 — Updated: July 2026 (Faculty-Requested Reassignment notification gained inline Accept/Reject Telegram buttons, routed through the shared `respondToRequestCore` — §4 Notifications; `server/lib/telegram.js` gained `reply_markup` support plus `answerCallbackQuery`/`editMessageReplyMarkup`; `server/lib/bot.js` webhook now handles `callback_query` payloads. No new endpoints, no schema changes.)*
 *Constitution version: 3.10 — Updated: July 2026 (Violation Delete + Flagged Review workflow — §4 Violations: replaced the Hide action and per-violation Log/Audit view with Delete (soft delete via `violations.deleted_at`, excluded from every read path); Admin can delete any violation, Faculty only their own; deletion tracked in `admin_audit_log` only. The Flagged Student Violations dashboard card gained a configurable show-count (3/5/10/20) and its review popup gained registration number/course/duty date detail plus a Delete action alongside the existing Mark as Reviewed. Added `users.title` / `pending_invites.title` (salutation shown in dashboard greetings, distinct from `designation`). Added an S.No column to the faculty Student Violations table and to the Student Violation Report's Excel/PDF exports — §5, §6, Violations module 10→9 endpoints, total 109→108)*
 *Constitution version: 3.9 — Updated: July 2026 (P28 Enhanced Reports System — added PDF export via `pdfkit` alongside the existing Excel export for the Student Violation Report's five period variants (daily/weekly/monthly/yearly/overall); fixed a bug where Daily/Weekly "Excel" downloads saved a corrupt JSON-as-xlsx file; added Course/Academic Year/Violation Type/Faculty filters to the Student Violation Report, applied consistently across all five periods; closed a pre-existing gap where the Daily/Weekly report routes had no Zod query validation — §6, Reports module 17→22 endpoints, total 104→109)*
 *Constitution version: 3.8 — Updated: July 2026 (removed faculty slot-unpick entirely — `DELETE /duty-slots/:id/unpick` and its UI dropped; a picked slot is now final and can only change owner via Admin Duty Reassignment or Faculty-Requested Reassignment, §3, §4, §6; Duty Slots module 8→7 endpoints, total 105→104)*

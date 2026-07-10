@@ -49,20 +49,42 @@ async function getOrCreateConfig(year, month) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+// en-IN, IST-anchored "31 July 2026" — matches the long-date style already
+// used on the admin Calendar page (CalendarPage.jsx), not the raw ISO dates
+// used in per-duty transactional messages elsewhere.
+function formatFriendlyDateIST(date) {
+  return new Date(date).toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 // Send Telegram notifications to all active faculty (fire-and-forget).
 // Sends are staggered ~50ms apart (dispatch, not completion) to stay well
 // under Telegram's ~30 msg/sec limit — at ~40 faculty a burst can otherwise
 // tail into 429s. Failure handling per recipient is unchanged.
-async function notifyAllFaculty(year, month) {
+async function notifyAllFaculty(year, month, config) {
   const faculty = await prisma.user.findMany({
     where: { role: 'faculty', status: 'active', deleted_at: null, telegram_id: { not: null } },
     select: { id: true, telegram_id: true, name: true },
   });
 
+  const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
+  const slotCount = config.sessions_per_faculty;
+  const slotsLabel = `${slotCount} duty slot${slotCount === 1 ? '' : 's'}`;
+  const closesLabel = config.closes_at ? formatFriendlyDateIST(config.closes_at) : null;
+  const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
+
   const text =
     `📅 <b>Duty Scheduling Window Open</b>\n\n` +
-    `The duty slot selection window for <b>${year}-${String(month).padStart(2, '0')}</b> is now open.\n\n` +
-    `Log in to SIMS DMS to pick your duty slots before the window closes.`;
+    `The duty slot selection window for <b>${monthLabel}</b> is now open.\n\n` +
+    `You need to pick <b>${slotsLabel}</b> this month.` +
+    (closesLabel ? `\n⏰ Closes: <b>${closesLabel}</b>` : '') +
+    `\n\nLog in to pick your slots: ${appUrl}/login`;
 
   for (const f of faculty) {
     telegram.sendMessage(f.telegram_id, text).catch((err) => {
@@ -122,7 +144,7 @@ async function openWindow(req, res) {
   });
 
   // Notify all faculty asynchronously — do not block the response
-  notifyAllFaculty(year, month);
+  notifyAllFaculty(year, month, config);
 
   res.json(config);
 }

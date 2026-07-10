@@ -408,15 +408,18 @@ async function reassignSlot(req, res) {
 
   // Fire-and-forget Telegram notifications to both faculty — never block/fail the response.
   const dutyDate = formatDateIST(slot.duty_date);
+  const sessionLabel = slot.session_type === 'morning' ? 'Morning' : 'Afternoon';
+  const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
   if (slot.faculty.telegram_id) {
     telegram.sendMessage(slot.faculty.telegram_id,
-      `🔄 <b>Duty Reassigned Away</b>\n\nYour duty on <b>${dutyDate}</b> (${slot.session_type}) has been reassigned to <b>${toFaculty.name}</b> by the admin.` +
-      (reason ? `\nReason: ${reason}` : '')
+      `🔄 <b>Duty Reassigned Away</b>\n\nYour duty on <b>${dutyDate}</b> (${sessionLabel}) has been reassigned to <b>${toFaculty.name}</b> by the admin.` +
+      (reason ? `\nReason: ${reason}` : '') +
+      `\n\nView your schedule: ${appUrl}/login`
     ).catch((err) => logger.warn(`[reassign-notify] from-faculty notify failed: ${err.message}`));
   }
   if (toFaculty.telegram_id) {
     telegram.sendMessage(toFaculty.telegram_id,
-      `🔄 <b>Duty Reassigned to You</b>\n\nYou have been assigned a duty on <b>${dutyDate}</b> (${slot.session_type}) by the admin (originally assigned to ${slot.faculty.name}).`
+      `🔄 <b>Duty Reassigned to You</b>\n\nYou have been assigned a duty on <b>${dutyDate}</b> (${sessionLabel}) by the admin (originally assigned to ${slot.faculty.name}).\n\nView your schedule: ${appUrl}/login`
     ).catch((err) => logger.warn(`[reassign-notify] to-faculty notify failed: ${err.message}`));
   }
 }

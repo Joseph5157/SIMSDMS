@@ -106,11 +106,20 @@ async function createRequest(req, res) {
 
   // Fire-and-forget — never block/fail the response on a notification error.
   const dutyDate = formatDateIST(slot.duty_date);
+  const sessionLabel = slot.session_type === 'morning' ? 'Morning' : 'Afternoon';
   if (request.toFaculty.telegram_id) {
     telegram.sendMessage(request.toFaculty.telegram_id,
-      `🔄 <b>Duty Reassignment Request</b>\n\n${request.fromFaculty.name} asked you to take over their duty on <b>${dutyDate}</b> (${slot.session_type}).` +
+      `🔄 <b>Duty Reassignment Request</b>\n\n${request.fromFaculty.name} asked you to take over their duty on <b>${dutyDate}</b> (${sessionLabel}).` +
       (reason ? `\nReason: ${reason}` : '') +
-      `\n\nReview it in the app to accept or reject.`
+      `\n\nRespond below, or in the app.`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ Accept', callback_data: `rr:approved:${request.id}` },
+            { text: '❌ Reject', callback_data: `rr:declined:${request.id}` },
+          ]],
+        },
+      }
     ).catch((err) => logger.warn(`[reassign-request-notify] to-faculty notify failed: ${err.message}`));
   }
 }
@@ -144,15 +153,15 @@ async function listSentRequests(req, res) {
   res.json({ data: requests });
 }
 
-// ─── PATCH /duty-reassignment-requests/:id — approve or decline ───────────
+// ─── Shared approve/decline logic ──────────────────────────────────────────
+// Used by both the HTTP endpoint below and the Telegram inline Accept/Reject
+// buttons (server/lib/bot.js), so the two entry points can never drift apart
+// on eligibility checks, authorization, or what gets written to the DB.
+// Returns { ok: true, data } or { ok: false, httpStatus, code, message }.
 
-async function respondToRequest(req, res) {
-  const { status } = req.body; // 'approved' or 'declined'
-  const { id } = req.params;
-  const responded_by_id = req.user.id;
-
+async function respondToRequestCore({ id, respondedById, status }) {
   if (!['approved', 'declined'].includes(status)) {
-    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'Status must be "approved" or "declined".' });
+    return { ok: false, httpStatus: 422, code: 'VALIDATION_ERROR', message: 'Status must be "approved" or "declined".' };
   }
 
   const request = await prisma.dutyReassignmentRequest.findUnique({
@@ -165,19 +174,19 @@ async function respondToRequest(req, res) {
   });
 
   if (!request) {
-    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Reassignment request not found.' });
+    return { ok: false, httpStatus: 404, code: 'NOT_FOUND', message: 'Reassignment request not found.' };
   }
-  if (request.to_faculty_id !== responded_by_id) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Only the target faculty can respond to this request.' });
+  if (request.to_faculty_id !== respondedById) {
+    return { ok: false, httpStatus: 403, code: 'FORBIDDEN', message: 'Only the target faculty can respond to this request.' };
   }
   if (request.status !== 'pending') {
-    return res.status(409).json({ error: true, code: 'CONFLICT', message: `Request has already been ${request.status}.` });
+    return { ok: false, httpStatus: 409, code: 'CONFLICT', message: `Request has already been ${request.status}.` };
   }
 
   if (status === 'declined') {
     const updated = await prisma.dutyReassignmentRequest.update({
       where: { id },
-      data: { status: 'declined', responded_by_id, response_at: new Date() },
+      data: { status: 'declined', responded_by_id: respondedById, response_at: new Date() },
       include: {
         fromFaculty: { select: { id: true, name: true } },
         toFaculty:   { select: { id: true, name: true } },
@@ -185,21 +194,20 @@ async function respondToRequest(req, res) {
       },
     });
 
-    res.json(updated);
-
     if (request.fromFaculty.telegram_id) {
+      const declinedSessionLabel = request.dutySlot.session_type === 'morning' ? 'Morning' : 'Afternoon';
       telegram.sendMessage(request.fromFaculty.telegram_id,
-        `❌ <b>Reassignment Request Declined</b>\n\n${request.toFaculty.name} declined your request to take over your duty on ${formatDateIST(request.dutySlot.duty_date)} (${request.dutySlot.session_type}).`
+        `❌ <b>Reassignment Request Declined</b>\n\n${request.toFaculty.name} declined your request to take over your duty on <b>${formatDateIST(request.dutySlot.duty_date)}</b> (${declinedSessionLabel}).\n\nYou can request a different colleague from My Slots.`
       ).catch((err) => logger.warn(`[reassign-response-notify] decline notify failed: ${err.message}`));
     }
-    return;
+    return { ok: true, data: updated };
   }
 
   // Approving — re-check eligibility, since time may have passed between the
   // request being sent and now (the duty could have started, been attended,
   // or passed its date in the meantime).
   const guardErr = assertSlotReassignable(request.dutySlot);
-  if (guardErr) return res.status(guardErr.status).json({ error: true, code: guardErr.code, message: guardErr.message });
+  if (guardErr) return { ok: false, httpStatus: guardErr.status, code: guardErr.code, message: guardErr.message };
 
   const [, updatedRequest] = await prisma.$transaction([
     prisma.dutySlot.update({
@@ -208,7 +216,7 @@ async function respondToRequest(req, res) {
     }),
     prisma.dutyReassignmentRequest.update({
       where: { id },
-      data: { status: 'approved', responded_by_id, response_at: new Date() },
+      data: { status: 'approved', responded_by_id: respondedById, response_at: new Date() },
       include: {
         fromFaculty: { select: { id: true, name: true } },
         toFaculty:   { select: { id: true, name: true } },
@@ -223,29 +231,45 @@ async function respondToRequest(req, res) {
         duty_date:       request.dutySlot.duty_date,
         session_type:    request.dutySlot.session_type,
         reason:          request.reason,
-        reassigned_by:   responded_by_id,
+        reassigned_by:   respondedById,
       },
     }),
     // The slot is spoken for now — any other pending request against it is moot.
     prisma.dutyReassignmentRequest.updateMany({
       where: { duty_slot_id: request.duty_slot_id, status: 'pending', id: { not: id } },
-      data: { status: 'declined', responded_by_id, response_at: new Date() },
+      data: { status: 'declined', responded_by_id: respondedById, response_at: new Date() },
     }),
   ]);
 
-  res.json(updatedRequest);
-
   const dutyDate = formatDateIST(request.dutySlot.duty_date);
+  const acceptedSessionLabel = request.dutySlot.session_type === 'morning' ? 'Morning' : 'Afternoon';
   if (request.fromFaculty.telegram_id) {
     telegram.sendMessage(request.fromFaculty.telegram_id,
-      `✅ <b>Reassignment Accepted</b>\n\n${request.toFaculty.name} accepted your duty on <b>${dutyDate}</b> (${request.dutySlot.session_type}). It has been transferred to them.`
+      `✅ <b>Reassignment Accepted</b>\n\n${request.toFaculty.name} accepted your duty on <b>${dutyDate}</b> (${acceptedSessionLabel}). It has been transferred to them.`
     ).catch((err) => logger.warn(`[reassign-response-notify] from-faculty notify failed: ${err.message}`));
   }
   if (request.toFaculty.telegram_id) {
     telegram.sendMessage(request.toFaculty.telegram_id,
-      `✅ <b>Duty Transferred to You</b>\n\nYou now own the duty on <b>${dutyDate}</b> (${request.dutySlot.session_type}), originally assigned to ${request.fromFaculty.name}.`
+      `✅ <b>Duty Transferred to You</b>\n\nYou now own the duty on <b>${dutyDate}</b> (${acceptedSessionLabel}), originally assigned to ${request.fromFaculty.name}.`
     ).catch((err) => logger.warn(`[reassign-response-notify] to-faculty notify failed: ${err.message}`));
   }
+
+  return { ok: true, data: updatedRequest };
 }
 
-module.exports = { createRequest, listPendingRequests, listSentRequests, respondToRequest, getEligibleFaculty };
+// ─── PATCH /duty-reassignment-requests/:id — approve or decline ───────────
+
+async function respondToRequest(req, res) {
+  const result = await respondToRequestCore({
+    id: req.params.id,
+    respondedById: req.user.id,
+    status: req.body.status, // 'approved' or 'declined'
+  });
+
+  if (!result.ok) {
+    return res.status(result.httpStatus).json({ error: true, code: result.code, message: result.message });
+  }
+  res.json(result.data);
+}
+
+module.exports = { createRequest, listPendingRequests, listSentRequests, respondToRequest, respondToRequestCore, getEligibleFaculty };

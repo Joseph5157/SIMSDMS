@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const prisma = require('./prisma');
 const logger = require('./logger');
+const telegram = require('./telegram');
 const { generateTempPassword, hashPassword } = require('./password');
 const { logAction } = require('../services/audit.service');
+const { respondToRequestCore } = require('../controllers/duty-reassignment-requests.controller');
 
 /**
  * Handle Telegram webhook callback
@@ -11,6 +13,12 @@ const { logAction } = require('../services/audit.service');
  */
 async function handleWebhook(req, res) {
   try {
+    const callbackQuery = req.body?.callback_query;
+    if (callbackQuery) {
+      await handleCallbackQuery(callbackQuery);
+      return res.status(200).json({ ok: true });
+    }
+
     const message = req.body?.message;
 
     if (!message) {
@@ -139,6 +147,86 @@ async function handleWebhook(req, res) {
   } catch (error) {
     logger.error('[TELEGRAM] Webhook error:', error);
     return res.status(200).json({ ok: true }); // Always return 200 to acknowledge receipt
+  }
+}
+
+/**
+ * Handle a callback_query from the inline Accept/Reject buttons on a
+ * duty-reassignment-request notification. Reuses respondToRequestCore —
+ * the same function the PATCH /duty-reassignment-requests/:id endpoint
+ * calls — so a button tap and the in-app buttons can never disagree on
+ * eligibility, authorization, or what gets written to the DB.
+ *
+ * Every path answers the callback query (required, or the tapped button
+ * spins forever) and, once the request is resolved either way, strips the
+ * inline keyboard so it can't be tapped again.
+ */
+async function handleCallbackQuery(callbackQuery) {
+  const data = callbackQuery.data || '';
+  const match = data.match(/^rr:(approved|declined):([0-9a-fA-F-]{36})$/);
+
+  if (!match) {
+    // Not a reassignment-request callback (or malformed) — nothing to do,
+    // just stop the button's loading spinner.
+    await telegram.answerCallbackQuery(callbackQuery.id).catch((err) => {
+      logger.error('[TELEGRAM] answerCallbackQuery (unknown action) failed:', err);
+    });
+    return;
+  }
+
+  const [, status, requestId] = match;
+  const telegramUserId = String(callbackQuery.from.id);
+  const chatId = callbackQuery.message?.chat?.id;
+  const messageId = callbackQuery.message?.message_id;
+
+  const clearKeyboard = () => {
+    if (chatId == null || messageId == null) return Promise.resolve();
+    return telegram.editMessageReplyMarkup(chatId, messageId, { inline_keyboard: [] }).catch((err) => {
+      logger.warn(`[TELEGRAM] Failed to clear inline keyboard on message ${messageId}:`, err.message);
+    });
+  };
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telegram_id: telegramUserId },
+      select: { id: true, status: true, deleted_at: true },
+    });
+
+    if (!user || user.deleted_at || user.status !== 'active') {
+      await telegram.answerCallbackQuery(callbackQuery.id, {
+        text: 'No active SIMS DMS account is linked to this Telegram. Contact your admin.',
+        show_alert: true,
+      });
+      return;
+    }
+
+    const result = await respondToRequestCore({ id: requestId, respondedById: user.id, status });
+
+    if (!result.ok) {
+      await telegram.answerCallbackQuery(callbackQuery.id, {
+        text: result.message || 'Could not process this request.',
+        show_alert: true,
+      });
+      // NOT_FOUND/CONFLICT mean the request is no longer actionable (already
+      // responded elsewhere, or gone) — clear the stale buttons either way.
+      // FORBIDDEN is left alone: it's not this tapper's request to resolve.
+      if (result.code === 'NOT_FOUND' || result.code === 'CONFLICT') {
+        await clearKeyboard();
+      }
+      return;
+    }
+
+    const toastText = status === 'approved' ? '✅ Accepted — the duty is now yours.' : '❌ Declined.';
+    await telegram.answerCallbackQuery(callbackQuery.id, { text: toastText });
+    await clearKeyboard();
+  } catch (error) {
+    logger.error('[TELEGRAM] Error in handleCallbackQuery:', error);
+    await telegram.answerCallbackQuery(callbackQuery.id, {
+      text: 'Something went wrong. Please respond in the app instead.',
+      show_alert: true,
+    }).catch((err) => {
+      logger.error('[TELEGRAM] answerCallbackQuery (error path) failed:', err);
+    });
   }
 }
 
