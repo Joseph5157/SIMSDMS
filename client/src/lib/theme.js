@@ -3,47 +3,34 @@ const STORAGE_KEY = 'app-theme';
 const THEMES = {
   LIGHT: 'light',
   DARK: 'dark',
-  SYSTEM: 'system',
 };
 
 /**
- * Get system preference for dark mode
- * @returns {boolean} true if system prefers dark mode
- */
-export function getSystemPreference() {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-/**
  * Get the current theme setting from localStorage
- * @returns {string} 'light', 'dark', or 'system'
+ * @returns {string} 'light' or 'dark'
  */
 export function getTheme() {
   if (typeof window === 'undefined') return THEMES.LIGHT;
-  return localStorage.getItem(STORAGE_KEY) ?? THEMES.SYSTEM;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  return stored === THEMES.DARK ? THEMES.DARK : THEMES.LIGHT;
 }
 
 /**
- * Resolve effective theme (accounts for 'system' setting)
- * @returns {string} 'light' or 'dark' (never 'system')
+ * Resolve effective theme
+ * @returns {string} 'light' or 'dark'
  */
 export function getEffectiveTheme() {
-  const theme = getTheme();
-  if (theme === THEMES.SYSTEM) {
-    return getSystemPreference() ? THEMES.DARK : THEMES.LIGHT;
-  }
-  return theme;
+  return getTheme();
 }
 
 /**
  * Apply theme to document and save to localStorage
- * @param {string} theme - 'light', 'dark', or 'system'
+ * @param {string} theme - 'light' or 'dark'
  */
 export function setTheme(theme) {
   if (!Object.values(THEMES).includes(theme)) {
-    console.warn(`Invalid theme: ${theme}. Using 'system'.`);
-    theme = THEMES.SYSTEM;
+    console.warn(`Invalid theme: ${theme}. Using 'light'.`);
+    theme = THEMES.LIGHT;
   }
 
   // Save to localStorage
@@ -72,30 +59,13 @@ function applyTheme() {
 
 /**
  * Initialize theme on app startup
- * Sets up listeners for system preference changes and storage changes
+ * Sets up a listener for storage changes (theme changed in another tab)
  */
 export function initializeTheme() {
   if (typeof window === 'undefined') return;
 
   // Apply initial theme
   applyTheme();
-
-  // Listen for system preference changes
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  const handleSystemPreferenceChange = () => {
-    if (getTheme() === THEMES.SYSTEM) {
-      applyTheme();
-      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: getEffectiveTheme() } }));
-    }
-  };
-
-  // Modern API
-  if (mediaQuery.addEventListener) {
-    mediaQuery.addEventListener('change', handleSystemPreferenceChange);
-  } else {
-    // Fallback for older browsers
-    mediaQuery.addListener(handleSystemPreferenceChange);
-  }
 
   // Listen for storage changes (theme changed in another tab)
   window.addEventListener('storage', (e) => {
@@ -107,14 +77,11 @@ export function initializeTheme() {
 }
 
 /**
- * Cycle through themes: light → dark → system → light
+ * Cycle through themes: light → dark → light
  */
 export function cycleTheme() {
   const current = getTheme();
-  const themes = Object.values(THEMES);
-  const currentIndex = themes.indexOf(current);
-  const nextIndex = (currentIndex + 1) % themes.length;
-  setTheme(themes[nextIndex]);
+  setTheme(current === THEMES.LIGHT ? THEMES.DARK : THEMES.LIGHT);
 }
 
 /**
@@ -123,16 +90,7 @@ export function cycleTheme() {
  */
 export function getThemeIcon() {
   const theme = getTheme();
-  switch (theme) {
-    case THEMES.LIGHT:
-      return '☀️';
-    case THEMES.DARK:
-      return '🌙';
-    case THEMES.SYSTEM:
-      return '🖥️';
-    default:
-      return '🖥️';
-  }
+  return theme === THEMES.DARK ? '🌙' : '☀️';
 }
 
 /**
@@ -141,14 +99,5 @@ export function getThemeIcon() {
  */
 export function getThemeLabel() {
   const theme = getTheme();
-  switch (theme) {
-    case THEMES.LIGHT:
-      return 'Light';
-    case THEMES.DARK:
-      return 'Dark';
-    case THEMES.SYSTEM:
-      return 'System';
-    default:
-      return 'System';
-  }
+  return theme === THEMES.DARK ? 'Dark' : 'Light';
 }

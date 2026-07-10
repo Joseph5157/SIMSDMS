@@ -262,7 +262,7 @@ export default function Layout({ user, children }) {
               <div
                 className="flex flex-col items-center justify-center h-full gap-[3px] px-0.5 transition-colors duration-150"
                 style={{
-                  color: isActive ? 'var(--brand)' : 'rgba(255,255,255,0.45)',
+                  color: isActive ? 'var(--brand)' : 'var(--text-muted)',
                   borderTop: isActive ? '2px solid var(--brand)' : '2px solid transparent',
                 }}
               >

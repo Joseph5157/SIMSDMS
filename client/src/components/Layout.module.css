@@ -244,8 +244,8 @@
   height: 60px;
   z-index: 100;
   display: flex;
-  background-color: #0f172a; /* --surface-sidebar */
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--surface-card);
+  border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
