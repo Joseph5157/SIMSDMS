@@ -205,7 +205,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         {/* Result */}
         {result && (
           <div style={{
-            backgroundColor: result.dry_run ? 'var(--color-blue-bg)' : 'var(--color-emerald-bg)',
+            backgroundColor: result.dry_run ? 'var(--color-blue-50)' : 'var(--color-emerald-bg)',
             border: `1px solid ${result.dry_run ? 'var(--color-blue-200)' : 'var(--color-emerald-border)'}`,
             borderRadius: 'var(--radius-lg)',
             padding: '12px 14px',

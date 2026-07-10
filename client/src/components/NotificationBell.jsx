@@ -109,6 +109,12 @@ export default function NotificationBell({ user, role }) {
                   onClick={() => handleItemClick(m)}
                   role="button"
                   tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleItemClick(m);
+                    }
+                  }}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1 min-w-0">

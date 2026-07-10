@@ -46,11 +46,19 @@ export function Td({ children, className }) {
   );
 }
 
-/** Row — use for clickable rows (passes onClick + cursor). */
+/** Row — use for clickable rows (passes onClick + cursor). Keyboard-activatable when onClick is set. */
 export function Tr({ children, onClick, className }) {
   return (
     <MTable.Tr
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick(e);
+        }
+      } : undefined}
       className={className}
       style={{
         cursor: onClick ? 'pointer' : undefined,

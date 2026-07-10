@@ -15,7 +15,7 @@ function fmtDate(iso) {
 
 // ── Thread panel ──────────────────────────────────────────────────────────────
 function ThreadPanel({ messageId, currentUser, onClose }) {
-  const { data }  = useMessage(messageId);
+  const { data, isError, refetch } = useMessage(messageId);
   const deleteMsg = useDeleteMessage();
   const toast     = useToast();
 
@@ -29,6 +29,13 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
     }
   }
+
+  if (isError) return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[length:13px] text-[var(--text-muted)] w-full">
+      <p>Couldn't load this message.</p>
+      <Button size="xs" variant="light" color="red" onClick={refetch}>Retry</Button>
+    </div>
+  );
 
   if (!data) return (
     <div className="flex-1 flex items-center justify-center text-[length:13px] text-[var(--text-muted)] w-full">
@@ -139,7 +146,7 @@ export default function MessagesPage({ user }) {
   const inbox = useInbox({ page, limit: 20 });
   const sent  = useSent({ page, limit: 20 });
 
-  const { data, isLoading } = tab === 'inbox' ? inbox : sent;
+  const { data, isLoading, isError, refetch } = tab === 'inbox' ? inbox : sent;
 
   function handleTabSwitch(t) { setTab(t); setPage(1); setViewing(null); }
 
@@ -149,8 +156,8 @@ export default function MessagesPage({ user }) {
         title="Messages"
         action={
           <div className="flex flex-col items-center gap-2">
-            {/* Same bg-blue-50/text-blue-600 pill treatment as the "upcoming" status badge (see STATUS_COLORS) */}
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[length:11px] font-semibold bg-blue-50 text-blue-600">
+            {/* Same bg-blue-50/text-blue-700 pill treatment as the "upcoming" status badge (see STATUS_COLORS) */}
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[length:11px] font-semibold bg-blue-50 text-blue-700">
               New chat-style experience coming soon
             </span>
             <Button onClick={() => setCompose(true)} size="sm">+ Compose</Button>
@@ -198,10 +205,16 @@ export default function MessagesPage({ user }) {
             {isLoading && (
               <p className="text-[length:13px] text-[var(--text-muted)] text-center py-8">Loading…</p>
             )}
-            {!isLoading && !data?.data?.length && (
+            {isError && (
+              <div className="flex flex-col items-center gap-2 py-8">
+                <p className="text-[length:13px] text-[var(--text-muted)]">Couldn't load messages.</p>
+                <Button size="xs" variant="light" color="red" onClick={refetch}>Retry</Button>
+              </div>
+            )}
+            {!isLoading && !isError && !data?.data?.length && (
               <p className="text-[length:13px] text-[var(--text-muted)] text-center py-8">No messages.</p>
             )}
-            {data?.data?.map((m) => (
+            {!isError && data?.data?.map((m) => (
               <MessageItem
                 key={m.id}
                 msg={m}

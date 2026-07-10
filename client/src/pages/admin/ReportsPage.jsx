@@ -392,8 +392,8 @@ function StudentViolationReportCard() {
 
   const params = { ...(mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {}), ...filterParams };
   const { data, isLoading, isError, refetch } = useStudentViolations(params);
-  const { data: dailyData, isLoading: dailyLoading } = useDailyViolationReport(mode === 'daily' ? dailyDate : null, filterParams);
-  const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyViolationReport(mode === 'weekly' ? weeklyFromDate : null, mode === 'weekly' ? weeklyToDate : null, filterParams);
+  const { data: dailyData, isLoading: dailyLoading, isError: dailyError, refetch: refetchDaily } = useDailyViolationReport(mode === 'daily' ? dailyDate : null, filterParams);
+  const { data: weeklyData, isLoading: weeklyLoading, isError: weeklyError, refetch: refetchWeekly } = useWeeklyViolationReport(mode === 'weekly' ? weeklyFromDate : null, mode === 'weekly' ? weeklyToDate : null, filterParams);
 
   async function handleDownload(format = 'xlsx') {
     setDownloading(true);
@@ -563,8 +563,8 @@ function StudentViolationReportCard() {
         </p>
       )}
 
-      {mode === 'daily' && <ReportSection id="student-violations" data={dailyData} isLoading={dailyLoading} isError={false} refetch={() => {}} />}
-      {mode === 'weekly' && <ReportSection id="student-violations" data={weeklyData} isLoading={weeklyLoading} isError={false} refetch={() => {}} />}
+      {mode === 'daily' && <ReportSection id="student-violations" data={dailyData} isLoading={dailyLoading} isError={dailyError} refetch={refetchDaily} />}
+      {mode === 'weekly' && <ReportSection id="student-violations" data={weeklyData} isLoading={weeklyLoading} isError={weeklyError} refetch={refetchWeekly} />}
       {mode !== 'daily' && mode !== 'weekly' && <ReportSection id="student-violations" data={data} isLoading={isLoading} isError={isError} refetch={refetch} />}
     </div>
   );

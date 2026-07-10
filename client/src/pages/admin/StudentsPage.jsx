@@ -91,7 +91,7 @@ function PromoteModal({ open, student, onClose }) {
         style={{
           marginTop: 12, width: '100%', padding: '8px 12px',
           border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-          fontSize: 16, outline: 'none',
+          fontSize: 16,
         }}
       />
     </FormModal>
@@ -151,7 +151,7 @@ function BulkPromoteModal({ open, ids, onClose, onDone }) {
         style={{
           marginTop: 12, width: '100%', padding: '8px 12px',
           border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-          fontSize: 16, outline: 'none',
+          fontSize: 16,
         }}
       />
     </FormModal>
@@ -270,7 +270,7 @@ export default function StudentsPage({ user }) {
           style={{
             flex: '1 1 180px', minWidth: 160,
             border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-            padding: '7px 12px', fontSize: 16, outline: 'none',
+            padding: '7px 12px', fontSize: 16,
             backgroundColor: 'var(--surface-card)',
           }}
         />
@@ -327,10 +327,21 @@ export default function StudentsPage({ user }) {
             padding: '14px 16px', backgroundColor: 'var(--surface-card)',
             borderBottom: '1px solid var(--border)',
           }}>
-            <div onClick={() => setViewingId(s.id)} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 12, cursor: 'pointer',
-            }}>
+            <div
+              onClick={() => setViewingId(s.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setViewingId(s.id);
+                }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: 12, cursor: 'pointer',
+              }}
+            >
               <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
                 <Checkbox checked={selectedIds.has(s.id)} onChange={() => toggleSelect(s.id)} />
               </span>
