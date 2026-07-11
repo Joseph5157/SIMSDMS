@@ -58,3 +58,13 @@ export function useRespondToReassignmentRequest() {
     },
   });
 }
+
+export function useCancelReassignmentRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.patch(`/duty-reassignment-requests/${id}/cancel`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reassignmentRequests'] });
+    },
+  });
+}

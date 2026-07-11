@@ -5,6 +5,11 @@ const telegram = require('./telegram');
 const { generateTempPassword, hashPassword } = require('./password');
 const { logAction } = require('../services/audit.service');
 const { respondToRequestCore } = require('../controllers/duty-reassignment-requests.controller');
+const { MONTH_NAMES, formatFriendlyDateIST } = require('../controllers/calendar.controller');
+const { nowInIST } = require('./time');
+
+const APP_URL = process.env.APP_URL || 'https://sims-dms.railway.app';
+const OPEN_APP_BUTTON = { reply_markup: { inline_keyboard: [[{ text: 'Open in SIMS DMS', url: `${APP_URL}/faculty/slots` }]] } };
 
 /**
  * Handle Telegram webhook callback
@@ -99,6 +104,20 @@ async function handleWebhook(req, res) {
         logger.error(`[TELEGRAM] Failed to send /start response to ${chatId}:`, err);
       });
       return res.status(200).json({ ok: true });
+    } else if (text === '/menu') {
+      // Handle /menu command — quick-status inline keyboard for linked faculty
+      telegram.sendMessage(chatId, '📋 <b>Quick Menu</b>\n\nWhat would you like to check?', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📋 My Duty Slots', callback_data: 'menu:my_slots' }],
+            [{ text: '⏭️ Next Duty', callback_data: 'menu:next_duty' }],
+            [{ text: '📅 Scheduling Window Status', callback_data: 'menu:window_status' }],
+          ],
+        },
+      }).catch((err) => {
+        logger.error(`[TELEGRAM] Failed to send /menu response to ${chatId}:`, err);
+      });
+      return res.status(200).json({ ok: true });
     } else if (text === '/myid') {
       // Handle /myid command — reply with the user's Telegram chat ID
       const replyText = `Your Telegram ID is: ${chatId}`;
@@ -163,11 +182,18 @@ async function handleWebhook(req, res) {
  */
 async function handleCallbackQuery(callbackQuery) {
   const data = callbackQuery.data || '';
+
+  const menuMatch = data.match(/^menu:(my_slots|next_duty|window_status)$/);
+  if (menuMatch) {
+    await handleMenuCallback(callbackQuery, menuMatch[1]);
+    return;
+  }
+
   const match = data.match(/^rr:(approved|declined):([0-9a-fA-F-]{36})$/);
 
   if (!match) {
-    // Not a reassignment-request callback (or malformed) — nothing to do,
-    // just stop the button's loading spinner.
+    // Not a reassignment-request or menu callback (or malformed) — nothing to
+    // do, just stop the button's loading spinner.
     await telegram.answerCallbackQuery(callbackQuery.id).catch((err) => {
       logger.error('[TELEGRAM] answerCallbackQuery (unknown action) failed:', err);
     });
@@ -228,6 +254,146 @@ async function handleCallbackQuery(callbackQuery) {
       logger.error('[TELEGRAM] answerCallbackQuery (error path) failed:', err);
     });
   }
+}
+
+/**
+ * Handle a callback_query from the /menu quick-status inline keyboard
+ * (My Duty Slots / Next Duty / Scheduling Window Status). Unlike Accept/Reject,
+ * these are read-only — nothing is mutated, so there's no result to conflict
+ * with an in-app action. The callback is answered immediately (dismissing the
+ * button's spinner) and the actual answer is sent as a fresh chat message
+ * ending in a button back to the app, per the user's requested shape.
+ */
+async function handleMenuCallback(callbackQuery, action) {
+  const telegramUserId = String(callbackQuery.from.id);
+  const chatId = callbackQuery.message?.chat?.id;
+
+  const user = await prisma.user.findUnique({
+    where: { telegram_id: telegramUserId },
+    select: { id: true, status: true, deleted_at: true },
+  }).catch((err) => {
+    logger.error(`[TELEGRAM] Error looking up user for menu callback (${action}):`, err);
+    return null;
+  });
+
+  if (!user || user.deleted_at || user.status !== 'active') {
+    await telegram.answerCallbackQuery(callbackQuery.id, {
+      text: 'No active SIMS DMS account is linked to this Telegram. Contact your admin.',
+      show_alert: true,
+    }).catch((err) => logger.error('[TELEGRAM] answerCallbackQuery (menu unlinked) failed:', err));
+    return;
+  }
+
+  await telegram.answerCallbackQuery(callbackQuery.id).catch((err) => {
+    logger.error('[TELEGRAM] answerCallbackQuery (menu) failed:', err);
+  });
+
+  try {
+    const text = action === 'my_slots' ? await buildMySlotsReply(user.id)
+      : action === 'next_duty' ? await buildNextDutyReply(user.id)
+      : await buildWindowStatusReply(user.id);
+
+    await telegram.sendMessage(chatId, text, OPEN_APP_BUTTON);
+  } catch (error) {
+    logger.error(`[TELEGRAM] Error building/sending menu reply (${action}):`, error);
+    await telegram.sendMessage(
+      chatId,
+      'Something went wrong fetching that. Please check the app instead.',
+      OPEN_APP_BUTTON,
+    ).catch((err) => logger.error('[TELEGRAM] Failed to send menu fallback message:', err));
+  }
+}
+
+// Current IST calendar month as a UTC date range — duty_date is a @db.Date
+// column, returned by Prisma as UTC midnight (see lib/time.js), so range
+// boundaries must be built with Date.UTC to match.
+function currentMonthRangeUTC(ist) {
+  return {
+    gte: new Date(Date.UTC(ist.year, ist.month - 1, 1)),
+    lte: new Date(Date.UTC(ist.year, ist.month, 0, 23, 59, 59, 999)),
+  };
+}
+
+/**
+ * "My Duty Slots" — this faculty's slots for the current IST month.
+ */
+async function buildMySlotsReply(facultyId) {
+  const ist = nowInIST();
+  const monthLabel = `${MONTH_NAMES[ist.month - 1]} ${ist.year}`;
+
+  const slots = await prisma.dutySlot.findMany({
+    where: { faculty_id: facultyId, duty_date: currentMonthRangeUTC(ist) },
+    select: { duty_date: true, session_type: true },
+    orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
+  });
+
+  if (slots.length === 0) {
+    return `📋 <b>My Duty Slots — ${monthLabel}</b>\n\nNo duty slots picked yet this month.`;
+  }
+
+  const lines = slots.map((s) => {
+    const dateLabel = new Date(s.duty_date).toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short',
+    });
+    const sessionLabel = s.session_type === 'morning' ? 'Morning' : 'Afternoon';
+    return `• ${dateLabel} (${sessionLabel})`;
+  });
+
+  return `📋 <b>My Duty Slots — ${monthLabel}</b>\n\n${lines.join('\n')}`;
+}
+
+/**
+ * "Next Duty" — the earliest upcoming scheduled slot for this faculty.
+ */
+async function buildNextDutyReply(facultyId) {
+  const ist = nowInIST();
+  const todayUTC = new Date(Date.UTC(ist.year, ist.month - 1, ist.day));
+
+  const slot = await prisma.dutySlot.findFirst({
+    where: { faculty_id: facultyId, duty_date: { gte: todayUTC }, status: 'scheduled' },
+    select: { duty_date: true, session_type: true },
+    orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
+  });
+
+  if (!slot) {
+    return '⏭️ <b>Next Duty</b>\n\nYou have no upcoming duty scheduled.';
+  }
+
+  const sessionLabel = slot.session_type === 'morning' ? 'Morning' : 'Afternoon';
+  return `⏭️ <b>Next Duty</b>\n\n${formatFriendlyDateIST(slot.duty_date)} (${sessionLabel})`;
+}
+
+/**
+ * "Scheduling Window Status" — the current IST month's CalendarConfig plus
+ * how many slots this faculty has already picked against their quota.
+ */
+async function buildWindowStatusReply(facultyId) {
+  const ist = nowInIST();
+  const monthLabel = `${MONTH_NAMES[ist.month - 1]} ${ist.year}`;
+
+  const config = await prisma.calendarConfig.findUnique({
+    where: { config_month_config_year: { config_month: ist.month, config_year: ist.year } },
+  });
+
+  if (!config) {
+    return `📅 <b>Scheduling Window — ${monthLabel}</b>\n\nThe window hasn't been configured for this month yet.`;
+  }
+
+  const pickedCount = await prisma.dutySlot.count({
+    where: { faculty_id: facultyId, duty_date: currentMonthRangeUTC(ist) },
+  });
+
+  const statusLabel = config.is_window_open ? 'Open' : 'Closed';
+  const closesLine = config.is_window_open && config.closes_at
+    ? `\n⏰ Closes: <b>${formatFriendlyDateIST(config.closes_at)}</b>`
+    : '';
+
+  return (
+    `📅 <b>Scheduling Window — ${monthLabel}</b>\n\n` +
+    `Status: <b>${statusLabel}</b>\n` +
+    `You've picked <b>${pickedCount} of ${config.sessions_per_faculty}</b> slots.` +
+    closesLine
+  );
 }
 
 /**
@@ -537,4 +703,7 @@ module.exports = {
   handleRelinkActivation,
   handlePasswordReset,
   sendTelegramMessage,
+  buildMySlotsReply,
+  buildNextDutyReply,
+  buildWindowStatusReply,
 };

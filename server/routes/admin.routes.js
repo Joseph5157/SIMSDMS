@@ -1,8 +1,16 @@
 const { Router } = require('express');
 const authenticate = require('../middleware/authenticate');
 const authorize = require('../middleware/authorize');
+const validate = require('../middleware/validate');
 const asyncHandler = require('../middleware/asyncHandler');
 const ctrl = require('../controllers/users.controller');
+// Reuses duty-timing-settings' schema rather than the deleted settings.schema.js:
+// that old schema (removed in 555b263) still validated a single shared
+// `auto_checkout_hour`/`auto_checkout_min` pair, which stopped being real
+// SystemConfig columns once ae5a603 split auto-checkout per session — it was
+// already stale before this route was dropped. Every field on SystemConfig
+// today is one of these 12 timing fields, so this is the correct current shape.
+const { updateDutyTimingSettingsSchema } = require('../schemas/duty-timing-settings.schema');
 
 const router = Router();
 
@@ -20,5 +28,8 @@ router.delete('/hard-delete/:resource/:id', asyncHandler(ctrl.hardDelete));
 
 // GET /admin/settings
 router.get('/settings', asyncHandler(ctrl.getSettings));
+
+// PATCH /admin/settings
+router.patch('/settings', validate(updateDutyTimingSettingsSchema), asyncHandler(ctrl.updateSettings));
 
 module.exports = router;

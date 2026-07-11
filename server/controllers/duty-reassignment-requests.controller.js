@@ -272,4 +272,51 @@ async function respondToRequest(req, res) {
   res.json(result.data);
 }
 
-module.exports = { createRequest, listPendingRequests, listSentRequests, respondToRequest, respondToRequestCore, getEligibleFaculty };
+// ─── PATCH /duty-reassignment-requests/:id/cancel — requester withdraws their
+// own still-pending sent request. Distinct from respondToRequest: that's the
+// target faculty deciding; this is the sender changing their mind before
+// anyone has responded. No slot/attendance re-check needed — nothing has
+// transferred yet.
+
+async function cancelRequest(req, res) {
+  const request = await prisma.dutyReassignmentRequest.findUnique({
+    where: { id: req.params.id },
+    include: {
+      dutySlot:    { select: { duty_date: true, session_type: true } },
+      fromFaculty: { select: { id: true, name: true } },
+      toFaculty:   { select: { id: true, name: true, telegram_id: true } },
+    },
+  });
+
+  if (!request) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Reassignment request not found.' });
+  }
+  if (request.from_faculty_id !== req.user.id) {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'Only the requester can cancel this request.' });
+  }
+  if (request.status !== 'pending') {
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: `Request has already been ${request.status}.` });
+  }
+
+  const updated = await prisma.dutyReassignmentRequest.update({
+    where: { id: req.params.id },
+    data: { status: 'cancelled', responded_by_id: req.user.id, response_at: new Date() },
+    include: {
+      fromFaculty: { select: { id: true, name: true } },
+      toFaculty:   { select: { id: true, name: true } },
+      dutySlot:    { select: { id: true, duty_date: true, session_type: true } },
+    },
+  });
+
+  res.json(updated);
+
+  // Fire-and-forget — never block/fail the response on a notification error.
+  if (request.toFaculty.telegram_id) {
+    const sessionLabel = request.dutySlot.session_type === 'morning' ? 'Morning' : 'Afternoon';
+    telegram.sendMessage(request.toFaculty.telegram_id,
+      `🚫 <b>Reassignment Request Withdrawn</b>\n\n${request.fromFaculty.name} withdrew their request for you to take over their duty on <b>${formatDateIST(request.dutySlot.duty_date)}</b> (${sessionLabel}).`
+    ).catch((err) => logger.warn(`[reassign-cancel-notify] to-faculty notify failed: ${err.message}`));
+  }
+}
+
+module.exports = { createRequest, listPendingRequests, listSentRequests, respondToRequest, respondToRequestCore, getEligibleFaculty, cancelRequest };

@@ -414,12 +414,12 @@ async function reassignSlot(req, res) {
     telegram.sendMessage(slot.faculty.telegram_id,
       `🔄 <b>Duty Reassigned Away</b>\n\nYour duty on <b>${dutyDate}</b> (${sessionLabel}) has been reassigned to <b>${toFaculty.name}</b> by the admin.` +
       (reason ? `\nReason: ${reason}` : '') +
-      `\n\nView your schedule: ${appUrl}/login`
+      `\n\nView your schedule: ${appUrl}/faculty/slots`
     ).catch((err) => logger.warn(`[reassign-notify] from-faculty notify failed: ${err.message}`));
   }
   if (toFaculty.telegram_id) {
     telegram.sendMessage(toFaculty.telegram_id,
-      `🔄 <b>Duty Reassigned to You</b>\n\nYou have been assigned a duty on <b>${dutyDate}</b> (${sessionLabel}) by the admin (originally assigned to ${slot.faculty.name}).\n\nView your schedule: ${appUrl}/login`
+      `🔄 <b>Duty Reassigned to You</b>\n\nYou have been assigned a duty on <b>${dutyDate}</b> (${sessionLabel}) by the admin (originally assigned to ${slot.faculty.name}).\n\nView your schedule: ${appUrl}/faculty/slots`
     ).catch((err) => logger.warn(`[reassign-notify] to-faculty notify failed: ${err.message}`));
   }
 }

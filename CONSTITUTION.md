@@ -95,7 +95,11 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Requests a duty reassignment directly from a colleague when unable to attend a duty slot — selects an eligible faculty member, who must accept before the duty transfers (Faculty-Requested Reassignment, §4). This is a dedicated request/accept workflow, not the messaging system. Admin can still reassign any duty directly and unilaterally at any time (Admin Duty Reassignment, §4) — the two methods are independent.
 - Flags their own violation records for review
 - Views own duty history, violations recorded, pending requests
-- Can send/receive internal messages
+- Can send/receive internal messages — restricted to Admin↔Faculty communication; a faculty
+  member cannot message another faculty member directly (`messages.controller.js`
+  `sendMessage` enforces this — Admin/Super Admin can message anyone). Faculty-Requested
+  Reassignment (§4) is the dedicated peer-to-peer workflow for duty handoffs, separate from
+  messaging
 - Can reset own password via Telegram bot (`/resetpassword`) if Telegram is linked
 
 ---
@@ -211,6 +215,10 @@ whose date has not passed and that has no recorded attendance can be reassigned.
 - On rejection: only the request row is marked `declined` — the duty stays with the
   original faculty, who may request a different colleague or use Method 1 via the
   Admin.
+- **The requester may cancel their own still-`pending` request** before the target
+  faculty responds — the row is marked `cancelled` and the target faculty is
+  notified via Telegram. Once a request is `approved`/`declined`/`cancelled` it is
+  final; only a fresh request can be sent after that.
 - Eligibility (scheduled / not past / no attendance) is re-checked at acceptance
   time as well as at request time, since time may have passed between the two.
 
@@ -233,10 +241,19 @@ whose date has not passed and that has no recorded attendance can be reassigned.
   rationale — confirmed intentional (2026-07) during a perf audit, not scope creep. Noting
   it explicitly here so it isn't flagged again as an unintended over-application of the
   polling pattern.
+- **Telegram bot commands beyond password reset**: `/menu` replies with a quick-status inline
+  keyboard (My Duty Slots / Next Duty / Scheduling Window Status), routed through
+  `handleMenuCallback` (`server/lib/bot.js`). `/myid` replies with the sender's Telegram chat
+  ID, for account-linking troubleshooting. Both reply to any incoming message on those exact
+  commands, independent of the `/resetpassword` flow (§4 Authentication).
 
 ### Students
 - Student data is uploaded via Excel. Upsert logic — `registration_number` is the unique key.
-- Existing records are updated, new ones created, missing ones deactivated — never deleted.
+- Existing records are updated, new ones created, missing ones deactivated — never deleted, via
+  this Excel upload/reconciliation path specifically. This is not a system-wide guarantee: Super
+  Admin has a separate, real hard-delete path (`DELETE /students/:id`, `DELETE /students/bulk`;
+  blocked if the student has violation records) — the same general Super-Admin hard-delete
+  exception as §4 Data & Safety, not a contradiction of the upload path's never-delete rule.
 - Failed upload rows are stored in `student_upload_log.errors` (JSONB).
 - Students can be promoted to the next semester/year by Admin.
 
@@ -245,7 +262,7 @@ whose date has not passed and that has no recorded attendance can be reassigned.
 - **Exception — messages**: a `messages` row is physically deleted when both `deleted_by_sender = true` and `deleted_by_receiver = true`. This is the only non-Super-Admin physical delete permitted in the system. It is intentional: retaining abandoned message rows indefinitely after both parties have dismissed them provides no audit value and would accumulate unbounded storage. The `violation_audit_log` and `admin_audit_log` tables remain fully immutable and are unaffected by this exception.
 - All tables use UUID primary keys — never sequential integers.
 - All monetary values use `DECIMAL(8,2)` — never floats.
-- Every data table has `created_at`; mutable tables also have `updated_at`. Immutable audit/cross-reference tables (`admin_audit_log`, `violation_audit_log`, `messages`, `duty_reassignments`, `telegram_relink_tokens`, `student_upload_log`) omit `updated_at` by design — rows are never updated after creation.
+- Every data table has `created_at` **except `system_config`** (single-row; only `updated_at` is tracked, no creation timestamp). Mutable tables also have `updated_at`. Immutable audit/cross-reference tables (`admin_audit_log`, `violation_audit_log`, `duty_reassignments`, `telegram_relink_tokens`, `student_upload_log`) omit `updated_at` by design — rows are never updated after creation. `messages` also has no `updated_at`, but for a different reason: its rows *are* mutated after creation (`is_read`, `read_at`, `deleted_by_sender`, `deleted_by_receiver`) — the omission just means no single last-modified timestamp is tracked, not that the row is immutable.
 
 ---
 
@@ -280,41 +297,45 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 - `violations.is_flagged` — set by Faculty to request Admin review; resolved via `flag_resolved_by` + `flag_resolved_at`
 - `violations.deleted_at` — soft-delete for the Delete action (§4 Violations); excluded from every read path across controllers, not just a display filter
 - `violations.photo_path` / `violations.photo_expires_at` — foundation columns, not used in Phase 1
+- `violations.record_status` — vestigial, same category as the photo columns above: the Hide action that used to write `hidden` here was removed (§4 Violations, replaced by Delete). No write path sets it to anything but the Prisma default (`active`) anymore, though several read paths still filter on it — kept rather than dropped since removing the column needs an accompanying migration
+- `messages` — a faculty member cannot message another faculty member; only Admin↔Faculty and Admin↔Admin/Super Admin are permitted (`messages.controller.js` `sendMessage`, §3 Faculty)
 - `duty_reassignments` — append-only history; the current owner of a slot is always `duty_slots.faculty_id`, and the latest reassignment row (if any) describes who it was moved from and by whom. Written by both reassignment methods (§4) — `reassigned_by` is the admin for Method 1, the accepting faculty for Method 2
-- `duty_reassignment_requests` — mutable workflow state (`pending` → `approved`/`declined`), not history. `status` is a plain string, not an enum, matching the Prisma model. Accepting one request auto-declines any other pending requests for the same `duty_slot_id`
+- `duty_reassignment_requests` — mutable workflow state (`pending` → `approved`/`declined`/`cancelled`), not history. `status` is a plain string, not an enum, matching the Prisma model. Accepting one request auto-declines any other pending requests for the same `duty_slot_id`. `cancelled` is set only by the original requester, only while still `pending`
 - `violation_types.is_system` — prevents deletion of built-in types
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
-- `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ auto_checkout`, per session) is enforced at the application layer (`duty-timing-settings.controller.js`), not as a DB constraint — any new code path that writes to `system_config` timing fields directly (bypassing `settingsService`) would skip this check
+- `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ auto_checkout`, per session) is enforced at the application layer via `settingsService.findOrderingViolation`, not as a DB constraint — shared by every write path onto these fields (`PATCH /duty-timing-settings` and `PATCH /admin/settings`) so neither can write out-of-order values; any new code path that writes to `system_config` timing fields directly (bypassing this check) would skip it
 
 ---
 
-## 6. API — 108 Endpoints Across 14 Modules
+## 6. API — 114 Endpoints Across 14 Modules
 
 Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2). Violations dropped from 10 to 9 endpoints (2026-07): `PATCH /:id/hide` and `GET /:id/audit-log` were removed (Hide and the per-violation Log view no longer exist anywhere in the app) and `DELETE /:id` was added (soft-delete, §4 Violations).
 
 | Module | Count | Base Path |
 |---|---|---|
 | Authentication | 3 | `/auth` |
-| Users & Accounts | 12 | `/users`, `/admin` |
+| Users & Accounts | 13 | `/users`, `/admin` |
 | Students | 10 | `/students` |
 | Duty Calendar | 8 | `/calendar` |
 | Duty Slots | 7 | `/duty-slots` |
-| Duty Attendance | 5 | `/attendance` |
+| Duty Attendance | 6 | `/attendance` |
 | Duty Timing Settings | 2 | `/duty-timing-settings` |
 | Violations | 9 | `/violations` |
-| Violation Types | 5 | `/violation-types` |
+| Violation Types | 6 | `/violation-types` |
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
-| Reports | 22 | `/reports` |
+| Reports | 24 | `/reports` |
 | Analytics | 10 | `/analytics` |
-| Duty Reassignment Requests | 5 | `/duty-reassignment-requests` |
+| Duty Reassignment Requests | 6 | `/duty-reassignment-requests` |
 
-Reports is 22 endpoints (grew 17→22 with P28 Enhanced Reports System): the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the previously JSON-only Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report.
+Three module counts above were previously wrong, undercounting real endpoints that existed but were never folded into any changelog entry: **Duty Attendance 5→6** (`GET /attendance/mine/summary`, the personalized faculty attendance-dashboard endpoint), **Violation Types 5→6** (`PATCH /violation-types/:id/reactivate`), and **Reports 22→24** (below). **Users & Accounts** is unchanged at 13 here — it already reflects the `PATCH /admin/settings` restoration from v3.13.
+
+Reports is 24 endpoints, not 22: two pre-existing JSON display routes, `GET /reports/student-violations/daily/:date` and `GET /reports/student-violations/weekly`, predate P28 and were never folded into any prior count in this file. Growth 17→24 overall: the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report.
 
 Analytics (10): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel export; see `specs/004-student-analytics-dashboard/handoff.md`).
 
-Duty Reassignment Requests (5): `POST /`, `GET /`, `GET /sent`, `GET /eligible-faculty/:dutySlotId`, `PATCH /:id` — faculty only. Implements Method 2 of §4 Duty Reassignment.
+Duty Reassignment Requests (6): `POST /`, `GET /`, `GET /sent`, `GET /eligible-faculty/:dutySlotId`, `PATCH /:id`, `PATCH /:id/cancel` — faculty only. Implements Method 2 of §4 Duty Reassignment. `PATCH /:id/cancel` lets the requester withdraw their own still-pending request (distinct from `PATCH /:id`, which is the target faculty approving/declining).
 
 Not counted above: `POST /bot/webhook/:secret` (`server/routes/bot.routes.js`) — a Telegram-facing webhook receiver, not part of the client-facing API surface this table describes.
 
@@ -373,7 +394,7 @@ Cover requests (Need Cover broadcast — later removed in favor of Admin Duty Re
 ### Phase 3 — Full System (Weeks 9–12) ✅ Built ← CURRENT (QA/UAT)
 All 16 reports, role-based dashboards, Telegram notifications, PWA polish. Remaining before production launch: UAT with staff, production sign-off.
 
-All three phases are functionally implemented in code (verified 2026-07: 17 report endpoints, Super Admin panel, PWA/Workbox config, and all 3 required cron jobs are present and passing tests). "Built" here means the code exists and is tested — it does not by itself mean UAT/staff sign-off has happened. Update this line to "Launched" once production UAT is signed off.
+All three phases are functionally implemented in code (verified 2026-07: 24 report endpoints, Super Admin panel, PWA/Workbox config, and all 4 cron jobs (§9) are present and passing tests). "Built" here means the code exists and is tested — it does not by itself mean UAT/staff sign-off has happened. Update this line to "Launched" once production UAT is signed off.
 
 ---
 
@@ -384,7 +405,9 @@ These must be implemented by end of Phase 1 for the system to function correctly
 | Job | Schedule | Action |
 |---|---|---|
 | Auto clock-out | Every 10 minutes | For each session (Morning/Afternoon) whose Admin-configured auto clock-out time has passed, set `out_time`, `auto_out = true` for any unchecked-out faculty in that session — each session evaluated independently against its own configured time (see Duty Timing Settings, §3 Admin permissions) |
+| No-show → absent | Every 10 minutes — runs at the end of the same tick as Auto clock-out (`markNoShowAbsent`, `server/lib/cron.js`), not a separate schedule | For each still-`scheduled` duty slot with no recorded attendance, once that session's auto clock-out time has passed: creates a `duty_attendance` row (`in_status = 'absent'`) and sets `duty_slots.status = 'absent'`. This is the sole path that produces absent records — reports and analytics depend on it |
 | Calendar auto-close | 23:55 IST daily | Set `is_window_open = false` on the last day of the month |
+| Daily Duty Digest | 08:00 IST daily | Sends one consolidated Telegram message per faculty member holding a scheduled duty slot that day, listing their session(s) (Morning/Afternoon/both) — a same-day heads-up ahead of the admin-configured session start time (`sendDailyDutyDigest`, `server/lib/cron.js`) |
 
 > The former hourly **Cover request expiry** job was removed together with the Need Cover / Volunteer workflow (see §4 Admin Duty Reassignment).
 
@@ -420,6 +443,10 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.15 — Updated: July 2026 (documentation-accuracy pass — no code changes. §9: added the previously-undocumented No-show → absent job (`markNoShowAbsent`, runs inside the same 10-min Auto clock-out tick) and Daily Duty Digest cron (08:00 IST). §4 Notifications: added the `/menu` and `/myid` Telegram bot commands. §6: corrected 3 wrong module counts — Duty Attendance 5→6, Violation Types 5→6, Reports 22→24 — total 110→114. §3/§5: documented the existing admin↔faculty-only messaging restriction (faculty cannot message other faculty). §5: flagged `violations.record_status` as vestigial dead weight (same category as the `photo_path` columns); corrected the blanket "every table has `created_at`" claim (`system_config` doesn't); corrected the false claim that `messages` omits `updated_at` because it's never mutated (it is — `is_read`, `read_at`, `deleted_by_sender`, `deleted_by_receiver` all change post-creation). §4 Students: clarified the "never deleted" claim is scoped to the Excel upload/reconciliation path, not a system-wide guarantee — Super Admin hard-delete is a real, separate exception. §8: fixed the Phase 3 verification note's stale counts (17→24 report endpoints, "3 required cron jobs"→4, matching the corrected §6/§9 figures above) — the "verified 2026-07" qualifier itself is still accurate and was left as-is.)*
+*Constitution version: 3.14 — Updated: July 2026 (`PATCH /admin/settings` now enforces the same `session_start < late_threshold ≤ auto_checkout` ordering invariant as `PATCH /duty-timing-settings` — the check was extracted out of `duty-timing-settings.controller.js` into `settingsService.findOrderingViolation`, a single shared function both endpoints call, so the two can't drift apart on this rule again — §5)*
+*Constitution version: 3.13 — Updated: July 2026 (restored `PATCH /admin/settings`, silently dropped in commit `42c2edb` as unrelated collateral damage — this file's own §3 line already claimed it existed. Re-registered Super-Admin-only, validated against the current `SystemConfig` shape via the existing `duty-timing-settings.schema.js` schema, since the original `settings.schema.js` it used to validate against had already gone stale — one of its fields, `auto_checkout_hour`/`auto_checkout_min`, stopped being real columns once auto-checkout was split per-session — and was deleted outright a day later. §6, Users & Accounts module 12→13 endpoints, total 109→110)*
+*Constitution version: 3.12 — Updated: July 2026 (Faculty-Requested Reassignment gained requester-side cancel — `PATCH /duty-reassignment-requests/:id/cancel` lets the original requester withdraw their own still-`pending` sent request, distinct from the target faculty's existing approve/decline via `PATCH /:id`; target faculty notified via Telegram; `duty_reassignment_requests.status` gains a fourth value, `cancelled` — §4, §5, §6, Duty Reassignment Requests module 5→6 endpoints, total 108→109)*
 *Constitution version: 3.11 — Updated: July 2026 (Faculty-Requested Reassignment notification gained inline Accept/Reject Telegram buttons, routed through the shared `respondToRequestCore` — §4 Notifications; `server/lib/telegram.js` gained `reply_markup` support plus `answerCallbackQuery`/`editMessageReplyMarkup`; `server/lib/bot.js` webhook now handles `callback_query` payloads. No new endpoints, no schema changes.)*
 *Constitution version: 3.10 — Updated: July 2026 (Violation Delete + Flagged Review workflow — §4 Violations: replaced the Hide action and per-violation Log/Audit view with Delete (soft delete via `violations.deleted_at`, excluded from every read path); Admin can delete any violation, Faculty only their own; deletion tracked in `admin_audit_log` only. The Flagged Student Violations dashboard card gained a configurable show-count (3/5/10/20) and its review popup gained registration number/course/duty date detail plus a Delete action alongside the existing Mark as Reviewed. Added `users.title` / `pending_invites.title` (salutation shown in dashboard greetings, distinct from `designation`). Added an S.No column to the faculty Student Violations table and to the Student Violation Report's Excel/PDF exports — §5, §6, Violations module 10→9 endpoints, total 109→108)*
 *Constitution version: 3.9 — Updated: July 2026 (P28 Enhanced Reports System — added PDF export via `pdfkit` alongside the existing Excel export for the Student Violation Report's five period variants (daily/weekly/monthly/yearly/overall); fixed a bug where Daily/Weekly "Excel" downloads saved a corrupt JSON-as-xlsx file; added Course/Academic Year/Violation Type/Faculty filters to the Student Violation Report, applied consistently across all five periods; closed a pre-existing gap where the Daily/Weekly report routes had no Zod query validation — §6, Reports module 17→22 endpoints, total 104→109)*

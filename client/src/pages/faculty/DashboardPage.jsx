@@ -9,7 +9,7 @@ import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
 import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
-import { useSentReassignmentRequests } from '../../hooks/useDutyReassignmentRequests';
+import { useSentReassignmentRequests, useCancelReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
 import { formatHourMin } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
@@ -206,11 +206,28 @@ export default function DashboardPage({ user }) {
   const [reassignReqSlot, setReassignReqSlot] = useState(null);
   const { data: sentRequestsData } = useSentReassignmentRequests();
   const sentRequests = sentRequestsData?.data ?? [];
+  const cancelRequest = useCancelReassignmentRequest();
 
   // Latest sent request (of any status) for a given slot, so the UI can show
   // "requested to X — pending/accepted/declined" on the upcoming-duty row.
   function sentRequestFor(slotId) {
     return sentRequests.find((r) => r.dutySlot.id === slotId);
+  }
+
+  // Mirrors the backend guard on PATCH /duty-reassignment-requests/:id/cancel
+  // (requester-only, pending-only) so the button only ever appears when the
+  // call would actually succeed.
+  function canCancel(req) {
+    return req?.status === 'pending' && req?.from_faculty_id === user?.id;
+  }
+
+  async function handleCancelRequest(id) {
+    try {
+      await cancelRequest.mutateAsync(id);
+      toast({ message: 'Reassignment request cancelled.' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed to cancel request.', type: 'error' });
+    }
   }
 
   const canDoViolation = todaySessions.some((s) => s.slot_status === 'scheduled');
@@ -428,8 +445,21 @@ export default function DashboardPage({ user }) {
                       {wasReassignedToMe(s) ? <Badge status="reassigned" /> : <Badge status={s.status} />}
                     </div>
                   </div>
-                  {/* Request reassignment — its own row so the button reads as a clear, tappable action */}
-                  {!hasPendingRequest && (
+                  {/* Request reassignment / cancel — its own row so the button reads as a clear, tappable action */}
+                  {canCancel(sentReq) ? (
+                    <div className="mt-3 pt-3 border-t border-[var(--divider)] flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="light"
+                        color="red"
+                        loading={cancelRequest.isPending}
+                        onClick={() => handleCancelRequest(sentReq.id)}
+                        styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
+                      >
+                        Cancel request
+                      </Button>
+                    </div>
+                  ) : !hasPendingRequest && (
                     <div className="mt-3 pt-3 border-t border-[var(--divider)] flex justify-end">
                       <Button
                         size="sm"

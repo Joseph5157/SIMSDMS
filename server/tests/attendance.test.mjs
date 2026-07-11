@@ -4,7 +4,7 @@ const _require = createRequire(import.meta.url);
 const prisma          = _require('../lib/prisma');
 const settingsService = _require('../services/settings.service');
 const { nowInIST }     = _require('../lib/time');
-const { getMySummary } = _require('../controllers/attendance.controller');
+const { getMySummary, checkIn } = _require('../controllers/attendance.controller');
 
 const ist = nowInIST();
 const year  = ist.year;
@@ -139,5 +139,122 @@ describe('getMySummary', () => {
         where: expect.objectContaining({ faculty_id: 'f1' }),
       }),
     );
+  });
+});
+
+describe('checkIn', () => {
+  function makeCheckInReq(dutySlotId = 'slot-1') {
+    return { params: { dutySlotId }, user: { id: 'f1', role: 'faculty' } };
+  }
+
+  function hm(mins) {
+    return { hour: Math.floor(mins / 60), min: mins % 60 };
+  }
+
+  // Offsets relative to the real current IST time (same convention as the rest of
+  // this suite / cron.test.mjs) so tests are deterministic regardless of when the
+  // suite runs — attendance.controller.js destructures `nowInIST` at import time,
+  // so spying on lib/time afterwards would not affect its already-bound reference.
+  const past90   = Math.max(0, nowMins - 90);
+  const past30   = Math.max(0, nowMins - 30);
+  const future90 = Math.min(1439, nowMins + 90);
+
+  function cfgFor({ startMins, lateMins, checkoutMins }) {
+    const start    = hm(startMins);
+    const late     = hm(lateMins);
+    const checkout = hm(checkoutMins);
+    return {
+      session_start_morning_hour:  start.hour,
+      session_start_morning_min:   start.min,
+      late_threshold_morning_hour: late.hour,
+      late_threshold_morning_min:  late.min,
+      auto_checkout_morning_hour:  checkout.hour,
+      auto_checkout_morning_min:   checkout.min,
+    };
+  }
+
+  function mockSlot(overrides = {}) {
+    vi.spyOn(prisma.dutySlot, 'findUnique').mockResolvedValue({
+      id: 'slot-1', faculty_id: 'f1', duty_date: todayUTC, session_type: 'morning', ...overrides,
+    });
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it('marks an on-time check-in as normal (now before the late threshold)', async () => {
+    mockSlot();
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: past90, lateMins: future90, checkoutMins: future90 }),
+    );
+    vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.dutyAttendance, 'create').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(201);
+    expect(res._body.in_status).toBe('normal');
+  });
+
+  it('marks a late check-in as late (now past the late threshold)', async () => {
+    mockSlot();
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: past90, lateMins: past30, checkoutMins: future90 }),
+    );
+    vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.dutyAttendance, 'create').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(201);
+    expect(res._body.in_status).toBe('late');
+  });
+
+  it('does not misfire late exactly at the late threshold (strictly-after comparison)', async () => {
+    mockSlot();
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      // Late threshold pinned to exactly "now" — resolveInStatus compares with a
+      // strict `>`, so landing exactly on the threshold must still read 'normal'.
+      cfgFor({ startMins: past90, lateMins: nowMins, checkoutMins: future90 }),
+    );
+    vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.dutyAttendance, 'create').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(201);
+    expect(res._body.in_status).toBe('normal');
+  });
+
+  it('rejects a check-in attempted before the session start time', async () => {
+    mockSlot();
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: future90, lateMins: future90, checkoutMins: future90 }),
+    );
+    const create = vi.spyOn(prisma.dutyAttendance, 'create');
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('BEFORE_SESSION_START');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a check-in attempted after the session window has closed', async () => {
+    mockSlot();
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: past90, lateMins: past90, checkoutMins: past30 }),
+    );
+    const create = vi.spyOn(prisma.dutyAttendance, 'create');
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('OUTSIDE_SESSION_WINDOW');
+    expect(create).not.toHaveBeenCalled();
   });
 });

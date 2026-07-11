@@ -24,4 +24,7 @@ router.get('/', asyncHandler(ctrl.listPendingRequests));
 // PATCH /duty-reassignment-requests/:id — Faculty responds (approve/decline)
 router.patch('/:id', validate(respondRequestSchema), asyncHandler(ctrl.respondToRequest));
 
+// PATCH /duty-reassignment-requests/:id/cancel — requester withdraws their own pending request
+router.patch('/:id/cancel', asyncHandler(ctrl.cancelRequest));
+
 module.exports = router;

@@ -53,4 +53,24 @@ function invalidateCache() {
   _cache = null;
 }
 
-module.exports = { getSettings, updateSettings, invalidateCache, DEFAULTS };
+// Session-scoped ordering invariant: session_start < late_threshold ≤
+// auto_checkout, evaluated in minutes-since-midnight against the fully
+// merged (existing + incoming) row — a partial PATCH can only be judged
+// correctly once merged. Shared by every write path onto these fields
+// (PATCH /duty-timing-settings and the generic Super-Admin PATCH
+// /admin/settings) so neither can write out-of-order values.
+function findOrderingViolation(merged) {
+  for (const session of ['morning', 'afternoon']) {
+    const start        = merged[`session_start_${session}_hour`]    * 60 + merged[`session_start_${session}_min`];
+    const lateCutoff   = merged[`late_threshold_${session}_hour`]    * 60 + merged[`late_threshold_${session}_min`];
+    const autoCheckout = merged[`auto_checkout_${session}_hour`]     * 60 + merged[`auto_checkout_${session}_min`];
+
+    if (!(start < lateCutoff && lateCutoff <= autoCheckout)) {
+      const label = session === 'morning' ? 'Morning' : 'Afternoon';
+      return `${label} cutoffs must occur in order: session start < late cutoff ≤ auto clock-out.`;
+    }
+  }
+  return null;
+}
+
+module.exports = { getSettings, updateSettings, invalidateCache, DEFAULTS, findOrderingViolation };

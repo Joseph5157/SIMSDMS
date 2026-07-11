@@ -380,7 +380,7 @@ model DutyReassignmentRequest {
   from_faculty_id String
   to_faculty_id   String
   reason          String?   @db.Text
-  status          String    @default("pending") // pending | approved | declined
+  status          String    @default("pending") // pending | approved | declined | cancelled
   responded_by_id String?
   response_at     DateTime?
   created_at      DateTime  @default(now())

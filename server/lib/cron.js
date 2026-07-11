@@ -1,8 +1,9 @@
 const cron = require('node-cron');
 const prisma = require('./prisma');
 const logger = require('./logger');
+const telegram = require('./telegram');
 const settingsService = require('../services/settings.service');
-const { nowInIST, istDayRangeUTC, istWallToUTC } = require('./time');
+const { nowInIST, istDayRangeUTC, istWallToUTC, formatDateIST } = require('./time');
 
 // All schedules fire at IST times via { timezone: 'Asia/Kolkata' }.
 // Date calculations inside each job use IST-aware helpers so they are correct
@@ -119,23 +120,33 @@ async function markNoShowAbsent(throughToday, nowMins, ist, cfg) {
 
   if (idsToMark.length === 0) return 0;
 
+  let markedCount = 0;
+
   for (const slot of idsToMark) {
-    await prisma.$transaction([
-      prisma.dutyAttendance.create({
-        data: {
-          duty_slot_id: slot.id,
-          faculty_id: slot.faculty_id,
-          in_status: 'absent',
-        },
-      }),
-      prisma.dutySlot.update({
-        where: { id: slot.id },
-        data: { status: 'absent' },
-      }),
-    ]);
+    try {
+      await prisma.$transaction([
+        prisma.dutyAttendance.create({
+          data: {
+            duty_slot_id: slot.id,
+            faculty_id: slot.faculty_id,
+            in_status: 'absent',
+          },
+        }),
+        prisma.dutySlot.update({
+          where: { id: slot.id },
+          data: { status: 'absent' },
+        }),
+      ]);
+      markedCount++;
+    } catch (err) {
+      // Isolate per-slot so one bad transaction doesn't block the rest of the
+      // batch — the query is idempotent, so a failed slot is simply retried
+      // on the next tick, but log it so a persistently-failing slot is visible.
+      logger.error(`[cron] markNoShowAbsent failed for slot ${slot.id}: ${err.message}`);
+    }
   }
 
-  return idsToMark.length;
+  return markedCount;
 }
 // ─── 3. Calendar auto-close — 23:55 IST on the last day of the month ─────────
 // Fires at 23:55 IST so faculty have the full last day to pick slots.
@@ -158,6 +169,63 @@ async function autoCloseCalendar() {
   }
 }
 
+// ─── 4. Daily duty digest — 08:00 IST ─────────────────────────────────────────
+// One consolidated Telegram message per faculty member who holds an active
+// duty slot today, sent as a same-day heads-up ahead of the (admin-configured)
+// session start time. faculty_id on DutySlot always reflects the current
+// holder (reassignment updates it in place — see schema comment on
+// DutyReassignment), so no separate "reassigned away" filtering is needed here.
+
+async function sendDailyDutyDigest() {
+  const ist = nowInIST();
+  const { gte, lte } = istDayRangeUTC(ist.year, ist.month, ist.day);
+
+  const slots = await prisma.dutySlot.findMany({
+    where: { duty_date: { gte, lte }, status: 'scheduled' },
+    select: {
+      session_type: true,
+      duty_date: true,
+      faculty: { select: { id: true, name: true, telegram_id: true } },
+    },
+  });
+
+  if (slots.length === 0) return;
+
+  const byFaculty = new Map();
+  for (const slot of slots) {
+    if (!slot.faculty.telegram_id) continue;
+    if (!byFaculty.has(slot.faculty.id)) {
+      byFaculty.set(slot.faculty.id, { faculty: slot.faculty, duty_date: slot.duty_date, sessions: [] });
+    }
+    byFaculty.get(slot.faculty.id).sessions.push(slot.session_type);
+  }
+
+  const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
+  let sentCount = 0;
+
+  for (const { faculty, duty_date, sessions } of byFaculty.values()) {
+    const sessionLabel = sessions
+      .map((s) => (s === 'morning' ? 'Morning' : 'Afternoon'))
+      .join(' & ');
+
+    const text =
+      `📌 <b>You're on duty today</b>\n\n` +
+      `You have duty on <b>${formatDateIST(duty_date)}</b> (${sessionLabel}).\n\n` +
+      `View your schedule: ${appUrl}/faculty/slots`;
+
+    try {
+      await telegram.sendMessage(faculty.telegram_id, text);
+      sentCount++;
+    } catch (err) {
+      logger.warn(`[cron] Daily duty digest send failed for faculty ${faculty.id}: ${err.message}`);
+    }
+  }
+
+  if (sentCount > 0) {
+    logger.info(`[cron] Daily duty digest: sent to ${sentCount} faculty.`);
+  }
+}
+
 // ─── Wrap jobs with error handling ────────────────────────────────────────────
 
 async function safeAutoClockOut() {
@@ -176,13 +244,22 @@ async function safeAutoCloseCalendar() {
   }
 }
 
+async function safeSendDailyDutyDigest() {
+  try {
+    await sendDailyDutyDigest();
+  } catch (err) {
+    logger.error('[cron] sendDailyDutyDigest failed:', err.message);
+  }
+}
+
 // ─── Register all jobs ────────────────────────────────────────────────────────
 
 function startCronJobs() {
   cron.schedule('*/10 * * * *', safeAutoClockOut,        { timezone: 'Asia/Kolkata' });
   cron.schedule('55 23 * * *',  safeAutoCloseCalendar,    { timezone: 'Asia/Kolkata' });
+  cron.schedule('0 8 * * *',    safeSendDailyDutyDigest,  { timezone: 'Asia/Kolkata' });
 
   logger.info('[cron] All scheduled jobs registered.');
 }
 
-module.exports = { startCronJobs, autoClockOut };
+module.exports = { startCronJobs, autoClockOut, sendDailyDutyDigest, markNoShowAbsent };

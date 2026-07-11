@@ -84,7 +84,7 @@ async function notifyAllFaculty(year, month, config) {
     `The duty slot selection window for <b>${monthLabel}</b> is now open.\n\n` +
     `You need to pick <b>${slotsLabel}</b> this month.` +
     (closesLabel ? `\n⏰ Closes: <b>${closesLabel}</b>` : '') +
-    `\n\nLog in to pick your slots: ${appUrl}/login`;
+    `\n\nPick your slots: ${appUrl}/faculty/slots`;
 
   for (const f of faculty) {
     telegram.sendMessage(f.telegram_id, text).catch((err) => {
@@ -424,4 +424,6 @@ module.exports = {
   updateSessionsPerFaculty,
   getUnassignedFaculty,
   assignSlots,
+  MONTH_NAMES,
+  formatFriendlyDateIST,
 };

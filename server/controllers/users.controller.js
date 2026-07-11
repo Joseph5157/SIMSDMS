@@ -403,8 +403,20 @@ async function getSettings(req, res) {
 }
 
 // ─── PATCH /admin/settings — Super Admin ─────────────────────────────────────
+// Shares the same system_config timing fields as PATCH /duty-timing-settings,
+// so it must enforce the same session_start < late_threshold ≤ auto_checkout
+// ordering invariant — reuses settingsService.findOrderingViolation rather
+// than re-implementing it, so the two endpoints can never drift apart.
 
 async function updateSettings(req, res) {
+  const current = await settingsService.getSettings();
+  const merged  = { ...current, ...req.body };
+
+  const violation = settingsService.findOrderingViolation(merged);
+  if (violation) {
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: violation });
+  }
+
   const settings = await settingsService.updateSettings(req.body, req.user.id);
 
   await logAction({
