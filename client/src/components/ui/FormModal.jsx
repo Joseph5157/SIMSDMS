@@ -18,6 +18,7 @@ export default function FormModal({
   submitLabel = 'Save',
   cancelLabel = 'Cancel',
   loading = false,
+  submitDisabled = false,
   error,
   size = 'md',
   formId,
@@ -74,7 +75,7 @@ export default function FormModal({
           <Button variant="default" type="button" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
-          <Button type="submit" form={id} loading={loading}>
+          <Button type="submit" form={id} loading={loading} disabled={submitDisabled}>
             {submitLabel}
           </Button>
         </Group>

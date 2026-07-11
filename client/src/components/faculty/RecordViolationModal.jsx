@@ -10,8 +10,11 @@ import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useStudentSearch } from '../../hooks/useStudents';
 
 function SectionLabel({ children }) {
+  // --color-blue-700 is theme-aware (dark navy on light cards, light blue on dark
+  // cards), so it clears WCAG AA (≥4.5:1) in both modes — the previous
+  // blue-500/70 combo computed to ~2.4:1. Keep the size ≥12px for legibility.
   return (
-    <p className="text-[length:10px] font-extrabold text-[var(--color-blue-500)]/70 uppercase tracking-[0.14em] pb-1">
+    <p className="text-[length:12px] font-extrabold text-[var(--color-blue-700)] uppercase tracking-[0.14em] pb-1">
       {children}
     </p>
   );
@@ -34,11 +37,18 @@ export default function RecordViolationModal({ open, onClose }) {
   const [studentQ, setStudentQ]   = useState('');
   const [showRemarks, setShowRemarks] = useState(false);
   const [quickAdd, setQuickAdd]   = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const studentInputRef = useRef(null);
   const { data: searchResults }   = useStudentSearch(studentQ);
   const create = useCreateViolation();
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const clearFieldError = (k) => setFieldErrors((fe) => (fe[k] ? { ...fe, [k]: undefined } : fe));
+
+  const set = (k) => (e) => {
+    setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+    clearFieldError(k);
+  };
 
   const selectedType = typesData?.data?.find(t => String(t.id) === form.violation_type_id);
   const isOthers     = selectedType?.name?.toLowerCase() === 'others';
@@ -59,6 +69,15 @@ export default function RecordViolationModal({ open, onClose }) {
   // Pre-fill duty slot if not yet set and auto-slot available
   const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
 
+  // Gate submission on the fields the server actually requires, so faculty don't burn a
+  // round trip on a 422 the client could have caught for free.
+  const canSubmit = Boolean(
+    form.student_id &&
+    effectiveDutySlotId &&
+    form.violation_type_id &&
+    (!isOthers || form.custom_violation.trim())
+  );
+
   // Auto-fill fine when type changes
   function handleTypeChange(value) {
     const type = typesData?.data?.find(t => String(t.id) === value);
@@ -67,6 +86,7 @@ export default function RecordViolationModal({ open, onClose }) {
       violation_type_id: value ?? '',
       fine_amount: type ? String(type.default_fine) : f.fine_amount,
     }));
+    clearFieldError('violation_type_id');
   }
 
   // Keyboard-aware student search dropdown (P21): track how much of the viewport
@@ -85,6 +105,9 @@ export default function RecordViolationModal({ open, onClose }) {
   }, []);
 
   async function submitViolation() {
+    if (!canSubmit) return;
+    setFormError('');
+    setFieldErrors({});
     const payload = {
       student_id: form.student_id,
       duty_slot_id: effectiveDutySlotId,
@@ -108,7 +131,22 @@ export default function RecordViolationModal({ open, onClose }) {
         onClose();
       }
     } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
+      const data = err.response?.data;
+      if (data?.errors?.length) {
+        // Server-side Zod validation — field names match this form's keys 1:1.
+        const fe = {};
+        data.errors.forEach((e) => { fe[e.field] = e.message; });
+        setFieldErrors(fe);
+        setFormError(data.message);
+        toast({ message: data.message, type: 'error' });
+      } else if (data?.message) {
+        setFormError(data.message);
+        toast({ message: data.message, type: 'error' });
+      } else {
+        const msg = 'Network error — check your connection and try again.';
+        setFormError(msg);
+        toast({ message: msg, type: 'error' });
+      }
     }
   }
 
@@ -119,6 +157,22 @@ export default function RecordViolationModal({ open, onClose }) {
 
   const formBody = (
     <div className="flex flex-col">
+
+      {/* ── Submit error ── */}
+      {formError && (
+        <div
+          style={{
+            padding: '10px 14px', marginBottom: 16,
+            background: 'var(--color-red-bg)',
+            border: '1px solid var(--color-red-border)',
+            borderRadius: 'var(--radius-lg)',
+            color: 'var(--color-red-text)',
+            fontSize: 'var(--text-card)', fontWeight: 600,
+          }}
+        >
+          ⚠️ {formError}
+        </div>
+      )}
 
       {/* ── Session status ── */}
       <div
@@ -166,8 +220,9 @@ export default function RecordViolationModal({ open, onClose }) {
           <Select
             placeholder="Select duty slot…"
             value={effectiveDutySlotId || null}
-            onChange={(value) => setForm(f => ({ ...f, duty_slot_id: value ?? '' }))}
+            onChange={(value) => { setForm(f => ({ ...f, duty_slot_id: value ?? '' })); clearFieldError('duty_slot_id'); }}
             required
+            error={fieldErrors.duty_slot_id}
             data={mySlots.map(s => ({
               value: String(s.id),
               label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
@@ -185,13 +240,21 @@ export default function RecordViolationModal({ open, onClose }) {
         <div className="relative">
           <input
             ref={studentInputRef}
-            className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 hover:border-[var(--border)] focus:bg-[var(--surface-card)] focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
-            style={{ fontSize: 16 }}
+            className="h-12 w-full rounded-xl border bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--brand)]/20"
+            style={{
+              fontSize: 16,
+              borderColor: fieldErrors.student_id ? 'var(--color-red-border)' : 'var(--border)',
+            }}
             placeholder="Search by name or reg. number…"
             value={studentQ}
-            onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); }}
+            onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); clearFieldError('student_id'); }}
             onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: 'nearest' }), 100)}
           />
+          {fieldErrors.student_id && (
+            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-text)', marginTop: 4 }}>
+              {fieldErrors.student_id}
+            </p>
+          )}
           {searchResults?.data?.length > 0 && !form.student_id && (
             <div
               className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-[var(--border)] rounded-xl divide-y divide-[var(--divider)] overflow-y-auto bg-[var(--surface-card)] shadow-lg"
@@ -228,6 +291,7 @@ export default function RecordViolationModal({ open, onClose }) {
           value={form.violation_type_id || null}
           onChange={handleTypeChange}
           required
+          error={fieldErrors.violation_type_id}
           data={(typesData?.data ?? []).map(t => ({
             value: String(t.id),
             label: `${t.name} (₹${t.default_fine})`,
@@ -239,6 +303,7 @@ export default function RecordViolationModal({ open, onClose }) {
             label="Describe violation"
             value={form.custom_violation}
             onChange={set('custom_violation')}
+            error={fieldErrors.custom_violation}
             required
           />
         )}
@@ -278,7 +343,10 @@ export default function RecordViolationModal({ open, onClose }) {
             style={{
               fontSize: 'var(--text-card)', color: 'var(--color-blue-600)',
               background: 'none', border: 'none', cursor: 'pointer',
-              padding: 0, fontWeight: 500,
+              // 6px vertical padding lifts the hit area to ≥24px (WCAG 2.5.8) —
+              // it sits right above the sticky footer, so the taller target
+              // reduces mis-taps onto the submit button.
+              padding: '6px 0', fontWeight: 500,
             }}
           >
             + Add notes (optional)
@@ -306,9 +374,9 @@ export default function RecordViolationModal({ open, onClose }) {
           <>
             <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
             <button
-              disabled={create.isPending}
+              disabled={create.isPending || !canSubmit}
               onClick={submitViolation}
-              style={primaryBtnStyle(create.isPending)}
+              style={primaryBtnStyle(create.isPending || !canSubmit)}
             >
               {create.isPending && <DrawerSpinner />}
               {create.isPending ? 'Recording…' : 'Record Student Violation'}
@@ -332,6 +400,7 @@ export default function RecordViolationModal({ open, onClose }) {
       onSubmit={handleSubmit}
       submitLabel="Record Student Violation"
       loading={create.isPending}
+      submitDisabled={!canSubmit}
     >
       {formBody}
     </FormModal>
