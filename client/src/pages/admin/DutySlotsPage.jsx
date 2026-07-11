@@ -7,6 +7,7 @@ import { useMonthSlots, useReassignSlot } from '../../hooks/useDutySlots';
 import { useMessageRecipients } from '../../hooks/useUsers';
 import { useToast } from '../../components/ui/Toast';
 import Breadcrumb from '../../components/Breadcrumb';
+import useKeyboardInset from '../../hooks/useKeyboardInset';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -67,6 +68,7 @@ export default function DutySlotsPage({ user }) {
 
   const toast = useToast();
   const reassign = useReassignSlot();
+  const kbInset = useKeyboardInset();
   // /users/directory — active users, self excluded; filter to faculty for the picker.
   const { data: facultyResp } = useMessageRecipients();
   const facultyList = (facultyResp?.data ?? []).filter((u) => u.role === 'faculty');
@@ -246,7 +248,17 @@ export default function DutySlotsPage({ user }) {
       </div>
 
       {/* Reassign Duty modal */}
-      <Modal opened={!!target} onClose={closeReassign} title="Reassign Duty" centered>
+      <Modal
+        opened={!!target}
+        onClose={closeReassign}
+        title="Reassign Duty"
+        // Top-anchored (not centered) + keyboard inset so the faculty picker and its
+        // dropdown stay above the on-screen keyboard on mobile. See useKeyboardInset.
+        styles={{
+          inner: { alignItems: 'flex-start', paddingBottom: kbInset ? kbInset + 16 : undefined },
+          content: kbInset ? { maxHeight: `calc(100dvh - ${kbInset}px - 10dvh)` } : undefined,
+        }}
+      >
         {target && (
           <div className="flex flex-col gap-3">
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-page)] p-3 text-[length:13px]">
@@ -277,6 +289,8 @@ export default function DutySlotsPage({ user }) {
               onChange={setToFacultyId}
               nothingFoundMessage="No faculty found"
               comboboxProps={{ withinPortal: false }}
+              maxDropdownHeight={200}
+              onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: 'nearest' }), 100)}
             />
 
             <Textarea

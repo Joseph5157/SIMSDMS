@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Select, Modal, Textarea, Button } from '@mantine/core';
 import Badge from '../ui/Badge';
 import { useToast } from '../ui/Toast';
+import useKeyboardInset from '../../hooks/useKeyboardInset';
 import { useEligibleFaculty, useCreateReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
 
 export default function RequestReassignmentModal({ slot, onClose }) {
   const toast = useToast();
+  const kbInset = useKeyboardInset();
   const [toFacultyId, setToFacultyId] = useState(null);
   const [reason, setReason] = useState('');
 
@@ -29,7 +31,19 @@ export default function RequestReassignmentModal({ slot, onClose }) {
   }
 
   return (
-    <Modal opened={!!slot} onClose={onClose} title="Request Duty Reassignment" centered>
+    <Modal
+      opened={!!slot}
+      onClose={onClose}
+      title="Request Duty Reassignment"
+      // Not `centered`: on mobile a vertically-centered modal drops its lower half
+      // (the colleague picker + its dropdown) behind the on-screen keyboard. Anchor
+      // to the top and reserve `kbInset` at the bottom so the field and its results
+      // list always stay in the visible area above the keyboard.
+      styles={{
+        inner: { alignItems: 'flex-start', paddingBottom: kbInset ? kbInset + 16 : undefined },
+        content: kbInset ? { maxHeight: `calc(100dvh - ${kbInset}px - 10dvh)` } : undefined,
+      }}
+    >
       {slot && (
         <div className="flex flex-col gap-3">
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-page)] p-3 text-[length:13px]">
@@ -55,6 +69,10 @@ export default function RequestReassignmentModal({ slot, onClose }) {
             disabled={eligibleLoading}
             nothingFoundMessage="No eligible faculty found for this date/session"
             comboboxProps={{ withinPortal: false }}
+            // Bound the results list so it scrolls internally instead of spilling
+            // toward (and behind) the keyboard; ensure the field is in view on focus.
+            maxDropdownHeight={200}
+            onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: 'nearest' }), 100)}
           />
 
           <Textarea

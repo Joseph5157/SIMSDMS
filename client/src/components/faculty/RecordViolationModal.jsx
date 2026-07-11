@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { TextInput, Select, Checkbox, Switch } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import FormModal from '../ui/FormModal';
@@ -8,6 +8,7 @@ import { useCreateViolation } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { useStudentSearch } from '../../hooks/useStudents';
+import useKeyboardInset from '../../hooks/useKeyboardInset';
 
 function SectionLabel({ children }) {
   // --color-blue-700 is theme-aware (dark navy on light cards, light blue on dark
@@ -91,18 +92,7 @@ export default function RecordViolationModal({ open, onClose }) {
 
   // Keyboard-aware student search dropdown (P21): track how much of the viewport
   // the on-screen keyboard covers so the results list never renders underneath it.
-  const [kbInset, setKbInset] = useState(0);
-  useEffect(() => {
-    if (!window.visualViewport) return;
-    const vv = window.visualViewport;
-    const onResize = () => setKbInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
-    };
-  }, []);
+  const kbInset = useKeyboardInset();
 
   async function submitViolation() {
     if (!canSubmit) return;
