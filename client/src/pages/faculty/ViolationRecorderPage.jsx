@@ -97,7 +97,7 @@ export default function ViolationRecorderPage({ user }) {
                 {v.is_flagged ? <Badge status="pending" label="Flagged" /> : <Badge status={v.record_status} />}
               </Td>
               <Td>
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   {!v.is_flagged && v.record_status === 'active' && (
                     <Button variant="subtle" size="xs" onClick={() => setFlagging(v)}>Flag</Button>
                   )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MantineProvider, createTheme } from '@mantine/core';
+import { MantineProvider, createTheme, Button } from '@mantine/core';
 import { ToastProvider } from './components/ui/Toast';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -63,6 +63,13 @@ const mantineTheme = createTheme({
     // --brand-gradient (indigo) and the super_admin badge (violet/purple).
     indigo: ['#eef2ff', '#e0e7ff', '#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#4338ca', '#3730a3', '#312e81'],
     violet: ['#f5f3ff', '#ede9fe', '#ddd6fe', '#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95'],
+  },
+  components: {
+    // Mantine's size ramp tops out at md=42px; xs/sm are 30/36px — all below the
+    // 44px touch-target floor. Enforce --control-min on every Button root so
+    // Flag/Delete (xs), Check In (sm) and md actions clear the minimum app-wide.
+    // Width is unaffected, so wide/fullWidth buttons look identical.
+    Button: Button.extend({ styles: { root: { minHeight: 'var(--control-min)' } } }),
   },
 });
 

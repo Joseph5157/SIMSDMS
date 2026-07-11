@@ -333,10 +333,10 @@ export default function RecordViolationModal({ open, onClose }) {
             style={{
               fontSize: 'var(--text-card)', color: 'var(--color-blue-600)',
               background: 'none', border: 'none', cursor: 'pointer',
-              // 6px vertical padding lifts the hit area to ≥24px (WCAG 2.5.8) —
-              // it sits right above the sticky footer, so the taller target
-              // reduces mis-taps onto the submit button.
-              padding: '6px 0', fontWeight: 500,
+              // Full 44px tap target (min-height + padding) — it sits right above
+              // the sticky footer, so the taller target reduces mis-taps onto the
+              // submit button. Left-aligned so the label position is unchanged.
+              minHeight: 'var(--control-min)', padding: '10px 0', textAlign: 'left', fontWeight: 500,
             }}
           >
             + Add notes (optional)

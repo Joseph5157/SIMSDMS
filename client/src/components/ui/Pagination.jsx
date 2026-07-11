@@ -8,7 +8,7 @@ function getPages(page, total) {
 }
 
 const btnBase = {
-  height: 32, minWidth: 32, border: '1px solid var(--border)',
+  height: 44, minWidth: 44, border: '1px solid var(--border)',
   borderRadius: 'var(--radius-md)', cursor: 'pointer',
   fontSize: 'var(--text-card)', fontWeight: 500,
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -25,7 +25,7 @@ export default function Pagination({ meta, page, onPage }) {
   return (
     <Group justify="space-between" pt="md" wrap="wrap" gap="xs">
       <Text size="xs" c="dimmed">Showing {from}–{to} of {meta.total}</Text>
-      <Group gap={4}>
+      <Group gap={8}>
         <button
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}

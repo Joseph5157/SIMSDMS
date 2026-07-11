@@ -93,7 +93,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
             <button
               onClick={onClose}
               aria-label="Close"
-              className="w-8 h-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-page)] flex items-center justify-center cursor-pointer text-[color:var(--text-secondary)] shrink-0 ml-3"
+              className="w-11 h-11 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-page)] flex items-center justify-center cursor-pointer text-[color:var(--text-secondary)] shrink-0 ml-3"
             >
               <X size={16} strokeWidth={2} />
             </button>

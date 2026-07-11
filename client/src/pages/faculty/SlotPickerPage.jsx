@@ -155,7 +155,7 @@ export default function SlotPickerPage({ user }) {
         {/* Month nav */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <button onClick={prevMonth} style={{
-            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+            width: 44, height: 44, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
             background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>‹</button>
@@ -163,7 +163,7 @@ export default function SlotPickerPage({ user }) {
             {MONTH_NAMES[month - 1]} {year}
           </p>
           <button onClick={nextMonth} style={{
-            width: 32, height: 32, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
+            width: 44, height: 44, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
             background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>›</button>

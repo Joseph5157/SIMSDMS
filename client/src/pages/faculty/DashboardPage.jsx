@@ -381,7 +381,8 @@ export default function DashboardPage({ user }) {
               Next 7 days
             </p>
             <button onClick={() => navigate(ROUTES.FACULTY_SLOTS)}
-              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+              // padding+negative-margin expands the tap area to ≥44px without shifting the label
+              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 8px', margin: '-13px -8px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
               All slots →
             </button>
           </div>

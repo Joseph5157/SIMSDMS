@@ -138,9 +138,9 @@ export default function AttendancePage({ user }) {
 
       {/* ── Month nav ── */}
       <div className="flex items-center justify-between mb-5">
-        <button onClick={prevMonth} className="w-8 h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">‹</button>
+        <button onClick={prevMonth} className="w-11 h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">‹</button>
         <p className="font-bold text-[15px] text-[var(--text-primary)]">{MONTH_NAMES[month - 1]} {year}</p>
-        <button onClick={nextMonth} className="w-8 h-8 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">›</button>
+        <button onClick={nextMonth} className="w-11 h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] text-[var(--text-secondary)] flex items-center justify-center text-base">›</button>
       </div>
 
       {isLoading ? (
