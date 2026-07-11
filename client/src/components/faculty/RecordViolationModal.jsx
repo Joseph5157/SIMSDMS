@@ -172,6 +172,7 @@ export default function RecordViolationModal({ open, onClose }) {
               value: String(s.id),
               label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
             }))}
+            comboboxProps={{ withinPortal: false }}
           />
         )}
       </div>
@@ -231,6 +232,7 @@ export default function RecordViolationModal({ open, onClose }) {
             value: String(t.id),
             label: `${t.name} (₹${t.default_fine})`,
           }))}
+          comboboxProps={{ withinPortal: false }}
         />
         {isOthers && (
           <TextInput
