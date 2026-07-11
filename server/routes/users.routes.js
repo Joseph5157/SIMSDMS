@@ -23,7 +23,7 @@ router.get('/directory', asyncHandler(ctrl.listDirectory));
 // GET /users/:id — Admin, Super Admin
 router.get('/:id', authorize('admin', 'super_admin'), asyncHandler(ctrl.getUser));
 
-// PATCH /users/:id/profile — All authenticated (faculty: own only; admin+ can patch anyone)
+// PATCH /users/:id/profile — All authenticated (own profile only, every role)
 router.patch('/:id/profile', validate(updateProfileSchema), asyncHandler(ctrl.updateProfile));
 
 // PATCH /users/:id/deactivate — Admin, Super Admin

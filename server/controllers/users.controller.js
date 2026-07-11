@@ -112,14 +112,14 @@ async function getUser(req, res) {
 }
 
 // ─── PATCH /users/:id/profile ─────────────────────────────────────────────────
-// Faculty can update their own profile (safe fields only). Admin+ can update anyone's basic info.
-// Security-sensitive fields (role, status, telegram fields) must use explicit endpoints.
+// Update own profile only (safe fields), for every role — per the API spec.
+// Security-sensitive fields (role, status, telegram fields, email) must use explicit endpoints.
 
 async function updateProfile(req, res) {
   const targetId = req.params.id;
-  const { role, id: actorId } = req.user;
+  const { id: actorId } = req.user;
 
-  if (role === 'faculty' && targetId !== actorId) {
+  if (targetId !== actorId) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only edit your own profile.' });
   }
 
@@ -138,13 +138,8 @@ async function updateProfile(req, res) {
     }
   }
 
-  // Admin+ can also update email (but not role/status/telegram fields)
-  if (role !== 'faculty' && 'email' in req.body) {
-    updateData.email = req.body.email;
-  }
-
   // Reject attempts to modify security-sensitive fields
-  const sensitiveFields = ['role', 'status', 'telegram_id', 'telegram_verified', 'approved_at', 'deleted_at'];
+  const sensitiveFields = ['role', 'status', 'telegram_id', 'telegram_verified', 'approved_at', 'deleted_at', 'email'];
   const attemptedSensitiveChanges = sensitiveFields.filter(f => f in req.body);
   if (attemptedSensitiveChanges.length > 0) {
     logger.warn(`[UPDATE_PROFILE] Attempted unauthorized change of fields: ${attemptedSensitiveChanges.join(', ')} for user ${targetId}`);

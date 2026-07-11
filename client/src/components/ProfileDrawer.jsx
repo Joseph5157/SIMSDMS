@@ -69,7 +69,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
           avatar:      form.avatar,
         },
       });
-      toast({ message: 'Profile updated.' });
+      toast({ message: 'Profile updated successfully' });
       onClose();
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed to update profile.', type: 'error' });

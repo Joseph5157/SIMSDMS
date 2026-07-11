@@ -14,6 +14,11 @@ export function useCurrentUser() {
       return res.data;
     },
     initialData: cachedUser,
+    // The cached snapshot is only for an instant paint on refresh (avoids a white
+    // screen flash) — mark it as already stale so a background refetch of /users/me
+    // still runs on mount instead of trusting a snapshot that may be from a different
+    // tab/session and up to staleTime old.
+    initialDataUpdatedAt: 0,
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
