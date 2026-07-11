@@ -1,5 +1,6 @@
 import { Drawer } from 'vaul';
 import { X } from 'lucide-react';
+import useKeyboardInset from '../../hooks/useKeyboardInset';
 
 // ── Spinner for primary action buttons ─────────────────────────────────────
 export function DrawerSpinner() {
@@ -49,8 +50,18 @@ export function primaryBtnStyle(disabled) {
  *   footer     — ReactNode?   sticky footer; wrap Cancel + Submit in a Fragment
  */
 export default function BottomDrawer({ open, onClose, title, subtitle, children, footer }) {
+  // Drive keyboard-aware sizing ourselves instead of relying on vaul's
+  // `repositionInputs`. Vaul mutates the drawer's inline height on every
+  // visualViewport change and toggles an internal `keyboardIsOpen` flag on each
+  // >60px jump; a multi-step Android keyboard animation flips that parity, so
+  // when a focused input blurs (e.g. tapping a search result) vaul's guard skips
+  // the height restore and the sheet stays stuck at the collapsed keyboard height
+  // — clipping every field below the fold with no way to scroll to them. Feeding
+  // `useKeyboardInset` into `bottom`/`maxHeight` is deterministic: the moment the
+  // keyboard closes (`kbInset` → 0) the overrides drop and the sheet is whole again.
+  const kbInset = useKeyboardInset();
   return (
-    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground>
+    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay
           className="fixed inset-0 z-[110]"
@@ -64,6 +75,10 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
           className="fixed bottom-0 left-0 right-0 sm:inset-0 sm:m-auto sm:w-[90vw] sm:max-w-[520px] z-[111] flex flex-col outline-none max-h-[94dvh] sm:max-h-[85dvh] rounded-t-[20px] sm:rounded-[20px] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] sm:shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
           style={{
             backgroundColor: 'var(--surface-card)',
+            // Lift the sheet above the on-screen keyboard and shrink it to the
+            // space that remains, keeping the same ~6dvh top breathing room as
+            // `max-h-[94dvh]`. No-ops on desktop where `kbInset` is always 0.
+            ...(kbInset > 0 && { bottom: kbInset, maxHeight: `calc(94dvh - ${kbInset}px)` }),
           }}
         >
 
