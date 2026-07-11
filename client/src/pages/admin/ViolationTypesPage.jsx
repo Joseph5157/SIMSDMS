@@ -86,7 +86,7 @@ export default function ViolationTypesPage({ user }) {
     );
   }
 
-  function renderMobileCard(t) {
+  function renderMobileCard(t, i) {
     return (
       <div key={t.id} style={{
         background: 'var(--surface-card)', border: '1px solid var(--border)',
@@ -95,6 +95,7 @@ export default function ViolationTypesPage({ user }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
           <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)', fontWeight: 600 }}>#{i + 1}</p>
             <p style={{ fontSize: 'var(--text-body)', fontWeight: 600, color: 'var(--text-primary)' }}>{t.name}</p>
             <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-secondary)', marginTop: 2 }}>Default fine: <strong>₹{t.default_fine}</strong></p>
           </div>
@@ -110,9 +111,10 @@ export default function ViolationTypesPage({ user }) {
     );
   }
 
-  function renderTableRow(t) {
+  function renderTableRow(t, i) {
     return (
       <tr key={t.id} style={{ opacity: t.is_active ? 1 : 0.6 }}>
+        <Td>{i + 1}</Td>
         <Td className="font-medium">{t.name}</Td>
         <Td>₹{t.default_fine}</Td>
         <Td><Badge status={t.is_active ? 'active' : 'inactive'} /></Td>
@@ -140,7 +142,7 @@ export default function ViolationTypesPage({ user }) {
             <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No student violation types yet.</p>
           </div>
         )}
-        {activeRows.map(renderMobileCard)}
+        {activeRows.map((t, i) => renderMobileCard(t, i))}
 
         {inactiveRows.length > 0 && (
           <div style={{ marginTop: 8 }}>
@@ -154,7 +156,7 @@ export default function ViolationTypesPage({ user }) {
             >
               {showDeactivated ? '▲ Hide' : '▼ Show'} deactivated ({inactiveRows.length})
             </button>
-            {showDeactivated && inactiveRows.map(renderMobileCard)}
+            {showDeactivated && inactiveRows.map((t, i) => renderMobileCard(t, i))}
           </div>
         )}
       </div>
@@ -163,13 +165,13 @@ export default function ViolationTypesPage({ user }) {
       <div className="hidden md:block">
         <Table>
           <thead>
-            <tr><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr>
+            <tr><Th>S.No</Th><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={5} message="Loading…" />}
-            {isError && <ErrorRow cols={5} onRetry={refetch} />}
-            {!isLoading && !isError && !activeRows.length && <EmptyRow cols={5} message="No student violation types yet." />}
-            {activeRows.map(renderTableRow)}
+            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {isError && <ErrorRow cols={6} onRetry={refetch} />}
+            {!isLoading && !isError && !activeRows.length && <EmptyRow cols={6} message="No student violation types yet." />}
+            {activeRows.map((t, i) => renderTableRow(t, i))}
           </tbody>
         </Table>
 
@@ -188,10 +190,10 @@ export default function ViolationTypesPage({ user }) {
             {showDeactivated && (
               <Table style={{ marginTop: 8 }}>
                 <thead>
-                  <tr><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr>
+                  <tr><Th>S.No</Th><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr>
                 </thead>
                 <tbody>
-                  {inactiveRows.map(renderTableRow)}
+                  {inactiveRows.map((t, i) => renderTableRow(t, i))}
                 </tbody>
               </Table>
             )}

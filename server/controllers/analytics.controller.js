@@ -143,17 +143,21 @@ async function computeRepeatViolators(query) {
     }),
     prisma.violation.findMany({
       where:  { ...where, student_id: { in: repeatIds } },
-      select: { student_id: true, violationType: { select: { name: true } } },
+      select: { student_id: true, created_at: true, violationType: { select: { name: true } } },
     }),
   ]);
 
   const countMap = new Map(grouped.map((g) => [g.student_id, g._count.id]));
   const typeCountByStudent = new Map();
+  const lastViolationByStudent = new Map();
   for (const v of violations) {
     if (!typeCountByStudent.has(v.student_id)) typeCountByStudent.set(v.student_id, new Map());
     const m = typeCountByStudent.get(v.student_id);
     const name = v.violationType?.name ?? 'Other';
     m.set(name, (m.get(name) ?? 0) + 1);
+
+    const prevLast = lastViolationByStudent.get(v.student_id);
+    if (!prevLast || v.created_at > prevLast) lastViolationByStudent.set(v.student_id, v.created_at);
   }
 
   const data = students
@@ -169,15 +173,21 @@ async function computeRepeatViolators(query) {
         year:                 s.year,
         violation_count:      countMap.get(s.id),
         main_issue:           mainIssue,
+        _last_violation_at:   lastViolationByStudent.get(s.id),
       };
     })
-    .sort((a, b) => b.violation_count - a.violation_count);
+    // Smart sort: total violation count descending, then most recent violation date
+    // descending as a tiebreaker. No severity criterion — violation_types has no
+    // severity field, out of scope for this batch.
+    .sort((a, b) => b.violation_count - a.violation_count || b._last_violation_at - a._last_violation_at)
+    .map(({ _last_violation_at, ...rest }) => rest);
 
   return { data, threshold };
 }
 
 // 4. Repeat Violators — students above the threshold, with their most frequent
-// violation type ("main issue"), sorted by violation count descending.
+// violation type ("main issue"), sorted by violation count descending, then by
+// most recent violation date descending as a tiebreaker.
 async function repeatViolators(req, res) {
   const { data, threshold } = await computeRepeatViolators(req.query);
   res.json({ data, total: data.length, threshold });

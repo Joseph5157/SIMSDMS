@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../utils/api';
 
-function useReport(path, params = {}) {
+function useReport(path, params = {}, options = {}) {
   return useQuery({
     queryKey: ['report', path, params],
     queryFn: async () => {
       const res = await api.get(`/reports/${path}`, { params });
       return res.data;
     },
+    ...options,
   });
 }
 
@@ -20,7 +21,7 @@ export const useStudentViolations    = (p) => useReport('student-violations',   
 export const useFacultyActivity      = (p) => useReport('faculty-activity',      p);
 export const useViolationTypeBreakdown = (p) => useReport('violation-types',   p);
 export const usePendingFines         = (p) => useReport('pending-fines',         p);
-export const useFlaggedViolations    = (p) => useReport('flagged-violations',    p);
+export const useFlaggedViolations    = (p) => useReport('flagged-violations',    p, { refetchInterval: 30_000 });
 export const useDutyCoverage         = (p) => useReport('duty-coverage',         p);
 export const useUnassignedFacultyReport = (p) => useReport('unassigned-faculty', p);
 export const useDutyReassignmentReport = (p) => useReport('duty-reassignments',  p);

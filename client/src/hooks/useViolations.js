@@ -29,6 +29,8 @@ export function useCreateViolation() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['myViolations'] });
       qc.invalidateQueries({ queryKey: ['violations'] });
+      qc.invalidateQueries({ queryKey: ['report'] });
+      qc.invalidateQueries({ queryKey: ['analytics'] });
     },
   });
 }

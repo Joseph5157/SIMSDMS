@@ -469,13 +469,16 @@ export default function ViolationsPage({ user }) {
         {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
         {isError && <ErrorBlock onRetry={refetch} />}
         {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No student violations found.</div>}
-        {data?.data?.map((v) => (
+        {data?.data?.map((v, i) => (
           <div key={v.id} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 16px', backgroundColor: 'var(--surface-card)',
             borderBottom: '1px solid var(--border)', gap: 12,
             opacity: v.record_status === 'hidden' ? 0.6 : 1,
           }}>
+            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>
+              {(page - 1) * 20 + i + 1}
+            </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -504,16 +507,17 @@ export default function ViolationsPage({ user }) {
         <Table>
           <thead>
             <tr>
-              <Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th>
+              <Th>S.No</Th><Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th>
               <Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th />
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={7} message="Loading…" />}
-            {isError && <ErrorRow cols={7} onRetry={refetch} />}
-            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={7} />}
-            {data?.data?.map((v) => (
+            {isLoading && <EmptyRow cols={8} message="Loading…" />}
+            {isError && <ErrorRow cols={8} onRetry={refetch} />}
+            {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={8} />}
+            {data?.data?.map((v, i) => (
               <tr key={v.id} className={v.is_flagged ? 'bg-[var(--color-amber-bg)]' : v.record_status === 'hidden' ? 'opacity-50' : ''}>
+                <Td>{(page - 1) * 20 + i + 1}</Td>
                 <Td>
                   <p className="font-medium text-[var(--text-primary)]">{v.student?.student_name}</p>
                   <p className="text-xs text-[var(--text-muted)]">{v.student?.registration_number}</p>

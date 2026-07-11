@@ -8,6 +8,7 @@ function useAnalytics(path, params = {}) {
       const res = await api.get(`/analytics/${path}`, { params });
       return res.data;
     },
+    refetchInterval: 30_000,
   });
 }
 

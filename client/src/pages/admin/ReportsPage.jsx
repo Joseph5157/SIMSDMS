@@ -172,10 +172,11 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
           Total outstanding: ₹{data.total_fine_amount} across {data.total} violations
         </p>
         <Table>
-          <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
+          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
           <tbody className="divide-y divide-[var(--divider)]">
-            {data.data?.map((v) => (
+            {data.data?.map((v, i) => (
               <tr key={v.id}>
+                <Td>{i + 1}</Td>
                 <Td className="font-medium">{v.student?.student_name}</Td>
                 <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
                 <Td>{v.student?.course}</Td>
@@ -195,10 +196,11 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
           <span className="text-[var(--color-emerald-solid)] font-medium">Resolved: {data.resolved_count}</span>
         </div>
         <Table>
-          <thead><tr><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
+          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
           <tbody className="divide-y divide-[var(--divider)]">
-            {data.data?.map((v) => (
+            {data.data?.map((v, i) => (
               <tr key={v.id}>
+                <Td>{i + 1}</Td>
                 <Td>{v.student?.student_name}</Td>
                 <Td>{v.faculty?.name}</Td>
                 <Td>{v.violationType?.name}</Td>
@@ -341,11 +343,12 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
     case 'student-violations': return (
       <Table>
-        <thead><tr><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
+        <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={5} />}
-          {data.data?.map((v) => (
+          {!data.data?.length && <EmptyRow cols={6} />}
+          {data.data?.map((v, i) => (
             <tr key={v.id}>
+              <Td>{i + 1}</Td>
               <Td className="font-medium">{v.student?.student_name}</Td>
               <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
               <Td>{v.violationType?.name}</Td>
