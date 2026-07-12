@@ -25,6 +25,9 @@ router.get('/', authorize('faculty', 'admin', 'super_admin'), asyncHandler(ctrl.
 // GET /violations/my — Faculty (MUST be before /:id)
 router.get('/my', authorize('faculty'), asyncHandler(ctrl.myViolations));
 
+// GET /violations/my/pdf — Faculty (own violations PDF export, filtered by duty_slot_id)
+router.get('/my/pdf', authorize('faculty'), asyncHandler(ctrl.myViolationsPdfExport));
+
 // GET /violations/:id — All Auth
 router.get('/:id', asyncHandler(ctrl.getViolation));
 

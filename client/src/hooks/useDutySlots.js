@@ -14,6 +14,18 @@ export function useMonthSlots(year, month) {
   });
 }
 
+// Every duty slot ever assigned to the current faculty member — used to
+// populate the duty-date filter on the Student Violations page.
+export function useMyDutyDates() {
+  return useQuery({
+    queryKey: ['myDutyDates'],
+    queryFn: async () => {
+      const res = await api.get('/duty-slots/mine/dates');
+      return res.data;
+    },
+  });
+}
+
 export function useAvailableSlots(year, month) {
   return useQuery({
     queryKey: ['availableSlots', year, month],

@@ -81,6 +81,24 @@ async function getMonthSlots(req, res) {
   res.json({ data: slots, total: slots.length });
 }
 
+// ─── GET /duty-slots/mine/dates — Faculty ─────────────────────────────────────
+// Past/completed duty slots assigned to the requesting faculty member, for
+// populating a duty-date filter (e.g. faculty Student Violations page).
+// Future-dated slots are excluded — they can't have violations recorded yet.
+
+async function getMyDutyDates(req, res) {
+  const today = new Date();
+  const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+  const slots = await prisma.dutySlot.findMany({
+    where: { faculty_id: req.user.id, duty_date: { lte: endOfToday } },
+    select: { id: true, duty_date: true, session_type: true },
+    orderBy: [{ duty_date: 'desc' }, { session_type: 'asc' }],
+  });
+
+  res.json({ data: slots });
+}
+
 // ─── GET /duty-slots/available/:year/:month ───────────────────────────────────
 
 async function getAvailableSlots(req, res) {
@@ -456,6 +474,7 @@ async function getReassignedAway(req, res) {
 
 module.exports = {
   getMonthSlots,
+  getMyDutyDates,
   getAvailableSlots,
   pickSlot,
   adminAssign,

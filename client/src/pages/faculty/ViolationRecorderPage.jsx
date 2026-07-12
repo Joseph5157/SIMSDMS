@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow } from '../../components/ui/Table';
-import { Button, TextInput } from '@mantine/core';
+import { Button, TextInput, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { useMyViolations, useFlagViolation, useDeleteViolation } from '../../hooks/useViolations';
+import { useMyDutyDates } from '../../hooks/useDutySlots';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
+import api from '../../utils/api';
 
 function FlagModal({ violation, onClose }) {
   const toast = useToast();
@@ -46,15 +48,51 @@ function FlagModal({ violation, onClose }) {
   );
 }
 
+function dutyDateOptionLabel(slot) {
+  const date = new Date(slot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+  const session = slot.session_type === 'morning' ? 'Morning' : 'Afternoon';
+  return `${date} – ${session} Session`;
+}
+
 export default function ViolationRecorderPage({ user }) {
   const [page, setPage]             = useState(1);
   const [showRecord, setShowRecord] = useState(false);
   const [flagging,   setFlagging]   = useState(null);
   const [deleting,   setDeleting]   = useState(null);
+  const [dutySlotId, setDutySlotId] = useState(null);
+  const [downloading, setDownloading] = useState(false);
   const toast = useToast();
 
-  const { data, isLoading } = useMyViolations({ page, limit: 20 });
+  const { data: dutyDatesData } = useMyDutyDates();
+  const dutyDateOptions = (dutyDatesData?.data ?? []).map((slot) => ({
+    value: slot.id,
+    label: dutyDateOptionLabel(slot),
+  }));
+
+  const { data, isLoading } = useMyViolations({ page, limit: 20, ...(dutySlotId && { duty_slot_id: dutySlotId }) });
   const deleteViolation = useDeleteViolation();
+
+  function handleDutyDateChange(value) {
+    setDutySlotId(value);
+    setPage(1);
+  }
+
+  async function handleDownloadPdf() {
+    setDownloading(true);
+    try {
+      const res = await api.get('/violations/my/pdf', { params: { duty_slot_id: dutySlotId }, responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'student-violations.pdf';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ message: 'Could not download report.', type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   async function handleDelete() {
     try {
@@ -73,6 +111,26 @@ export default function ViolationRecorderPage({ user }) {
         subtitle="Student violations you've recorded"
         action={<Button size="md" onClick={() => setShowRecord(true)}>+ Record Student Violation</Button>}
       />
+      <div className="flex flex-wrap items-end gap-3 mb-4">
+        <Select
+          label="Select Duty Date"
+          placeholder="All duty dates"
+          data={dutyDateOptions}
+          value={dutySlotId}
+          onChange={handleDutyDateChange}
+          clearable
+          searchable
+          className="w-full sm:w-80"
+        />
+        <Button
+          variant="light"
+          disabled={!dutySlotId || downloading}
+          loading={downloading}
+          onClick={handleDownloadPdf}
+        >
+          Download PDF Report
+        </Button>
+      </div>
       <Table>
         <thead>
           <tr>

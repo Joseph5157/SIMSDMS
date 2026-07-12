@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { isSlotToday } = require('../lib/time');
 const { logAction } = require('../services/audit.service');
+const { buildReportPdf, sendPdf } = require('../lib/pdf');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -155,7 +156,7 @@ async function listViolations(req, res) {
 // ─── GET /violations/my — Faculty ─────────────────────────────────────────────
 
 async function myViolations(req, res) {
-  const { record_status, is_flagged, page = '1', limit = '20' } = req.query;
+  const { record_status, is_flagged, duty_slot_id, page = '1', limit = '20' } = req.query;
 
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
@@ -163,6 +164,7 @@ async function myViolations(req, res) {
   const where = { faculty_id: req.user.id, deleted_at: null };
   if (record_status)    where.record_status = record_status;
   if (is_flagged !== undefined) where.is_flagged = is_flagged === 'true';
+  if (duty_slot_id)     where.duty_slot_id = duty_slot_id;
 
   const [total, violations] = await Promise.all([
     prisma.violation.count({ where }),
@@ -176,6 +178,69 @@ async function myViolations(req, res) {
   ]);
 
   res.json({ data: violations, meta: { total, page: pageNum, limit: pageSize, pages: Math.ceil(total / pageSize) } });
+}
+
+// ─── GET /violations/my/pdf — Faculty ─────────────────────────────────────────
+// Duty-date-scoped PDF export of the requesting faculty's own violations.
+// Mirrors the admin Student Violation Report PDF (reports.controller.js) but
+// scoped to one duty_slot_id and dropping the redundant "Faculty" column
+// (excludes fine_amount, same as every other student violation export).
+
+const MY_VIOLATION_PDF_COLUMNS = [
+  { header: 'S.No',                   key: 'sno',        width: 26 },
+  { header: 'Registration Number',    key: 'reg_no',     width: 95 },
+  { header: 'Student Name',           key: 'name',       width: 100 },
+  { header: 'Course',                 key: 'course',     width: 55 },
+  { header: 'Student Violation Type', key: 'type',       width: 100 },
+  { header: 'Status',                 key: 'status',     width: 55 },
+  { header: 'Duty Date',              key: 'duty_date',  width: 65 },
+  { header: 'Recorded At',            key: 'created_at', width: 70 },
+];
+
+function mapMyViolationPdfRow(v, i) {
+  return {
+    sno:        i + 1,
+    reg_no:     v.student?.registration_number,
+    name:       v.student?.student_name,
+    course:     v.student?.course,
+    type:       v.violationType?.name,
+    status:     v.is_warning_only ? 'Warning only' : (v.is_flagged ? 'Flagged' : 'Recorded'),
+    duty_date:  v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
+    created_at: new Date(v.created_at).toLocaleString('en-IN'),
+  };
+}
+
+async function myViolationsPdfExport(req, res) {
+  const { duty_slot_id } = req.query;
+  if (!duty_slot_id) {
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'duty_slot_id is required.' });
+  }
+
+  const slot = await prisma.dutySlot.findUnique({
+    where: { id: duty_slot_id },
+    include: { faculty: { select: { name: true, title: true } } },
+  });
+  if (!slot || slot.faculty_id !== req.user.id) {
+    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only download your own duty violation reports.' });
+  }
+
+  const violations = await prisma.violation.findMany({
+    where: { faculty_id: req.user.id, deleted_at: null, duty_slot_id },
+    include: VIOLATION_INCLUDE,
+    orderBy: { created_at: 'desc' },
+  });
+
+  const dutyDateStr  = new Date(slot.duty_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+  const sessionLabel = slot.session_type === 'morning' ? 'Morning' : 'Afternoon';
+  const facultyName  = `${slot.faculty.title ? slot.faculty.title + ' ' : ''}${slot.faculty.name}`;
+
+  const buffer = await buildReportPdf({
+    title:    'Student Violation Report',
+    subtitle: `Faculty: ${facultyName}\nDuty Date: ${dutyDateStr}\nSession: ${sessionLabel}`,
+    columns:  MY_VIOLATION_PDF_COLUMNS,
+    rows:     violations.map(mapMyViolationPdfRow),
+  });
+  sendPdf(res, buffer, `student-violations-${slot.duty_date.toISOString().split('T')[0]}-${sessionLabel.toLowerCase()}.pdf`);
 }
 
 // ─── GET /violations/:id — All Auth ───────────────────────────────────────────
@@ -363,6 +428,7 @@ module.exports = {
   createViolation,
   listViolations,
   myViolations,
+  myViolationsPdfExport,
   getViolation,
   editViolation,
   deleteViolation,
