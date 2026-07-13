@@ -1,7 +1,7 @@
 import { useMyViolations } from '../../hooks/useViolations';
 import StatCard from '../ui/StatCard';
-import { Table, Th, Td } from '../ui/Table';
 import Skeleton from '../ui/Skeleton';
+import MyViolationsTable from './MyViolationsTable';
 
 function isSameMonth(dateStr, now) {
   const d = new Date(dateStr);
@@ -49,34 +49,7 @@ export default function MyViolationsSummary() {
         <StatCard label="This Month" value={thisMonth} accent="green" />
       </div>
 
-      {violations.length === 0 ? (
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-dashed border-[var(--border)] px-4 py-5 text-center">
-          <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No violations recorded yet.</p>
-        </div>
-      ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Student</Th>
-              <Th>Violation Type</Th>
-              <Th>Date</Th>
-              <Th>Fine</Th>
-              <Th>Status</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {violations.map((v) => (
-              <tr key={v.id}>
-                <Td>{v.student?.student_name ?? '—'}</Td>
-                <Td>{v.violationType?.name ?? '—'}</Td>
-                <Td>{new Date(v.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Td>
-                <Td>{v.is_warning_only ? '—' : `₹${v.fine_amount}`}</Td>
-                <Td>{v.is_warning_only ? 'Warning' : 'Recorded'}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+      <MyViolationsTable />
     </div>
   );
 }
