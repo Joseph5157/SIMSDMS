@@ -2,7 +2,9 @@ const { z } = require('zod');
 
 const createViolationSchema = z.object({
   student_id:        z.string().uuid('Invalid student ID.'),
-  duty_slot_id:      z.string().uuid('Invalid duty slot ID.'),
+  // Optional: admins may record a violation with no duty slot (outside any duty
+  // session). Faculty always send it; still validated as a UUID when present.
+  duty_slot_id:      z.string().uuid('Invalid duty slot ID.').optional(),
   violation_type_id: z.string().uuid('Invalid violation type ID.'),
   custom_violation:  z.string().min(1).max(1000).optional(),
   fine_amount:       z.number().nonnegative().optional(),

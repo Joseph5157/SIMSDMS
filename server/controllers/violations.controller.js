@@ -22,7 +22,7 @@ async function auditViolation({ violationId, changedBy, changeType, oldData, new
 // Shared include for rich violation responses
 const VIOLATION_INCLUDE = {
   student:       { select: { id: true, registration_number: true, student_name: true, course: true, semester_or_year: true } },
-  faculty:       { select: { id: true, name: true, email: true, department: true } },
+  faculty:       { select: { id: true, name: true, email: true, department: true, role: true } },
   dutySlot:      { select: { id: true, duty_date: true, session_type: true } },
   violationType: { select: { id: true, name: true, default_fine: true } },
 };
@@ -44,21 +44,39 @@ function snapshotViolation(v) {
 async function createViolation(req, res) {
   const { student_id, duty_slot_id, violation_type_id, custom_violation, fine_amount, is_warning_only, remarks } = req.body;
 
-  // Verify the requesting faculty is the current owner of this slot (after any
-  // admin reassignment, faculty_id is the new owner).
-  const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
-  if (!slot || slot.faculty_id !== req.user.id) {
-    return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record student violations for your own duty slots.' });
-  }
+  // Admins have unrestricted recording authority: they oversee discipline at all
+  // times, so they may record with no duty slot, on any date, without checking in.
+  // Faculty remain gated to their own active duty session.
+  const isAdmin = req.user.role === 'admin' || req.user.role === 'super_admin';
 
-  // Reject unless faculty is actively on duty: slot must be today and the faculty
-  // must be checked in (in_time set) but not yet checked out (out_time null).
-  if (!isSlotToday(slot.duty_date)) {
-    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
-  }
-  const activeAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
-  if (!activeAttendance?.in_time || activeAttendance.out_time !== null) {
-    return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
+  // Resolve the duty slot when one is supplied (required for faculty, optional for
+  // admin). For admin ad-hoc records `resolvedDutySlotId` stays null.
+  let resolvedDutySlotId = null;
+  if (duty_slot_id) {
+    const slot = await prisma.dutySlot.findUnique({ where: { id: duty_slot_id } });
+    if (!slot) {
+      return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
+    }
+    if (!isAdmin) {
+      // Verify the requesting faculty is the current owner of this slot (after any
+      // admin reassignment, faculty_id is the new owner).
+      if (slot.faculty_id !== req.user.id) {
+        return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You can only record student violations for your own duty slots.' });
+      }
+      // Reject unless faculty is actively on duty: slot must be today and the faculty
+      // must be checked in (in_time set) but not yet checked out (out_time null).
+      if (!isSlotToday(slot.duty_date)) {
+        return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
+      }
+      const activeAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: slot.id } });
+      if (!activeAttendance?.in_time || activeAttendance.out_time !== null) {
+        return res.status(409).json({ error: true, code: 'NOT_ON_DUTY', message: 'Student violations can only be recorded during an active duty session.' });
+      }
+    }
+    resolvedDutySlotId = slot.id;
+  } else if (!isAdmin) {
+    // Faculty must always record against one of their duty slots.
+    return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'A duty slot is required to record a student violation.' });
   }
 
   // Verify student exists and is active
@@ -92,7 +110,7 @@ async function createViolation(req, res) {
     data: {
       student_id,
       faculty_id:        req.user.id,
-      duty_slot_id,
+      duty_slot_id:      resolvedDutySlotId,
       violation_type_id,
       custom_violation:  custom_violation ?? null,
       fine_amount:       resolvedFine,
@@ -116,7 +134,7 @@ async function createViolation(req, res) {
 // Faculty can only see their own violations; Admin can see all or filter by faculty
 
 async function listViolations(req, res) {
-  const { student_id, faculty_id, date, violation_type_id, record_status, is_flagged, page = '1', limit = '20' } = req.query;
+  const { student_id, faculty_id, recorded_by, date, violation_type_id, record_status, is_flagged, page = '1', limit = '20' } = req.query;
 
   const pageNum  = Math.max(1, parseInt(page, 10)  || 1);
   const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
@@ -131,11 +149,14 @@ async function listViolations(req, res) {
     where.dutySlot = { duty_date: { gte: d, lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999) } };
   }
 
-  // Authorization: Faculty can only see their own violations
+  // Authorization + recorder filter. Faculty only ever see their own records.
+  // Admins may filter by a specific recorder (faculty_id) or by the "Admin"
+  // bucket (recorded_by=admin) = every violation recorded directly by an admin.
   if (req.user.role === 'faculty') {
     where.faculty_id = req.user.id;
+  } else if (recorded_by === 'admin') {
+    where.faculty = { role: { in: ['admin', 'super_admin'] } };
   } else if (faculty_id) {
-    // Admin can filter by any faculty
     where.faculty_id = faculty_id;
   }
 

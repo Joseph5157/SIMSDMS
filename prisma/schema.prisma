@@ -268,12 +268,16 @@ model ViolationType {
 }
 
 // ─── 8. Violations ───────────────────────────────────────────────────────────
+// `faculty_id` is the *recorder* — a faculty member on duty, OR an admin who
+// recorded the violation directly (admins have unrestricted recording rights).
+// `duty_slot_id` is null for admin ad-hoc records made outside any duty session;
+// for those, the effective date is `created_at` (see reports date-filter fallback).
 
 model Violation {
   id                String       @id @default(uuid())
   student_id        String
   faculty_id        String
-  duty_slot_id      String
+  duty_slot_id      String?
   violation_type_id String
   custom_violation  String?      @db.Text
   fine_amount       Decimal      @db.Decimal(8, 2)
@@ -292,7 +296,7 @@ model Violation {
 
   student       Student       @relation(fields: [student_id], references: [id])
   faculty       User          @relation("RecordedViolations", fields: [faculty_id], references: [id])
-  dutySlot      DutySlot      @relation(fields: [duty_slot_id], references: [id])
+  dutySlot      DutySlot?     @relation(fields: [duty_slot_id], references: [id])
   violationType ViolationType @relation(fields: [violation_type_id], references: [id])
   flagResolver  User?         @relation("FlagResolvedViolations", fields: [flag_resolved_by], references: [id])
 

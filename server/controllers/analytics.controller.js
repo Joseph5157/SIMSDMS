@@ -233,14 +233,18 @@ async function facultyAnalysis(req, res) {
 
   const faculty = await prisma.user.findMany({
     where: { id: { in: grouped.map((g) => g.faculty_id) } },
-    select: { id: true, name: true, department: true },
+    select: { id: true, name: true, department: true, role: true },
   });
   const fMap = new Map(faculty.map((f) => [f.id, f]));
+
+  // A recorder may be an admin (unrestricted recording) or a faculty member.
+  // Admin recorders surface as "Admin" per the discipline-oversight model.
+  const recorderName = (u) => (u?.role === 'admin' || u?.role === 'super_admin' ? 'Admin' : u?.name ?? 'Unknown');
 
   const data = grouped
     .map((g) => ({
       faculty_id: g.faculty_id,
-      name:       fMap.get(g.faculty_id)?.name ?? 'Unknown',
+      name:       recorderName(fMap.get(g.faculty_id)),
       department: fMap.get(g.faculty_id)?.department ?? null,
       count:      g._count.id,
     }))

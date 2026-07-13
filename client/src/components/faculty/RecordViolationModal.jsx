@@ -21,7 +21,7 @@ function SectionLabel({ children }) {
   );
 }
 
-export default function RecordViolationModal({ open, onClose }) {
+export default function RecordViolationModal({ open, onClose, adminMode = false }) {
   const toast = useToast();
   const isMobile = useMediaQuery('(max-width: 639px)');
   // Duty slots/sessions are scheduled on IST calendar dates — derive "today" from
@@ -71,10 +71,11 @@ export default function RecordViolationModal({ open, onClose }) {
   const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
 
   // Gate submission on the fields the server actually requires, so faculty don't burn a
-  // round trip on a 422 the client could have caught for free.
+  // round trip on a 422 the client could have caught for free. Admins record with no
+  // duty slot, so the slot is not required in admin mode.
   const canSubmit = Boolean(
     form.student_id &&
-    effectiveDutySlotId &&
+    (adminMode || effectiveDutySlotId) &&
     form.violation_type_id &&
     (!isOthers || form.custom_violation.trim())
   );
@@ -100,7 +101,8 @@ export default function RecordViolationModal({ open, onClose }) {
     setFieldErrors({});
     const payload = {
       student_id: form.student_id,
-      duty_slot_id: effectiveDutySlotId,
+      // Admin ad-hoc records carry no duty slot; faculty always do.
+      ...(!adminMode && { duty_slot_id: effectiveDutySlotId }),
       violation_type_id: form.violation_type_id,
       is_warning_only: form.is_warning_only,
       remarks: form.remarks || undefined,
@@ -164,22 +166,38 @@ export default function RecordViolationModal({ open, onClose }) {
         </div>
       )}
 
-      {/* ── Session status ── */}
-      <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 14px', marginBottom: 16,
-          background: sessionActive ? 'var(--color-emerald-bg)' : 'var(--color-amber-bg)',
-          border: `1px solid ${sessionActive ? 'var(--color-emerald-border)' : 'var(--color-amber-border)'}`,
-          borderRadius: 'var(--radius-lg)',
-          color: sessionActive ? 'var(--color-emerald-text)' : 'var(--color-amber-text)',
-          fontSize: 'var(--text-card)', fontWeight: 600,
-        }}
-      >
-        {sessionActive
-          ? `✓ Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
-          : '⚠️ Student violations can only be recorded during an active duty session.'}
-      </div>
+      {/* ── Session status (faculty) / admin authority note (admin) ── */}
+      {adminMode ? (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', marginBottom: 16,
+            background: 'var(--color-blue-50)',
+            border: '1px solid var(--color-blue-200)',
+            borderRadius: 'var(--radius-lg)',
+            color: 'var(--color-blue-700)',
+            fontSize: 'var(--text-card)', fontWeight: 600,
+          }}
+        >
+          🛡️ Recording as Admin — no duty session required.
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', marginBottom: 16,
+            background: sessionActive ? 'var(--color-emerald-bg)' : 'var(--color-amber-bg)',
+            border: `1px solid ${sessionActive ? 'var(--color-emerald-border)' : 'var(--color-amber-border)'}`,
+            borderRadius: 'var(--radius-lg)',
+            color: sessionActive ? 'var(--color-emerald-text)' : 'var(--color-amber-text)',
+            fontSize: 'var(--text-card)', fontWeight: 600,
+          }}
+        >
+          {sessionActive
+            ? `✓ Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
+            : '⚠️ Student violations can only be recorded during an active duty session.'}
+        </div>
+      )}
 
       {/* ── Quick-add toggle ── */}
       <div className="flex items-center justify-between pb-4">
@@ -192,7 +210,9 @@ export default function RecordViolationModal({ open, onClose }) {
 
       <div className="border-t border-[var(--divider)] mb-6" />
 
-      {/* ── Duty slot (auto-selected label or dropdown) ── */}
+      {/* ── Duty slot (auto-selected label or dropdown) — faculty only. Admins
+             record with no duty slot, so this whole section is hidden. ── */}
+      {!adminMode && (
       <div className="flex flex-col gap-3 pb-6">
         <SectionLabel>Duty slot</SectionLabel>
         {autoSlot && todaySlots.length === 1 ? (
@@ -221,6 +241,7 @@ export default function RecordViolationModal({ open, onClose }) {
           />
         )}
       </div>
+      )}
 
       <div className="border-t border-[var(--divider)]" />
 

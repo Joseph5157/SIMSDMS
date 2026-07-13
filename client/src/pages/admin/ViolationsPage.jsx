@@ -8,6 +8,7 @@ import StatCard from '../../components/ui/StatCard';
 import FormModal from '../../components/ui/FormModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
+import RecordViolationModal from '../../components/faculty/RecordViolationModal';
 import { useToast } from '../../components/ui/Toast';
 import { useViolations, useDeleteViolation, useResolveFlag } from '../../hooks/useViolations';
 import { useUsers } from '../../hooks/useUsers';
@@ -27,6 +28,13 @@ import Breadcrumb from '../../components/Breadcrumb';
 
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// A violation's recorder is a faculty member on duty OR an admin who recorded it
+// directly. Admin recorders surface as "Admin"; faculty as their name.
+function recorderName(faculty) {
+  if (!faculty) return '—';
+  return faculty.role === 'admin' || faculty.role === 'super_admin' ? 'Admin' : faculty.name;
+}
 
 const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:13px]';
 
@@ -333,7 +341,7 @@ function DisciplineAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Faculty recording analysis */}
         <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
-          <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Recorded By (Faculty)</p>
+          <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Recorded By</p>
           {!facultyData?.data?.length ? (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations in this period.</p>
           ) : (
@@ -404,11 +412,20 @@ export function ResolveFlagModal({ violation, onClose }) {
 export default function ViolationsPage({ user }) {
   const toast = useToast();
   const [page, setPage]       = useState(1);
-  const [filters, setFilters] = useState({ record_status: '', is_flagged: '', faculty_id: '' });
+  // `recorder` is '' (all), 'admin' (the Admin bucket), or a faculty id.
+  const [filters, setFilters] = useState({ record_status: '', is_flagged: '', recorder: '' });
   const [resolving, setResolving] = useState(null);
   const [deleting,  setDeleting]  = useState(null);
+  const [showRecord, setShowRecord] = useState(false);
 
-  const { data, isLoading, isError, refetch } = useViolations({ ...filters, page, limit: 20 });
+  // Translate the recorder selection into the API's recorded_by / faculty_id params.
+  const query = useMemo(() => ({
+    record_status: filters.record_status,
+    is_flagged: filters.is_flagged,
+    ...(filters.recorder === 'admin' ? { recorded_by: 'admin' } : filters.recorder ? { faculty_id: filters.recorder } : {}),
+  }), [filters]);
+
+  const { data, isLoading, isError, refetch } = useViolations({ ...query, page, limit: 20 });
   const { data: facultyData } = useUsers({ role: 'faculty' });
   const deleteViolation = useDeleteViolation();
 
@@ -429,16 +446,24 @@ export default function ViolationsPage({ user }) {
 
       <DisciplineAnalytics />
 
-      <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-2">All Records</p>
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[length:13px] font-semibold text-[var(--text-primary)]">All Records</p>
+        <Button size="sm" onClick={() => setShowRecord(true)}>+ Record Student Violation</Button>
+      </div>
 
       <div className="flex flex-wrap gap-3 mb-4">
         <Select
-          w={144}
-          placeholder="All faculty"
+          w={180}
+          placeholder="All recorders"
           clearable
-          value={filters.faculty_id || null}
-          onChange={(value) => { setFilters(f => ({ ...f, faculty_id: value ?? '' })); setPage(1); }}
-          data={facultyData?.data?.map((f) => ({ value: f.id, label: f.name })) || []}
+          value={filters.recorder || null}
+          onChange={(value) => { setFilters(f => ({ ...f, recorder: value ?? '' })); setPage(1); }}
+          // "Admin" is a single bucket = every admin-recorded violation; faculty are
+          // listed individually.
+          data={[
+            { value: 'admin', label: 'Admin' },
+            ...(facultyData?.data?.map((f) => ({ value: f.id, label: f.name })) || []),
+          ]}
         />
         <Select
           w={144}
@@ -487,6 +512,9 @@ export default function ViolationsPage({ user }) {
               <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
                 {v.student?.registration_number} • {v.violationType?.name}
               </p>
+              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+                Recorded by: {recorderName(v.faculty)}
+              </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               {v.is_flagged && <Badge status="pending" label="Flagged" />}
@@ -507,7 +535,7 @@ export default function ViolationsPage({ user }) {
         <Table>
           <thead>
             <tr>
-              <Th>S.No</Th><Th>Student</Th><Th className="hidden md:table-cell">Faculty</Th>
+              <Th>S.No</Th><Th>Student</Th><Th className="hidden md:table-cell">Recorded By</Th>
               <Th>Type</Th><Th>Fine (₹)</Th><Th>Status</Th><Th>Flagged</Th><Th />
             </tr>
           </thead>
@@ -522,7 +550,7 @@ export default function ViolationsPage({ user }) {
                   <p className="font-medium text-[var(--text-primary)]">{v.student?.student_name}</p>
                   <p className="text-xs text-[var(--text-muted)]">{v.student?.registration_number}</p>
                 </Td>
-                <Td className="hidden md:table-cell">{v.faculty?.name}</Td>
+                <Td className="hidden md:table-cell">{recorderName(v.faculty)}</Td>
                 <Td>
                   {v.violationType?.name}
                   {v.custom_violation && <p className="text-xs text-[var(--text-muted)]">{v.custom_violation}</p>}
@@ -545,6 +573,8 @@ export default function ViolationsPage({ user }) {
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
+
+      <RecordViolationModal open={showRecord} onClose={() => setShowRecord(false)} adminMode />
 
       {resolving && <ResolveFlagModal violation={resolving} onClose={() => setResolving(null)} />}
       {deleting && (

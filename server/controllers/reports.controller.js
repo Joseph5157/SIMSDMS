@@ -18,24 +18,45 @@ function yearRange(year) {
   };
 }
 
+// A violation's effective date is its duty slot's duty_date, but admin ad-hoc
+// records have no slot (duty_slot_id = null) — for those the effective date is
+// created_at (the record time). This filter matches both so admin-recorded
+// violations are never silently dropped from date-scoped reports/exports.
+function violationInRange(range) {
+  return { OR: [
+    { dutySlot: { duty_date: range } },
+    { duty_slot_id: null, created_at: range },
+  ] };
+}
+
+// Recorder label — a violation is recorded by a faculty member on duty OR by an
+// admin directly. Admin recorders surface as "Admin"; faculty as their name.
+function recorderLabel(faculty) {
+  if (!faculty) return '';
+  return faculty.role === 'admin' || faculty.role === 'super_admin' ? 'Admin' : faculty.name;
+}
+
 // Shared filter builder for the student violation report + its export (and,
 // since P28, the daily/weekly variants too) — year+month = one month, year
 // alone = whole year, neither = all-time. `course`/`student_year` filter on
 // the related Student; `violation_type_id`/`faculty_id` filter on the
 // violation row directly.
-function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id }) {
+function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id, recorded_by }) {
   const where = { record_status: 'active', deleted_at: null };
   if (student_id)        where.student_id = student_id;
   if (violation_type_id) where.violation_type_id = violation_type_id;
-  if (faculty_id)         where.faculty_id = faculty_id;
+  // Recorder filter: the "Admin" bucket = every admin-recorded violation; else a
+  // specific faculty by id.
+  if (recorded_by === 'admin') where.faculty = { role: { in: ['admin', 'super_admin'] } };
+  else if (faculty_id)         where.faculty_id = faculty_id;
   if (course || student_year) {
     where.student = {
       ...(course && { course }),
       ...(student_year && { year: student_year }),
     };
   }
-  if (year && month) where.dutySlot = { duty_date: monthRange(parseInt(year, 10), parseInt(month, 10)) };
-  else if (year)     where.dutySlot = { duty_date: yearRange(parseInt(year, 10)) };
+  if (year && month) Object.assign(where, violationInRange(monthRange(parseInt(year, 10), parseInt(month, 10))));
+  else if (year)     Object.assign(where, violationInRange(yearRange(parseInt(year, 10))));
   return where;
 }
 
@@ -147,7 +168,7 @@ async function _getStudentViolations(where, { take } = {}) {
     where,
     include: {
       student:       { select: { registration_number: true, student_name: true, course: true } },
-      faculty:       { select: { name: true } },
+      faculty:       { select: { name: true, role: true } },
       violationType: { select: { name: true } },
       dutySlot:      { select: { duty_date: true } },
     },
@@ -191,8 +212,10 @@ function mapViolationExportRow(v, i) {
     course:     v.student?.course,
     type:       v.violationType?.name,
     status:     v.is_warning_only ? 'Warning only' : 'Recorded',
-    faculty:    v.faculty?.name,
-    duty_date:  v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
+    faculty:    recorderLabel(v.faculty),
+    // Admin ad-hoc records have no duty slot — fall back to the record date so the
+    // Duty Date column is never blank.
+    duty_date:  new Date(v.dutySlot?.duty_date ?? v.created_at).toLocaleDateString('en-IN'),
     created_at: new Date(v.created_at).toLocaleString('en-IN'),
   };
 }
@@ -221,7 +244,7 @@ async function dailyViolationReport(req, res) {
     lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
   };
 
-  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+  const where = { ...studentViolationWhere(req.query), ...violationInRange(range) };
   const violations = await _getStudentViolations(where);
 
   res.json({ date, data: violations, total: violations.length });
@@ -238,7 +261,7 @@ async function dailyViolationReportExport(req, res) {
     gte: d,
     lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
   };
-  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+  const where = { ...studentViolationWhere(req.query), ...violationInRange(range) };
   const violations = await _getStudentViolations(where);
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
@@ -253,7 +276,7 @@ async function weeklyViolationReport(req, res) {
 
   const range = { gte: fromDate, lte: toDate };
 
-  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: range } };
+  const where = { ...studentViolationWhere(filters), ...violationInRange(range) };
   const violations = await _getStudentViolations(where);
 
   res.json({ from_date, to_date, data: violations, total: violations.length });
@@ -265,7 +288,7 @@ async function weeklyViolationReportExport(req, res) {
   const fromDate = new Date(`${from_date}T00:00:00Z`);
   const toDate = new Date(`${to_date}T23:59:59Z`);
 
-  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: { gte: fromDate, lte: toDate } } };
+  const where = { ...studentViolationWhere(filters), ...violationInRange({ gte: fromDate, lte: toDate }) };
   const violations = await _getStudentViolations(where);
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
@@ -318,8 +341,8 @@ function mapViolationPdfRow(v, i) {
     reg_no:    v.student?.registration_number,
     course:    v.student?.course,
     type:      v.violationType?.name,
-    faculty:   v.faculty?.name,
-    duty_date: v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN') : '',
+    faculty:   recorderLabel(v.faculty),
+    duty_date: new Date(v.dutySlot?.duty_date ?? v.created_at).toLocaleDateString('en-IN'),
   };
 }
 
@@ -357,7 +380,7 @@ async function dailyViolationReportPdfExport(req, res) {
     gte: d,
     lte: new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999),
   };
-  const where = { ...studentViolationWhere(req.query), dutySlot: { duty_date: range } };
+  const where = { ...studentViolationWhere(req.query), ...violationInRange(range) };
 
   await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Daily — ${date}`, filenameSuffix: `daily-${date}` }, res);
 }
@@ -367,7 +390,7 @@ async function weeklyViolationReportPdfExport(req, res) {
   const { from_date, to_date, ...filters } = req.query;
   const fromDate = new Date(`${from_date}T00:00:00Z`);
   const toDate = new Date(`${to_date}T23:59:59Z`);
-  const where = { ...studentViolationWhere(filters), dutySlot: { duty_date: { gte: fromDate, lte: toDate } } };
+  const where = { ...studentViolationWhere(filters), ...violationInRange({ gte: fromDate, lte: toDate }) };
 
   await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Weekly — ${from_date} to ${to_date}`, filenameSuffix: `weekly-${from_date}-to-${to_date}` }, res);
 }
@@ -387,7 +410,7 @@ async function facultyViolationActivity(req, res) {
   const facultyIds = grouped.map(g => g.faculty_id);
   const faculty = await prisma.user.findMany({
     where: { id: { in: facultyIds } },
-    select: { id: true, name: true, department: true },
+    select: { id: true, name: true, department: true, role: true },
   });
   const fMap = new Map(faculty.map(f => [f.id, f]));
 
@@ -456,7 +479,7 @@ async function flaggedViolationsReport(req, res) {
     },
     include: {
       student:       { select: { student_name: true, registration_number: true, course: true } },
-      faculty:       { select: { name: true } },
+      faculty:       { select: { name: true, role: true } },
       violationType: { select: { name: true } },
       dutySlot:      { select: { duty_date: true } },
     },

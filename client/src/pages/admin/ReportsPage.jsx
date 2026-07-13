@@ -61,6 +61,13 @@ function MonthFilter({ year, month, setYear, setMonth }) {
 }
 
 // ── Report result content ──────────────────────────────────────────────────────
+// A violation's recorder is a faculty member on duty OR an admin who recorded it
+// directly. Admin recorders surface as "Admin"; faculty as their name.
+function recorderName(faculty) {
+  if (!faculty) return '—';
+  return faculty.role === 'admin' || faculty.role === 'super_admin' ? 'Admin' : faculty.name;
+}
+
 function ReportSection({ id, data, isLoading, isError, refetch }) {
   if (isLoading) return <p className="text-[length:13px] text-[var(--text-muted)]">Loading…</p>;
   if (isError)   return <ErrorBlock onRetry={refetch} />;
@@ -135,12 +142,12 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
     case 'faculty-activity': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Student Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
+        <thead><tr><Th>Recorded By</Th><Th>Dept</Th><Th>Student Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={4} />}
           {data.data?.map((r, i) => (
             <tr key={i}>
-              <Td className="font-medium">{r.faculty?.name}</Td>
+              <Td className="font-medium">{recorderName(r.faculty)}</Td>
               <Td>{r.faculty?.department ?? '—'}</Td>
               <Td>{r.violation_count}</Td>
               <Td>₹{Number(r.total_fines).toFixed(2)}</Td>
@@ -196,13 +203,13 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
           <span className="text-[var(--color-emerald-solid)] font-medium">Resolved: {data.resolved_count}</span>
         </div>
         <Table>
-          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Faculty</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
+          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Recorded By</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
           <tbody className="divide-y divide-[var(--divider)]">
             {data.data?.map((v, i) => (
               <tr key={v.id}>
                 <Td>{i + 1}</Td>
                 <Td>{v.student?.student_name}</Td>
-                <Td>{v.faculty?.name}</Td>
+                <Td>{recorderName(v.faculty)}</Td>
                 <Td>{v.violationType?.name}</Td>
                 <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
                 <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
@@ -343,7 +350,7 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
     case 'student-violations': return (
       <Table>
-        <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Faculty</Th><Th>Date</Th></tr></thead>
+        <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Recorded By</Th><Th>Date</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
           {!data.data?.length && <EmptyRow cols={6} />}
           {data.data?.map((v, i) => (
@@ -352,7 +359,7 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
               <Td className="font-medium">{v.student?.student_name}</Td>
               <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
               <Td>{v.violationType?.name}</Td>
-              <Td>{v.faculty?.name}</Td>
+              <Td>{recorderName(v.faculty)}</Td>
               <Td className="text-[length:12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
             </tr>
           ))}
@@ -390,7 +397,8 @@ function StudentViolationReportCard() {
     ...(course && { course }),
     ...(studentYear && { student_year: studentYear }),
     ...(violationTypeId && { violation_type_id: violationTypeId }),
-    ...(facultyId && { faculty_id: facultyId }),
+    // "admin" is the Admin recorder bucket; any other value is a specific faculty id.
+    ...(facultyId === 'admin' ? { recorded_by: 'admin' } : facultyId ? { faculty_id: facultyId } : {}),
   };
 
   const params = { ...(mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {}), ...filterParams };
@@ -543,7 +551,8 @@ function StudentViolationReportCard() {
           {(filterOptions?.violation_types ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
-          <option value="">All Faculty</option>
+          <option value="">All Recorders</option>
+          <option value="admin">Admin</option>
           {(facultyData?.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
       </div>
