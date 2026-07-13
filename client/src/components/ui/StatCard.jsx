@@ -69,8 +69,9 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
 
       {/* Value */}
       <p
-        className={`m-0 font-[800] leading-none tracking-[var(--tracking-tight)] ${compact ? 'text-[length:var(--text-h2)]' : 'text-[length:var(--text-stat)]'}`}
+        className={`m-0 truncate font-[800] leading-none tracking-[var(--tracking-tight)] ${compact ? 'text-[length:var(--text-h2)]' : 'text-[length:var(--text-stat)]'}`}
         style={{ color: c.text }}
+        title={typeof display === 'string' ? display : undefined}
       >
         {display}
       </p>

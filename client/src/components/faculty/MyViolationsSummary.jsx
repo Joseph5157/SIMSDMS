@@ -9,7 +9,7 @@ function isSameMonth(dateStr, now) {
 }
 
 function mostCommonType(violations) {
-  if (!violations.length) return '—';
+  if (!violations.length) return { name: '—', count: 0 };
   const counts = new Map();
   for (const v of violations) {
     const name = v.violationType?.name ?? 'Other';
@@ -19,7 +19,7 @@ function mostCommonType(violations) {
   for (const [name, count] of counts) {
     if (count > topCount) { top = name; topCount = count; }
   }
-  return top ? `${top} - ${topCount}` : '—';
+  return { name: top ?? '—', count: topCount };
 }
 
 export default function MyViolationsSummary() {
@@ -45,7 +45,7 @@ export default function MyViolationsSummary() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard label="Total Recorded" value={totalCount} accent="blue" />
         <StatCard label="Students Reported" value={studentsCount} accent="indigo" />
-        <StatCard label="Most Common" value={mostCommon} accent="yellow" />
+        <StatCard label="Most Common" value={mostCommon.name} sub={mostCommon.count ? `${mostCommon.count} case${mostCommon.count === 1 ? '' : 's'}` : undefined} accent="yellow" />
         <StatCard label="This Month" value={thisMonth} accent="green" />
       </div>
 
