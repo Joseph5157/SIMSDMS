@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 const { authCookieOptions, csrfCookieOptions, clearAuthOptions, clearCsrfOptions } = require('../lib/cookieOptions');
+const { safeUser } = require('../lib/safeUser');
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
 
@@ -65,19 +66,8 @@ async function login(req, res) {
     });
 
     const response = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      department: user.department,
-      designation: user.designation,
-      title: user.title,
-      telegram_verified: user.telegram_verified,
-      status: user.status,
+      ...safeUser(user),
       must_change_password: user.must_change_password,
-      approved_at: user.approved_at,
-      created_at: user.created_at,
     };
 
     logger.info(`[AUTH] Login successful: user=${user.id}, email=${email}, role=${user.role}`);
@@ -129,7 +119,6 @@ async function changePassword(req, res) {
         must_change_password: false,
         session_version: { increment: 1 },
       },
-      select: { id: true, role: true, session_version: true },
     });
 
     // Log password change
@@ -150,7 +139,7 @@ async function changePassword(req, res) {
     );
     res.cookie('sims_token', newToken, authCookieOptions());
 
-    res.json({ message: 'Password changed successfully.' });
+    res.json({ ...safeUser(updated), must_change_password: updated.must_change_password });
   } catch (err) {
     logger.error(`changePassword error: ${err.message}`);
     res.status(503).json({ error: true, code: 'SERVICE_UNAVAILABLE', message: 'Service temporarily unavailable. Please try again.' });

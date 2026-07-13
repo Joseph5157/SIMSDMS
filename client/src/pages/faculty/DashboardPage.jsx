@@ -278,7 +278,7 @@ export default function DashboardPage({ user }) {
       {/* ── Header — left-aligned, avatar/notifications live in the shared chrome ── */}
       <div className="mb-5 pb-4 border-b border-[var(--border)]">
         <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-          Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name?.split(' ')[0]}
+          Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
         </p>
         <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
           {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}

@@ -4,26 +4,7 @@ const settingsService = require('../services/settings.service');
 const logger = require('../lib/logger');
 const { generateTempPassword, hashPassword } = require('../lib/password');
 const telegram = require('../lib/telegram');
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const safeUser = (u) => ({
-  id: u.id,
-  name: u.name,
-  email: u.email,
-  phone: u.phone,
-  role: u.role,
-  department: u.department,
-  designation: u.designation,
-  title: u.title,
-  avatar: u.avatar,
-  telegram_id: u.telegram_id,
-  telegram_verified: u.telegram_verified,
-  status: u.status,
-  approved_at: u.approved_at,
-  created_at: u.created_at,
-  activation_notification_failed: u.activation_notification_failed,
-});
+const { safeUser } = require('../lib/safeUser');
 
 // ─── GET /users/me ─────────────────────────────────────────────────────────────
 

@@ -139,12 +139,16 @@ export default function ProfileDrawer({ open, onClose, user }) {
           </div>
         </div>
 
-        {/* Live preview */}
+        {/* Live preview — mirrors everything Save will persist: avatar, title + name, department/designation */}
         <div className="flex items-center gap-3 -mt-1">
           <UserAvatar user={{ name: form.name, avatar: form.avatar }} size={40} />
           <div className="min-w-0">
-            <p className="text-[length:var(--text-card)] font-semibold text-[color:var(--text-primary)] truncate">{form.name || 'Your name'}</p>
-            <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)]">Preview</p>
+            <p className="text-[length:var(--text-card)] font-semibold text-[color:var(--text-primary)] truncate">
+              {form.title ? `${form.title} ` : ''}{form.name || 'Your name'}
+            </p>
+            <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] truncate">
+              {[form.designation, form.department].filter(Boolean).join(' · ') || 'Preview'}
+            </p>
           </div>
         </div>
 

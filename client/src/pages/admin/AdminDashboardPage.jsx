@@ -84,7 +84,7 @@ export default function AdminDashboardPage({ user }) {
         style={{ background: 'var(--brand-gradient-deep)', boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)' }}>
         <div className="min-w-0">
           <p className="text-[length:var(--text-h2)] font-extrabold leading-tight text-white truncate">
-            Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name?.split(' ')[0]}
+            Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
           </p>
           <p className="text-[length:var(--text-small)] mt-0.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
             {dateStr} · SIMS DMS Admin
