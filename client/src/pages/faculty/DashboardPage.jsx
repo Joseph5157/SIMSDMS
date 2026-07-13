@@ -104,6 +104,10 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
               Check Out
             </Button>
           </>
+        ) : session.slot_status === 'absent' ? (
+          <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)' }}>
+            ● Marked absent — the check-in window for this session has closed.
+          </p>
         ) : (
           <>
             <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>

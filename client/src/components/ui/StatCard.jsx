@@ -41,7 +41,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } } : undefined}
-      className={`relative rounded-[var(--radius-xl)] overflow-hidden ${compact ? '' : 'min-h-24'} flex flex-col justify-start ${compact ? 'gap-0.5' : 'gap-2'} font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''}`}
+      className={`relative rounded-[var(--radius-xl)] overflow-hidden min-w-0 ${compact ? '' : 'min-h-24'} flex flex-col justify-start ${compact ? 'gap-0.5' : 'gap-2'} font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''}`}
       style={{
         border: `1px solid ${c.border}`,
         backgroundColor: tonal ? c.fill : c.bg,

@@ -39,7 +39,7 @@ export function Th({ children, className }) {
 export function Td({ children, className }) {
   return (
     <MTable.Td
-      className={['text-[13px] text-[color:var(--text-secondary)] px-4 py-2.5 border-b border-b-[var(--divider)]', className].filter(Boolean).join(' ')}
+      className={['text-[13px] text-[color:var(--text-secondary)] px-4 py-2.5 border-b border-b-[var(--divider)] whitespace-nowrap', className].filter(Boolean).join(' ')}
     >
       {children}
     </MTable.Td>
