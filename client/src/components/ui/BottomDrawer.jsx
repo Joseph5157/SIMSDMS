@@ -48,12 +48,12 @@ export function primaryBtnStyle(disabled) {
  *   subtitle   — string?      optional secondary line
  *   children   — ReactNode    scrollable body content
  *   footer     — ReactNode?   sticky footer; wrap Cancel + Submit in a Fragment
- *   modal      — boolean      default true. Set false to release vaul's focus
- *                             trap while a higher overlay (portaled outside the
- *                             drawer) owns focus — otherwise Radix's FocusScope
- *                             steals focus back and the mobile keyboard flickers.
+ *
+ * NOTE: do NOT thread vaul's `modal` prop through as a *dynamic* value — vaul's
+ * Drawer.Overlay calls a hook after an `if (!modal) return null`, so toggling it
+ * after mount renders fewer hooks and crashes React (#300). It must stay static.
  */
-export default function BottomDrawer({ open, onClose, title, subtitle, children, footer, modal = true }) {
+export default function BottomDrawer({ open, onClose, title, subtitle, children, footer }) {
   // Drive keyboard-aware sizing ourselves instead of relying on vaul's
   // `repositionInputs`. Vaul mutates the drawer's inline height on every
   // visualViewport change and toggles an internal `keyboardIsOpen` flag on each
@@ -65,7 +65,7 @@ export default function BottomDrawer({ open, onClose, title, subtitle, children,
   // keyboard closes (`kbInset` → 0) the overrides drop and the sheet is whole again.
   const kbInset = useKeyboardInset();
   return (
-    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground repositionInputs={false} modal={modal}>
+    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay
           className="fixed inset-0 z-[110]"

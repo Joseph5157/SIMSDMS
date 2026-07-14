@@ -386,9 +386,6 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
           open={open}
           onClose={onClose}
           title="Record Student Violation"
-          // Release the drawer's focus trap while the search overlay is open so
-          // it doesn't steal focus from the overlay input (mobile keyboard).
-          modal={!searchOpen}
           footer={
             <>
               <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
