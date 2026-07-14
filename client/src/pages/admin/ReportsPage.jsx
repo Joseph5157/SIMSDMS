@@ -12,6 +12,7 @@ import {
 } from '../../hooks/useReports';
 import { useAnalyticsFilterOptions } from '../../hooks/useAnalytics';
 import { useUsers } from '../../hooks/useUsers';
+import { useStudentSearch } from '../../hooks/useStudents';
 import { useToast } from '../../components/ui/Toast';
 import api from '../../utils/api';
 import Breadcrumb from '../../components/Breadcrumb';
@@ -582,6 +583,214 @@ function StudentViolationReportCard() {
   );
 }
 
+// ── Individual Student Violation Report — full violation history for one student ──
+// Reuses the same /reports/student-violations endpoints as the main card, scoped
+// to a single student_id (studentViolationWhere already supports it), so PDF/Excel
+// exports carry the identical no-Fine column set.
+function IndividualStudentReportCard() {
+  const toast = useToast();
+  const now = new Date();
+  const [student, setStudent] = useState(null); // { id, student_name, registration_number, course, academic_year }
+  const [query, setQuery]     = useState('');
+  const [mode, setMode]       = useState('overall');
+  const [year, setYear]       = useState(now.getFullYear());
+  const [month, setMonth]     = useState(now.getMonth() + 1);
+  const [dailyDate, setDailyDate] = useState(now.toISOString().split('T')[0]);
+  const [weeklyFromDate, setWeeklyFromDate] = useState(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString().split('T')[0]);
+  const [weeklyToDate, setWeeklyToDate] = useState(now.toISOString().split('T')[0]);
+  const [downloading, setDownloading] = useState(false);
+
+  const { data: searchData, isLoading: searching } = useStudentSearch(query);
+  const results = searchData?.data ?? [];
+
+  // Every query below is gated on a selected student so we never fetch all-students data.
+  const sid = student?.id ?? null;
+  const filterParams = sid ? { student_id: sid } : {};
+  const params = { ...(mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {}), ...filterParams };
+
+  // Gate the fetch on a selected student so we never pull the all-students report.
+  const { data, isLoading, isError, refetch } =
+    useStudentViolations(params, { enabled: !!sid && mode !== 'daily' && mode !== 'weekly' });
+  const { data: dailyData, isLoading: dailyLoading, isError: dailyError, refetch: refetchDaily } =
+    useDailyViolationReport(sid && mode === 'daily' ? dailyDate : null, filterParams);
+  const { data: weeklyData, isLoading: weeklyLoading, isError: weeklyError, refetch: refetchWeekly } =
+    useWeeklyViolationReport(sid && mode === 'weekly' ? weeklyFromDate : null, sid && mode === 'weekly' ? weeklyToDate : null, filterParams);
+
+  async function handleDownload(format = 'xlsx') {
+    if (!student) return;
+    setDownloading(true);
+    try {
+      const variant = format === 'pdf' ? 'pdf' : 'export';
+      let endpoint, downloadParams, filename;
+      const reg = student.registration_number;
+
+      if (mode === 'daily') {
+        endpoint = `/reports/student-violations/daily/${dailyDate}/${variant}`;
+        downloadParams = filterParams;
+        filename = `student-${reg}-daily-${dailyDate}`;
+      } else if (mode === 'weekly') {
+        endpoint = `/reports/student-violations/weekly/${variant}`;
+        downloadParams = { from_date: weeklyFromDate, to_date: weeklyToDate, ...filterParams };
+        filename = `student-${reg}-weekly-${weeklyFromDate}-to-${weeklyToDate}`;
+      } else {
+        endpoint = `/reports/student-violations/${variant}`;
+        downloadParams = params;
+        const suffix = mode === 'monthly' ? `${year}-${String(month).padStart(2, '0')}` : mode === 'yearly' ? String(year) : 'all-time';
+        filename = `student-${reg}-${suffix}`;
+      }
+
+      const res = await api.get(endpoint, { params: downloadParams, responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ message: 'Could not download report.', type: 'error' });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const hasRows =
+    mode === 'daily'  ? !!dailyData?.data?.length :
+    mode === 'weekly' ? !!weeklyData?.data?.length :
+    !!data?.data?.length;
+  const busy =
+    mode === 'daily'  ? dailyLoading :
+    mode === 'weekly' ? weeklyLoading :
+    isLoading;
+
+  return (
+    <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-2xl p-5 mb-8">
+      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+        <div>
+          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--text-muted)] mb-1">By student</p>
+          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">🎓 Individual Student Violation Report</h2>
+          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">Complete violation history for one student — for counselling, parent meetings, and reviews</p>
+        </div>
+        <div className="shrink-0 flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleDownload('xlsx')}
+            disabled={!student || downloading || busy || !hasRows}
+            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+          >
+            {downloading ? 'Preparing…' : '⬇ Excel'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDownload('pdf')}
+            disabled={!student || downloading || busy || !hasRows}
+            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {downloading ? 'Preparing…' : '⬇ PDF'}
+          </button>
+        </div>
+      </div>
+
+      {/* Student search-and-pick */}
+      {!student ? (
+        <div className="relative mb-5 max-w-md">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search student by name or registration number…"
+            className={`${selectCls} w-full`}
+            style={{ fontSize: 16 }}
+          />
+          {query.trim().length >= 2 && (
+            <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-card)] shadow-[var(--shadow-dropdown)]">
+              {searching && <p className="px-3 py-2 text-[length:13px] text-[var(--text-muted)]">Searching…</p>}
+              {!searching && !results.length && <p className="px-3 py-2 text-[length:13px] text-[var(--text-muted)]">No students found.</p>}
+              {results.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { setStudent(s); setQuery(''); }}
+                  className="block w-full text-left px-3 py-2 hover:bg-[var(--surface-page)] border-b border-[var(--divider)] last:border-b-0"
+                >
+                  <span className="text-[length:13px] font-medium text-[var(--text-primary)]">{s.student_name}</span>
+                  <span className="text-[length:12px] text-[var(--text-muted)] ml-2">{s.registration_number} · {s.course}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 mb-5 flex-wrap">
+          <div className="rounded-lg border border-[var(--brand)] bg-[var(--color-blue-50)] px-3 py-2">
+            <span className="text-[length:13px] font-semibold text-[var(--text-primary)]">{student.student_name}</span>
+            <span className="text-[length:12px] text-[var(--text-muted)] ml-2">{student.registration_number} · {student.course}{student.academic_year ? ` · ${student.academic_year}` : ''}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setStudent(null); setQuery(''); }}
+            className="text-[length:13px] font-semibold text-[var(--brand)] cursor-pointer bg-transparent border-none"
+          >
+            Change student
+          </button>
+        </div>
+      )}
+
+      {student && (
+        <>
+          {/* Mode switcher */}
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall History']].map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+                  mode === m
+                    ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
+                    : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Date pickers depending on mode */}
+          {mode !== 'overall' && (
+            <div className="flex gap-2 mb-5 flex-wrap">
+              {(mode === 'monthly' || mode === 'yearly') && (
+                <>
+                  <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
+                  </select>
+                  {mode === 'monthly' && (
+                    <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                      {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                    </select>
+                  )}
+                </>
+              )}
+              {mode === 'daily' && (
+                <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
+              )}
+              {mode === 'weekly' && (
+                <>
+                  <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
+                  <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
+                </>
+              )}
+            </div>
+          )}
+
+          {mode === 'daily'  && <ReportSection id="student-violations" data={dailyData}  isLoading={dailyLoading}  isError={dailyError}  refetch={refetchDaily} />}
+          {mode === 'weekly' && <ReportSection id="student-violations" data={weeklyData} isLoading={weeklyLoading} isError={weeklyError} refetch={refetchWeekly} />}
+          {mode !== 'daily' && mode !== 'weekly' && <ReportSection id="student-violations" data={data} isLoading={isLoading} isError={isError} refetch={refetch} />}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Report view (runs the hook for selected report) ────────────────────────────
 const NO_MONTH = ['pending-fines','flagged-violations','upload-history','active-students','completion-rate'];
 
@@ -636,9 +845,10 @@ export default function ReportsPage({ user }) {
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Reports' }]} />
-      <PageHeader title="Reports" subtitle="1 primary report + 15 secondary reports" />
+      <PageHeader title="Reports" subtitle="2 primary reports + 15 secondary reports" />
 
       <StudentViolationReportCard />
+      <IndividualStudentReportCard />
 
       <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] mb-3">
         Secondary reports

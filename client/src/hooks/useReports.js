@@ -17,7 +17,7 @@ export const useLateArrivals         = (p) => useReport('late-arrivals',        
 export const useAbsentFaculty        = (p) => useReport('absent-faculty',        p);
 export const useAutoClockOut         = (p) => useReport('auto-clockout',         p);
 export const useAttendanceOverrides  = (p) => useReport('attendance-overrides',  p);
-export const useStudentViolations    = (p) => useReport('student-violations',    p);
+export const useStudentViolations    = (p, o) => useReport('student-violations',  p, o);
 export const useFacultyActivity      = (p) => useReport('faculty-activity',      p);
 export const useViolationTypeBreakdown = (p) => useReport('violation-types',   p);
 export const usePendingFines         = (p) => useReport('pending-fines',         p);
