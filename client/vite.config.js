@@ -24,10 +24,14 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
-          // API routes — network-first so data stays fresh; fall back to cache on failure
+          // API routes — network-first so data stays fresh; fall back to cache on failure.
+          // /auth/* and /users/me are deliberately excluded: serving a cached
+          // /users/me (possibly from a previous user's session) on a slow network
+          // breaks login/identity — those must always hit the network.
           {
             urlPattern: ({ url }) => {
-              const api = ['/auth', '/users', '/admin', '/students', '/calendar',
+              if (url.pathname.startsWith('/auth') || url.pathname === '/users/me') return false;
+              const api = ['/users', '/admin', '/students', '/calendar',
                            '/duty-slots', '/attendance', '/violations', '/violation-types',
                            '/messages', '/reports', '/health', '/invites'];
               return api.some(p => url.pathname.startsWith(p));

@@ -25,17 +25,6 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    // Handle 403 CSRF/auth errors on login by clearing cookies and retrying once
-    if (err.response?.status === 403 && window.location.pathname === '/login') {
-      if (!err.config?._csrfRetried) {
-        // Clear stale cookies and retry once
-        document.cookie = 'sims_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'sims_csrf=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        err.config._csrfRetried = true;
-        return api.request(err.config);
-      }
-    }
-
     if (err.response?.status === 401 && window.location.pathname !== '/login') {
       window.location.href = '/login';
     }

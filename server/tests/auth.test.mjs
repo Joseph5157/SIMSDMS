@@ -152,13 +152,17 @@ describe('changePassword', () => {
 
   it('successfully changes password when password_hash exists and current_password is correct', async () => {
     prisma.user.findUnique.mockResolvedValue(userWithPassword);
+    prisma.user.update.mockResolvedValue({ ...userWithPassword, must_change_password: false, session_version: 2, role: 'faculty' });
     bcrypt.compare.mockResolvedValue(true);
     const req = makeReq({ current_password: 'oldpassword', new_password: 'newpassword123' });
     req.user = { id: userWithPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(200);
-    expect(res._body.message).toMatch(/password changed successfully/i);
+    // Response is the safeUser shape (spec 017) — no message field, never password_hash
+    expect(res._body.id).toBe(userWithPassword.id);
+    expect(res._body.must_change_password).toBe(false);
+    expect(res._body.password_hash).toBeUndefined();
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: userWithPassword.id },
@@ -172,12 +176,15 @@ describe('changePassword', () => {
 
   it('successfully changes password when password_hash is null (first-time set)', async () => {
     prisma.user.findUnique.mockResolvedValue(userWithoutPassword);
+    prisma.user.update.mockResolvedValue({ ...userWithoutPassword, must_change_password: false, session_version: 2, role: 'faculty' });
     const req = makeReq({ current_password: '', new_password: 'newpassword123' });
     req.user = { id: userWithoutPassword.id, role: 'faculty' };
     const res = makeRes();
     await changePassword(req, res);
     expect(res._status).toBe(200);
-    expect(res._body.message).toMatch(/password changed successfully/i);
+    expect(res._body.id).toBe(userWithoutPassword.id);
+    expect(res._body.must_change_password).toBe(false);
+    expect(res._body.password_hash).toBeUndefined();
     expect(bcrypt.compare).not.toHaveBeenCalled();
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({

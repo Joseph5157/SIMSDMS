@@ -55,15 +55,21 @@ async function login(req, res) {
     res.cookie('sims_token', token, authCookieOptions());
     res.cookie('sims_csrf', csrfToken, csrfCookieOptions());
 
-    // Log successful login
+    // Log successful login — non-fatal: cookies are already set above, so an
+    // audit-insert hiccup must not turn a successful login into a 503 (the user
+    // would see an error while actually being logged in).
     const { logAction } = require('../services/audit.service');
-    await logAction({
-      actorId: user.id,
-      action: 'PASSWORD_LOGIN',
-      targetId: user.id,
-      targetType: 'user',
-      metadata: { email },
-    });
+    try {
+      await logAction({
+        actorId: user.id,
+        action: 'PASSWORD_LOGIN',
+        targetId: user.id,
+        targetType: 'user',
+        metadata: { email },
+      });
+    } catch (auditErr) {
+      logger.warn(`[AUTH] login audit log failed (login still succeeded): ${auditErr.message}`);
+    }
 
     const response = {
       ...safeUser(user),
@@ -121,15 +127,20 @@ async function changePassword(req, res) {
       },
     });
 
-    // Log password change
+    // Log password change — non-fatal: the password is already updated, so an
+    // audit-insert hiccup must not report failure for a change that succeeded.
     const { logAction } = require('../services/audit.service');
-    await logAction({
-      actorId: userId,
-      action: 'PASSWORD_CHANGED',
-      targetId: userId,
-      targetType: 'user',
-      metadata: { changed_by: 'self' },
-    });
+    try {
+      await logAction({
+        actorId: userId,
+        action: 'PASSWORD_CHANGED',
+        targetId: userId,
+        targetType: 'user',
+        metadata: { changed_by: 'self' },
+      });
+    } catch (auditErr) {
+      logger.warn(`[AUTH] password-change audit log failed (change still succeeded): ${auditErr.message}`);
+    }
 
     // Reissue JWT with new session_version so the current session stays valid
     const newToken = jwt.sign(

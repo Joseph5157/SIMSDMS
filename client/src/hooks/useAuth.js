@@ -33,6 +33,11 @@ export function useLogin() {
     onSuccess: (res) => {
       saveUserToStorage(res.data);
       qc.setQueryData(['currentUser'], res.data);
+      // Drop the service-worker API cache so responses cached under a previous
+      // user's session can never be served into this one on a flaky network.
+      if ('caches' in window) {
+        caches.delete('sims-api').catch(() => {});
+      }
     },
   });
 }

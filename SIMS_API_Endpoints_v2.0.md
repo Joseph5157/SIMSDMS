@@ -29,6 +29,16 @@ Version 2.2 | REST API | Node.js + Express | JWT Auth
 >   `PATCH /:id/cancel` and `PATCH /:id/reject` respectively (same controller function,
 >   unused by the frontend). Total corrected 97 → 95.
 
+> **Changes from v2.2 (2026-07-14 — login-flakiness fix):**
+> - `POST /auth/login` marked CSRF-exempt in Module 1 — a stale `sims_token` cookie could
+>   previously 403-block every login attempt (the double-submit CSRF check ran even though
+>   login isn't an authenticated-session action). No endpoint added/removed; behavior-only fix.
+> - `authenticate` middleware now clears `sims_token`/`sims_csrf` on every 401 instead of
+>   leaving them for the client (which cannot clear the httpOnly `sims_token` itself).
+> - Login/change-password audit logging (`admin_audit_log`) is now best-effort — no longer
+>   fails the auth response on a transient audit-insert error.
+> - See `specs/001-auth-user-accounts/handoff.md` (2026-07-14) for full detail.
+
 ---
 
 ## Legend & Global Rules
@@ -47,10 +57,17 @@ Version 2.2 | REST API | Node.js + Express | JWT Auth
 > Email + password login. JWT + CSRF token issued and stored in httpOnly cookies on success.
 > Telegram plays no role in login — see Module 11 for how Telegram is used (account
 > activation) and Module 2 for the Super Admin password-reset notification channel.
+>
+> **Login is CSRF-exempt** (2026-07-14 fix) — it authenticates by credentials, not by an
+> existing session, so a stale `sims_token` cookie from a previous session can never 403-block
+> a fresh login. Any 401 from `authenticate` middleware (expired JWT, revoked session) clears
+> both auth cookies server-side, since `sims_token` is httpOnly and client JS cannot clear it.
+> Audit-log writes on login/change-password are best-effort — a transient audit-insert failure
+> no longer fails an otherwise-successful login or password change.
 
 | Method | Endpoint | Access | Description |
 |--------|----------|--------|-------------|
-| POST | /auth/login | Public | Authenticate with email + password → issue JWT + CSRF cookies |
+| POST | /auth/login | Public (CSRF-exempt) | Authenticate with email + password → issue JWT + CSRF cookies |
 | POST | /auth/change-password | All Auth | Change own password (skips current-password check on first-time set) |
 | POST | /auth/logout | All Auth | Clear JWT + CSRF cookies and invalidate session |
 

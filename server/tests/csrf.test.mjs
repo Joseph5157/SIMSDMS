@@ -34,6 +34,17 @@ describe('CSRF middleware', () => {
     expect(nextCalled).toBe(true);
   });
 
+  it('exempts POST /auth/login even when a stale sims_token cookie is present', () => {
+    const req = {
+      method: 'POST',
+      path: '/auth/login',
+      cookies: { sims_token: 'stale-jwt-here' }, // no sims_csrf cookie at all
+      headers: {},
+    };
+    csrf(req, makeRes(), next);
+    expect(nextCalled).toBe(true);
+  });
+
   it('returns 403 CSRF_MISSING when authenticated but no CSRF tokens provided', () => {
     const req = {
       method: 'POST',

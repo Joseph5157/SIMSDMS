@@ -44,12 +44,16 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      if (err.response?.status === 429) {
-        setError('Too many login attempts. Please wait and try again.');
-      } else if (err.response?.status === 503) {
-        setError('Service temporarily unavailable. Please try again.');
-      } else {
+      if (!err.response) {
+        setError("Can't reach the server. Check your connection and try again.");
+      } else if (err.response.status === 401) {
         setError('Invalid email or password. Please try again.');
+      } else if (err.response.status === 429) {
+        setError('Too many login attempts. Please wait and try again.');
+      } else {
+        // 5xx / unexpected — show the server's message so real outages aren't
+        // mislabeled as wrong credentials.
+        setError(err.response.data?.message || 'Something went wrong. Please try again.');
       }
     }
   };
