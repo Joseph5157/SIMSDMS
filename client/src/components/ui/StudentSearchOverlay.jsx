@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDebouncedValue } from '@mantine/hooks';
+import { FocusScope } from '@radix-ui/react-focus-scope';
 import { useStudentSearch } from '../../hooks/useStudents';
 import useKeyboardInset from '../../hooks/useKeyboardInset';
 
@@ -8,6 +9,24 @@ const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Phar
 
 function courseLabel(course) {
   return COURSE_LABELS[course] ?? course ?? '';
+}
+
+// Wraps children in a trapped Radix FocusScope only when `active`; otherwise
+// renders them untouched. Used to pause a Radix parent's focus trap (vaul) on
+// mobile without interfering with a Mantine parent on desktop.
+function MaybeFocusScope({ active, children }) {
+  if (!active) return children;
+  return (
+    <FocusScope
+      asChild
+      trapped
+      loop
+      onMountAutoFocus={(e) => e.preventDefault()}
+      onUnmountAutoFocus={(e) => e.preventDefault()}
+    >
+      {children}
+    </FocusScope>
+  );
 }
 
 /**
@@ -29,8 +48,14 @@ function courseLabel(course) {
  *              flushSync) so the mobile soft keyboard actually appears — a plain
  *              effect-based focus runs after the gesture and iOS keeps the
  *              keyboard closed.
+ *  - pauseParentTrap: wrap the panel in a Radix FocusScope so it pauses the
+ *              parent popup's Radix focus trap (the vaul BottomDrawer on mobile),
+ *              which otherwise steals focus from the input and flickers the
+ *              keyboard. Only pass this when the parent is Radix-based (mobile);
+ *              a Mantine parent (desktop) manages this itself via trapFocus and a
+ *              nested FocusScope would fight it.
  */
-export default function StudentSearchOverlay({ open, onClose, onSelect, inputRef: externalRef }) {
+export default function StudentSearchOverlay({ open, onClose, onSelect, inputRef: externalRef, pauseParentTrap = false }) {
   const [q, setQ] = useState('');
   // Debounce so we don't fire a request on every keystroke (large student DBs).
   const [debouncedQ] = useDebouncedValue(q, 250);
@@ -78,6 +103,13 @@ export default function StudentSearchOverlay({ open, onClose, onSelect, inputRef
       aria-modal="true"
       aria-label="Select student"
     >
+      {/* On mobile, FocusScope(trapped) registers on Radix's focus-scope stack and
+          PAUSES the parent vaul drawer's trap so it can't steal focus from the
+          input — that steal was raising then dismissing the keyboard.
+          onMountAutoFocus is prevented so our flushSync focus (in the opener)
+          keeps the input, not the back button. Desktop skips this: the Mantine
+          parent isn't on Radix's stack, so a nested FocusScope would fight it. */}
+      <MaybeFocusScope active={pauseParentTrap}>
       <div
         className="flex flex-col w-full h-full bg-[var(--surface-card)] overflow-hidden sm:h-auto sm:max-h-[82vh] sm:w-[560px] sm:rounded-2xl sm:shadow-2xl"
         style={{ height: '100dvh' }}
@@ -154,6 +186,7 @@ export default function StudentSearchOverlay({ open, onClose, onSelect, inputRef
           </div>
         </div>
       </div>
+      </MaybeFocusScope>
     </div>,
     document.body,
   );

@@ -376,6 +376,9 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       onClose={() => setSearchOpen(false)}
       onSelect={handleSelectStudent}
       inputRef={searchInputRef}
+      // Only pause the parent focus trap on mobile (vaul/Radix). On desktop the
+      // parent is a Mantine modal, handled via its own trapFocus below.
+      pauseParentTrap={isMobile}
     />
   );
 
@@ -420,7 +423,6 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         submitLabel="Record Student Violation"
         loading={create.isPending}
         submitDisabled={!canSubmit}
-        trapFocus={!searchOpen}
       >
         {formBody}
       </FormModal>
