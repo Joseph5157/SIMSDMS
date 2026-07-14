@@ -5,7 +5,7 @@ import { Table, Th, Td, EmptyRow, ErrorRow } from '../../components/ui/Table';
 import { Button, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
-import { ResolveFlagModal } from './ViolationsPage';
+import ResolveFlagModal from '../../components/admin/ResolveFlagModal';
 import { useFlaggedViolations } from '../../hooks/useReports';
 import { useDeleteViolation } from '../../hooks/useViolations';
 import { useToast } from '../../components/ui/Toast';

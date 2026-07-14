@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
-import { Button, TextInput, Select } from '@mantine/core';
+import { Button, Select } from '@mantine/core';
 import { LineChart, BarChart } from '@mantine/charts';
 import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
-import FormModal from '../../components/ui/FormModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
 import { useToast } from '../../components/ui/Toast';
-import { useViolations, useDeleteViolation, useResolveFlag } from '../../hooks/useViolations';
+import { useViolations, useDeleteViolation } from '../../hooks/useViolations';
+import { ROUTES } from '../../utils/constants';
 import { useUsers } from '../../hooks/useUsers';
 import {
   useAnalyticsSummary,
@@ -369,53 +370,12 @@ function DisciplineAnalytics() {
   );
 }
 
-export function ResolveFlagModal({ violation, onClose, zIndex }) {
-  const toast = useToast();
-  const resolve = useResolveFlag();
-  const [reason, setReason] = useState('');
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      await resolve.mutateAsync({ id: violation.id, reason });
-      toast({ message: 'Flag resolved.' });
-      onClose();
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    }
-  }
-
-  return (
-    <FormModal
-      opened={!!violation}
-      onClose={onClose}
-      title="Resolve Flag"
-      size="sm"
-      onSubmit={handleSubmit}
-      submitLabel="Resolve"
-      loading={resolve.isPending}
-      zIndex={zIndex}
-    >
-      <div className="text-[length:13px] text-[var(--text-secondary)] rounded-lg p-3"
-        style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>
-        <strong>Flag note:</strong> {violation?.flag_note}
-      </div>
-      <TextInput
-        label="Resolution note"
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        required
-      />
-    </FormModal>
-  );
-}
-
 export default function ViolationsPage({ user }) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [page, setPage]       = useState(1);
   // `recorder` is '' (all), 'admin' (the Admin bucket), or a faculty id.
   const [filters, setFilters] = useState({ record_status: '', is_flagged: '', recorder: '' });
-  const [resolving, setResolving] = useState(null);
   const [deleting,  setDeleting]  = useState(null);
   const [showRecord, setShowRecord] = useState(false);
 
@@ -443,7 +403,7 @@ export default function ViolationsPage({ user }) {
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Student Violations' }]} />
-      <PageHeader title="Student Discipline Analytics" subtitle="Violation patterns, repeat offenders, and record management" />
+      <PageHeader title="Student Violations" subtitle="Violation patterns, repeat offenders, and record management" />
 
       <DisciplineAnalytics />
 
@@ -523,7 +483,7 @@ export default function ViolationsPage({ user }) {
             </div>
             <div style={{ display: 'flex', gap: 2, flexShrink: 0, marginLeft: 4 }}>
               {v.is_flagged && !v.flag_resolved_at && (
-                <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Resolve</Button>
+                <Button variant="subtle" size="xs" onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)}>Review</Button>
               )}
               <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(v)}>Delete</Button>
             </div>
@@ -562,7 +522,7 @@ export default function ViolationsPage({ user }) {
                 <Td>
                   <div className="flex gap-1">
                     {v.is_flagged && !v.flag_resolved_at && (
-                      <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Resolve</Button>
+                      <Button variant="subtle" size="xs" onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)}>Review</Button>
                     )}
                     <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(v)}>Delete</Button>
                   </div>
@@ -577,7 +537,6 @@ export default function ViolationsPage({ user }) {
 
       <RecordViolationModal open={showRecord} onClose={() => setShowRecord(false)} adminMode />
 
-      {resolving && <ResolveFlagModal violation={resolving} onClose={() => setResolving(null)} />}
       {deleting && (
         <ConfirmDialog
           open

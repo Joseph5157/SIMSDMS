@@ -3,14 +3,9 @@ import Layout, { Card, CardHeader, CardBody } from '../../components/Layout';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
-import { Modal } from '@mantine/core';
-import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import { useUsers } from '../../hooks/useUsers';
 import { useLiveAttendance } from '../../hooks/useAttendance';
 import { useFlaggedViolations, useDutyReassignmentReport } from '../../hooks/useReports';
-import { useDeleteViolation } from '../../hooks/useViolations';
-import { useToast } from '../../components/ui/Toast';
-import { ResolveFlagModal } from './ViolationsPage';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
@@ -26,23 +21,11 @@ const QUICK_ACTIONS = [
 
 export default function AdminDashboardPage({ user }) {
   const navigate = useNavigate();
-  // Which summary-card detail modal is open: 'faculty' | 'reassignments' | 'flagged' | null
-  const [activeModal, setActiveModal] = useState(null);
-  const [resolvingViolation, setResolvingViolation] = useState(null);
-  const [deletingFlagged, setDeletingFlagged] = useState(null);
+  // Active Faculty, Reassignments, and Flagged used to each have their own
+  // duplicate detail modal here — removed in favor of linking to the real
+  // Attendance / Reports / Flagged Violations pages that already show the
+  // same (and more complete) data.
   const [flaggedShowCount, setFlaggedShowCount] = useState(5);
-  const toast = useToast();
-  const deleteViolation = useDeleteViolation();
-
-  async function handleDeleteFlagged() {
-    try {
-      await deleteViolation.mutateAsync({ id: deletingFlagged.id });
-      toast({ message: 'Student violation deleted.' });
-      setDeletingFlagged(null);
-    } catch (err) {
-      toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
-    }
-  }
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -71,10 +54,6 @@ export default function AdminDashboardPage({ user }) {
   const allFlaggedViolations = (flagged?.data ?? []).filter((v) => v.is_flagged);
   const pendingFlaggedViolations = allFlaggedViolations.slice(0, flaggedShowCount);
   const hasFlagged = pendingFlaggedCount > 0;
-
-  // Active faculty merged with today's live duty/attendance, for the "Active Faculty" detail modal.
-  const activeFacultyList = (allUsers?.data ?? [])
-    .map((f) => ({ ...f, todaySlot: liveSlots.find((s) => s.faculty?.id === f.id) ?? null }));
 
   return (
     <Layout user={user}>
@@ -113,12 +92,12 @@ export default function AdminDashboardPage({ user }) {
       {/* ── KPI hierarchy — hero (Active Faculty) leads, supporting stats recede ── */}
       {!isLoading && (
         <div className="grid grid-cols-3 md:grid-cols-[1.7fr_1fr_1fr_1fr] gap-2 md:gap-3 mb-4">
-          {/* Hero — clickable: opens the Active Faculty detail modal */}
+          {/* Hero — clickable: goes to the Live Attendance page (same faculty/duty data) */}
           <div
             role="button"
             tabIndex={0}
-            onClick={() => setActiveModal('faculty')}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveModal('faculty'); } }}
+            onClick={() => navigate(ROUTES.ADMIN_ATTENDANCE)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(ROUTES.ADMIN_ATTENDANCE); } }}
             className="col-span-3 md:col-span-1 rounded-[var(--radius-xl)] p-4 flex flex-col justify-center border cursor-pointer transition-transform hover:-translate-y-px"
             style={{
               background: 'linear-gradient(135deg, var(--color-blue-50), var(--color-indigo-bg))',
@@ -140,10 +119,10 @@ export default function AdminDashboardPage({ user }) {
             sub={pendingCount > 0 ? 'Needs action' : 'All clear'} icon={<IconHourglass size={14} stroke={1.75} />}
             onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending')} />
           <StatCard tonal compact label="Reassignments"    value={reassignmentCount}     accent="indigo" icon={<IconRefresh size={14} stroke={1.75} />}
-            sub="This month" onClick={() => setActiveModal('reassignments')} />
+            sub="This month" onClick={() => navigate(ROUTES.ADMIN_REPORTS)} />
           <StatCard tonal compact label="Flagged"          value={pendingFlaggedCount}   accent="red"
             sub={pendingFlaggedCount > 0 ? 'Awaiting review' : 'None pending'} icon={<IconFlag size={14} stroke={1.75} />}
-            onClick={() => setActiveModal('flagged')} />
+            onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)} />
         </div>
       )}
 
@@ -351,148 +330,6 @@ export default function AdminDashboardPage({ user }) {
         </div>
       </div>
       </div>{/* /max-width wrapper */}
-
-      {/* ── Active Faculty detail modal ── */}
-      <Modal opened={activeModal === 'faculty'} onClose={() => setActiveModal(null)} title="Active Faculty" size="lg" centered>
-        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
-          {!activeFacultyList.length ? (
-            <p style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No active faculty.</p>
-          ) : (
-            activeFacultyList.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-[var(--radius-lg)] border border-[var(--border)]">
-                <div className="min-w-0 flex-1">
-                  <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>{f.name}</p>
-                  <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
-                    {f.department ?? '—'}
-                    {f.todaySlot ? ` · ${f.todaySlot.session_type} session` : ' · No duty today'}
-                  </p>
-                  {f.todaySlot && (f.todaySlot.in_time || f.todaySlot.out_time) && (
-                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {f.todaySlot.in_time ? `In ${new Date(f.todaySlot.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                      {f.todaySlot.out_time ? ` · Out ${new Date(f.todaySlot.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                    </p>
-                  )}
-                </div>
-                <Badge status={f.todaySlot ? f.todaySlot.attendance_status : 'not_checked_in'} label={f.todaySlot ? undefined : 'No duty today'} />
-              </div>
-            ))
-          )}
-        </div>
-      </Modal>
-
-      {/* ── Reassignments detail modal ── */}
-      <Modal opened={activeModal === 'reassignments'} onClose={() => setActiveModal(null)} title="Duty Reassignments — This Month" size="lg" centered>
-        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
-          {!reassignments.length ? (
-            <p style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No reassignments this month.</p>
-          ) : (
-            reassignments.map((r) => (
-              <div key={r.id} className="px-3 py-2.5 rounded-[var(--radius-lg)] border border-[var(--border)]">
-                <div className="flex items-center justify-between gap-2">
-                  <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>
-                    {r.from_faculty?.name} → {r.to_faculty?.name}
-                  </p>
-                  <Badge status={r.final_status} />
-                </div>
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3, textTransform: 'capitalize' }}>
-                  {r.session_type} session
-                  {r.duty_date && ` · ${new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`}
-                </p>
-                {r.reason && (
-                  <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-secondary)', marginTop: 3 }}>Reason: {r.reason}</p>
-                )}
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
-                  Reassigned by {r.reassigned_by?.name ?? '—'}
-                  {r.reassigned_at && ` · ${new Date(r.reassigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} ${new Date(r.reassigned_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </Modal>
-
-      {/* ── Flagged violations detail modal ── */}
-      <Modal opened={activeModal === 'flagged'} onClose={() => setActiveModal(null)} title="Flagged Student Violations" size="lg" centered>
-        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: -8, marginBottom: 12 }}>
-          {allFlaggedViolations.length} Pending Review{allFlaggedViolations.length === 1 ? '' : 's'}
-        </p>
-        <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto">
-          {!allFlaggedViolations.length ? (
-            <p style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No flagged violations.</p>
-          ) : (
-            allFlaggedViolations.map((v) => (
-              <div key={v.id} className="px-3 py-2.5 rounded-[var(--radius-lg)] border border-[var(--border)]">
-                <div className="flex items-center justify-between gap-2">
-                  <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>{v.student?.student_name}</p>
-                  <Badge status="flagged" />
-                </div>
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
-                  {v.student?.registration_number} · {v.student?.course ?? '—'}
-                </p>
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
-                  {v.violationType?.name} · Recorded by {v.faculty?.name ?? '—'}
-                </p>
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 3 }}>
-                  Duty {v.dutySlot?.duty_date ? new Date(v.dutySlot.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—'}
-                  {' · Recorded '}{new Date(v.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </p>
-                {v.flag_note && (
-                  <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-secondary)', marginTop: 3 }}>Note: {v.flag_note}</p>
-                )}
-                <div className="pt-2 mt-2 border-t border-[var(--divider)] flex items-center justify-end gap-4">
-                  <button
-                    onClick={() => setDeletingFlagged(v)}
-                    style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-600)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setResolvingViolation(v)}
-                    style={{ fontSize: 'var(--text-micro)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}
-                  >
-                    ✅ Mark as Reviewed →
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        {allFlaggedViolations.length > 0 && (
-          <div className="pt-3 mt-1 border-t border-[var(--divider)] text-center">
-            <button
-              onClick={() => { setActiveModal(null); navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS); }}
-              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', fontWeight: 600 }}
-            >
-              Review all flagged violations →
-            </button>
-          </div>
-        )}
-      </Modal>
-
-      {/* zIndex 300 keeps these above the flagged-detail Modal (Mantine default 200)
-          they're launched from, so the confirmation never opens behind it. */}
-      <ResolveFlagModal violation={resolvingViolation} onClose={() => setResolvingViolation(null)} zIndex={300} />
-      {deletingFlagged && (
-        <ConfirmDialog
-          open
-          zIndex={300}
-          title="Delete Student Violation"
-          message={
-            <>
-              Are you sure you want to delete this student violation record? This cannot be undone from the app.
-              <br /><br />
-              <strong>Student:</strong> {deletingFlagged.student?.student_name}<br />
-              <strong>Violation:</strong> {deletingFlagged.violationType?.name}<br />
-              <strong>Date:</strong> {new Date(deletingFlagged.created_at).toLocaleDateString('en-IN')}
-            </>
-          }
-          confirmText="Delete Permanently"
-          isDangerous
-          isLoading={deleteViolation.isPending}
-          onConfirm={handleDeleteFlagged}
-          onCancel={() => setDeletingFlagged(null)}
-        />
-      )}
     </Layout>
   );
 }

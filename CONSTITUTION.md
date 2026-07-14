@@ -112,11 +112,23 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Login is via registered email + password. No Telegram OTP, no SMS, no email OTP.
 - Passwords are hashed with bcrypt (cost factor 12) — plaintext is never stored or logged.
 - JWT stored in httpOnly cookie — never in localStorage. A CSRF token (`sims_csrf` cookie +
-  `X-CSRF-Token` header) is required on every mutating request.
+  `X-CSRF-Token` header) is required on every mutating *authenticated* request. **Exception:**
+  `POST /auth/login` is exempt from CSRF — it authenticates by credentials, not by an existing
+  session, so a stale/expired `sims_token` cookie left over from a previous session must never
+  be able to block a fresh login attempt with a CSRF error.
+- On any 401 (expired/invalid JWT, revoked session, deactivated/deleted user), the server
+  clears both the `sims_token` and `sims_csrf` cookies before responding. `sims_token` is
+  httpOnly, so client JS can never clear it itself — recovery from a bad session cookie MUST
+  happen server-side, or the user is stuck retrying a login that can never succeed until the
+  cookie's 7-day `maxAge` expires.
 - `session_version` on the user row is embedded in the JWT and checked on every request.
   Incrementing it (on deactivate, reactivate, delete, role change, or password reset)
   instantly revokes all of that user's existing sessions — this is the forced-logout
   mechanism.
+- Audit-log writes (`admin_audit_log`) on login and password-change are best-effort: a
+  transient audit-insert failure is logged as a warning but must never fail the login/password
+  response, since the cookies (and password hash, for change-password) are already committed
+  by that point — the user is genuinely authenticated even if the audit row didn't write.
 - New accounts and any admin-reset account are flagged `must_change_password = true` and are
   forced to set a new password via `POST /auth/change-password` before using the rest of the
   system.
@@ -163,9 +175,14 @@ These are non-negotiable rules encoded in the planning document. Every feature m
 - Photo attachments are removed from all phases — violations are text-only records.
 - Faculty can flag their own violation record for Admin review (replaces correction request module).
 - A flagged violation sets `is_flagged = true` on the violation row — no separate table or module.
-- Admin reviews and resolves flags directly from the Flagged Student Violations dashboard
-  card's review popup (Mark as Reviewed) or from the Student Violations page — both call the
-  same resolve-flag endpoint.
+- Admin reviews and resolves flags from the dedicated Flagged Violations page
+  (`/admin/flagged-violations`) only — that page owns `ResolveFlagModal` and calls the
+  resolve-flag endpoint. The Student Violations page still shows the Flagged badge and an
+  `is_flagged` filter for finding records, but its flagged rows link out to the Flagged
+  Violations page ("Review") instead of resolving inline; the Admin Dashboard's old flagged
+  detail modal (a third place that duplicated the same resolve/delete actions) was removed
+  entirely. One resolve workflow, not three (fixed 2026-07-14 — see
+  `specs/001-auth-user-accounts/handoff.md`).
 - Admin can delete any violation record; Faculty can delete only violations they personally
   recorded. Deletion is a soft delete (`Violation.deleted_at`) — the deleted record is excluded
   from every read path (lists, dashboards, reports, analytics, counts) but the row is kept,
@@ -443,6 +460,20 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.16 — Updated: July 2026 (login-flakiness fix + duplicate-feature
+cleanup, no schema/endpoint changes. §4 Authentication: `POST /auth/login` is now CSRF-exempt
+(a stale `sims_token` cookie could previously 403-block every login attempt); `authenticate`
+middleware now clears both session cookies on any 401 instead of leaving a client-unreachable
+httpOnly cookie behind; login/change-password audit-log writes are now best-effort so a
+transient audit-insert error can no longer fail an otherwise-successful auth response. §4
+Violations: flag resolution consolidated to the Flagged Violations page only — removed the
+duplicate resolve flow from the Student Violations page and the Admin Dashboard's flagged
+detail modal (which also duplicated Active Faculty and Reassignments detail modals, both also
+removed in favor of linking to the Live Attendance and Reports pages). Faculty Dashboard's
+embedded full violations table replaced with a summary + link; faculty Attendance page's
+duplicate check-in/out buttons removed (check-in/out now lives only on the Dashboard). Several
+sidebar/bottom-tab labels unified with their page titles (Student Violations, Violation Types,
+Live Attendance) — see `specs/001-auth-user-accounts/handoff.md` (2026-07-14) for full detail.)*
 *Constitution version: 3.15 — Updated: July 2026 (documentation-accuracy pass — no code changes. §9: added the previously-undocumented No-show → absent job (`markNoShowAbsent`, runs inside the same 10-min Auto clock-out tick) and Daily Duty Digest cron (08:00 IST). §4 Notifications: added the `/menu` and `/myid` Telegram bot commands. §6: corrected 3 wrong module counts — Duty Attendance 5→6, Violation Types 5→6, Reports 22→24 — total 110→114. §3/§5: documented the existing admin↔faculty-only messaging restriction (faculty cannot message other faculty). §5: flagged `violations.record_status` as vestigial dead weight (same category as the `photo_path` columns); corrected the blanket "every table has `created_at`" claim (`system_config` doesn't); corrected the false claim that `messages` omits `updated_at` because it's never mutated (it is — `is_read`, `read_at`, `deleted_by_sender`, `deleted_by_receiver` all change post-creation). §4 Students: clarified the "never deleted" claim is scoped to the Excel upload/reconciliation path, not a system-wide guarantee — Super Admin hard-delete is a real, separate exception. §8: fixed the Phase 3 verification note's stale counts (17→24 report endpoints, "3 required cron jobs"→4, matching the corrected §6/§9 figures above) — the "verified 2026-07" qualifier itself is still accurate and was left as-is.)*
 *Constitution version: 3.14 — Updated: July 2026 (`PATCH /admin/settings` now enforces the same `session_start < late_threshold ≤ auto_checkout` ordering invariant as `PATCH /duty-timing-settings` — the check was extracted out of `duty-timing-settings.controller.js` into `settingsService.findOrderingViolation`, a single shared function both endpoints call, so the two can't drift apart on this rule again — §5)*
 *Constitution version: 3.13 — Updated: July 2026 (restored `PATCH /admin/settings`, silently dropped in commit `42c2edb` as unrelated collateral damage — this file's own §3 line already claimed it existed. Re-registered Super-Admin-only, validated against the current `SystemConfig` shape via the existing `duty-timing-settings.schema.js` schema, since the original `settings.schema.js` it used to validate against had already gone stale — one of its fields, `auto_checkout_hour`/`auto_checkout_min`, stopped being real columns once auto-checkout was split per-session — and was deleted outright a day later. §6, Users & Accounts module 12→13 endpoints, total 109→110)*
