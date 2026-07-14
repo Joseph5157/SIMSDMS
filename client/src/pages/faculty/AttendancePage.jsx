@@ -88,7 +88,7 @@ function SessionBreakdownCard({ label, stats }) {
         <span className="text-right font-semibold text-[var(--text-primary)]">{stats.checked_out}</span>
         <span className="text-[var(--text-muted)]">Late</span>
         <span className="text-right font-semibold text-[var(--text-primary)]">{stats.late}</span>
-        <span className="text-[var(--text-muted)]">Not checked in</span>
+        <span className="text-[var(--text-muted)]">Absent</span>
         <span className="text-right font-semibold text-[var(--text-primary)]">{stats.not_checked_in}</span>
         <span className="text-[var(--text-muted)]">Auto clock-out</span>
         <span className="text-right font-semibold text-[var(--text-primary)]">{stats.auto_out}</span>
@@ -152,7 +152,7 @@ export default function AttendancePage({ user }) {
             <StatCard compact label="Checked in"     value={summary?.checked_in ?? 0}     accent="blue"   icon="✓" />
             <StatCard compact label="Checked out"    value={summary?.checked_out ?? 0}    accent="green"  icon="✔" />
             <StatCard compact label="Late arrivals"  value={summary?.late ?? 0}           accent="yellow" icon="⏰" />
-            <StatCard compact label="Not checked in" value={summary?.not_checked_in ?? 0} accent="red"    icon="⚠" />
+            <StatCard compact label="Absent"         value={summary?.not_checked_in ?? 0} accent="red"    icon="⚠" />
             <StatCard compact label="Auto clock-out" value={summary?.auto_out ?? 0}       accent="indigo" icon="🔔" />
           </div>
 

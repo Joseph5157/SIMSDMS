@@ -15,7 +15,7 @@ const STATUS_LABELS = {
   late:             'Late',
   hidden:           'Hidden',
   flagged:          '⚑ Flagged',
-  not_checked_in:   'Not in',
+  not_checked_in:   'Absent',
   upcoming:         'Upcoming',
   checked_in:       'Checked in',
   checked_out:      'Checked out',

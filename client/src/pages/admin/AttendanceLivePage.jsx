@@ -96,7 +96,7 @@ function FacultyCard({ record, onOverride }) {
       : record.attendance_status === 'upcoming'
       ? 'Upcoming'
       : record.attendance_status === 'not_checked_in'
-      ? 'Not checked in'
+      ? 'Absent'
       : '—';
 
   return (
@@ -156,7 +156,7 @@ export default function AttendanceLivePage({ user }) {
         <StatPill label="Checked in"     count={checkedIn}  color="green" />
         <StatPill label="Checked out"    count={checkedOut} color="blue"  />
         <StatPill label="Late arrivals"  count={lateCount}  color="amber" />
-        <StatPill label="Not checked in" count={notIn}      color="red"   />
+        <StatPill label="Absent"         count={notIn}      color="red"   />
         <StatPill label="Auto clock-out" count={autoOut}    color="gray"  />
       </div>
 

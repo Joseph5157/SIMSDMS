@@ -40,13 +40,14 @@ function isReassignable(s) {
 const STATUS_FILTERS = [
   { value: 'upcoming',  label: 'Upcoming' },
   { value: 'completed', label: 'Completed' },
-  { value: 'expired',   label: 'Expired' },
+  { value: 'expired',   label: 'Absent' },
   { value: 'all',       label: 'All' },
 ];
 
-// Match a slot against the selected status filter. "Expired" covers past
+// Match a slot against the selected status filter. "Absent" covers past
 // slots that were never completed (still scheduled, or marked absent) —
 // distinct from "Completed" which is past slots that were actually attended.
+// (Internal filter value stays 'expired'; only the label reads "Absent".)
 function matchesStatusFilter(s, filter) {
   const upcoming = isUpcoming(s);
   switch (filter) {
@@ -78,7 +79,7 @@ export default function DutySlotsPage({ user }) {
   const [reason, setReason] = useState('');
 
   const slots = data?.data ?? [];
-  // Default view shows only upcoming slots; admin can switch to Completed / Expired / All
+  // Default view shows only upcoming slots; admin can switch to Completed / Absent / All
   // to pull up history without mixing it into the active list.
   const filteredSlots = slots.filter((s) => matchesStatusFilter(s, statusFilter));
   const morning   = filteredSlots.filter((s) => s.session_type === 'morning');
