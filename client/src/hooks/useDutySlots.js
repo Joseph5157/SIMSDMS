@@ -14,6 +14,20 @@ export function useMonthSlots(year, month) {
   });
 }
 
+// All booked duty slots for the month across every faculty member (read-only) —
+// powers the faculty "All Faculty Duties" reassignment-planning page.
+export function useAllFacultyDuties(year, month) {
+  return useQuery({
+    queryKey: ['allFacultyDuties', year, month],
+    queryFn: async () => {
+      const res = await api.get(`/duty-slots/all/${year}/${month}`);
+      return res.data;
+    },
+    refetchInterval: 30_000, // reflect other faculty's picks / reassignments without a manual refresh
+    enabled: !!year && !!month,
+  });
+}
+
 // Every duty slot ever assigned to the current faculty member — used to
 // populate the duty-date filter on the Student Violations page.
 export function useMyDutyDates() {

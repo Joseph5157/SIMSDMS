@@ -23,6 +23,7 @@ export const ROUTES = {
   // Faculty
   FACULTY_DASHBOARD:      '/faculty/dashboard',
   FACULTY_SLOTS:          '/faculty/slots',
+  FACULTY_ALL_DUTIES:     '/faculty/all-duties',
   FACULTY_ATTENDANCE:     '/faculty/attendance',
   FACULTY_VIOLATIONS:     '/faculty/violations',
   FACULTY_MESSAGES:       '/faculty/messages',

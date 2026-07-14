@@ -81,6 +81,25 @@ async function getMonthSlots(req, res) {
   res.json({ data: slots, total: slots.length });
 }
 
+// ─── GET /duty-slots/all/:year/:month — All Auth ──────────────────────────────
+// Every booked duty slot for the month, across ALL faculty (read-only). Powers
+// the faculty "All Faculty Duties" page so members can see who is on duty when
+// and plan reassignments. Unlike getMonthSlots this never scopes to the caller.
+
+async function getAllFacultyDuties(req, res) {
+  const params = parseYearMonth(req, res);
+  if (!params) return;
+  const { year, month } = params;
+
+  const slots = await prisma.dutySlot.findMany({
+    where: { duty_date: monthDateRange(year, month) },
+    select: SLOT_SELECT,
+    orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
+  });
+
+  res.json({ data: slots, total: slots.length });
+}
+
 // ─── GET /duty-slots/mine/dates — Faculty ─────────────────────────────────────
 // Past/completed duty slots assigned to the requesting faculty member, for
 // populating a duty-date filter (e.g. faculty Student Violations page).
@@ -474,6 +493,7 @@ async function getReassignedAway(req, res) {
 
 module.exports = {
   getMonthSlots,
+  getAllFacultyDuties,
   getMyDutyDates,
   getAvailableSlots,
   pickSlot,

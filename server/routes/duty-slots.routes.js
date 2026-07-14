@@ -27,6 +27,9 @@ router.get('/reassigned-away/:year/:month', authorize('faculty'), asyncHandler(c
 // GET /duty-slots/mine/dates — Faculty (MUST be before /:year/:month)
 router.get('/mine/dates', authorize('faculty'), asyncHandler(ctrl.getMyDutyDates));
 
+// GET /duty-slots/all/:year/:month — All Auth (every faculty's booked duties, read-only)
+router.get('/all/:year/:month', asyncHandler(ctrl.getAllFacultyDuties));
+
 // GET /duty-slots/:year/:month — All Auth
 router.get('/:year/:month', asyncHandler(ctrl.getMonthSlots));
 

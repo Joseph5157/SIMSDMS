@@ -28,6 +28,7 @@ import ReportsPage        from './pages/admin/ReportsPage';
 
 import DashboardPage          from './pages/faculty/DashboardPage';
 import SlotPickerPage         from './pages/faculty/SlotPickerPage';
+import AllFacultyDutiesPage   from './pages/faculty/AllFacultyDutiesPage';
 import AttendancePage         from './pages/faculty/AttendancePage';
 import ViolationRecorderPage  from './pages/faculty/ViolationRecorderPage';
 
@@ -136,6 +137,7 @@ function AppRoutes() {
       <Route element={<ProtectedRoute user={user} isLoading={isLoading} requiredRoles={['faculty']} />}>
         <Route path="/faculty/dashboard"      element={<DashboardPage user={user} />} />
         <Route path="/faculty/slots"          element={<SlotPickerPage user={user} />} />
+        <Route path="/faculty/all-duties"     element={<AllFacultyDutiesPage user={user} />} />
         <Route path="/faculty/attendance"     element={<AttendancePage user={user} />} />
         <Route path="/faculty/violations"     element={<ViolationRecorderPage user={user} />} />
         <Route path="/faculty/messages"       element={<MessagesPage user={user} />} />

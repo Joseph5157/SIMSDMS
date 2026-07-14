@@ -53,6 +53,7 @@ const facultyNav = [
   ]},
   { group: 'Duties', items: [
     { to: ROUTES.FACULTY_SLOTS,          label: 'My Slots',           Icon: IconCalendarEvent },
+    { to: ROUTES.FACULTY_ALL_DUTIES,     label: 'All Faculty Duties', Icon: IconCalendar },
     { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance',         Icon: IconClipboardCheck },
   ]},
   { group: 'Activity', items: [
