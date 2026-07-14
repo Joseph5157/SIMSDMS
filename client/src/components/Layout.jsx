@@ -33,13 +33,13 @@ const adminNav = [
   { group: 'Duties', items: [
     { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',           Icon: IconCalendar },
     { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',         Icon: IconCalendarEvent },
-    { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Attendance',         Icon: IconClipboardCheck },
+    { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Live Attendance',    Icon: IconClipboardCheck },
     { to: ROUTES.ADMIN_DUTY_TIMING_SETTINGS, label: 'Duty Timing Settings', Icon: IconClock },
   ]},
   { group: 'Discipline', items: [
     { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
     { to: ROUTES.ADMIN_FLAGGED_VIOLATIONS, label: 'Flagged Violations', Icon: IconFlag },
-    { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Stu. Viol. Types',   Icon: IconTag },
+    { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Violation Types',    Icon: IconTag },
   ]},
   { group: 'Workspace', items: [
     { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',           Icon: IconMail },
@@ -78,17 +78,17 @@ function getNav(role) {
 // ── Bottom tab bar — 4 pinned routes per role ──────────────────────────────────
 
 const facultyBottomTabs = [
-  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Home',   Icon: IconLayoutDashboard },
-  { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',  Icon: IconCalendarEvent },
-  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attend', Icon: IconClipboardCheck },
-  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Issues', Icon: IconAlertTriangle },
+  { to: ROUTES.FACULTY_DASHBOARD,      label: 'Home',       Icon: IconLayoutDashboard },
+  { to: ROUTES.FACULTY_SLOTS,          label: 'Slots',      Icon: IconCalendarEvent },
+  { to: ROUTES.FACULTY_ATTENDANCE,     label: 'Attendance', Icon: IconClipboardCheck },
+  { to: ROUTES.FACULTY_VIOLATIONS,     label: 'Violations', Icon: IconAlertTriangle },
 ];
 
 const adminBottomTabs = [
   { to: ROUTES.ADMIN_DASHBOARD,   label: 'Home',       Icon: IconLayoutDashboard },
   { to: ROUTES.ADMIN_STUDENTS,    label: 'Students',   Icon: IconSchool },
-  { to: ROUTES.ADMIN_VIOLATIONS,  label: 'Stu. Viol.', Icon: IconAlertTriangle },
-  { to: ROUTES.ADMIN_ATTENDANCE,  label: 'Live',       Icon: IconClipboardCheck },
+  { to: ROUTES.ADMIN_VIOLATIONS,  label: 'Violations', Icon: IconAlertTriangle },
+  { to: ROUTES.ADMIN_ATTENDANCE,  label: 'Attendance', Icon: IconClipboardCheck },
 ];
 
 function getBottomTabs(role) {

@@ -1,7 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { useMyViolations } from '../../hooks/useViolations';
 import StatCard from '../ui/StatCard';
 import Skeleton from '../ui/Skeleton';
-import MyViolationsTable from './MyViolationsTable';
+import { ROUTES } from '../../utils/constants';
 
 function isSameMonth(dateStr, now) {
   const d = new Date(dateStr);
@@ -23,6 +24,7 @@ function mostCommonType(violations) {
 }
 
 export default function MyViolationsSummary() {
+  const navigate = useNavigate();
   const { data, isLoading } = useMyViolations({ limit: 100 });
   const violations = data?.data ?? [];
   const now = new Date();
@@ -38,18 +40,22 @@ export default function MyViolationsSummary() {
 
   return (
     <div>
-      <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-        My violations
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          My violations
+        </p>
+        <button onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}
+          style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 8px', margin: '-13px -8px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+          View all →
+        </button>
+      </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard label="Total Recorded" value={totalCount} accent="blue" />
         <StatCard label="Students Reported" value={studentsCount} accent="indigo" />
         <StatCard label="Most Common" value={mostCommon.name} sub={mostCommon.count ? `${mostCommon.count} case${mostCommon.count === 1 ? '' : 's'}` : undefined} accent="yellow" />
         <StatCard label="This Month" value={thisMonth} accent="green" />
       </div>
-
-      <MyViolationsTable />
     </div>
   );
 }

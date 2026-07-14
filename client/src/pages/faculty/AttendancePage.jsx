@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout, { PageHeader, Card, CardBody } from '../../components/Layout';
 import { Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
@@ -6,8 +7,8 @@ import StatCard from '../../components/ui/StatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
 import { ClipboardList } from 'lucide-react';
-import { useToast } from '../../components/ui/Toast';
-import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
+import { useMyAttendanceSummary } from '../../hooks/useAttendance';
+import { ROUTES } from '../../utils/constants';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -21,24 +22,14 @@ function isoDate(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-// ── One row per duty slot in the history list — check in/out actions only
-// apply to today's own slot; past/future slots are read-only history. ──
+// ── One row per duty slot in the history list. Read-only — check in/out
+// lives on the Dashboard's today-duty card only, so there's a single place
+// to perform the action instead of two buttons that can drift out of sync. ──
 function AttendanceHistoryCard({ record }) {
-  const toast = useToast();
-  const checkIn  = useCheckIn();
-  const checkOut = useCheckOut();
+  const navigate = useNavigate();
   const isToday  = isoDate(record.duty_date) === todayIST();
 
   const dateStr = new Date(record.duty_date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  async function handleIn() {
-    try { await checkIn.mutateAsync(record.slot_id); toast({ message: `Checked in at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
-    catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
-  }
-  async function handleOut() {
-    try { await checkOut.mutateAsync(record.slot_id); toast({ message: `Checked out at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`, type: 'success' }); }
-    catch (err) { toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' }); }
-  }
 
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
@@ -65,11 +56,10 @@ function AttendanceHistoryCard({ record }) {
           {!record.in_time && !record.out_time && (
             <Badge status={record.attendance_status} />
           )}
-          {isToday && !record.in_time && (
-            <Button size="sm" onClick={handleIn} loading={checkIn.isPending}>Check In</Button>
-          )}
-          {isToday && record.in_time && !record.out_time && (
-            <Button size="sm" variant="default" onClick={handleOut} loading={checkOut.isPending}>Check Out</Button>
+          {isToday && !record.out_time && (
+            <Button size="sm" variant="light" onClick={() => navigate(ROUTES.FACULTY_DASHBOARD)}>
+              {record.in_time ? 'Check out on Dashboard →' : 'Check in on Dashboard →'}
+            </Button>
           )}
         </div>
       </div>
