@@ -4,7 +4,8 @@
 019-admin-override-recording — Item ③: Admin override for student violation recording + treat Admin as a valid recorder everywhere
 
 ## status
-partial (implemented + build/load-verified; live browser verification of the end-to-end record flow still pending)
+complete — implemented, build/load-verified, AND live browser end-to-end verified
+(2026-07-14). Live test surfaced one real bug (route guard blocked admins), now fixed.
 
 ## completed
 - **Schema/migration**: `Violation.duty_slot_id` is now nullable
@@ -39,10 +40,25 @@ partial (implemented + build/load-verified; live browser verification of the end
   `faculty_id`, no `role: faculty` filter) so admin-recorded rows already flow into
   every summary/trend/type/course/year/heatmap/repeat-violator metric.
 
-## failed_or_blocked
-- Live end-to-end browser verification (admin records with no slot → appears in list /
-  Admin filter / date-scoped report PDF+Excel / analytics counts) not yet done this
-  session; only build + module-load + migration-apply verified.
+## live_verification (2026-07-14)
+Ran the full end-to-end flow in a real browser against the Docker dev DB
+(`sims-dms-dev-db`, postgres:16 on :5433). Seeded 5 students + 1 faculty +
+1 faculty-recorded (slot-bound) violation, logged in as super_admin, and:
+- **BUG FOUND + FIXED**: `POST /violations` returned **403** — the route guard
+  `authorize('faculty')` blocked admins *before* the role-branching controller ran, so
+  the entire admin-recording feature was dead on arrival. Fixed in
+  `server/routes/violations.routes.js:20` → `authorize('faculty','admin','super_admin')`.
+  After fix, admin record with no slot → **201**, row stored with `duty_slot_id = null`,
+  `faculty_id = super_admin`.
+- Admin Violations list shows the row with recorder **"Admin"**; recorder filter →
+  "Admin" shows only the admin row, "Priya Nair" shows only the faculty row.
+- Student Violation Report: **Monthly (Jul 2026)** shows 2 of 2 incl. the slotless admin
+  row dated by `created_at` (14/7); **Daily (14 Jul)** shows the 1 admin row. Confirms the
+  Prisma null-FK date-filter fix — the slotless row is NOT dropped from date-scoped paths.
+- Excel export (`/export?year=2026&month=7`, 200) parsed with exceljs: admin row present,
+  Faculty column = "Admin", Duty Date = "14/7/2026" (created_at fallback). PDF export 200.
+- Analytics: TOTAL VIOLATIONS 2, Recorded By "Admin 1 / Priya Nair 1", Insubordination in
+  the type breakdown — admin-recorded rows flow into every metric.
 
 ## commands_run
 ```
@@ -66,6 +82,7 @@ npm run build --prefix client        # OK (only pre-existing chunk-size warning)
   unrestricted recording is an intended authority expansion, not a bypass of audit.
 
 ## files_touched
+- server/routes/violations.routes.js (route guard fix — 2026-07-14)
 - prisma/schema.prisma
 - prisma/migrations/20260713120000_violation_nullable_duty_slot/migration.sql (new)
 - server/schemas/violations.schema.js

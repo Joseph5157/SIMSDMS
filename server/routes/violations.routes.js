@@ -16,8 +16,8 @@ const router = Router();
 
 router.use(authenticate);
 
-// POST /violations — Faculty
-router.post('/', authorize('faculty'), validate(createViolationSchema), asyncHandler(ctrl.createViolation));
+// POST /violations — Faculty (on-duty) or Admin (ad-hoc, no duty slot); role-branched in controller
+router.post('/', authorize('faculty', 'admin', 'super_admin'), validate(createViolationSchema), asyncHandler(ctrl.createViolation));
 
 // GET /violations — Admin & Faculty (faculty see only their own due to authorization in controller)
 router.get('/', authorize('faculty', 'admin', 'super_admin'), asyncHandler(ctrl.listViolations));
