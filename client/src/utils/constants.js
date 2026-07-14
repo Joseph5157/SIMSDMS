@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN_DUTY_SLOTS:       '/admin/duty-slots',
   ADMIN_ATTENDANCE:       '/admin/attendance',
   ADMIN_VIOLATIONS:       '/admin/violations',
+  ADMIN_FLAGGED_VIOLATIONS: '/admin/flagged-violations',
   ADMIN_VIOLATION_TYPES:  '/admin/violation-types',
   ADMIN_MESSAGES:         '/admin/messages',
   ADMIN_REPORTS:          '/admin/reports',

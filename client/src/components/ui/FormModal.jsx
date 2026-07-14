@@ -22,6 +22,10 @@ export default function FormModal({
   error,
   size = 'md',
   formId,
+  // Default sits just below the toast layer (120) so toasts stay visible. Pass a
+  // higher value when this modal must stack above another already-open modal
+  // (e.g. resolving a flag from within the dashboard's flagged-detail modal).
+  zIndex = 115,
 }) {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const id = formId ?? 'form-modal-form';
@@ -33,7 +37,7 @@ export default function FormModal({
       size={size}
       fullScreen={isMobile}
       centered
-      zIndex={115}
+      zIndex={zIndex}
     >
       <Modal.Overlay />
       <Modal.Content

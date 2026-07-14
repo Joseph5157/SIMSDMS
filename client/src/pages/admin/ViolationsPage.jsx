@@ -369,7 +369,7 @@ function DisciplineAnalytics() {
   );
 }
 
-export function ResolveFlagModal({ violation, onClose }) {
+export function ResolveFlagModal({ violation, onClose, zIndex }) {
   const toast = useToast();
   const resolve = useResolveFlag();
   const [reason, setReason] = useState('');
@@ -394,6 +394,7 @@ export function ResolveFlagModal({ violation, onClose }) {
       onSubmit={handleSubmit}
       submitLabel="Resolve"
       loading={resolve.isPending}
+      zIndex={zIndex}
     >
       <div className="text-[length:13px] text-[var(--text-secondary)] rounded-lg p-3"
         style={{ backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)' }}>

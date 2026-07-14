@@ -478,7 +478,7 @@ async function flaggedViolationsReport(req, res) {
       ],
     },
     include: {
-      student:       { select: { student_name: true, registration_number: true, course: true } },
+      student:       { select: { student_name: true, registration_number: true, course: true, academic_year: true } },
       faculty:       { select: { name: true, role: true } },
       violationType: { select: { name: true } },
       dutySlot:      { select: { duty_date: true } },

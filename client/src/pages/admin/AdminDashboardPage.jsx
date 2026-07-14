@@ -311,7 +311,7 @@ export default function AdminDashboardPage({ user }) {
             </div>
             <div className="px-4 py-2 border-t border-[var(--divider)] shrink-0">
               <button
-                onClick={() => navigate(ROUTES.ADMIN_VIOLATIONS + '?is_flagged=true')}
+                onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)}
                 style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
               >
                 Review all flagged student violations →
@@ -460,7 +460,7 @@ export default function AdminDashboardPage({ user }) {
         {allFlaggedViolations.length > 0 && (
           <div className="pt-3 mt-1 border-t border-[var(--divider)] text-center">
             <button
-              onClick={() => { setActiveModal(null); navigate(ROUTES.ADMIN_VIOLATIONS + '?is_flagged=true'); }}
+              onClick={() => { setActiveModal(null); navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS); }}
               style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', fontWeight: 600 }}
             >
               Review all flagged violations →
@@ -469,10 +469,13 @@ export default function AdminDashboardPage({ user }) {
         )}
       </Modal>
 
-      <ResolveFlagModal violation={resolvingViolation} onClose={() => setResolvingViolation(null)} />
+      {/* zIndex 300 keeps these above the flagged-detail Modal (Mantine default 200)
+          they're launched from, so the confirmation never opens behind it. */}
+      <ResolveFlagModal violation={resolvingViolation} onClose={() => setResolvingViolation(null)} zIndex={300} />
       {deletingFlagged && (
         <ConfirmDialog
           open
+          zIndex={300}
           title="Delete Student Violation"
           message={
             <>

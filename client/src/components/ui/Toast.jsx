@@ -30,7 +30,9 @@ export function ToastProvider({ children }) {
         position: 'fixed',
         bottom: 80,
         right: 16,
-        zIndex: 120,
+        // Above every modal (Mantine default 200, plus our stacked-modal fixes up
+        // to ~300) so success/error toasts are never hidden behind an open dialog.
+        zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-2)',

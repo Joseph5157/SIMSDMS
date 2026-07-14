@@ -15,6 +15,9 @@ export default function ConfirmDialog({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isLoading = false,
+  // Pass a value above 200 (Mantine's default modal z-index) when this confirm
+  // must appear on top of another already-open modal.
+  zIndex,
 }) {
   return (
     <Modal
@@ -23,6 +26,7 @@ export default function ConfirmDialog({
       title={title}
       size="sm"
       centered
+      zIndex={zIndex}
     >
       {message && (
         <Text size="sm" c="dimmed" mb="lg" role={isDangerous ? 'alert' : undefined}>
