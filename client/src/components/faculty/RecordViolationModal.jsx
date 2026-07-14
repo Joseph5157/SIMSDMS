@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { TextInput, Select, Checkbox, Switch } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import FormModal from '../ui/FormModal';
@@ -42,6 +43,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   const [quickAdd, setQuickAdd]   = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
+  const searchInputRef = useRef(null);
   const create = useCreateViolation();
 
   function handleSelectStudent(s) {
@@ -49,6 +51,15 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     setStudentLabel(`${s.student_name} (${s.registration_number})`);
     clearFieldError('student_id');
     setSearchOpen(false);
+  }
+
+  // Open the overlay AND focus its search box within this same tap gesture:
+  // flushSync mounts the overlay synchronously so the input exists, then the
+  // focus() call still counts as user-initiated — required for iOS/Android to
+  // raise the soft keyboard. An effect-based focus would run too late.
+  function openStudentSearch() {
+    flushSync(() => setSearchOpen(true));
+    searchInputRef.current?.focus();
   }
 
   const clearFieldError = (k) => setFieldErrors((fe) => (fe[k] ? { ...fe, [k]: undefined } : fe));
@@ -254,7 +265,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         <SectionLabel>Student</SectionLabel>
         <button
           type="button"
-          onClick={() => setSearchOpen(true)}
+          onClick={openStudentSearch}
           className="h-12 w-full rounded-xl border bg-[var(--surface-page)] px-4 flex items-center justify-between gap-3 text-left outline-none transition-all duration-150 hover:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--brand)]/20"
           style={{
             fontSize: 16,
@@ -364,6 +375,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       open={searchOpen}
       onClose={() => setSearchOpen(false)}
       onSelect={handleSelectStudent}
+      inputRef={searchInputRef}
     />
   );
 

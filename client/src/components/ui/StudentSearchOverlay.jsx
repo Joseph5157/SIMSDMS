@@ -24,31 +24,37 @@ function courseLabel(course) {
  *  - open:     whether the overlay is visible
  *  - onClose:  called when the user backs out without selecting
  *  - onSelect: called with the chosen student record { id, student_name, ... }
+ *  - inputRef: optional ref forwarded to the search box. The opener uses it to
+ *              focus the field synchronously inside the tap gesture (via
+ *              flushSync) so the mobile soft keyboard actually appears — a plain
+ *              effect-based focus runs after the gesture and iOS keeps the
+ *              keyboard closed.
  */
-export default function StudentSearchOverlay({ open, onClose, onSelect }) {
+export default function StudentSearchOverlay({ open, onClose, onSelect, inputRef: externalRef }) {
   const [q, setQ] = useState('');
   // Debounce so we don't fire a request on every keystroke (large student DBs).
   const [debouncedQ] = useDebouncedValue(q, 250);
-  const inputRef = useRef(null);
+  const internalRef = useRef(null);
+  const inputRef = externalRef ?? internalRef;
   const kbInset = useKeyboardInset();
 
   const trimmed = debouncedQ.trim();
   const { data, isFetching } = useStudentSearch(trimmed);
   const results = data?.data ?? [];
 
-  // Start blank every time it opens; lock body scroll + auto-focus the field so
-  // the mobile keyboard comes up immediately.
+  // Start blank every time it opens; lock body scroll. Best-effort focus here
+  // covers programmatic opens (e.g. quick-add); gesture-driven opens focus in
+  // the opener so the mobile keyboard is raised (see the prop doc above).
   useEffect(() => {
     if (!open) return;
     setQ('');
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const t = setTimeout(() => inputRef.current?.focus(), 60);
+    inputRef.current?.focus();
     return () => {
       document.body.style.overflow = prevOverflow;
-      clearTimeout(t);
     };
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Escape backs out (desktop).
   useEffect(() => {
