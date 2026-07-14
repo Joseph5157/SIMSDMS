@@ -5,7 +5,7 @@
 already shipped/built; see specs/019-admin-override-recording and the reassignment-request flow).
 
 ## status
-complete (build + code-level verification only — see failed_or_blocked for the live-verification gap)
+complete — build-verified AND live browser-verified (2026-07-14, same-day follow-up session)
 
 ## completed
 - **⑤ "Not Checked In" / "Expired" → "Absent" relabel** (commit `f14bc0b`). Frontend display strings
@@ -40,12 +40,28 @@ complete (build + code-level verification only — see failed_or_blocked for the
   all-students report).
 
 ## failed_or_blocked
-- **No live/browser verification.** All four items verified via `npm run build` (client) + `node --check`
-  (server) + close code reading only. Local Postgres has been unreachable in recent sessions, so the
-  disposable-Postgres real-browser technique was not run this session. Worth a manual click-through:
-  the flagged z-index (open dashboard flagged-detail modal → Mark as Reviewed → confirm must sit on
-  top; toast must show above it), the new All Faculty Duties endpoint returning all faculty for a
-  faculty login, and the Individual Student Report PDF/Excel content for a picked student.
+None remaining. **2026-07-14 live browser verification completed** (chrome-devtools MCP against the
+already-running local dev server on :3000/:5173, DB = Docker `sims-dms-dev-db` on :5433, migrations
+already current). All four items confirmed working end-to-end:
+- **⑤ Absent relabel**: Duty Slots status filter shows Upcoming/Completed/Absent/All (not "Expired");
+  Live Attendance stat pill reads "Absent".
+- **④ Flagged Violations page + z-index**: dashboard's both "Review all flagged violations" links now
+  land on `/admin/flagged-violations`; the page renders filters + the seeded flagged row correctly
+  (Faculty column correctly shows "Admin" for an admin-recorded violation). Reproduced the exact
+  reported bug scenario — opened the dashboard's flagged-detail Modal, clicked "Mark as Reviewed" —
+  and confirmed via screenshot that `ResolveFlagModal` now renders clearly on top (previously it would
+  have been hidden behind). Same result for the Delete confirmation. Screenshots saved to session
+  scratchpad (`nested_modal_zindex.png`, `nested_delete_zindex.png`).
+- **① All Faculty Duties**: logged in as faculty, page shows all 4 seeded duty slots across 2 faculty
+  members with correct Faculty/Department/Date/Session/Status columns and the "Priya Nair → Arjun
+  Mehta" reassignment display; the faculty/department search filter correctly narrowed to 2 rows.
+- **② Individual Student Report**: searched and picked a student, preview table correctly scoped to
+  only that student's violation (confirmed via network tab — the preview request always carried
+  `student_id`, never fetched the unscoped all-students report), downloaded the Excel export and
+  inspected its raw XML — headers exactly S.No/Registration Number/Student Name/Course/Student
+  Violation Type/Status/Faculty/Duty Date/Recorded At (no Fine), data row correct.
+
+Zero console errors across every page/action tested.
 
 ## commands_run
 ```
@@ -83,6 +99,23 @@ None. Delete on flagged violations reuses the existing soft-delete `useDeleteVio
 - client/src/components/ui/{Badge,FormModal,ConfirmDialog,Toast}.jsx
 - client/src/components/Layout.jsx (nav items), client/src/App.jsx (routes), client/src/utils/constants.js (routes)
 - client/src/hooks/{useDutySlots,useReports}.js
+
+## dev_environment_changes (2026-07-14 verification session)
+Used the already-running local dev server (nodemon on :3000 + vite on :5173, auto-reloaded on every
+edit this session) against the persistent Docker dev DB `sims-dms-dev-db` (:5433). To exercise these
+features I:
+- Reset the password for two pre-existing dev-DB accounts (the bootstrap super_admin and one faculty
+  account) via a one-off bcrypt script (not committed, deleted after use) — was previously
+  unknown/unset in this dev DB. Credentials are not recorded here (this repo is public); see local
+  session notes for the value if needed.
+- Seeded one new faculty account (`arjun.faculty@sims.test` / Mr. Arjun Mehta, Pharmaceutics, same
+  password as above) via a one-off script (not committed, deleted after use).
+- Added 3 duty slots this month (2 unreassigned, 1 reassigned from Priya→Arjun) and flagged one
+  existing violation, to have non-empty data for the new pages.
+This is additive dev-only test data on the local Docker DB, not production — left in place since the
+Docker DB persists across sessions and this data is useful for future dev/testing. No production data
+or Railway DB was touched. **Recommend rotating these dev-DB passwords** before treating this
+environment as shared, since a plaintext value briefly existed in a scratch script.
 
 ## open_questions_for_owner
 - Confirm the "Absent" relabel should NOT touch the faculty today's-duty "Not checked in" prompt
