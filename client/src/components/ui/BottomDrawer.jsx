@@ -48,10 +48,6 @@ export function primaryBtnStyle(disabled) {
  *   subtitle   — string?      optional secondary line
  *   children   — ReactNode    scrollable body content
  *   footer     — ReactNode?   sticky footer; wrap Cancel + Submit in a Fragment
- *
- * NOTE: do NOT thread vaul's `modal` prop through as a *dynamic* value — vaul's
- * Drawer.Overlay calls a hook after an `if (!modal) return null`, so toggling it
- * after mount renders fewer hooks and crashes React (#300). It must stay static.
  */
 export default function BottomDrawer({ open, onClose, title, subtitle, children, footer }) {
   // Drive keyboard-aware sizing ourselves instead of relying on vaul's

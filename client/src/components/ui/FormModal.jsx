@@ -26,9 +26,6 @@ export default function FormModal({
   // higher value when this modal must stack above another already-open modal
   // (e.g. resolving a flag from within the dashboard's flagged-detail modal).
   zIndex = 115,
-  // Set false to release the focus trap while a higher overlay owns focus, so it
-  // doesn't fight that overlay's input (matters for the mobile keyboard).
-  trapFocus = true,
 }) {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const id = formId ?? 'form-modal-form';
@@ -41,7 +38,6 @@ export default function FormModal({
       fullScreen={isMobile}
       centered
       zIndex={zIndex}
-      trapFocus={trapFocus}
     >
       <Modal.Overlay />
       <Modal.Content
