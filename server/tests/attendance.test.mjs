@@ -4,7 +4,7 @@ const _require = createRequire(import.meta.url);
 const prisma          = _require('../lib/prisma');
 const settingsService = _require('../services/settings.service');
 const { nowInIST }     = _require('../lib/time');
-const { getMySummary, checkIn } = _require('../controllers/attendance.controller');
+const { getMySummary, checkIn, getLive } = _require('../controllers/attendance.controller');
 
 const ist = nowInIST();
 const year  = ist.year;
@@ -34,6 +34,19 @@ const sessionNotStartedSettings = {
   session_start_morning_min:    futureMins % 60,
   session_start_afternoon_hour: Math.floor(futureMins / 60),
   session_start_afternoon_min:  futureMins % 60,
+};
+
+// Session started AND its auto clock-out has already passed — the live,
+// self-healing 'absent' case (distinct from the cron job actually having run).
+const windowClosedSettings = {
+  session_start_morning_hour:   Math.floor(pastMins / 60),
+  session_start_morning_min:    pastMins % 60,
+  session_start_afternoon_hour: Math.floor(pastMins / 60),
+  session_start_afternoon_min:  pastMins % 60,
+  auto_checkout_morning_hour:   Math.floor(pastMins / 60),
+  auto_checkout_morning_min:    pastMins % 60,
+  auto_checkout_afternoon_hour: Math.floor(pastMins / 60),
+  auto_checkout_afternoon_min:  pastMins % 60,
 };
 
 function makeReq(query = {}) {
@@ -100,6 +113,28 @@ describe('getMySummary', () => {
     await getMySummary(makeReq({ year, month }), res);
     expect(res._body.data[0].attendance_status).toBe('not_checked_in');
     expect(res._body.today[0].attendance_status).toBe('not_checked_in');
+  });
+
+  it("resolves today's no-show slot to 'absent' once its own auto clock-out has passed, without waiting for the cron job", async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(windowClosedSettings);
+    vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
+      { id: 's1', duty_date: todayUTC, session_type: 'morning', status: 'scheduled', attendance: null },
+    ]);
+    const res = makeRes();
+    await getMySummary(makeReq({ year, month }), res);
+    expect(res._body.data[0].attendance_status).toBe('absent');
+    expect(res._body.today[0].attendance_status).toBe('absent');
+    expect(res._body.summary.absent).toBe(1);
+  });
+
+  it("still resolves a strictly-past day's no-show slot to not_checked_in, not absent (unchanged history contract)", async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(windowClosedSettings);
+    vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
+      { id: 's1', duty_date: yesterdayUTC, session_type: 'morning', status: 'scheduled', attendance: null },
+    ]);
+    const res = makeRes();
+    await getMySummary(makeReq({ year, month }), res);
+    expect(res._body.data[0].attendance_status).toBe('not_checked_in');
   });
 
   it('counts a checked-in, checked-out, late, auto-out slot correctly and per session', async () => {
@@ -256,5 +291,96 @@ describe('checkIn', () => {
     expect(res._status).toBe(409);
     expect(res._body.code).toBe('OUTSIDE_SESSION_WINDOW');
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it("self-heals a slot the absent cron already flagged back to 'scheduled' once the faculty successfully checks in", async () => {
+    mockSlot({ status: 'absent' });
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: past90, lateMins: past30, checkoutMins: future90 }),
+    );
+    // Mirrors what markNoShowAbsent actually writes: an attendance row with
+    // in_status 'absent' and in_time still null.
+    vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue({
+      id: 'att-1', duty_slot_id: 'slot-1', faculty_id: 'f1', in_time: null, in_status: 'absent',
+    });
+    vi.spyOn(prisma.dutyAttendance, 'update').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
+    const slotUpdate = vi.spyOn(prisma.dutySlot, 'update').mockResolvedValue({});
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(201);
+    expect(res._body.in_status).toBe('late');
+    expect(slotUpdate).toHaveBeenCalledWith({ where: { id: 'slot-1' }, data: { status: 'scheduled' } });
+  });
+
+  it('does not touch duty_slots.status on an ordinary (non-absent) check-in', async () => {
+    mockSlot({ status: 'scheduled' });
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(
+      cfgFor({ startMins: past90, lateMins: future90, checkoutMins: future90 }),
+    );
+    vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.dutyAttendance, 'create').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
+    const slotUpdate = vi.spyOn(prisma.dutySlot, 'update');
+
+    const res = makeRes();
+    await checkIn(makeCheckInReq(), res);
+
+    expect(res._status).toBe(201);
+    expect(slotUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe('getLive', () => {
+  function makeLiveRes() { return makeRes(); }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("does not mislabel a cron-created no-show attendance row (in_time null) as 'checked_in'", async () => {
+    // Regression test for the bug this fix addresses: getLive() used to check
+    // only "does an attendance row exist", so a row markNoShowAbsent created
+    // (in_time null, in_status 'absent') was read as 'checked_in' — the Admin
+    // Live Attendance dashboard showed an absent faculty member as actively
+    // checked in.
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({
+      session_start_morning_hour: 0, session_start_morning_min: 0,
+      session_start_afternoon_hour: 0, session_start_afternoon_min: 0,
+      auto_checkout_morning_hour: 23, auto_checkout_morning_min: 59,
+      auto_checkout_afternoon_hour: 23, auto_checkout_afternoon_min: 59,
+    });
+    vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
+      {
+        id: 's1', status: 'absent', session_type: 'morning',
+        faculty: { id: 'f1', name: 'A', email: 'a@x.com', department: 'CS' },
+        attendance: { faculty_id: 'f1', in_time: null, out_time: null, in_status: 'absent', out_status: null, auto_out: false },
+      },
+    ]);
+
+    const res = makeLiveRes();
+    await getLive({}, res);
+
+    expect(res._body.data[0].attendance_status).not.toBe('checked_in');
+    expect(res._body.data[0].attendance_status).toBe('not_checked_in');
+  });
+
+  it('reports checked_in only once in_time is actually set', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({
+      session_start_morning_hour: 0, session_start_morning_min: 0,
+      session_start_afternoon_hour: 0, session_start_afternoon_min: 0,
+      auto_checkout_morning_hour: 23, auto_checkout_morning_min: 59,
+      auto_checkout_afternoon_hour: 23, auto_checkout_afternoon_min: 59,
+    });
+    vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
+      {
+        id: 's1', status: 'scheduled', session_type: 'morning',
+        faculty: { id: 'f1', name: 'A', email: 'a@x.com', department: 'CS' },
+        attendance: { faculty_id: 'f1', in_time: new Date(), out_time: null, in_status: 'normal', out_status: null, auto_out: false },
+      },
+    ]);
+
+    const res = makeLiveRes();
+    await getLive({}, res);
+
+    expect(res._body.data[0].attendance_status).toBe('checked_in');
   });
 });

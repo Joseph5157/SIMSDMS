@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
 const { logAction } = require('../services/audit.service');
 const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST } = require('../lib/time');
+const { resolveAttendanceStatus } = require('../services/attendance-status.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,15 @@ async function checkIn(req, res) {
     });
   }
 
+  // Self-heal: a slot the markNoShowAbsent cron already flagged 'absent' (e.g.
+  // under a Duty Timing Settings value since widened by the Admin) must not
+  // stay stuck once the faculty successfully checks in within the current
+  // window — every other reader of the raw column (Duty Slots page, Reports,
+  // violation eligibility) relies on it reflecting reality, not history.
+  if (slot.status === 'absent') {
+    await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'scheduled' } });
+  }
+
   res.status(201).json(attendance);
 }
 
@@ -186,18 +196,8 @@ async function getLive(req, res) {
     orderBy: [{ session_type: 'asc' }, { faculty: { name: 'asc' } }],
   });
 
-  // A no-show-yet slot is "upcoming" until its session actually starts, then
-  // "not_checked_in" for the rest of the session — no separate time-gated
-  // cutoff stage (P26: not-checked-in cutoff removed).
-  function resolveNoAttendanceStatus(sessionType) {
-    const startHour = sessionType === 'morning'
-      ? cfg.session_start_morning_hour
-      : cfg.session_start_afternoon_hour;
-    const startMin  = sessionType === 'morning'
-      ? cfg.session_start_morning_min
-      : cfg.session_start_afternoon_min;
-    return nowMins < startHour * 60 + startMin ? 'upcoming' : 'not_checked_in';
-  }
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayStr = `${ist.year}-${pad(ist.month)}-${pad(ist.day)}`;
 
   const result = slots.map((s) => ({
     slot_id:          s.id,
@@ -207,11 +207,14 @@ async function getLive(req, res) {
     duty_date:        s.duty_date,
     session_type:     s.session_type,
     slot_status:      s.status,
-    attendance_status: !s.attendance
-      ? resolveNoAttendanceStatus(s.session_type)
-      : s.attendance.out_time
-      ? 'checked_out'
-      : 'checked_in',
+    attendance_status: resolveAttendanceStatus({
+      attendance:  s.attendance,
+      dutyDateStr: todayStr,
+      todayStr,
+      sessionType: s.session_type,
+      nowMins,
+      cfg,
+    }),
     in_time:    s.attendance?.in_time    ?? null,
     out_time:   s.attendance?.out_time   ?? null,
     in_status:  s.attendance?.in_status  ?? null,
@@ -219,9 +222,8 @@ async function getLive(req, res) {
     auto_out:   s.attendance?.auto_out   ?? false,
   }));
 
-  const pad = (n) => String(n).padStart(2, '0');
   res.json({
-    date:  `${ist.year}-${pad(ist.month)}-${pad(ist.day)}`,
+    date:  todayStr,
     total: result.length,
     data:  result,
   });
@@ -259,32 +261,19 @@ async function getMySummary(req, res) {
     orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
   });
 
-  // Mirrors getLive's resolveNoAttendanceStatus, extended across past/future
-  // dates: a past slot's session has necessarily already started (not_checked_in),
-  // a future slot hasn't started yet (upcoming), only "today" needs the session-start check.
-  function resolveAttendanceStatus(slot) {
-    if (slot.attendance?.out_time) return 'checked_out';
-    if (slot.attendance?.in_time)  return 'checked_in';
-
-    const slotDateStr = formatDateIST(slot.duty_date);
-    if (slotDateStr > todayStr) return 'upcoming';
-    if (slotDateStr < todayStr) return 'not_checked_in';
-
-    const startHour = slot.session_type === 'morning'
-      ? cfg.session_start_morning_hour
-      : cfg.session_start_afternoon_hour;
-    const startMin  = slot.session_type === 'morning'
-      ? cfg.session_start_morning_min
-      : cfg.session_start_afternoon_min;
-    return nowMins < startHour * 60 + startMin ? 'upcoming' : 'not_checked_in';
-  }
-
   const history = slots.map((s) => ({
     slot_id:           s.id,
     duty_date:         s.duty_date,
     session_type:      s.session_type,
     slot_status:       s.status,
-    attendance_status: resolveAttendanceStatus(s),
+    attendance_status: resolveAttendanceStatus({
+      attendance:  s.attendance,
+      dutyDateStr: formatDateIST(s.duty_date),
+      todayStr,
+      sessionType: s.session_type,
+      nowMins,
+      cfg,
+    }),
     in_time:           s.attendance?.in_time    ?? null,
     out_time:          s.attendance?.out_time   ?? null,
     in_status:         s.attendance?.in_status  ?? null,
@@ -299,6 +288,7 @@ async function getMySummary(req, res) {
       checked_out:    records.filter((r) => !!r.out_time).length,
       late:           records.filter((r) => r.in_status === 'late').length,
       not_checked_in: records.filter((r) => r.attendance_status === 'not_checked_in').length,
+      absent:         records.filter((r) => r.attendance_status === 'absent').length,
       auto_out:       records.filter((r) => r.auto_out).length,
     };
   }

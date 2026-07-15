@@ -38,7 +38,11 @@ function AttendanceHistoryCard({ record }) {
           <p className="font-semibold text-[var(--text-primary)]">{dateStr}</p>
           <p className="text-[length:13px] text-[var(--text-muted)] capitalize">{record.session_type} session</p>
         </div>
-        <Badge status={record.slot_status} />
+        {/* attendance_status is the live-computed signal — see
+            attendance-status.service.js — kept as the single badge here so
+            this card can't disagree with itself the way a separate
+            slot_status badge plus an attendance_status badge could. */}
+        <Badge status={record.attendance_status} />
       </div>
 
       <div className="flex items-center gap-4">
@@ -53,9 +57,6 @@ function AttendanceHistoryCard({ record }) {
           {record.auto_out && <span className="text-xs text-[var(--color-amber-solid)]">Auto</span>}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {!record.in_time && !record.out_time && (
-            <Badge status={record.attendance_status} />
-          )}
           {isToday && !record.out_time && (
             <Button size="sm" variant="light" onClick={() => navigate(ROUTES.FACULTY_DASHBOARD)}>
               {record.in_time ? 'Check out on Dashboard →' : 'Check in on Dashboard →'}

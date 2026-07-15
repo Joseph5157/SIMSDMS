@@ -48,7 +48,12 @@ export default function AdminDashboardPage({ user }) {
   const liveSlots    = liveData?.data ?? [];
   const checkedIn    = liveSlots.filter((s) => s.attendance_status === 'checked_in').length;
   const checkedOut   = liveSlots.filter((s) => s.attendance_status === 'checked_out').length;
+  // 'not_checked_in' (still within the window) vs 'absent' (past auto
+  // clock-out, never checked in) — two distinct signals from the live
+  // resolver (server/services/attendance-status.service.js), not to be
+  // conflated under a single "Absent" label.
   const notCheckedIn = liveSlots.filter((s) => s.attendance_status === 'not_checked_in').length;
+  const absentCount  = liveSlots.filter((s) => s.attendance_status === 'absent').length;
   const lateCount    = liveSlots.filter((s) => s.in_status === 'late').length;
 
   const allFlaggedViolations = (flagged?.data ?? []).filter((v) => v.is_flagged);
@@ -164,9 +169,10 @@ export default function AdminDashboardPage({ user }) {
             <>
               <div className="flex gap-2 px-4 py-2 border-b border-[var(--border)] shrink-0">
                 {[
-                  { n: checkedOut,    label: 'Out',    color: 'var(--color-emerald-solid)', tint: 'var(--color-emerald-bg)' },
-                  { n: checkedIn,     label: 'In',     color: 'var(--brand)',               tint: 'var(--color-blue-50)' },
-                  { n: notCheckedIn,  label: 'Absent', color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
+                  { n: checkedOut,    label: 'Out',      color: 'var(--color-emerald-solid)', tint: 'var(--color-emerald-bg)' },
+                  { n: checkedIn,     label: 'In',       color: 'var(--brand)',               tint: 'var(--color-blue-50)' },
+                  { n: notCheckedIn,  label: 'Not In',   color: 'var(--text-muted)',          tint: 'var(--surface-page)' },
+                  ...(absentCount > 0 ? [{ n: absentCount, label: 'Absent', color: 'var(--color-red-solid)', tint: 'var(--color-red-bg)' }] : []),
                   ...(lateCount > 0 ? [{ n: lateCount, label: 'Late', color: 'var(--color-amber-solid)', tint: 'var(--color-amber-bg)' }] : []),
                 ].map((item) => (
                   <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-1.5 text-center"
@@ -195,6 +201,8 @@ export default function AdminDashboardPage({ user }) {
                       status={
                         s.attendance_status === 'checked_out' ? 'completed' :
                         s.attendance_status === 'checked_in'  ? 'checked_in' :
+                        s.attendance_status === 'absent'      ? 'absent' :
+                        s.attendance_status === 'upcoming'    ? 'upcoming' :
                         'not_checked_in'
                       }
                     />

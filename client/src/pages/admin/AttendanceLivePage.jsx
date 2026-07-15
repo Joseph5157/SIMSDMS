@@ -77,16 +77,21 @@ function StatPill({ label, count, color }) {
 
 // ── Faculty card ──────────────────────────────────────────────────────────────
 function FacultyCard({ record, onOverride }) {
+  // attendance_status is the single live-computed signal (see
+  // server/services/attendance-status.service.js) — it already distinguishes
+  // 'absent' (past this session's auto clock-out, never checked in) from
+  // 'not_checked_in' (still within the window), so no fallback onto in_status
+  // is needed here anymore.
   const borderCls =
     record.attendance_status === 'checked_in'  && record.in_status === 'late'    ? 'border-l-amber-600' :
     record.attendance_status === 'checked_in'  || record.attendance_status === 'checked_out' ? 'border-l-emerald-600' :
-    record.in_status === 'absent'              ? 'border-l-red-600' :
+    record.attendance_status === 'absent'      ? 'border-l-red-600' :
     'border-l-[var(--border)]';
 
   const statusBadge =
     record.attendance_status === 'checked_out' ? 'completed' :
     record.attendance_status === 'checked_in'  ? (record.in_status === 'late' ? 'late' : 'active') :
-    record.in_status === 'absent'              ? 'absent' :
+    record.attendance_status === 'absent'      ? 'absent' :
     record.attendance_status === 'upcoming'    ? 'upcoming' :
     'not_checked_in';
 
@@ -95,8 +100,10 @@ function FacultyCard({ record, onOverride }) {
       ? `In: ${new Date(record.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
       : record.attendance_status === 'upcoming'
       ? 'Upcoming'
-      : record.attendance_status === 'not_checked_in'
+      : record.attendance_status === 'absent'
       ? 'Absent'
+      : record.attendance_status === 'not_checked_in'
+      ? 'Not checked in'
       : '—';
 
   return (
@@ -134,7 +141,12 @@ export default function AttendanceLivePage({ user }) {
   const checkedIn    = records.filter(r => r.attendance_status === 'checked_in').length;
   const checkedOut   = records.filter(r => r.attendance_status === 'checked_out').length;
   const lateCount    = records.filter(r => r.in_status === 'late').length;
+  // 'not_checked_in' (still within the window) and 'absent' (past auto
+  // clock-out, never checked in) are distinct signals now — previously this
+  // pill was labeled "Absent" but counted everyone not yet checked in,
+  // including faculty whose window hadn't closed.
   const notIn        = records.filter(r => r.attendance_status === 'not_checked_in').length;
+  const absentCount  = records.filter(r => r.attendance_status === 'absent').length;
   const autoOut      = records.filter(r => r.auto_out).length;
 
   const lastUpdate = dataUpdatedAt
@@ -153,11 +165,12 @@ export default function AttendanceLivePage({ user }) {
 
       {/* Stat pills */}
       <div className="flex flex-wrap gap-3 mb-6">
-        <StatPill label="Checked in"     count={checkedIn}  color="green" />
-        <StatPill label="Checked out"    count={checkedOut} color="blue"  />
-        <StatPill label="Late arrivals"  count={lateCount}  color="amber" />
-        <StatPill label="Absent"         count={notIn}      color="red"   />
-        <StatPill label="Auto clock-out" count={autoOut}    color="gray"  />
+        <StatPill label="Checked in"     count={checkedIn}   color="green" />
+        <StatPill label="Checked out"    count={checkedOut}  color="blue"  />
+        <StatPill label="Late arrivals"  count={lateCount}   color="amber" />
+        <StatPill label="Not checked in" count={notIn}       color="gray"  />
+        <StatPill label="Absent"         count={absentCount} color="red"   />
+        <StatPill label="Auto clock-out" count={autoOut}     color="gray"  />
       </div>
 
       {isLoading ? (

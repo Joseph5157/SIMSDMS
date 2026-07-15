@@ -85,7 +85,12 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
               Starts {startLabel}
             </p>
           </div>
-          <Badge status={session.slot_status} />
+          {/* Driven by the live-computed attendance_status, not the raw
+              slot_status column — slot_status is set once by the absent
+              cron job and stays frozen until a check-in happens, so it can
+              disagree with the currently-configured Duty Timing Settings
+              window (see attendance-status.service.js). */}
+          <Badge status={session.attendance_status} />
         </div>
 
         {session.in_time && session.out_time ? (
@@ -104,7 +109,7 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
               Check Out
             </Button>
           </>
-        ) : session.slot_status === 'absent' ? (
+        ) : session.attendance_status === 'absent' ? (
           <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)' }}>
             ● Marked absent — the check-in window for this session has closed.
           </p>

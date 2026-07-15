@@ -2,7 +2,9 @@ const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 const telegram = require('../lib/telegram');
 const { logAction } = require('../services/audit.service');
-const { formatDateIST } = require('../lib/time');
+const { formatDateIST, nowInIST } = require('../lib/time');
+const settingsService = require('../services/settings.service');
+const { resolveAttendanceStatus } = require('../services/attendance-status.service');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +61,30 @@ const SLOT_SELECT = {
   reassignments: LATEST_REASSIGNMENT_SELECT,
 };
 
+// Attaches a live-computed attendance_status to each slot (same resolver used
+// by getLive/getMySummary in attendance.controller.js — see
+// server/services/attendance-status.service.js) so the Duty Slots page and
+// the faculty Dashboard's upcoming-slots list never disagree with the Live
+// Attendance / My Attendance views about whether a slot is still checkinable.
+async function attachAttendanceStatus(slots) {
+  const ist = nowInIST();
+  const cfg = await settingsService.getSettings();
+  const todayStr = formatDateIST(new Date());
+  const nowMins  = ist.hour * 60 + ist.minute;
+
+  return slots.map((s) => ({
+    ...s,
+    attendance_status: resolveAttendanceStatus({
+      attendance:  s.attendance,
+      dutyDateStr: formatDateIST(s.duty_date),
+      todayStr,
+      sessionType: s.session_type,
+      nowMins,
+      cfg,
+    }),
+  }));
+}
+
 // ─── GET /duty-slots/:year/:month ─────────────────────────────────────────────
 
 async function getMonthSlots(req, res) {
@@ -78,7 +104,8 @@ async function getMonthSlots(req, res) {
     orderBy: [{ duty_date: 'asc' }, { session_type: 'asc' }],
   });
 
-  res.json({ data: slots, total: slots.length });
+  const data = await attachAttendanceStatus(slots);
+  res.json({ data, total: data.length });
 }
 
 // ─── GET /duty-slots/all/:year/:month — All Auth ──────────────────────────────

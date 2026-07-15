@@ -1,8 +1,16 @@
 import { createRequire } from 'module';
 const _require = createRequire(import.meta.url);
 
-const prisma     = _require('../lib/prisma');
+const prisma          = _require('../lib/prisma');
+const settingsService = _require('../services/settings.service');
 const { pickSlot, getMonthSlots } = _require('../controllers/duty-slots.controller');
+
+const DEFAULT_CFG = {
+  session_start_morning_hour: 8, session_start_morning_min: 0,
+  session_start_afternoon_hour: 13, session_start_afternoon_min: 0,
+  auto_checkout_morning_hour: 16, auto_checkout_morning_min: 30,
+  auto_checkout_afternoon_hour: 16, auto_checkout_afternoon_min: 30,
+};
 
 function makeReq(b = {}) { return { body: b, user: { id: 'f1', role: 'faculty' }, params: {} }; }
 function makeRes() {
@@ -77,6 +85,7 @@ describe('getMonthSlots', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('scopes a faculty member to the slots they currently own (faculty_id only)', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(DEFAULT_CFG);
     const ownSlot = {
       id: 's1', faculty_id: 'f1',
       duty_date: new Date('2026-06-10'), session_type: 'morning', status: 'scheduled',
@@ -90,11 +99,12 @@ describe('getMonthSlots', () => {
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ faculty_id: 'f1' }),
     }));
-    expect(res._body.data).toEqual([ownSlot]);
+    expect(res._body.data).toEqual([expect.objectContaining(ownSlot)]);
     expect(res._body.total).toBe(1);
   });
 
   it('selects attendance.in_time/out_time so the frontend can tell which slot is actively checked in', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(DEFAULT_CFG);
     const findMany = vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([]);
 
     const req = { params: { year: '2026', month: '6' }, user: { id: 'f1', role: 'faculty' } };
@@ -106,5 +116,25 @@ describe('getMonthSlots', () => {
         attendance: { select: { in_time: true, out_time: true } },
       }),
     }));
+  });
+
+  it('attaches a live-computed attendance_status to each returned slot', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue(DEFAULT_CFG);
+    const slot = {
+      id: 's1', faculty_id: 'f1',
+      duty_date: new Date('2026-06-10'), session_type: 'morning', status: 'absent',
+      attendance: { in_time: '2026-06-10T04:00:00.000Z', out_time: null },
+    };
+    vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([slot]);
+
+    const req = { params: { year: '2026', month: '6' }, user: { id: 'f1', role: 'faculty' } };
+    const res = makeRes();
+    await getMonthSlots(req, res);
+
+    // A checked-in slot resolves to 'checked_in' even though the raw
+    // slot_status column is still the stale 'absent' the cron job wrote
+    // before this check-in happened — attendance_status is the live truth.
+    expect(res._body.data[0].attendance_status).toBe('checked_in');
+    expect(res._body.data[0].status).toBe('absent');
   });
 });
