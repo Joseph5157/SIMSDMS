@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIMS DMS — Faculty Training Presentation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    /* --------------------------------- Design System --------------------------------- */
+    :root {
+      --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'Space Mono', ui-monospace, "SF Mono", "Roboto Mono", monospace;
+
+      --blue-50: #eff6ff; --blue-100: #dbeafe; --blue-200: #bfdbfe; --blue-500: #3b82f6; --blue-600: #2563eb; --blue-700: #1d4ed8;
+      --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0; --slate-300: #cbd5e1; --slate-500: #64748b; --slate-800: #1e293b; --slate-900: #0f172a;
+      
+      --emerald-bg: #f0fdf4; --emerald-text: #065f46; --emerald-solid: #10b981; --emerald-border: #bbf7d0;
+      --amber-bg: #fffbeb; --amber-text: #92400e; --amber-solid: #f59e0b; --amber-border: #fde68a;
+      --red-bg: #fef2f2; --red-text: #991b1b; --red-solid: #ef4444; --red-border: #fecaca;
+
+      --page: var(--slate-50);
+      --ink: var(--slate-900);
+      --muted: var(--slate-500);
+      --card: #ffffff;
+      --border: var(--slate-200);
+      --divider: var(--slate-100);
+      --brand: var(--blue-600);
+      --brand-grad: linear-gradient(135deg, #3b82f6, #6366f1);
+      
+      --shadow-card: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
+      --shadow-pop: 0 20px 40px -15px rgba(15, 23, 42, 0.15);
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    [data-theme="dark"] {
+      --page: var(--slate-900);
+      --ink: #f1f5f9;
+      --muted: var(--slate-500);
+      --card: #1e293b;
+      --border: #334155;
+      --divider: #1e293b;
+      --brand: var(--blue-500);
+      --blue-50: #1e293b;
+      --blue-100: #334155;
+      --emerald-bg: #064e3b; --emerald-text: #a7f3d0; --emerald-border: #047857;
+      --amber-bg: #78350f; --amber-text: #fde68a; --amber-border: #b45309;
+      --red-bg: #7f1d1d; --red-text: #fecaca; --red-border: #b91c1c;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+      --shadow-pop: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: var(--font-sans);
+      background: var(--page);
+      color: var(--ink);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --------------------------------- App Header --------------------------------- */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--brand-grad);
+      display:grid; place-items: center; font-size: 20px;
+      box-shadow: 0 8px 24px -8px rgba(37,99,235,0.5);
+    }
+    .brand-text { font-weight: 800; font-size: 18px; letter-spacing: -0.02em; }
+    .brand-text small { display: block; font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+    .actions { display: flex; align-items: center; gap: 12px; }
+    .btn {
+      font-family: var(--font-sans); font-weight: 700; font-size: 13px;
+      border: 1px solid var(--border); background: var(--card); color: var(--ink);
+      border-radius: 10px; padding: 10px 16px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+    }
+    .btn:hover { background: var(--slate-100); border-color: var(--slate-300); }
+    [data-theme="dark"] .btn:hover { background: var(--slate-800); }
+    .btn.primary { background: var(--brand); color: #fff; border-color: transparent; }
+    .btn.primary:hover { background: var(--blue-700); }
+    .counter { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-weight: 700; }
+
+    /* --------------------------------- Slide Layout --------------------------------- */
+    .stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+    .slide-container {
+      width: 100%;
+      max-width: 1100px;
+      aspect-ratio: 16 / 9;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      display: none;
+      padding: 48px;
+      overflow: hidden;
+      animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .slide-container.active { display: flex; flex-direction: column; }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase; color: var(--brand);
+      margin: 0 0 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .eyebrow::before { content: ""; display: inline-block; width: 20px; height: 2px; background: var(--brand); }
+    h2.slide-title { font-size: 36px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.02em; }
+    .lead { font-size: 17px; line-height: 1.6; color: var(--muted); margin: 0 0 24px; max-width: 80ch; }
+
+    /* --------------------------------- Grid and Columns --------------------------------- */
+    .cols-2 { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 40px; flex: 1; min-height: 0; }
+    .col-left { display: flex; flex-direction: column; justify-content: center; }
+    .col-right { display: flex; align-items: center; justify-content: center; }
+
+    ol.steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; }
+    ol.steps li { display: grid; grid-template-columns: 36px 1fr; gap: 16px; align-items: start; }
+    ol.steps li::before {
+      content: counter(step-counter);
+      counter-increment: step-counter;
+      font-family: var(--font-mono); font-weight: 700; font-size: 14px;
+      width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+      background: var(--blue-50); color: var(--brand); border: 1px solid var(--blue-200);
+    }
+    ol.steps { counter-reset: step-counter; }
+    ol.steps li p { margin: 0; font-size: 15px; line-height: 1.5; padding-top: 6px; font-weight: 500; }
+    ol.steps li strong { font-weight: 700; color: var(--ink); }
+
+    .callout {
+      border-left: 4px solid var(--amber-solid);
+      background: var(--amber-bg);
+      color: var(--amber-text);
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 20px;
+    }
+    .callout.info { border-left-color: var(--brand); background: var(--blue-50); color: var(--brand); }
+    .callout.danger { border-left-color: var(--red-solid); background: var(--red-bg); color: var(--red-text); }
+    .callout strong { font-weight: 700; }
+
+    /* Key indicator keycaps */
+    b.key {
+      font-family: var(--font-mono); font-weight: 700; font-size: 13px;
+      background: var(--slate-100); border: 1px solid var(--border);
+      border-radius: 6px; padding: 2px 6px; color: var(--slate-800);
+    }
+
+    /* --------------------------------- Graphic Mockups --------------------------------- */
+    .mock-phone {
+      width: 300px; height: 440px; background: var(--slate-900);
+      border: 8px solid var(--slate-800); border-radius: 36px;
+      box-shadow: var(--shadow-pop); display: flex; flex-direction: column; overflow: hidden;
+      color: #fff;
+    }
+    .mock-header {
+      padding: 16px 20px; border-bottom: 1px solid #1e293b;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .mock-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-grad); }
+    .mock-header-text { font-size: 12px; font-weight: 700; }
+    .mock-header-text small { display: block; color: var(--slate-500); font-size: 10px; }
+    
+    .mock-body { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .mock-card {
+      border-radius: 16px; padding: 16px; color: #fff;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      box-shadow: 0 10px 20px -8px rgba(37,99,235,0.4);
+    }
+    .mock-card-tag { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; opacity: 0.8; }
+    .mock-card-title { font-size: 18px; font-weight: 800; margin: 4px 0 2px; }
+    .mock-card-subtitle { font-size: 11px; opacity: 0.85; }
+    .mock-btn {
+      margin-top: 12px; background: #fff; color: var(--brand);
+      font-weight: 800; font-size: 13px; text-align: center;
+      padding: 10px; border-radius: 10px; cursor: pointer;
+    }
+    .mock-btn-secondary {
+      background: #1e293b; color: #fff; border: 1px solid #334155;
+      font-weight: 700; font-size: 12px; text-align: center;
+      padding: 8px; border-radius: 8px;
+    }
+
+    .mock-list-item {
+      border: 1px solid #334155; border-radius: 12px; padding: 10px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; background: #0f172a;
+    }
+    .mock-date-box {
+      width: 32px; height: 32px; border-radius: 8px; background: #1e293b;
+      display: grid; place-items: center; font-weight: 800; font-size: 14px; color: var(--brand);
+    }
+    .mock-list-body { flex: 1; margin-left: 10px; }
+    .mock-list-title { font-weight: 700; margin: 0; }
+    .mock-list-sub { font-size: 10px; color: var(--slate-500); margin: 0; }
+    .mock-status-pill { font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 99px; }
+    .mock-status-pill.blue { background: rgba(37,99,235,0.2); color: #60a5fa; }
+    .mock-status-pill.green { background: rgba(16,185,129,0.2); color: #34d399; }
+    .mock-status-pill.amber { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+    /* --------------------------------- Slide Custom Layouts --------------------------------- */
+    /* Cover Slide */
+    .cover-slide { text-align: left; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+    .cover-slide h1 { font-size: 58px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.03em; line-height: 1.05; }
+    .cover-slide h1 span { background: var(--brand-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .cover-slide .badges { display: flex; gap: 10px; margin: 12px 0 32px; }
+    .cover-slide .badge { font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 99px; background: var(--blue-50); color: var(--brand); border: 1px solid var(--blue-200); }
+    .cover-panel { background: var(--brand-grad); padding: 32px; border-radius: var(--radius-lg); color: #fff; margin-top: 24px; box-shadow: var(--shadow-pop); }
+    .cover-panel h3 { font-family: var(--font-mono); font-size: 12px; margin: 0 0 8px; letter-spacing: 0.15em; opacity: 0.9; }
+    .cover-panel p { font-size: 20px; font-weight: 700; margin: 0; line-height: 1.4; }
+
+    /* Why DMS Slide */
+    .why-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .why-item { background: var(--slate-50); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; transition: transform 0.2s; }
+    [data-theme="dark"] .why-item { background: var(--slate-800); }
+    .why-icon { font-size: 28px; margin-bottom: 8px; }
+    .why-item h3 { font-size: 15px; font-weight: 700; margin: 0 0 6px; }
+    .why-item p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.4; }
+    .why-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .why-compare-col { padding: 16px 20px; border-radius: 12px; }
+    .why-compare-col.before { background: var(--slate-100); }
+    [data-theme="dark"] .why-compare-col.before { background: var(--slate-800); }
+    .why-compare-col.after { background: var(--blue-50); border: 1px dashed var(--brand); }
+    .why-compare-col h4 { font-family: var(--font-mono); font-size: 10px; margin: 0 0 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .why-compare-col.after h4 { color: var(--brand); }
+    .why-compare-col ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+
+    /* Navigation Layout */
+    .navmap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+    .navmap-item { background: var(--slate-50); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
+    [data-theme="dark"] .navmap-item { background: var(--slate-800); }
+    .navmap-icon { font-size: 22px; }
+    .navmap-name { font-weight: 700; font-size: 13px; margin: 6px 0 2px; }
+    .navmap-desc { font-size: 11px; color: var(--muted); line-height: 1.3; }
+
+    /* Mock calendar */
+    .mock-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 10px 0; }
+    .mock-cal-cell { aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center; font-size: 11px; font-weight: 700; background: #1e293b; color: #64748b; }
+    .mock-cal-cell.blue-dot { border: 1.5px solid var(--brand); color: #fff; background: rgba(37,99,235,0.1); }
+    .mock-cal-cell.green-bg { background: var(--emerald-border); color: var(--emerald-text); }
+
+    /* Cheat Sheet Grid */
+    .sheet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; flex: 1; }
+    .sheet-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--slate-50); }
+    [data-theme="dark"] .sheet-card { background: var(--slate-800); }
+    .sheet-card h3 { font-size: 14px; font-weight: 800; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; color: var(--brand); }
+    .sheet-card ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+    .sheet-card li { font-size: 12px; line-height: 1.4; display: flex; gap: 6px; align-items: start; }
+    .sheet-card li::before { content: "•"; color: var(--brand); font-weight: 800; }
+    
+    .sheet-footer {
+      display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px;
+      margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+    }
+    .sheet-footer h4 { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--brand); margin: 0 0 4px; text-transform: uppercase; }
+    .sheet-footer p { font-size: 11px; color: var(--muted); margin: 0; line-height: 1.4; }
+
+    /* --------------------------------- Controls Bar --------------------------------- */
+    .controls {
+      display: flex; align-items: center; justify-content: center; gap: 20px;
+      padding: 16px 40px; background: var(--card); border-top: 1px solid var(--border);
+    }
+    .dots-container { display: flex; gap: 8px; }
+    .dot-btn {
+      width: 10px; height: 10px; border-radius: 50%; border: none;
+      background: var(--slate-300); cursor: pointer; padding: 0; transition: all 0.2s ease;
+    }
+    [data-theme="dark"] .dot-btn { background: var(--slate-700); }
+    .dot-btn.active { background: var(--brand); transform: scale(1.35); }
+    .nav-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; }
+
+    /* --------------------------------- PDF Print / Screen Presentation Media --------------------------------- */
+    @media print {
+      body, html {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print { display: none !important; }
+      .stage { padding: 0 !important; display: block !important; }
+      .slide-container {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 297mm !important;
+        height: 210mm !important;
+        aspect-ratio: auto !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        padding: 20mm !important;
+        overflow: hidden !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .why-item, .sheet-card, .navmap-item {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      .mock-phone {
+        background: #0f172a !important;
+        border-color: #334155 !important;
+      }
+      [data-theme="dark"] {
+        --ink: #000000 !important;
+        --page: #ffffff !important;
+        --card: #ffffff !important;
+        --border: #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header no-print">
+    <div class="brand-wrap">
+      <div class="logo">🎓</div>
+      <div class="brand-text">
+        SIMS DMS
+        <small>Faculty Training Deck</small>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="counter" id="slide-counter">01 / 11</span>
+      <button class="btn" id="theme-btn">◐ Theme</button>
+      <button class="btn primary" id="print-btn">🖨 Save to PDF (Landscape)</button>
+    </div>
+  </header>
+
+  <!-- STAGE (Slides Wrapper) -->
+  <main class="stage">
+
+    <!-- SLIDE 0: Cover -->
+    <section class="slide-container active" data-title="Welcome">
+      <div class="cover-slide">
+        <p class="eyebrow">SIMS College of Pharmacy · Campus Discipline</p>
+        <h1>Your Discipline Duty,<br><span>On Your Phone</span></h1>
+        <p class="lead">A quick, hands-on faculty guide to using the SIMS DMS mobile-first PWA application. No registers to sign, no WhatsApp logs to lose. Take charge of your duty shifts seamlessly.</p>
+        <div class="badges">
+          <div class="badge">📲 Works on Mobile Browser</div>
+          <div class="badge">✈️ Sign In via Telegram Bot</div>
+          <div class="badge">⏱️ 5 Core Shift Tasks</div>
+        </div>
+        <div class="cover-panel">
+          <h3>IN THIS PRESENTATION</h3>
+          <p>Why we're upgrading to DMS → Step-by-step walk of the 5 daily tasks → Faculty Cheat Sheet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 1: Why DMS -->
+    <section class="slide-container" data-title="Why DMS?">
+      <p class="eyebrow">The Upgrade</p>
+      <h2 class="slide-title">Why We Are Transitioning to SIMS DMS</h2>
+      <p class="lead">Discipline duty used to be coordinate manually via papers and scattered messages. DMS unifies attendance, slot scheduling, and violation reporting into a digital record, visible to all.</p>
+      
+      <div class="why-cards">
+        <div class="why-item"><div class="why-icon">📋</div><h3>Verified Records</h3><p>Your check-ins are timestamped automatically. No gate books to sign.</p></div>
+        <div class="why-item"><div class="why-icon">🔄</div><h3>Seamless Swapping</h3><p>Need cover? Send requests to colleagues in 2 taps. Status updates instantly.</p></div>
+        <div class="why-item"><div class="why-icon">⚠️</div><h3>Fair Penalties</h3><p>Infractions log instantly with preset fines. Transparent for the office.</p></div>
+        <div class="why-item"><div class="why-icon">✈️</div><h3>Active Reminders</h3><p>Telegram notifies you before your shifts and warns you of missed clock-outs.</p></div>
+      </div>
+
+      <div class="why-compare">
+        <div class="why-compare-col before">
+          <h4>Before (Manual System)</h4>
+          <ul>
+            <li>Sign physical sheets at the security gate</li>
+            <li>Coordinate swaps via phone calls</li>
+            <li>Track student fines in a paper notebook</li>
+            <li>Uncertain attendance record with no audit history</li>
+          </ul>
+        </div>
+        <div class="why-compare-col after">
+          <h4>After (SIMS DMS)</h4>
+          <ul>
+            <li>Tap Check In / Check Out on your phone screen</li>
+            <li>Transmit digital requests with live status updates</li>
+            <li>System auto-calculates fines from predefined lists</li>
+            <li>Robust, timestamped audit files for administration</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Orientation -->
+    <section class="slide-container" data-title="Sign In & Navigation">
+      <p class="eyebrow">Getting Setup</p>
+      <h2 class="slide-title">Signing In & Navigation Map</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">Sign in once using a secure passwordless OTP delivered straight to your Telegram account. Navigate using the bottom tabs.</p>
+          <ol class="steps">
+            <li><p>Open the app link on your browser and type in your <strong>registered email</strong>.</p></li>
+            <li><p>Tap <strong>'Request OTP'</strong>. The system will send a secure 6-digit code via Telegram.</p></li>
+            <li><p>Enter the code in the verification panel. No password required.</p></li>
+            <li><p>If you haven't linked Telegram, tap the invite link sent by your administrator to activate.</p></li>
+          </ol>
+          <div class="callout info">
+            💡 <strong>PRO TIP:</strong> Add the app to your phone's Home Screen (Add to Home Screen button in browser) to run it like a native application!
+          </div>
+        </div>
+        <div class="col-right">
+          <div style="width: 100%;">
+            <p style="font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; text-align: center;">The 5 Application Modules</p>
+            <div class="navmap" style="grid-template-columns: 1fr;">
+              <div class="navmap-item" style="display: flex; align-items: center; gap: 14px; text-align: left; padding: 10px 14px;">
+                <span class="navmap-icon">🏠</span><div><div class="navmap-name">Dashboard</div><div class="navmap-desc">Check-ins, today's schedule, and requests.</div></div>
+              </div>
+              <div class="navmap-item" style="display: flex; align-items: center; gap: 14px; text-align: left; padding: 10px 14px;">
+                <span class="navmap-icon">📅</span><div><div class="navmap-name">Slots</div><div class="navmap-desc">Select duty dates for the upcoming month.</div></div>
+              </div>
+              <div class="navmap-item" style="display: flex; align-items: center; gap: 14px; text-align: left; padding: 10px 14px;">
+                <span class="navmap-icon">✅</span><div><div class="navmap-name">Attendance</div><div class="navmap-desc">Check-in timestamps and monthly statistics.</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: Task 1 - Check In / Out -->
+    <section class="slide-container" data-title="Check In & Out">
+      <p class="eyebrow">Task 01 · Shift Days</p>
+      <h2 class="slide-title">Checking In & Checking Out</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">This simple task replaces the manual register. It records your exact entry and exit times for disciplinary audit logs.</p>
+          <ol class="steps">
+            <li><p>Open the <strong>Dashboard</strong>. Today's duty slot will appear at the top in a blue card.</p></li>
+            <li><p>Upon arriving at your duty area, tap the white <strong>'Check In'</strong> button.</p></li>
+            <li><p>Before leaving the duty spot at the end of the session, open the app and tap <strong>'Check Out'</strong>.</p></li>
+            <li><p>If you have both Morning & Afternoon shifts, check in and out of each separately.</p></li>
+          </ol>
+          <div class="callout danger">
+            ⚠️ <strong>DON'T FORGET:</strong> Missed checkouts will be auto-clocked out at the session cutoff time. This registers as an "Auto" checkout status and is flagged for review.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar"></div>
+              <div class="mock-header-text">Good morning, Prof. Rao<small>Thursday, 13 July</small></div>
+            </div>
+            <div class="mock-body">
+              <p style="font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin: 0;">📋 TODAY'S ACTIVE DUTY</p>
+              <div class="mock-card">
+                <div class="mock-card-tag">GATE 1 DUTY</div>
+                <div class="mock-card-title">Morning Session</div>
+                <div class="mock-card-subtitle">Scheduled: 8:00 AM · Not checked in</div>
+                <div class="mock-btn">Tap to Check In</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Task 2 - Pick Slots -->
+    <section class="slide-container" data-title="Pick Slots">
+      <p class="eyebrow">Task 02 · Start of the Month</p>
+      <h2 class="slide-title">Picking Your Scheduled Duty Slots</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">At the start of the month, the scheduling window opens. You pick which dates you are available to stand gate duty.</p>
+          <ol class="steps">
+            <li><p>Navigate to the <strong>'Slots'</strong> tab to view the active month's calendar.</p></li>
+            <li><p>Dates with available slots will be highlighted with a <strong>blue border</strong>.</p></li>
+            <li><p>Tap a date, then click <strong>'Pick Morning'</strong> or <strong>'Pick Afternoon'</strong> in the drawer.</p></li>
+            <li><p>Your chosen dates will turn <strong>green</strong>. Complete your required target count.</p></li>
+          </ol>
+          <div class="callout info">
+            💡 <strong>COORDINATION NOTES:</strong> Once you reach your required target slots, the window locks. You can request reassignment (Task 4) if you need to alter dates later.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar"></div>
+              <div class="mock-header-text">Pick Duty Slots<small>1 of 3 picked</small></div>
+            </div>
+            <div class="mock-body">
+              <p style="font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin: 0;">JULY 2026</p>
+              <div class="mock-cal">
+                <div class="mock-cal-cell">1</div><div class="mock-cal-cell blue-dot">2</div><div class="mock-cal-cell">3</div>
+                <div class="mock-cal-cell green-bg">4</div><div class="mock-cal-cell blue-dot">5</div><div class="mock-cal-cell">6</div>
+                <div class="mock-cal-cell">7</div><div class="mock-cal-cell">8</div><div class="mock-cal-cell blue-dot">9</div>
+              </div>
+              <div class="mock-btn" style="background: var(--brand); color: #fff;">Pick Morning (8:00 AM)</div>
+              <div class="mock-btn" style="margin-top: 6px; background: transparent; border: 1px solid var(--border); color: #fff;">Pick Afternoon (1:00 PM)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Task 3 - Record Violation -->
+    <section class="slide-container" data-title="Record Violation">
+      <p class="eyebrow">Task 03 · During Duty</p>
+      <h2 class="slide-title">Logging Student Infractions</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">Log student violations in real-time during your shift. The system automatically pulls up the active student registry and predefined fines.</p>
+          <ol class="steps">
+            <li><p>You must be checked in. Tap <strong>'Record Student Violation'</strong> on the Dashboard.</p></li>
+            <li><p>Search for the student by typing their name or <strong>Registration Number</strong>.</p></li>
+            <li><p>Select the <strong>Violation Type</strong>. The fine amount will auto-fill from the system database.</p></li>
+            <li><p>Tick the <strong>'Warning only'</strong> checkbox if a cash penalty is not applicable, add notes, and submit.</p></li>
+          </ol>
+          <div class="callout info">
+            🚀 <strong>QUICK-ADD MODE:</strong> Logging a group? Turn on 'Quick-Add Mode' at the bottom of the drawer to log multiple student infractions in a row without the form resetting.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar"></div>
+              <div class="mock-header-text">Log Student Infraction<small>✓ Active Morning Duty</small></div>
+            </div>
+            <div class="mock-body">
+              <div class="mock-list-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span style="font-size: 9px; color: var(--slate-500);">STUDENT REGISTRATION</span>
+                <span style="font-weight: 700;">Aarav Menon — 21PH045</span>
+              </div>
+              <div class="mock-list-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span style="font-size: 9px; color: var(--slate-500);">VIOLATION</span>
+                <span style="font-weight: 700;">No ID Card (₹50 fine)</span>
+              </div>
+              <div class="mock-btn" style="background: var(--brand); color: #fff;">Record Student Violation</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Task 4 - Request Reassignment -->
+    <section class="slide-container" data-title="Swap Duty">
+      <p class="eyebrow">Task 04 · Schedule Changes</p>
+      <h2 class="slide-title">Requesting a Duty Swap (Reassignment)</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">If you cannot stand an upcoming duty shift, you can broadcast a cover request to an eligible colleague.</p>
+          <ol class="steps">
+            <li><p>On your Dashboard, go to <strong>'Upcoming Duties'</strong>.</p></li>
+            <li><p>Find the date and tap the <strong>'🔄 Request Reassignment'</strong> button.</p></li>
+            <li><p>Choose an eligible colleague from the dropdown list and enter a brief reason.</p></li>
+            <li><p>Tap <strong>'Send Request'</strong>. The slot status updates to <em>'Requested - Pending'</em>.</p></li>
+          </ol>
+          <div class="callout danger">
+            ⚠️ <strong>STILL YOUR SHIFT:</strong> Sending a swap request does not immediately remove your responsibility. You are still assigned to the shift until your colleague accepts.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar"></div>
+              <div class="mock-header-text">Request Duty Cover<small>Select Colleague</small></div>
+            </div>
+            <div class="mock-body">
+              <div class="mock-list-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span style="font-size: 9px; color: var(--slate-500);">SELECT COLLEAGUE</span>
+                <span style="font-weight: 700;">Dr. R. Nair (Pharmacology)</span>
+              </div>
+              <div class="mock-list-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span style="font-size: 9px; color: var(--slate-500);">REASON FOR REQUEST</span>
+                <span style="font-weight: 700;">Attending university conference.</span>
+              </div>
+              <div class="mock-btn" style="background: var(--brand); color: #fff;">Transmit Cover Request</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Task 5 - Respond to Swap -->
+    <section class="slide-container" data-title="Respond to Swap">
+      <p class="eyebrow">Task 05 · Colleague Requests</p>
+      <h2 class="slide-title">Answering Inbound Cover Requests</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">When a colleague requests you to stand in for them, you will receive an alert in Telegram and a pending action on your Dashboard.</p>
+          <ol class="steps">
+            <li><p>Inbound requests are listed at the top of your Dashboard under <strong>'Reassignment Requests'</strong>.</p></li>
+            <li><p>Check the date, session type, requesting teacher, and their note.</p></li>
+            <li><p>Tap the green <strong>'Accept'</strong> button to take the shift. It immediately syncs to your schedule.</p></li>
+            <li><p>Or tap <strong>'Reject'</strong> if you are unavailable. The shift returns to the requester.</p></li>
+          </ol>
+          <div class="callout info">
+            ⚡ <strong>TELEGRAM INTEGRATION:</strong> You can click the 'Accept' or 'Decline' buttons directly inside your Telegram notification message without opening a browser.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar" style="background: #229ed9;"></div>
+              <div class="mock-header-text">Telegram Notification<small>SIMS DMS Bot</small></div>
+            </div>
+            <div class="mock-body" style="background: #182533;">
+              <div style="background: #202b36; padding: 12px; border-radius: 12px; font-size: 11px; line-height: 1.4;">
+                🔄 <strong>Dr. Priya requests cover:</strong><br>
+                - Date: Saturday, 15 July<br>
+                - Session: Afternoon (1:00 PM)<br>
+                - Note: Personal commitment.<br>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <div class="mock-btn" style="margin-top: 0; background: var(--emerald-solid); color: #fff; flex: 1; padding: 8px;">Accept</div>
+                <div class="mock-btn" style="margin-top: 0; background: var(--red-solid); color: #fff; flex: 1; padding: 8px;">Decline</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Track & Manage History -->
+    <section class="slide-container" data-title="Track & Manage">
+      <p class="eyebrow">Self-Audits</p>
+      <h2 class="slide-title">Tracking History & Deleting Mistakes</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">Two tabs allow you to monitor your history and self-correct details before admin locking.</p>
+          <ol class="steps">
+            <li><p><strong>'Attendance' Tab</strong>: Displays monthly summaries of your duty slots—on-time checks, late checks, and auto clock-outs.</p></li>
+            <li><p><strong>'Violations' Tab</strong>: Reviews every infraction you have logged during the semester.</p></li>
+            <li><p><strong>Deletes</strong>: If you log a student in error, tap <strong>'Delete'</strong> on the violation card to remove it instantly.</p></li>
+            <li><p><strong>Flags</strong>: If a student disputes a claim, tap <strong>'Flag for Review'</strong> to send it to the administrator drawer.</p></li>
+          </ol>
+          <div class="callout danger">
+            ⚠️ <strong>DELETION POLICIES:</strong> Deleting a record is permanent. Once an administrator processes the monthly fines register, violations are locked and cannot be deleted.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header">
+              <div class="mock-avatar"></div>
+              <div class="mock-header-text">My Attendance Stats<small>July 2026</small></div>
+            </div>
+            <div class="mock-body">
+              <div class="mock-list-item"><span>On-Time Check Ins</span><span class="mock-status-pill green">8 Slots</span></div>
+              <div class="mock-list-item"><span>Late Arrivals</span><span class="mock-status-pill amber">1 Slot</span></div>
+              <div class="mock-list-item"><span>Forgot Checkout (Auto)</span><span class="mock-status-pill red">2 Slots</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: Telegram Bot & Help -->
+    <section class="slide-container" data-title="Support & Bot">
+      <p class="eyebrow">Help & Notifications</p>
+      <h2 class="slide-title">Telegram Notifications & Help Desk</h2>
+      <div class="cols-2">
+        <div class="col-left">
+          <p class="lead">The Telegram bot acts as your active assistant. It keeps you informed of your duty schedule automatically.</p>
+          <ol class="steps">
+            <li><p><strong>Duty Reminders</strong>: Triggered 30 minutes before your assigned shift starts.</p></li>
+            <li><p><strong>Clock-Out Alerts</strong>: Delivered 15 minutes before the shift cutoff hour to prompt manual checkout.</p></li>
+            <li><p><strong>Bot Commands</strong>: Type <strong>'/menu'</strong> inside the Telegram chat to view schedules, next duty, and open scheduling dates.</p></li>
+          </ol>
+          <div class="callout info">
+            🆘 <strong>TECHNICAL HELP:</strong> If you are locked out (5 failed OTP attempts), if OTPs do not arrive, or if you need to override a duty schedule date—contact your Administrator directly.
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="mock-phone">
+            <div class="mock-header" style="background: #229ed9;">
+              <div class="mock-avatar" style="background: #fff; color: #229ed9; display: grid; place-items: center; font-size: 16px;">🤖</div>
+              <div class="mock-header-text">Telegram Bot Menu<small>/menu commands</small></div>
+            </div>
+            <div class="mock-body" style="background: #182533; justify-content: center; gap: 8px;">
+              <div class="mock-btn-secondary">📋 My Duty Slots</div>
+              <div class="mock-btn-secondary">⏭️ Next Duty</div>
+              <div class="mock-btn-secondary">📅 Scheduling Window Status</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: Cheat Sheet -->
+    <section class="slide-container" id="cheatsheet" data-title="Cheat Sheet">
+      <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 800;">SIMS DMS — Faculty Quick Reference</h2>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--brand); font-weight: 700;">Widescreen Reference</span>
+        </div>
+
+        <div class="sheet-grid">
+          <div class="sheet-card">
+            <h3>🔑 1. Sign In</h3>
+            <ul>
+              <li>Enter registered email on app.</li>
+              <li>OTP delivered via Telegram Bot.</li>
+              <li>Input code to log in. No passwords.</li>
+            </ul>
+          </div>
+          <div class="sheet-card">
+            <h3>📋 2. Check In & Out</h3>
+            <ul>
+              <li>Dashboard → Today's Duty Card.</li>
+              <li>Tap Check In on arrival.</li>
+              <li>Tap Check Out on departure.</li>
+            </ul>
+          </div>
+          <div class="sheet-card">
+            <h3>📅 3. Pick Slots</h3>
+            <ul>
+              <li>Go to 'Slots' tab.</li>
+              <li>Select active blue dates on grid.</li>
+              <li>Choose Pick Morning/Afternoon.</li>
+            </ul>
+          </div>
+          <div class="sheet-card">
+            <h3>⚠️ 4. Log Infraction</h3>
+            <ul>
+              <li>Must check in first.</li>
+              <li>Tap Record Student Violation.</li>
+              <li>Search student & choose type (presets).</li>
+            </ul>
+          </div>
+          <div class="sheet-card">
+            <h3>🔄 5. Swap Duties</h3>
+            <ul>
+              <li>Dashboard → Upcoming Duties list.</li>
+              <li>Tap 'Request Reassignment'.</li>
+              <li>Pick colleague (remains pending until accepted).</li>
+            </ul>
+          </div>
+          <div class="sheet-card">
+            <h3>✅ 6. Review & Manage</h3>
+            <ul>
+              <li>'Attendance' tab: view check-in stats.</li>
+              <li>'Violations' tab: view logged records.</li>
+              <li>Tap 'Delete' or 'Flag' to resolve errors.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sheet-footer">
+          <div>
+            <h4>Important Rules to Keep in Mind</h4>
+            <p>• Only log student violations while on active check-in duty. • Fines are preset; you do not decide the cash penalty. • Missed checkouts register as "Auto" clock-out and are flagged. • Deletes are permanent and lock at the end of the month.</p>
+          </div>
+          <div>
+            <h4>Technical Support Contacts</h4>
+            <p>For OTP issues, lockout resets, or custom overrides, contact your Admin. Type <strong>/menu</strong> in Telegram to get schedule shortcuts.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CONTROLS BAR -->
+  <footer class="controls no-print">
+    <button class="btn nav-btn" id="prev-btn" aria-label="Previous slide">‹</button>
+    <div class="dots-container" id="dots-container"></div>
+    <button class="btn nav-btn" id="next-btn" aria-label="Next slide">›</button>
+  </footer>
+
+  <script>
+    // Slide Navigation Logic
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    const dotsContainer = document.getElementById('dots-container');
+    const slideCounter = document.getElementById('slide-counter');
+    let currentIdx = 0;
+
+    // Create Navigation Dots
+    slides.forEach((slide, idx) => {
+      const dot = document.createElement('button');
+      dot.className = 'dot-btn' + (idx === 0 ? ' active' : '');
+      dot.setAttribute('aria-label', `Navigate to slide ${idx + 1}: ${slide.dataset.title || ''}`);
+      dot.addEventListener('click', () => navigateTo(idx));
+      dotsContainer.appendChild(dot);
+    });
+
+    const dots = Array.from(dotsContainer.children);
+
+    function navigateTo(idx) {
+      currentIdx = Math.max(0, Math.min(slides.length - 1, idx));
+      
+      slides.forEach((slide, i) => {
+        slide.classList.toggle('active', i === currentIdx);
+      });
+
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentIdx);
+      });
+
+      slideCounter.textContent = `${String(currentIdx + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById('prev-btn').addEventListener('click', () => navigateTo(currentIdx - 1));
+    document.getElementById('next-btn').addEventListener('click', () => navigateTo(currentIdx + 1));
+
+    // Keyboard Arrow Listeners
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        navigateTo(currentIdx + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        navigateTo(currentIdx - 1);
+      } else if (e.key === 'Home') {
+        navigateTo(0);
+      } else if (e.key === 'End') {
+        navigateTo(slides.length - 1);
+      }
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('theme-btn');
+    const htmlRoot = document.documentElement;
+
+    themeBtn.addEventListener('click', () => {
+      const currentTheme = htmlRoot.getAttribute('data-theme');
+      const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      htmlRoot.setAttribute('data-theme', nextTheme);
+    });
+
+    // Save to PDF (Landscape)
+    const printBtn = document.getElementById('print-btn');
+    printBtn.addEventListener('click', () => {
+      // Direct jump to cheat sheet and trigger print dialog
+      navigateTo(slides.length - 1);
+      setTimeout(() => {
+        window.print();
+      }, 150);
+    });
+  </script>
+</body>
+</html>
