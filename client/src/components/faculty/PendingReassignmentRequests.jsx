@@ -9,6 +9,7 @@ export default function PendingReassignmentRequests() {
   const respond = useRespondToReassignmentRequest();
 
   const requests = data?.data ?? [];
+  const respondingRequestId = respond.variables?.id;
 
   if (isLoading) {
     return (
@@ -56,7 +57,8 @@ export default function PendingReassignmentRequests() {
                   size="sm"
                   variant="default"
                   color="red"
-                  loading={respond.isPending}
+                  loading={respond.isPending && respondingRequestId === r.id && respond.variables?.status === 'declined'}
+                  disabled={respond.isPending && respondingRequestId === r.id}
                   onClick={() => handleRespond(r.id, 'declined')}
                   styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
                 >
@@ -65,7 +67,8 @@ export default function PendingReassignmentRequests() {
                 <Button
                   size="sm"
                   color="green"
-                  loading={respond.isPending}
+                  loading={respond.isPending && respondingRequestId === r.id && respond.variables?.status === 'approved'}
+                  disabled={respond.isPending && respondingRequestId === r.id}
                   onClick={() => handleRespond(r.id, 'approved')}
                   styles={{ root: { minHeight: 'var(--control-min)', fontWeight: 700 } }}
                 >
