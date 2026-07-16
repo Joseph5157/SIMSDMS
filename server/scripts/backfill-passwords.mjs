@@ -13,6 +13,7 @@ const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 const { generateTempPassword, hashPassword } = require('../lib/password');
 const { sendTelegramMessage } = require('../lib/bot');
+const { APP_SHORT_NAME } = require('../lib/branding');
 
 async function backfillPasswords() {
   try {
@@ -57,7 +58,7 @@ async function backfillPasswords() {
 
         // Send temp password via Telegram
         const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
-        const message = `✅ Your SIMS DMS account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${user.email}\nTemporary password: <code>${tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+        const message = `✅ Your ${APP_SHORT_NAME} account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${user.email}\nTemporary password: <code>${tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
 
         await sendTelegramMessage(user.telegram_id, message);
 

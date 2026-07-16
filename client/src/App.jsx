@@ -11,6 +11,7 @@ import { useCurrentUser } from './hooks/useAuth';
 import { initializeTheme, getEffectiveTheme } from './lib/theme';
 import { ROLES } from './utils/constants';
 import simsLogo from './assets/sims-logo.png';
+import { APP_SHORT_NAME } from './utils/branding';
 
 import LoginPage          from './pages/auth/LoginPage';
 import ChangePasswordPage from './pages/auth/ChangePasswordPage';
@@ -81,7 +82,7 @@ function SplashScreen() {
       <div className="flex flex-col items-center gap-5 animate-pulse">
         <img src={simsLogo} alt="SIMS" className="w-16 h-16 rounded-xl object-contain" />
         <div className="text-center">
-          <p className="text-lg font-bold text-[var(--text-primary)] tracking-tight">SIMS DMS</p>
+          <p className="text-lg font-bold text-[var(--text-primary)] tracking-tight">{APP_SHORT_NAME}</p>
           <p className="text-xs text-[var(--text-muted)] mt-1">Loading…</p>
         </div>
       </div>

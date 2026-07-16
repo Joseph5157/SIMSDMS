@@ -7,9 +7,10 @@ const { logAction } = require('../services/audit.service');
 const { respondToRequestCore } = require('../controllers/duty-reassignment-requests.controller');
 const { MONTH_NAMES, formatFriendlyDateIST } = require('../controllers/calendar.controller');
 const { nowInIST } = require('./time');
+const { APP_SHORT_NAME } = require('./branding');
 
 const APP_URL = process.env.APP_URL || 'https://sims-dms.railway.app';
-const OPEN_APP_BUTTON = { reply_markup: { inline_keyboard: [[{ text: 'Open in SIMS DMS', url: `${APP_URL}/faculty/slots` }]] } };
+const OPEN_APP_BUTTON = { reply_markup: { inline_keyboard: [[{ text: `Open in ${APP_SHORT_NAME}`, url: `${APP_URL}/faculty/slots` }]] } };
 
 /**
  * Handle Telegram webhook callback
@@ -45,7 +46,7 @@ async function handleWebhook(req, res) {
 
       if (result.success) {
         const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
-        replyText = `✅ Your SIMS DMS account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${result.user.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+        replyText = `✅ Your ${APP_SHORT_NAME} account is active!\n\nLogin at: ${appUrl}/login\nEmail: ${result.user.email}\nTemporary password: <code>${result.tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
         logger.info(`[TELEGRAM] Account activated: ${result.user.id} (${result.user.email})`);
 
         // The invite token is already consumed at this point (PendingInvite deleted,
@@ -81,7 +82,7 @@ async function handleWebhook(req, res) {
       let replyText;
 
       if (result.success) {
-        replyText = `Welcome back, ${result.user.name}! Your SIMS DMS account has been relinked to this Telegram. You can now log in.`;
+        replyText = `Welcome back, ${result.user.name}! Your ${APP_SHORT_NAME} account has been relinked to this Telegram. You can now log in.`;
         logger.info(`[TELEGRAM] Account relinked: ${result.user.id}`);
       } else if (result.error === 'ALREADY_LINKED') {
         replyText = 'This Telegram account is already linked to a SIMS account. Contact your admin.';
@@ -99,7 +100,7 @@ async function handleWebhook(req, res) {
       return res.status(200).json({ ok: true });
     } else if (text === '/start') {
       // Handle bare /start (no payload) — provide helpful message to guide user
-      const replyText = `Welcome to SIMS DMS! 👋\n\nIf you received an activation link from your Admin, please send the full command they shared with you:\n\n<code>/start invite_xxxxx</code>\n\nIf you don't have an activation link, contact your administrator to send you an invite.`;
+      const replyText = `Welcome to ${APP_SHORT_NAME}! 👋\n\nIf you received an activation link from your Admin, please send the full command they shared with you:\n\n<code>/start invite_xxxxx</code>\n\nIf you don't have an activation link, contact your administrator to send you an invite.`;
       sendTelegramMessage(chatId, replyText).catch((err) => {
         logger.error(`[TELEGRAM] Failed to send /start response to ${chatId}:`, err);
       });
@@ -147,7 +148,7 @@ async function handleWebhook(req, res) {
 
       let replyText;
       if (result.error === 'NOT_LINKED') {
-        replyText = 'No SIMS DMS account linked to this Telegram account. Contact your Admin.';
+        replyText = `No ${APP_SHORT_NAME} account linked to this Telegram account. Contact your Admin.`;
       } else if (result.error === 'RATE_LIMITED') {
         replyText = `Please wait before requesting another reset (max 1 per hour). Try again in ${result.minutesWait} minute(s).`;
       } else {
@@ -220,7 +221,7 @@ async function handleCallbackQuery(callbackQuery) {
 
     if (!user || user.deleted_at || user.status !== 'active') {
       await telegram.answerCallbackQuery(callbackQuery.id, {
-        text: 'No active SIMS DMS account is linked to this Telegram. Contact your admin.',
+        text: `No active ${APP_SHORT_NAME} account is linked to this Telegram. Contact your admin.`,
         show_alert: true,
       });
       return;
@@ -278,7 +279,7 @@ async function handleMenuCallback(callbackQuery, action) {
 
   if (!user || user.deleted_at || user.status !== 'active') {
     await telegram.answerCallbackQuery(callbackQuery.id, {
-      text: 'No active SIMS DMS account is linked to this Telegram. Contact your admin.',
+      text: `No active ${APP_SHORT_NAME} account is linked to this Telegram. Contact your admin.`,
       show_alert: true,
     }).catch((err) => logger.error('[TELEGRAM] answerCallbackQuery (menu unlinked) failed:', err));
     return;

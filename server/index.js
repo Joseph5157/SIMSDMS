@@ -23,6 +23,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const logger = require('./lib/logger');
+const { APP_SHORT_NAME } = require('./lib/branding');
 const csrfMiddleware = require('./middleware/csrf');
 const botRoutes = require('./routes/bot.routes');
 const authRoutes = require('./routes/auth.routes');
@@ -209,7 +210,7 @@ async function registerTelegramWebhook() {
 // ─── Start ───────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  logger.info(`SIMS DMS server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
+  logger.info(`${APP_SHORT_NAME} server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   registerTelegramWebhook();
   startCronJobs();
 });

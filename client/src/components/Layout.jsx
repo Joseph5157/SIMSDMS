@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import simsLogo from '../assets/sims-logo.png';
+import { APP_SHORT_NAME } from '../utils/branding';
 import {
   AppShell, Drawer, Group, Box, Text, Stack, Title, Paper,
 } from '@mantine/core';
@@ -145,7 +146,7 @@ export default function Layout({ user, children }) {
       <div className={classes.brand}>
         <img src={simsLogo} alt="SIMS" className={classes.brandMark} />
         <div className={classes.brandText}>
-          <span className={classes.brandName}>SIMS DMS</span>
+          <span className={classes.brandName}>{APP_SHORT_NAME}</span>
           <span className={classes.brandRole}>{getRoleLabel(user?.role)}</span>
         </div>
       </div>
@@ -227,7 +228,7 @@ export default function Layout({ user, children }) {
             <IconMenu2 size={22} strokeWidth={1.75} />
           </button>
           <span className="text-sm font-bold text-[color:var(--text-primary)] tracking-[-0.01em]">
-            SIMS DMS
+            {APP_SHORT_NAME}
           </span>
           <NotificationBell role={user?.role} />
         </div>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLogin } from '../../hooks/useAuth';
 import { ROLES } from '../../utils/constants';
 import simsLogo from '../../assets/sims-logo.png';
+import { INSTITUTION_NAME } from '../../utils/branding';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -95,12 +96,12 @@ export default function LoginPage() {
         <div className="flex-none flex flex-col items-center justify-center pt-12 sm:pt-6 pb-8 sm:pb-4 px-6 text-center">
           <img
             src={simsLogo}
-            alt="SIMS College of Pharmacy"
+            alt={INSTITUTION_NAME}
             className="w-20 h-20 sm:w-14 sm:h-14 object-contain mb-4 sm:mb-3"
           />
 
           <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2 sm:mb-1">
-            SIMS College of Pharmacy
+            {INSTITUTION_NAME}
           </p>
 
           <h1 className="text-[length:var(--text-display)] sm:text-[22px] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2 sm:mb-1">

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
+import { INSTITUTION_NAME, APP_SHORT_NAME } from '../../utils/branding';
 
 /* Shared Tailwind class string for password/text inputs */
 const fieldClass = (isLoading) => [
@@ -124,7 +125,7 @@ export default function ChangePasswordPage() {
         </div>
 
         <p className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--color-blue-500)] uppercase tracking-[var(--tracking-caps)] mb-2">
-          SIMS College of Pharmacy
+          {INSTITUTION_NAME}
         </p>
 
         <h1 className="text-[length:var(--text-display)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[var(--leading-tight)] mb-2.5">
@@ -288,7 +289,7 @@ export default function ChangePasswordPage() {
 
         {/* Footer */}
         <p className="text-center text-[length:var(--text-micro)] text-[var(--text-muted)] mt-8">
-          SIMS DMS · Version 1.0
+          {APP_SHORT_NAME} · Version 1.0
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const { APP_SHORT_NAME } = require('./branding');
 
 const BRAND_BLUE = '#2563EB';
 const ROW_ALT    = '#EFF6FF';
@@ -21,7 +22,7 @@ function buildReportPdf({ title, subtitle, summary = [], columns, rows }) {
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
     // ── Header ──────────────────────────────────────────────────────────────
-    doc.fontSize(16).font('Helvetica-Bold').fillColor(TEXT_DARK).text('SIMS DMS', { align: 'center' });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor(TEXT_DARK).text(APP_SHORT_NAME, { align: 'center' });
     doc.fontSize(13).text(title, { align: 'center' });
     doc.fontSize(9).font('Helvetica').fillColor(TEXT_MUTED)
       .text(`${subtitle ? subtitle + ' · ' : ''}Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`, { align: 'center' });

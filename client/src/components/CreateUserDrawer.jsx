@@ -61,6 +61,14 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
     return match ? match[1] : '';
   }
 
+  // Parsed from the invite link itself (server derives it from TELEGRAM_BOT_USERNAME)
+  // instead of hardcoding a bot name, so this panel can't drift out of sync when the
+  // configured bot changes.
+  function extractBotUsername() {
+    const match = inviteLink?.match(/t\.me\/([^/?]+)/);
+    return match ? match[1] : '';
+  }
+
   function copyCommand() {
     navigator.clipboard.writeText(`/start ${extractInviteToken()}`);
   }
@@ -102,7 +110,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           <div className="bg-[var(--color-blue-50)] border-[1.5px] border-[var(--color-blue-200)] rounded-xl p-3 text-xs text-[var(--color-blue-800)] leading-relaxed">
             <p className="font-bold mb-2">📋 Instructions:</p>
             <ol className="m-0 pl-[18px]">
-              <li>Open Telegram and search for <strong>@SimsPharmacybot</strong></li>
+              <li>Open Telegram and search for <strong>@{extractBotUsername()}</strong></li>
               <li>Tap "Start" when you open the bot</li>
               <li>Copy and send this exact message:</li>
             </ol>
@@ -111,7 +119,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           <div className="bg-[var(--surface-page)] rounded-lg p-2.5 text-center border-[1.5px] border-[var(--border)]">
             <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] m-0 mb-1.5">Bot Username</p>
             <p className="text-sm font-bold text-[var(--text-primary)] m-0 font-mono">
-              @SimsPharmacybot
+              @{extractBotUsername()}
             </p>
           </div>
 

@@ -2,6 +2,12 @@
 **SIMS College of Pharmacy — Discipline Management System**
 Version 2.2 | REST API | Node.js + Express | JWT Auth
 
+> **Cloning this system for another department?** The endpoint shapes, roles, and
+> business rules below are identical for any department — only the institution
+> name/branding differ (see `deploy/clone-checklist.md`). Update the title line
+> above and this changelog's institution references in your cloned copy; leave
+> this file as-is for the Pharmacy production instance.
+
 > **Changes from v1.0:**
 > - Coordinator role removed — all Coordinator access merged into Admin
 > - Module 9 rewritten: Reschedule Requests → Need Cover broadcast

@@ -5,6 +5,7 @@ const logger = require('../lib/logger');
 const { generateTempPassword, hashPassword } = require('../lib/password');
 const telegram = require('../lib/telegram');
 const { safeUser } = require('../lib/safeUser');
+const { APP_SHORT_NAME } = require('../lib/branding');
 
 // ─── GET /users/me ─────────────────────────────────────────────────────────────
 
@@ -307,7 +308,7 @@ async function resetUserLogin(req, res) {
   if (user.telegram_id) {
     try {
       const appUrl = process.env.APP_URL || 'https://sims-dms.railway.app';
-      const text = `🔑 Your SIMS DMS password has been reset by an Admin.\n\nLogin at: ${appUrl}/login\nEmail: ${user.email}\nTemporary password: <code>${tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
+      const text = `🔑 Your ${APP_SHORT_NAME} password has been reset by an Admin.\n\nLogin at: ${appUrl}/login\nEmail: ${user.email}\nTemporary password: <code>${tempPassword}</code>\n\nYou'll be asked to set a new password on first login.`;
       await telegram.sendMessage(user.telegram_id, text);
       telegramDelivered = true;
     } catch (err) {
