@@ -3,6 +3,11 @@ const prisma = require('../lib/prisma');
 // In-memory cache — refreshed on every update, populated on first read.
 let _cache = null;
 
+// Fixed primary key — system_config is a true singleton (see prisma/schema.prisma).
+// findFirst()+create() previously let two concurrent cold-start requests both
+// see no row and both insert one; a fixed id + upsert makes that impossible.
+const CONFIG_ID = 'global';
+
 const DEFAULTS = {
   session_start_morning_hour:    8,
   session_start_morning_min:     0,
@@ -22,9 +27,15 @@ const DEFAULTS = {
 async function getSettings() {
   if (_cache) return _cache;
 
-  let row = await prisma.systemConfig.findFirst();
+  let row = await prisma.systemConfig.findUnique({ where: { id: CONFIG_ID } });
   if (!row) {
-    row = await prisma.systemConfig.create({ data: DEFAULTS });
+    // upsert, not create — a concurrent first request racing this one lands
+    // on the same fixed id and resolves via ON CONFLICT rather than a second row.
+    row = await prisma.systemConfig.upsert({
+      where: { id: CONFIG_ID },
+      create: { id: CONFIG_ID, ...DEFAULTS },
+      update: {},
+    });
   }
 
   _cache = row;
@@ -33,16 +44,11 @@ async function getSettings() {
 
 // Merges partial updates into the single row and refreshes cache.
 async function updateSettings(data, actorId) {
-  let row = await prisma.systemConfig.findFirst();
-
-  if (!row) {
-    row = await prisma.systemConfig.create({ data: { ...DEFAULTS, ...data, updated_by: actorId } });
-  } else {
-    row = await prisma.systemConfig.update({
-      where: { id: row.id },
-      data:  { ...data, updated_by: actorId },
-    });
-  }
+  const row = await prisma.systemConfig.upsert({
+    where: { id: CONFIG_ID },
+    create: { id: CONFIG_ID, ...DEFAULTS, ...data, updated_by: actorId },
+    update: { ...data, updated_by: actorId },
+  });
 
   _cache = row;
   return row;

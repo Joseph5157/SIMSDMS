@@ -48,6 +48,13 @@ enum ViolationChangeType {
   flag_resolved
 }
 
+enum ReassignmentRequestStatus {
+  pending
+  approved
+  declined
+  cancelled
+}
+
 // ─── 1. Users ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -105,6 +112,8 @@ model User {
   systemConfigUpdates      SystemConfig[]
   attendanceAuditActions   AttendanceAuditLog[] @relation("AttendanceAuditActor")
 
+  @@index([role, status, deleted_at, name])
+  @@index([approved_by])
   @@map("users")
 }
 
@@ -127,6 +136,8 @@ model PendingInvite {
 
   inviter User @relation("IssuedInvites", fields: [invited_by], references: [id])
 
+  @@index([invited_by])
+  @@index([invite_expires_at])
   @@map("pending_invites")
 }
 
@@ -144,6 +155,8 @@ model TelegramRelinkToken {
   user    User @relation("RelinkTokens", fields: [user_id], references: [id])
   creator User @relation("CreatedRelinkTokens", fields: [created_by], references: [id])
 
+  @@index([user_id, used_at, expires_at])
+  @@index([created_by])
   @@map("telegram_relink_tokens")
 }
 
@@ -170,6 +183,8 @@ model Student {
 
   violations Violation[]
 
+  @@index([deleted_at, course, year, semester, student_name])
+  @@index([deleted_at, status, student_name])
   @@map("students")
 }
 
@@ -187,6 +202,8 @@ model StudentUploadLog {
 
   uploader User @relation(fields: [uploaded_by], references: [id])
 
+  @@index([uploaded_at])
+  @@index([uploaded_by, uploaded_at])
   @@map("student_upload_log")
 }
 
@@ -211,7 +228,9 @@ model DutySlot {
   reassignmentRequests DutyReassignmentRequest[]
 
   @@unique([duty_date, session_type])
-  @@index([faculty_id, duty_date])
+  @@index([faculty_id, duty_date, status])
+  @@index([duty_date, status])
+  @@index([created_by])
   @@map("duty_slots")
 }
 
@@ -231,7 +250,7 @@ model DutyAttendance {
   faculty   User                 @relation("FacultyAttendance", fields: [faculty_id], references: [id])
   auditLogs AttendanceAuditLog[]
 
-  @@index([duty_slot_id])
+  @@index([faculty_id, created_at])
   @@map("duty_attendance")
 }
 
@@ -248,11 +267,11 @@ model AttendanceAuditLog {
   auto_out_after     Boolean?
   created_at         DateTime  @default(now())
 
-  attendance DutyAttendance @relation(fields: [duty_attendance_id], references: [id], onDelete: Cascade)
+  attendance DutyAttendance @relation(fields: [duty_attendance_id], references: [id], onDelete: Restrict)
   changedBy  User           @relation("AttendanceAuditActor", fields: [changed_by], references: [id])
 
-  @@index([duty_attendance_id])
-  @@index([changed_by])
+  @@index([duty_attendance_id, created_at])
+  @@index([changed_by, created_at])
   @@map("attendance_audit_log")
 }
 
@@ -271,6 +290,8 @@ model ViolationType {
   creator    User        @relation(fields: [created_by], references: [id])
   violations Violation[]
 
+  @@index([is_active, name])
+  @@index([created_by])
   @@map("violation_types")
 }
 
@@ -315,6 +336,9 @@ model Violation {
   @@index([duty_slot_id])
   @@index([is_flagged])
   @@index([violation_type_id])
+  @@index([deleted_at, faculty_id, created_at])
+  @@index([deleted_at, student_id, created_at])
+  @@index([deleted_at, is_flagged, flag_resolved_at, created_at], map: "violations_deleted_flagged_resolved_idx")
   @@map("violations")
 }
 
@@ -333,6 +357,8 @@ model ViolationAuditLog {
   violation Violation @relation(fields: [violation_id], references: [id])
   changedBy User      @relation(fields: [changed_by], references: [id])
 
+  @@index([violation_id, created_at])
+  @@index([changed_by, created_at])
   @@map("violation_audit_log")
 }
 
@@ -349,6 +375,9 @@ model AdminAuditLog {
 
   actor User @relation("AuditActor", fields: [actor_id], references: [id])
 
+  @@index([actor_id, created_at])
+  @@index([target_type, target_id, created_at])
+  @@index([action, created_at])
   @@map("admin_audit_log")
 }
 
@@ -376,9 +405,9 @@ model DutyReassignment {
   toFaculty    User     @relation("ReassignedTo", fields: [to_faculty_id], references: [id])
   reassignedBy User     @relation("ReassignedBy", fields: [reassigned_by], references: [id])
 
-  @@index([from_faculty_id])
-  @@index([to_faculty_id])
-  @@index([duty_slot_id])
+  @@index([from_faculty_id, duty_date])
+  @@index([to_faculty_id, duty_date])
+  @@index([duty_slot_id, created_at])
   @@map("duty_reassignments")
 }
 
@@ -386,24 +415,25 @@ model DutyReassignment {
 // Faculty A requests Faculty B to take over a duty slot. Faculty B must approve.
 
 model DutyReassignmentRequest {
-  id              String    @id @default(uuid())
+  id              String                    @id @default(uuid())
   duty_slot_id    String
   from_faculty_id String
   to_faculty_id   String
-  reason          String?   @db.Text
-  status          String    @default("pending") // pending | approved | declined | cancelled
+  reason          String?                   @db.Text
+  status          ReassignmentRequestStatus @default(pending)
   responded_by_id String?
   response_at     DateTime?
-  created_at      DateTime  @default(now())
-  updated_at      DateTime  @updatedAt
+  created_at      DateTime                  @default(now())
+  updated_at      DateTime                  @updatedAt
 
-  dutySlot    DutySlot @relation(fields: [duty_slot_id], references: [id], onDelete: Cascade)
+  dutySlot    DutySlot @relation(fields: [duty_slot_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
   fromFaculty User     @relation("RequestFrom", fields: [from_faculty_id], references: [id])
   toFaculty   User     @relation("RequestTo", fields: [to_faculty_id], references: [id])
   respondedBy User?    @relation("RespondedBy", fields: [responded_by_id], references: [id])
 
-  @@index([from_faculty_id])
-  @@index([to_faculty_id])
+  @@index([from_faculty_id, created_at])
+  @@index([to_faculty_id, status, created_at])
+  @@index([duty_slot_id, status])
   @@index([status])
   @@map("duty_reassignment_requests")
 }
@@ -427,6 +457,8 @@ model CalendarConfig {
   openedBy User? @relation(fields: [opened_by], references: [id])
 
   @@unique([config_month, config_year])
+  @@index([is_window_open, closes_at])
+  @@index([opened_by])
   @@map("calendar_config")
 }
 
@@ -449,8 +481,9 @@ model Message {
 
   @@index([to_user_id, created_at])
   @@index([from_user_id, created_at])
-  @@index([from_user_id])
   @@index([to_user_id, is_read])
+  @@index([to_user_id, deleted_by_receiver, is_read, created_at])
+  @@index([from_user_id, deleted_by_sender, created_at])
   @@map("messages")
 }
 
@@ -458,7 +491,7 @@ model Message {
 // Single-row table. Always access via settings.service.js — never query directly.
 
 model SystemConfig {
-  id                            String   @id @default(uuid())
+  id                            String   @id @default("global") @db.VarChar(20)
   session_start_morning_hour    Int      @default(8) @db.SmallInt
   session_start_morning_min     Int      @default(0) @db.SmallInt
   session_start_afternoon_hour  Int      @default(13) @db.SmallInt
@@ -490,5 +523,7 @@ model PhotoAccessLog {
   violation  Violation @relation(fields: [violation_id], references: [id])
   accessedBy User      @relation(fields: [accessed_by], references: [id])
 
+  @@index([violation_id, accessed_at])
+  @@index([accessed_by, accessed_at])
   @@map("photo_access_log")
 }

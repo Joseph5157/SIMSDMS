@@ -93,14 +93,26 @@ async function createRequest(req, res) {
     return res.status(409).json({ error: true, code: 'REQUEST_EXISTS', message: 'A reassignment request for this duty is already pending.' });
   }
 
-  const request = await prisma.dutyReassignmentRequest.create({
-    data: { duty_slot_id, from_faculty_id, to_faculty_id, reason: reason || null },
-    include: {
-      fromFaculty: { select: { id: true, name: true, telegram_id: true } },
-      toFaculty:   { select: { id: true, name: true, telegram_id: true } },
-      dutySlot:    { select: { duty_date: true, session_type: true } },
-    },
-  });
+  let request;
+  try {
+    // The findFirst check above is a fast-path, not a guarantee — two
+    // concurrent requests for the same slot can both pass it. The DB's
+    // partial unique index (one pending row per duty_slot_id) is the real
+    // guard; P2002 here means we lost that race.
+    request = await prisma.dutyReassignmentRequest.create({
+      data: { duty_slot_id, from_faculty_id, to_faculty_id, reason: reason || null },
+      include: {
+        fromFaculty: { select: { id: true, name: true, telegram_id: true } },
+        toFaculty:   { select: { id: true, name: true, telegram_id: true } },
+        dutySlot:    { select: { duty_date: true, session_type: true } },
+      },
+    });
+  } catch (err) {
+    if (err.code === 'P2002') {
+      return res.status(409).json({ error: true, code: 'REQUEST_EXISTS', message: 'A reassignment request for this duty is already pending.' });
+    }
+    throw err;
+  }
 
   res.status(201).json(request);
 
@@ -183,16 +195,26 @@ async function respondToRequestCore({ id, respondedById, status }) {
     return { ok: false, httpStatus: 409, code: 'CONFLICT', message: `Request has already been ${request.status}.` };
   }
 
+  const RESPONSE_INCLUDE = {
+    fromFaculty: { select: { id: true, name: true } },
+    toFaculty:   { select: { id: true, name: true } },
+    dutySlot:    { select: { id: true, duty_date: true, session_type: true } },
+  };
+
   if (status === 'declined') {
-    const updated = await prisma.dutyReassignmentRequest.update({
-      where: { id },
+    // Conditional on status = 'pending' so a concurrent responder (e.g. the
+    // web app and a Telegram Accept/Reject tap landing at the same time)
+    // can't both act on the same request — the initial findUnique above is
+    // only a fast-path check, not a guarantee, since another writer could
+    // land between that read and this write.
+    const claim = await prisma.dutyReassignmentRequest.updateMany({
+      where: { id, status: 'pending', to_faculty_id: respondedById },
       data: { status: 'declined', responded_by_id: respondedById, response_at: new Date() },
-      include: {
-        fromFaculty: { select: { id: true, name: true } },
-        toFaculty:   { select: { id: true, name: true } },
-        dutySlot:    { select: { id: true, duty_date: true, session_type: true } },
-      },
     });
+    if (claim.count !== 1) {
+      return { ok: false, httpStatus: 409, code: 'CONFLICT', message: 'Request has already been processed.' };
+    }
+    const updated = await prisma.dutyReassignmentRequest.findUnique({ where: { id }, include: RESPONSE_INCLUDE });
 
     if (request.fromFaculty.telegram_id) {
       const declinedSessionLabel = request.dutySlot.session_type === 'morning' ? 'Morning' : 'Afternoon';
@@ -209,37 +231,54 @@ async function respondToRequestCore({ id, respondedById, status }) {
   const guardErr = assertSlotReassignable(request.dutySlot);
   if (guardErr) return { ok: false, httpStatus: guardErr.status, code: guardErr.code, message: guardErr.message };
 
-  const [, updatedRequest] = await prisma.$transaction([
-    prisma.dutySlot.update({
-      where: { id: request.duty_slot_id },
-      data:  { faculty_id: request.to_faculty_id },
-    }),
-    prisma.dutyReassignmentRequest.update({
-      where: { id },
-      data: { status: 'approved', responded_by_id: respondedById, response_at: new Date() },
-      include: {
-        fromFaculty: { select: { id: true, name: true } },
-        toFaculty:   { select: { id: true, name: true } },
-        dutySlot:    { select: { id: true, duty_date: true, session_type: true } },
-      },
-    }),
-    prisma.dutyReassignment.create({
-      data: {
-        duty_slot_id:    request.duty_slot_id,
-        from_faculty_id: request.from_faculty_id,
-        to_faculty_id:   request.to_faculty_id,
-        duty_date:       request.dutySlot.duty_date,
-        session_type:    request.dutySlot.session_type,
-        reason:          request.reason,
-        reassigned_by:   respondedById,
-      },
-    }),
-    // The slot is spoken for now — any other pending request against it is moot.
-    prisma.dutyReassignmentRequest.updateMany({
-      where: { duty_slot_id: request.duty_slot_id, status: 'pending', id: { not: id } },
-      data: { status: 'declined', responded_by_id: respondedById, response_at: new Date() },
-    }),
-  ]);
+  // Same conditional-claim guard as decline, but the claim has to be the
+  // first statement inside the same transaction as the duty transfer: an
+  // array-form $transaction runs every statement unconditionally, so only
+  // the interactive (callback) form lets us abort the whole transaction —
+  // no slot transfer, no history row, no sibling auto-decline — when we
+  // lose the race.
+  let updatedRequest;
+  try {
+    updatedRequest = await prisma.$transaction(async (tx) => {
+      const claim = await tx.dutyReassignmentRequest.updateMany({
+        where: { id, status: 'pending', to_faculty_id: respondedById },
+        data: { status: 'approved', responded_by_id: respondedById, response_at: new Date() },
+      });
+      if (claim.count !== 1) {
+        const conflictErr = new Error('Request has already been processed.');
+        conflictErr.code = 'ALREADY_PROCESSED';
+        throw conflictErr;
+      }
+
+      await tx.dutySlot.update({
+        where: { id: request.duty_slot_id },
+        data:  { faculty_id: request.to_faculty_id },
+      });
+      await tx.dutyReassignment.create({
+        data: {
+          duty_slot_id:    request.duty_slot_id,
+          from_faculty_id: request.from_faculty_id,
+          to_faculty_id:   request.to_faculty_id,
+          duty_date:       request.dutySlot.duty_date,
+          session_type:    request.dutySlot.session_type,
+          reason:          request.reason,
+          reassigned_by:   respondedById,
+        },
+      });
+      // The slot is spoken for now — any other pending request against it is moot.
+      await tx.dutyReassignmentRequest.updateMany({
+        where: { duty_slot_id: request.duty_slot_id, status: 'pending', id: { not: id } },
+        data: { status: 'declined', responded_by_id: respondedById, response_at: new Date() },
+      });
+
+      return tx.dutyReassignmentRequest.findUnique({ where: { id }, include: RESPONSE_INCLUDE });
+    });
+  } catch (err) {
+    if (err.code === 'ALREADY_PROCESSED') {
+      return { ok: false, httpStatus: 409, code: 'CONFLICT', message: 'Request has already been processed.' };
+    }
+    throw err;
+  }
 
   const dutyDate = formatDateIST(request.dutySlot.duty_date);
   const acceptedSessionLabel = request.dutySlot.session_type === 'morning' ? 'Morning' : 'Afternoon';
@@ -298,9 +337,19 @@ async function cancelRequest(req, res) {
     return res.status(409).json({ error: true, code: 'CONFLICT', message: `Request has already been ${request.status}.` });
   }
 
-  const updated = await prisma.dutyReassignmentRequest.update({
-    where: { id: req.params.id },
+  // Conditional on status = 'pending' — guards the same race as
+  // respondToRequestCore: the requester cancelling while the target
+  // concurrently approves/declines the same request.
+  const claim = await prisma.dutyReassignmentRequest.updateMany({
+    where: { id: req.params.id, status: 'pending', from_faculty_id: req.user.id },
     data: { status: 'cancelled', responded_by_id: req.user.id, response_at: new Date() },
+  });
+  if (claim.count !== 1) {
+    return res.status(409).json({ error: true, code: 'CONFLICT', message: 'Request has already been processed.' });
+  }
+
+  const updated = await prisma.dutyReassignmentRequest.findUnique({
+    where: { id: req.params.id },
     include: {
       fromFaculty: { select: { id: true, name: true } },
       toFaculty:   { select: { id: true, name: true } },

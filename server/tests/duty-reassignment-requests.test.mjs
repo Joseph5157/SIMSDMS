@@ -3,7 +3,7 @@ const _require = createRequire(import.meta.url);
 
 const prisma = _require('../lib/prisma');
 const telegram = _require('../lib/telegram');
-const { createRequest, cancelRequest } = _require('../controllers/duty-reassignment-requests.controller');
+const { createRequest, cancelRequest, respondToRequest } = _require('../controllers/duty-reassignment-requests.controller');
 
 function makeReq(b = {}, userId = 'f1', params = {}) { return { body: b, user: { id: userId, role: 'faculty' }, params }; }
 function makeRes() {
@@ -60,6 +60,105 @@ describe('createRequest', () => {
       }),
     );
   });
+
+  it('returns 409 REQUEST_EXISTS when a concurrent request wins the race (P2002 from the partial unique index)', async () => {
+    // findFirst (the pre-check) can miss a concurrent insert that lands between
+    // the check and this create — the DB's partial unique index is the real guard.
+    prisma.dutyReassignmentRequest.create.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
+    const res = makeRes();
+    await createRequest(makeReq(validBody, 'f1'), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('REQUEST_EXISTS');
+  });
+});
+
+describe('respondToRequest', () => {
+  const pendingRequest = {
+    id: 'req-1',
+    duty_slot_id: 'slot-1',
+    from_faculty_id: 'f1',
+    to_faculty_id: 'f2',
+    reason: null,
+    status: 'pending',
+    dutySlot:    { id: 'slot-1', duty_date: futureDate, session_type: 'morning', status: 'scheduled', attendance: null },
+    fromFaculty: { id: 'f1', name: 'A', telegram_id: 'chat-1' },
+    toFaculty:   { id: 'f2', name: 'B', telegram_id: 'chat-2' },
+  };
+
+  beforeEach(() => {
+    vi.spyOn(prisma.dutyReassignmentRequest, 'findUnique').mockResolvedValue(pendingRequest);
+    vi.spyOn(prisma.dutyReassignmentRequest, 'updateMany').mockResolvedValue({ count: 1 });
+    vi.spyOn(prisma, '$transaction');
+    vi.spyOn(telegram, 'sendMessage').mockResolvedValue();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  // Mirrors the interactive-$transaction mock pattern from duty-slots.test.mjs.
+  // Returns the mocked tx object so tests can assert on calls made (or not
+  // made) inside the transaction.
+  function tx({ claimCount = 1 } = {}) {
+    const t = {
+      dutyReassignmentRequest: {
+        updateMany: vi.fn().mockResolvedValue({ count: claimCount }),
+        findUnique: vi.fn().mockResolvedValue({ ...pendingRequest, status: 'approved' }),
+      },
+      dutySlot:         { update: vi.fn().mockResolvedValue({}) },
+      dutyReassignment: { create: vi.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction.mockImplementationOnce(async (fn) => fn(t));
+    return t;
+  }
+
+  it('declines a pending request and notifies the requester', async () => {
+    const res = makeRes();
+    await respondToRequest(makeReq({ status: 'declined' }, 'f2', { id: 'req-1' }), res);
+
+    expect(res._status).toBe(200);
+    expect(prisma.dutyReassignmentRequest.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'req-1', status: 'pending', to_faculty_id: 'f2' }),
+        data: expect.objectContaining({ status: 'declined' }),
+      }),
+    );
+    expect(telegram.sendMessage).toHaveBeenCalledWith('chat-1', expect.stringContaining('Declined'));
+  });
+
+  it('returns 409 when declining a request a concurrent responder (e.g. Telegram) already claimed', async () => {
+    prisma.dutyReassignmentRequest.updateMany.mockResolvedValue({ count: 0 });
+    const res = makeRes();
+    await respondToRequest(makeReq({ status: 'declined' }, 'f2', { id: 'req-1' }), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('CONFLICT');
+    expect(telegram.sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('approves a pending request, transfers the slot inside the transaction, and notifies both faculty', async () => {
+    const t = tx({ claimCount: 1 });
+    const res = makeRes();
+    await respondToRequest(makeReq({ status: 'approved' }, 'f2', { id: 'req-1' }), res);
+
+    expect(res._status).toBe(200);
+    expect(t.dutySlot.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'slot-1' }, data: { faculty_id: 'f2' } }),
+    );
+    expect(t.dutyReassignment.create).toHaveBeenCalled();
+    expect(telegram.sendMessage).toHaveBeenCalledWith('chat-1', expect.stringContaining('Accepted'));
+    expect(telegram.sendMessage).toHaveBeenCalledWith('chat-2', expect.stringContaining('Transferred'));
+  });
+
+  it('aborts the whole transaction — no slot transfer, no history row — when a concurrent responder wins the approve race', async () => {
+    const t = tx({ claimCount: 0 });
+    const res = makeRes();
+    await respondToRequest(makeReq({ status: 'approved' }, 'f2', { id: 'req-1' }), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('CONFLICT');
+    expect(t.dutySlot.update).not.toHaveBeenCalled();
+    expect(t.dutyReassignment.create).not.toHaveBeenCalled();
+    expect(telegram.sendMessage).not.toHaveBeenCalled();
+  });
 });
 
 describe('cancelRequest', () => {
@@ -75,7 +174,7 @@ describe('cancelRequest', () => {
 
   beforeEach(() => {
     vi.spyOn(prisma.dutyReassignmentRequest, 'findUnique').mockResolvedValue(pendingRequest);
-    vi.spyOn(prisma.dutyReassignmentRequest, 'update').mockResolvedValue({ ...pendingRequest, status: 'cancelled' });
+    vi.spyOn(prisma.dutyReassignmentRequest, 'updateMany').mockResolvedValue({ count: 1 });
     vi.spyOn(telegram, 'sendMessage').mockResolvedValue();
   });
   afterEach(() => vi.restoreAllMocks());
@@ -93,7 +192,7 @@ describe('cancelRequest', () => {
     await cancelRequest(makeReq({}, 'f2', { id: 'req-1' }), res);
     expect(res._status).toBe(403);
     expect(res._body.code).toBe('FORBIDDEN');
-    expect(prisma.dutyReassignmentRequest.update).not.toHaveBeenCalled();
+    expect(prisma.dutyReassignmentRequest.updateMany).not.toHaveBeenCalled();
   });
 
   it('returns 409 when the request is no longer pending', async () => {
@@ -102,7 +201,15 @@ describe('cancelRequest', () => {
     await cancelRequest(makeReq({}, 'f1', { id: 'req-1' }), res);
     expect(res._status).toBe(409);
     expect(res._body.code).toBe('CONFLICT');
-    expect(prisma.dutyReassignmentRequest.update).not.toHaveBeenCalled();
+    expect(prisma.dutyReassignmentRequest.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 when a concurrent responder (e.g. Telegram) claims the request first', async () => {
+    prisma.dutyReassignmentRequest.updateMany.mockResolvedValue({ count: 0 });
+    const res = makeRes();
+    await cancelRequest(makeReq({}, 'f1', { id: 'req-1' }), res);
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('CONFLICT');
   });
 
   it('cancels a pending request by its original requester and notifies the target faculty', async () => {
@@ -110,9 +217,9 @@ describe('cancelRequest', () => {
     await cancelRequest(makeReq({}, 'f1', { id: 'req-1' }), res);
 
     expect(res._status).toBe(200);
-    expect(prisma.dutyReassignmentRequest.update).toHaveBeenCalledWith(
+    expect(prisma.dutyReassignmentRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'req-1' },
+        where: expect.objectContaining({ id: 'req-1', status: 'pending', from_faculty_id: 'f1' }),
         data: expect.objectContaining({ status: 'cancelled', responded_by_id: 'f1' }),
       }),
     );
