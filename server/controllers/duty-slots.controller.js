@@ -2,7 +2,7 @@ const prisma = require('../lib/prisma');
 const logger = require('../lib/logger');
 const telegram = require('../lib/telegram');
 const { logAction } = require('../services/audit.service');
-const { formatDateIST, nowInIST } = require('../lib/time');
+const { formatDateIST, nowInIST, monthRangeUTC: monthDateRange } = require('../lib/time');
 const settingsService = require('../services/settings.service');
 const { resolveAttendanceStatus } = require('../services/attendance-status.service');
 
@@ -20,13 +20,6 @@ function parseYearMonth(req, res) {
     return null;
   }
   return { year, month };
-}
-
-function monthDateRange(year, month) {
-  return {
-    gte: new Date(year, month - 1, 1),
-    lte: new Date(year, month, 0, 23, 59, 59, 999),
-  };
 }
 
 // Latest reassignment carried on each slot so the UI can label an active slot

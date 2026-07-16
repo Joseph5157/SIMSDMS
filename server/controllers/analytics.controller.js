@@ -1,14 +1,8 @@
 const prisma = require('../lib/prisma');
 const { buildWorkbook, sendWorkbook } = require('../lib/excel');
+const { monthRangeUTC: monthRange } = require('../lib/time');
 
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
-
-function monthRange(year, month) {
-  return {
-    gte: new Date(year, month - 1, 1),
-    lte: new Date(year, month, 0, 23, 59, 59, 999),
-  };
-}
 
 // Monday–Sunday range containing `now`.
 function weekRange(now) {

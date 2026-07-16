@@ -43,7 +43,7 @@ describe('autoClockOut', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('calls dutyAttendance.updateMany with out_status "auto" and auto_out true for a past-day straggler', async () => {
+  it('calls dutyAttendance.updateMany with auto_out true for a past-day straggler (out_status now derived, not stored)', async () => {
     prisma.dutyAttendance.findMany.mockResolvedValue([
       { id: 'att-1', duty_slot_id: 'slot-1', dutySlot: { duty_date: yesterdayUTC, session_type: 'morning' } },
       { id: 'att-2', duty_slot_id: 'slot-2', dutySlot: { duty_date: yesterdayUTC, session_type: 'morning' } },
@@ -52,7 +52,7 @@ describe('autoClockOut', () => {
     expect(prisma.dutyAttendance.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: ['att-1', 'att-2'] } },
-        data:  expect.objectContaining({ auto_out: true, out_status: 'auto' }),
+        data:  expect.objectContaining({ auto_out: true }),
       }),
     );
   });
@@ -150,7 +150,7 @@ describe('markNoShowAbsent', () => {
     const count = await markNoShowAbsent(todayUTC, nowMins, ist, defaultSettings);
     expect(count).toBe(1);
     expect(prisma.dutyAttendance.create).toHaveBeenCalledWith({
-      data: { duty_slot_id: 'slot-1', faculty_id: 'fac-1', in_status: 'absent' },
+      data: { duty_slot_id: 'slot-1', faculty_id: 'fac-1' },
     });
     expect(prisma.dutySlot.update).toHaveBeenCalledWith({
       where: { id: 'slot-1' },
@@ -175,7 +175,7 @@ describe('markNoShowAbsent', () => {
     const count = await markNoShowAbsent(todayUTC, nowMins, ist, defaultSettings);
     expect(count).toBe(1);
     expect(prisma.dutyAttendance.create).toHaveBeenCalledWith({
-      data: { duty_slot_id: 'slot-3', faculty_id: 'fac-3', in_status: 'absent' },
+      data: { duty_slot_id: 'slot-3', faculty_id: 'fac-3' },
     });
     expect(prisma.dutySlot.update).toHaveBeenCalledWith({
       where: { id: 'slot-3' },

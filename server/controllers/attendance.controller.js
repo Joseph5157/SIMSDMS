@@ -1,16 +1,10 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
-const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST, istWallToUTC } = require('../lib/time');
+const {
+  nowInIST, istDayRangeUTC, isSlotToday, formatDateIST, istWallToUTC,
+  monthRangeUTC: monthDateRange,
+} = require('../lib/time');
 const { resolveAttendanceStatus, resolveInStatus, resolveOutStatus } = require('../services/attendance-status.service');
-
-// Same month-range convention as duty-slots.controller.js's monthDateRange —
-// duty_date is a @db.Date column (no time component), stored as UTC midnight.
-function monthDateRange(year, month) {
-  return {
-    gte: new Date(year, month - 1, 1),
-    lte: new Date(year, month, 0, 23, 59, 59, 999),
-  };
-}
 
 // Fetches the duty slot and verifies the requesting faculty is its current
 // owner. After an admin reassignment the slot's faculty_id is the new faculty,
@@ -115,7 +109,20 @@ async function checkIn(req, res) {
     await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'scheduled' } });
   }
 
-  res.status(201).json(attendance);
+  // Derive and include status fields in response (same format as getAttendance)
+  const todayStr = formatDateIST(new Date());
+  res.status(201).json({
+    ...attendance,
+    in_status: resolveInStatus({
+      attendance,
+      dutyDateStr: formatDateIST(slot.duty_date),
+      todayStr,
+      sessionType: slot.session_type,
+      nowMins,
+      cfg,
+    }),
+    out_status: resolveOutStatus({ attendance }),
+  });
 }
 
 // ─── POST /attendance/:dutySlotId/check-out ───────────────────────────────────

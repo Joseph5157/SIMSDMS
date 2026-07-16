@@ -65,4 +65,17 @@ function formatDateIST(date) {
   return `${y}-${m}-${d}`;
 }
 
-module.exports = { nowInIST, istDayRangeUTC, isSlotToday, istWallToUTC, formatDateIST };
+/**
+ * Date range covering an entire calendar month, for filtering @db.Date columns.
+ * Shared by every controller that scopes a query to "year+month" (reports,
+ * analytics, attendance, duty slots) — previously reimplemented identically
+ * in each one.
+ */
+function monthRangeUTC(year, month) {
+  return {
+    gte: new Date(year, month - 1, 1),
+    lte: new Date(year, month, 0, 23, 59, 59, 999),
+  };
+}
+
+module.exports = { nowInIST, istDayRangeUTC, isSlotToday, istWallToUTC, formatDateIST, monthRangeUTC };

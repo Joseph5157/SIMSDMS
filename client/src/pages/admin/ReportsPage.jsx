@@ -14,7 +14,7 @@ import { useAnalyticsFilterOptions } from '../../hooks/useAnalytics';
 import { useUsers } from '../../hooks/useUsers';
 import { useStudentSearch } from '../../hooks/useStudents';
 import { useToast } from '../../components/ui/Toast';
-import api from '../../utils/api';
+import { downloadReportFile } from '../../utils/downloadFile';
 import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -430,13 +430,7 @@ function StudentViolationReportCard() {
         filename = `student-violations-${suffix}`;
       }
 
-      const res = await api.get(endpoint, { params: downloadParams, responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadReportFile({ endpoint, params: downloadParams, filename, format });
     } catch {
       toast({ message: 'Could not download report.', type: 'error' });
     } finally {
@@ -639,13 +633,7 @@ function IndividualStudentReportCard() {
         filename = `student-${reg}-${suffix}`;
       }
 
-      const res = await api.get(endpoint, { params: downloadParams, responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadReportFile({ endpoint, params: downloadParams, filename, format });
     } catch {
       toast({ message: 'Could not download report.', type: 'error' });
     } finally {

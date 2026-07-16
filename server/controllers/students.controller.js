@@ -418,14 +418,22 @@ async function bulkPromoteStudents(req, res) {
   let updated = 0;
 
   await prisma.$transaction(async (tx) => {
+    // One query to find which of the requested ids are actually promotable,
+    // instead of a findUnique per id — `data` is identical for every row here,
+    // so the actual update is a single updateMany too.
+    const found = await tx.student.findMany({
+      where:  { id: { in: ids }, deleted_at: null },
+      select: { id: true },
+    });
+    const foundSet = new Set(found.map((s) => s.id));
+
     for (const id of ids) {
-      const student = await tx.student.findUnique({ where: { id } });
-      if (!student || student.deleted_at) {
-        skipped.push({ id, reason: 'not found' });
-        continue;
-      }
-      await tx.student.update({ where: { id }, data });
-      updated++;
+      if (!foundSet.has(id)) skipped.push({ id, reason: 'not found' });
+    }
+
+    if (foundSet.size > 0) {
+      const result = await tx.student.updateMany({ where: { id: { in: [...foundSet] } }, data });
+      updated = result.count;
     }
   });
 
@@ -446,23 +454,27 @@ async function bulkDeleteStudents(req, res) {
 
   const skipped = [];
   let deleted = 0;
-  const deletedIds = [];
+  let deletedIds = [];
 
   await prisma.$transaction(async (tx) => {
+    // Batch both lookups (existence + violation counts) instead of one
+    // findUnique + one count per id, then a single deleteMany for the rest.
+    const [found, violationGroups] = await Promise.all([
+      tx.student.findMany({ where: { id: { in: ids } }, select: { id: true } }),
+      tx.violation.groupBy({ by: ['student_id'], where: { student_id: { in: ids } }, _count: true }),
+    ]);
+    const foundSet = new Set(found.map((s) => s.id));
+    const hasViolations = new Set(violationGroups.map((g) => g.student_id));
+
     for (const id of ids) {
-      const student = await tx.student.findUnique({ where: { id } });
-      if (!student) {
-        skipped.push({ id, reason: 'not found' });
-        continue;
-      }
-      const violationCount = await tx.violation.count({ where: { student_id: id } });
-      if (violationCount > 0) {
-        skipped.push({ id, reason: 'has disciplinary records' });
-        continue;
-      }
-      await tx.student.delete({ where: { id } });
-      deleted++;
-      deletedIds.push(id);
+      if (!foundSet.has(id)) skipped.push({ id, reason: 'not found' });
+      else if (hasViolations.has(id)) skipped.push({ id, reason: 'has disciplinary records' });
+    }
+
+    deletedIds = ids.filter((id) => foundSet.has(id) && !hasViolations.has(id));
+    if (deletedIds.length > 0) {
+      const result = await tx.student.deleteMany({ where: { id: { in: deletedIds } } });
+      deleted = result.count;
     }
   });
 

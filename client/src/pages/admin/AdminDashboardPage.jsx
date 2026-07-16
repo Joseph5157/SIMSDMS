@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Layout, { Card, CardHeader, CardBody } from '../../components/Layout';
+import { APP_SHORT_NAME } from '../../utils/branding';
 import StatCard from '../../components/ui/StatCard';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
@@ -9,6 +10,7 @@ import { useFlaggedViolations, useDutyReassignmentReport } from '../../hooks/use
 import { useNavigate } from 'react-router-dom';
 import Skeleton from '../../components/ui/Skeleton';
 import { ROUTES } from '../../utils/constants';
+import { getGreeting } from '../../utils/time';
 import {
   IconUsers, IconHourglass, IconRefresh, IconFlag,
   IconClipboardCheck, IconAlertTriangle, IconChartBar, IconBrandTelegram,
@@ -71,7 +73,7 @@ export default function AdminDashboardPage({ user }) {
             Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
           </p>
           <p className="text-[length:var(--text-small)] mt-0.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            {dateStr} · SIMS DMS Admin
+            {dateStr} · {APP_SHORT_NAME} Admin
           </p>
         </div>
         {liveSlots.length > 0 && (
@@ -340,11 +342,4 @@ export default function AdminDashboardPage({ user }) {
       </div>{/* /max-width wrapper */}
     </Layout>
   );
-}
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
 }

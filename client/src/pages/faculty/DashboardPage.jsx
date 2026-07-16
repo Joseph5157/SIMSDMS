@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import { APP_SHORT_NAME } from '../../utils/branding';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
 import { Button } from '@mantine/core';
@@ -10,7 +11,7 @@ import { useInbox } from '../../hooks/useMessages';
 import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { useSentReassignmentRequests, useCancelReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
-import { formatHourMin } from '../../utils/time';
+import { formatHourMin, getGreeting } from '../../utils/time';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
@@ -22,13 +23,6 @@ import { IconRefresh } from '@tabler/icons-react';
 
 function todayIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
 }
 
 function isoDate(d) {
@@ -371,7 +365,7 @@ export default function DashboardPage({ user }) {
         <section className="mb-5">
           <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-xl)] px-5 py-6 text-center">
             <p style={{ fontSize: 'var(--text-h2)', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
-              Welcome to SIMS DMS
+              Welcome to {APP_SHORT_NAME}
             </p>
             <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               You don't have any duty slots assigned yet.

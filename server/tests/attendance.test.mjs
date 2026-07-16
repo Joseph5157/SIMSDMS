@@ -27,6 +27,14 @@ const sessionStartedSettings = {
   session_start_morning_min:    pastMins % 60,
   session_start_afternoon_hour: Math.floor(pastMins / 60),
   session_start_afternoon_min:  pastMins % 60,
+  late_threshold_morning_hour:  Math.floor(pastMins / 60),
+  late_threshold_morning_min:   (pastMins % 60) + 15,
+  late_threshold_afternoon_hour: Math.floor(pastMins / 60),
+  late_threshold_afternoon_min:  (pastMins % 60) + 15,
+  auto_checkout_morning_hour:   Math.floor(futureMins / 60),
+  auto_checkout_morning_min:    futureMins % 60,
+  auto_checkout_afternoon_hour: Math.floor(futureMins / 60),
+  auto_checkout_afternoon_min:  futureMins % 60,
 };
 
 const sessionNotStartedSettings = {
@@ -34,6 +42,14 @@ const sessionNotStartedSettings = {
   session_start_morning_min:    futureMins % 60,
   session_start_afternoon_hour: Math.floor(futureMins / 60),
   session_start_afternoon_min:  futureMins % 60,
+  late_threshold_morning_hour:  4,
+  late_threshold_morning_min:   0,
+  late_threshold_afternoon_hour: 7,
+  late_threshold_afternoon_min:  0,
+  auto_checkout_morning_hour:   23,
+  auto_checkout_morning_min:    59,
+  auto_checkout_afternoon_hour: 23,
+  auto_checkout_afternoon_min:  59,
 };
 
 // Session started AND its auto clock-out has already passed — the live,
@@ -43,6 +59,10 @@ const windowClosedSettings = {
   session_start_morning_min:    pastMins % 60,
   session_start_afternoon_hour: Math.floor(pastMins / 60),
   session_start_afternoon_min:  pastMins % 60,
+  late_threshold_morning_hour:  Math.floor(pastMins / 60),
+  late_threshold_morning_min:   (pastMins % 60) + 15,
+  late_threshold_afternoon_hour: Math.floor(pastMins / 60),
+  late_threshold_afternoon_min:  (pastMins % 60) + 15,
   auto_checkout_morning_hour:   Math.floor(pastMins / 60),
   auto_checkout_morning_min:    pastMins % 60,
   auto_checkout_afternoon_hour: Math.floor(pastMins / 60),
@@ -142,11 +162,11 @@ describe('getMySummary', () => {
     vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
       {
         id: 's1', duty_date: yesterdayUTC, session_type: 'morning', status: 'completed',
-        attendance: { in_time: yesterdayUTC, out_time: yesterdayUTC, in_status: 'late', out_status: 'auto', auto_out: true },
+        attendance: { id: 'att-1', duty_slot_id: 's1', faculty_id: 'f1', in_time: yesterdayUTC, out_time: yesterdayUTC, auto_out: true },
       },
       {
         id: 's2', duty_date: yesterdayUTC, session_type: 'afternoon', status: 'completed',
-        attendance: { in_time: yesterdayUTC, out_time: yesterdayUTC, in_status: 'normal', out_status: 'normal', auto_out: false },
+        attendance: { id: 'att-2', duty_slot_id: 's2', faculty_id: 'f1', in_time: yesterdayUTC, out_time: yesterdayUTC, auto_out: false },
       },
     ]);
     const res = makeRes();
@@ -299,9 +319,9 @@ describe('checkIn', () => {
       cfgFor({ startMins: past90, lateMins: past30, checkoutMins: future90 }),
     );
     // Mirrors what markNoShowAbsent actually writes: an attendance row with
-    // in_status 'absent' and in_time still null.
+    // in_time still null (status is now derived on-the-fly, not stored).
     vi.spyOn(prisma.dutyAttendance, 'findUnique').mockResolvedValue({
-      id: 'att-1', duty_slot_id: 'slot-1', faculty_id: 'f1', in_time: null, in_status: 'absent',
+      id: 'att-1', duty_slot_id: 'slot-1', faculty_id: 'f1', in_time: null, out_time: null, auto_out: false,
     });
     vi.spyOn(prisma.dutyAttendance, 'update').mockImplementation(async ({ data }) => ({ id: 'att-1', ...data }));
     const slotUpdate = vi.spyOn(prisma.dutySlot, 'update').mockResolvedValue({});
@@ -350,9 +370,9 @@ describe('getLive', () => {
     });
     vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
       {
-        id: 's1', status: 'absent', session_type: 'morning',
+        id: 's1', status: 'absent', session_type: 'morning', duty_date: todayUTC,
         faculty: { id: 'f1', name: 'A', email: 'a@x.com', department: 'CS' },
-        attendance: { faculty_id: 'f1', in_time: null, out_time: null, in_status: 'absent', out_status: null, auto_out: false },
+        attendance: { id: 'att-1', duty_slot_id: 's1', faculty_id: 'f1', in_time: null, out_time: null, auto_out: false },
       },
     ]);
 
@@ -372,9 +392,9 @@ describe('getLive', () => {
     });
     vi.spyOn(prisma.dutySlot, 'findMany').mockResolvedValue([
       {
-        id: 's1', status: 'scheduled', session_type: 'morning',
+        id: 's1', status: 'scheduled', session_type: 'morning', duty_date: todayUTC,
         faculty: { id: 'f1', name: 'A', email: 'a@x.com', department: 'CS' },
-        attendance: { faculty_id: 'f1', in_time: new Date(), out_time: null, in_status: 'normal', out_status: null, auto_out: false },
+        attendance: { id: 'att-1', duty_slot_id: 's1', faculty_id: 'f1', in_time: new Date(), out_time: null, auto_out: false },
       },
     ]);
 

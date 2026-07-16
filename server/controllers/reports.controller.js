@@ -3,15 +3,9 @@ const { buildWorkbook, sendWorkbook } = require('../lib/excel');
 const { buildReportPdf, sendPdf } = require('../lib/pdf');
 const { isLateInTime } = require('../services/attendance-status.service');
 const settingsService = require('../services/settings.service');
+const { monthRangeUTC: monthRange } = require('../lib/time');
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-function monthRange(year, month) {
-  return {
-    gte: new Date(year, month - 1, 1),
-    lte: new Date(year, month, 0, 23, 59, 59, 999),
-  };
-}
 
 function yearRange(year) {
   return {
