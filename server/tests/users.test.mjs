@@ -9,7 +9,7 @@ const _require   = createRequire(import.meta.url);
 
 const prisma = _require('../lib/prisma');
 const logger = _require('../lib/logger');
-const { updateProfile } = _require('../controllers/users.controller');
+const { updateProfile, deleteUser } = _require('../controllers/users.controller');
 
 function makeReq({ params = {}, body = {}, user = {} } = {}) {
   return { params, body, user, cookies: {}, headers: {} };
@@ -92,4 +92,50 @@ describe('updateProfile', () => {
       expect(prisma.user.update).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('deleteUser', () => {
+  const admin = { id: 'admin-1', role: 'super_admin' };
+  const faculty = {
+    id: 'faculty-1',
+    role: 'faculty',
+    deleted_at: null,
+  };
+
+  beforeEach(() => {
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(faculty);
+    vi.spyOn(prisma.user, 'update').mockResolvedValue({ ...faculty, deleted_at: new Date() });
+    vi.spyOn(prisma.dutySlot, 'findFirst').mockResolvedValue(null);
+    // logAction is destructured at require-time in users.controller.js, so it
+    // must be intercepted at its own DB-write boundary — see admin-settings.test.mjs.
+    vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('blocks deletion — 409 — when the faculty has a scheduled duty today or later', async () => {
+    prisma.dutySlot.findFirst.mockResolvedValue({
+      duty_date: new Date('2026-07-20T00:00:00.000Z'),
+      session_type: 'morning',
+    });
+
+    const req = makeReq({ params: { id: faculty.id }, user: admin });
+    const res = makeRes();
+    await deleteUser(req, res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('HAS_UPCOMING_DUTY');
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('allows deletion — 200 — when no scheduled duty remains', async () => {
+    const req = makeReq({ params: { id: faculty.id }, user: admin });
+    const res = makeRes();
+    await deleteUser(req, res);
+
+    expect(res._status).toBe(200);
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: faculty.id },
+      data: expect.objectContaining({ deleted_at: expect.any(Date) }),
+    });
+  });
 });

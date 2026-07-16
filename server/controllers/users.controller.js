@@ -6,6 +6,7 @@ const { generateTempPassword, hashPassword } = require('../lib/password');
 const telegram = require('../lib/telegram');
 const { safeUser } = require('../lib/safeUser');
 const { APP_SHORT_NAME } = require('../lib/branding');
+const { formatDateIST, nowInIST, istDayRangeUTC } = require('../lib/time');
 
 // ─── GET /users/me ─────────────────────────────────────────────────────────────
 
@@ -214,6 +215,24 @@ async function deleteUser(req, res) {
   }
   if (user.id === req.user.id) {
     return res.status(403).json({ error: true, code: 'FORBIDDEN', message: 'You cannot delete yourself.' });
+  }
+
+  const { year, month, day } = nowInIST();
+  const upcomingDuty = await prisma.dutySlot.findFirst({
+    where: {
+      faculty_id: user.id,
+      status: 'scheduled',
+      duty_date: { gte: istDayRangeUTC(year, month, day).gte },
+    },
+    select: { duty_date: true, session_type: true },
+    orderBy: { duty_date: 'asc' },
+  });
+  if (upcomingDuty) {
+    return res.status(409).json({
+      error: true,
+      code: 'HAS_UPCOMING_DUTY',
+      message: `This faculty still has a scheduled duty on ${formatDateIST(upcomingDuty.duty_date)} (${upcomingDuty.session_type}). Reassign it to another faculty member before deleting this account.`,
+    });
   }
 
   const deleted = await prisma.user.update({
