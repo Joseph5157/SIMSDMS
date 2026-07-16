@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const { buildWorkbook, sendWorkbook } = require('../lib/excel');
 const { buildReportPdf, sendPdf } = require('../lib/pdf');
+const { isLateInTime } = require('../services/attendance-status.service');
+const settingsService = require('../services/settings.service');
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -74,16 +76,18 @@ async function monthlyAttendanceSummary(req, res) {
     },
   });
 
+  const cfg = await settingsService.getSettings();
+
   const map = new Map();
   for (const s of slots) {
     const key = s.faculty_id;
     if (!map.has(key)) map.set(key, { faculty: s.faculty, total: 0, completed: 0, absent: 0, late: 0, auto_out: 0 });
     const r = map.get(key);
     r.total++;
-    if (s.status === 'absent' || s.attendance?.in_status === 'absent') r.absent++;
+    if (s.status === 'absent') r.absent++;
     else r.completed++;
-    if (s.attendance?.in_status === 'late')  r.late++;
-    if (s.attendance?.auto_out)              r.auto_out++;
+    if (s.attendance?.in_time && isLateInTime({ in_time: s.attendance.in_time, sessionType: s.session_type, cfg })) r.late++;
+    if (s.attendance?.auto_out) r.auto_out++;
   }
 
   res.json({ year, month, data: Array.from(map.values()) });
@@ -95,7 +99,10 @@ async function lateArrivalReport(req, res) {
   const month = parseInt(req.query.month ?? new Date().getMonth() + 1, 10);
 
   const records = await prisma.dutyAttendance.findMany({
-    where: { in_status: 'late', dutySlot: { duty_date: monthRange(year, month) } },
+    where: {
+      in_time: { not: null },
+      dutySlot: { duty_date: monthRange(year, month) },
+    },
     include: {
       faculty:  { select: { id: true, name: true, department: true } },
       dutySlot: { select: { duty_date: true, session_type: true } },
@@ -103,7 +110,13 @@ async function lateArrivalReport(req, res) {
     orderBy: { dutySlot: { duty_date: 'asc' } },
   });
 
-  res.json({ year, month, data: records, total: records.length });
+  const cfg = await settingsService.getSettings();
+
+  const filtered = records.filter(
+    (r) => isLateInTime({ in_time: r.in_time, sessionType: r.dutySlot.session_type, cfg }),
+  );
+
+  res.json({ year, month, data: filtered, total: filtered.length });
 }
 
 // 3. Absent Faculty Report
@@ -114,7 +127,7 @@ async function absentFacultyReport(req, res) {
   const slots = await prisma.dutySlot.findMany({
     where: {
       duty_date: monthRange(year, month),
-      OR: [{ status: 'absent' }, { attendance: { in_status: 'absent' } }],
+      status: 'absent',
     },
     include: { faculty: { select: { id: true, name: true, department: true } } },
     orderBy: { duty_date: 'asc' },
@@ -145,14 +158,18 @@ async function attendanceOverrideLog(req, res) {
   const year  = parseInt(req.query.year  ?? new Date().getFullYear(),  10);
   const month = parseInt(req.query.month ?? new Date().getMonth() + 1, 10);
 
-  const records = await prisma.dutyAttendance.findMany({
-    where: { overridden_by: { not: null }, dutySlot: { duty_date: monthRange(year, month) } },
+  const records = await prisma.attendanceAuditLog.findMany({
+    where: { attendance: { dutySlot: { duty_date: monthRange(year, month) } } },
     include: {
-      faculty:     { select: { id: true, name: true } },
-      dutySlot:    { select: { duty_date: true, session_type: true } },
-      overriddenBy: { select: { id: true, name: true } },
+      attendance: {
+        include: {
+          faculty:  { select: { id: true, name: true } },
+          dutySlot: { select: { duty_date: true, session_type: true } },
+        },
+      },
+      changedBy: { select: { id: true, name: true } },
     },
-    orderBy: { dutySlot: { duty_date: 'asc' } },
+    orderBy: { created_at: 'desc' },
   });
 
   res.json({ year, month, data: records, total: records.length });

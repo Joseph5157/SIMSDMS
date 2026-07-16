@@ -34,16 +34,6 @@ enum SlotStatus {
   absent
 }
 
-enum AttendanceInStatus {
-  normal
-  late
-  absent
-}
-
-enum AttendanceOutStatus {
-  normal
-  auto
-}
 
 enum RecordStatus {
   active
@@ -96,7 +86,6 @@ model User {
   dutySlots                DutySlot[]                @relation("FacultyDutySlots")
   createdDutySlots         DutySlot[]                @relation("CreatedDutySlots")
   attendance               DutyAttendance[]          @relation("FacultyAttendance")
-  overriddenAttendance     DutyAttendance[]          @relation("OverriddenAttendance")
   violations               Violation[]               @relation("RecordedViolations")
   flagResolvedViolations   Violation[]               @relation("FlagResolvedViolations")
   violationAuditLogs       ViolationAuditLog[]
@@ -114,6 +103,7 @@ model User {
   studentUploadLogs        StudentUploadLog[]
   violationTypes           ViolationType[]
   systemConfigUpdates      SystemConfig[]
+  attendanceAuditActions   AttendanceAuditLog[] @relation("AttendanceAuditActor")
 
   @@map("users")
 }
@@ -228,25 +218,42 @@ model DutySlot {
 // ─── 6. Duty Attendance ──────────────────────────────────────────────────────
 
 model DutyAttendance {
-  id              String              @id @default(uuid())
-  duty_slot_id    String              @unique
+  id              String   @id @default(uuid())
+  duty_slot_id    String   @unique
   faculty_id      String
   in_time         DateTime?
   out_time        DateTime?
-  in_status       AttendanceInStatus  @default(absent)
-  out_status      AttendanceOutStatus @default(auto)
-  auto_out        Boolean             @default(false)
-  overridden_by   String?
-  override_reason String?             @db.Text
-  created_at      DateTime            @default(now())
-  updated_at      DateTime            @updatedAt
+  auto_out        Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
-  dutySlot     DutySlot @relation(fields: [duty_slot_id], references: [id])
-  faculty      User     @relation("FacultyAttendance", fields: [faculty_id], references: [id])
-  overriddenBy User?    @relation("OverriddenAttendance", fields: [overridden_by], references: [id])
+  dutySlot  DutySlot             @relation(fields: [duty_slot_id], references: [id])
+  faculty   User                 @relation("FacultyAttendance", fields: [faculty_id], references: [id])
+  auditLogs AttendanceAuditLog[]
 
   @@index([duty_slot_id])
   @@map("duty_attendance")
+}
+
+model AttendanceAuditLog {
+  id                 String    @id @default(uuid())
+  duty_attendance_id String
+  changed_by         String
+  override_reason    String?   @db.Text
+  in_time_before     DateTime?
+  in_time_after      DateTime?
+  out_time_before    DateTime?
+  out_time_after     DateTime?
+  auto_out_before    Boolean?
+  auto_out_after     Boolean?
+  created_at         DateTime  @default(now())
+
+  attendance DutyAttendance @relation(fields: [duty_attendance_id], references: [id], onDelete: Cascade)
+  changedBy  User           @relation("AttendanceAuditActor", fields: [changed_by], references: [id])
+
+  @@index([duty_attendance_id])
+  @@index([changed_by])
+  @@map("attendance_audit_log")
 }
 
 // ─── 7. Violation Types ──────────────────────────────────────────────────────

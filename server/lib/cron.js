@@ -62,7 +62,7 @@ async function autoClockOut() {
       await prisma.$transaction([
         prisma.dutyAttendance.updateMany({
           where: { id: { in: attendanceIds } },
-          data:  { out_time: autoOutUTC, out_status: 'auto', auto_out: true },
+          data:  { out_time: autoOutUTC, auto_out: true },
         }),
         prisma.dutySlot.updateMany({
           where: { id: { in: slotIds } },
@@ -87,9 +87,8 @@ async function autoClockOut() {
 
 // ─── 2. Mark no-show slots absent — runs with auto clock-out ─────────────────
 // After a session's auto-checkout time has passed, any scheduled slot that has
-// never been checked into is marked absent — both the duty_slot status and the
-// attendance record (with in_status='absent'). This is the sole path that
-// produces absent records; reports depend on it.
+// never been checked into is marked absent — both the duty_slot status is set to
+// 'absent'. This is the sole path that marks slots absent; reports depend on it.
 
 async function markNoShowAbsent(throughToday, nowMins, ist, cfg) {
   const openSlots = await prisma.dutySlot.findMany({
@@ -129,7 +128,6 @@ async function markNoShowAbsent(throughToday, nowMins, ist, cfg) {
           data: {
             duty_slot_id: slot.id,
             faculty_id: slot.faculty_id,
-            in_status: 'absent',
           },
         }),
         prisma.dutySlot.update({

@@ -1,24 +1,7 @@
 const prisma = require('../lib/prisma');
 const settingsService = require('../services/settings.service');
-const { logAction } = require('../services/audit.service');
-const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST } = require('../lib/time');
-const { resolveAttendanceStatus } = require('../services/attendance-status.service');
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// Calculates in_status ('normal' or 'late') by comparing current IST hour/minute
-// directly against the configured threshold — no server TZ dependency.
-// Accepts cfg so the caller can share one settings fetch across window + late checks.
-function resolveInStatus(sessionType, cfg) {
-  const thresholdHour = sessionType === 'morning'
-    ? cfg.late_threshold_morning_hour
-    : cfg.late_threshold_afternoon_hour;
-  const thresholdMin  = sessionType === 'morning'
-    ? cfg.late_threshold_morning_min
-    : cfg.late_threshold_afternoon_min;
-  const ist = nowInIST();
-  return ist.hour * 60 + ist.minute > thresholdHour * 60 + thresholdMin ? 'late' : 'normal';
-}
+const { nowInIST, istDayRangeUTC, isSlotToday, formatDateIST, istWallToUTC } = require('../lib/time');
+const { resolveAttendanceStatus, resolveInStatus, resolveOutStatus } = require('../services/attendance-status.service');
 
 // Same month-range convention as duty-slots.controller.js's monthDateRange —
 // duty_date is a @db.Date column (no time component), stored as UTC midnight.
@@ -106,14 +89,12 @@ async function checkIn(req, res) {
     });
   }
 
-  const in_status = resolveInStatus(slot.session_type, cfg);
-
   // faculty_id is the slot's current owner (the actual performer).
   let attendance;
   if (existing) {
     attendance = await prisma.dutyAttendance.update({
       where: { id: existing.id },
-      data:  { in_time: new Date(), in_status },
+      data:  { in_time: new Date() },
     });
   } else {
     attendance = await prisma.dutyAttendance.create({
@@ -121,7 +102,6 @@ async function checkIn(req, res) {
         duty_slot_id: slot.id,
         faculty_id:   req.user.id,
         in_time:      new Date(),
-        in_status,
       },
     });
   }
@@ -164,7 +144,7 @@ async function checkOut(req, res) {
 
   const updated = await prisma.dutyAttendance.update({
     where: { id: attendance.id },
-    data:  { out_time: new Date(), out_status: 'normal' },
+    data:  { out_time: new Date() },
   });
 
   await prisma.dutySlot.update({
@@ -217,8 +197,15 @@ async function getLive(req, res) {
     }),
     in_time:    s.attendance?.in_time    ?? null,
     out_time:   s.attendance?.out_time   ?? null,
-    in_status:  s.attendance?.in_status  ?? null,
-    out_status: s.attendance?.out_status ?? null,
+    in_status:  resolveInStatus({
+      attendance:  s.attendance,
+      dutyDateStr: todayStr,
+      todayStr,
+      sessionType: s.session_type,
+      nowMins,
+      cfg,
+    }),
+    out_status: resolveOutStatus({ attendance: s.attendance }),
     auto_out:   s.attendance?.auto_out   ?? false,
   }));
 
@@ -276,8 +263,15 @@ async function getMySummary(req, res) {
     }),
     in_time:           s.attendance?.in_time    ?? null,
     out_time:          s.attendance?.out_time   ?? null,
-    in_status:         s.attendance?.in_status  ?? null,
-    out_status:        s.attendance?.out_status ?? null,
+    in_status:         resolveInStatus({
+      attendance:  s.attendance,
+      dutyDateStr: formatDateIST(s.duty_date),
+      todayStr,
+      sessionType: s.session_type,
+      nowMins,
+      cfg,
+    }),
+    out_status:        resolveOutStatus({ attendance: s.attendance }),
     auto_out:          s.attendance?.auto_out   ?? false,
   }));
 
@@ -326,7 +320,23 @@ async function getAttendance(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'No attendance record for this slot yet.' });
   }
 
-  res.json(attendance);
+  const cfg = await settingsService.getSettings();
+  const ist = nowInIST();
+  const nowMins = ist.hour * 60 + ist.minute;
+  const todayStr = formatDateIST(new Date());
+
+  res.json({
+    ...attendance,
+    in_status: resolveInStatus({
+      attendance,
+      dutyDateStr: formatDateIST(slot.duty_date),
+      todayStr,
+      sessionType: slot.session_type,
+      nowMins,
+      cfg,
+    }),
+    out_status: resolveOutStatus({ attendance }),
+  });
 }
 
 // ─── PATCH /attendance/:dutySlotId/override ───────────────────────────────────
@@ -341,35 +351,123 @@ async function overrideAttendance(req, res) {
 
   const { in_time, out_time, in_status, out_status, override_reason } = req.body;
 
-  const data = {
-    overridden_by:   req.user.id,
-    override_reason,
-    ...(in_time    !== undefined && { in_time:    new Date(in_time) }),
-    ...(out_time   !== undefined && { out_time:   new Date(out_time) }),
-    ...(in_status  !== undefined && { in_status }),
-    ...(out_status !== undefined && { out_status }),
+  // Capture before state for audit log
+  const beforeState = {
+    in_time: attendance?.in_time ?? null,
+    out_time: attendance?.out_time ?? null,
+    auto_out: attendance?.auto_out ?? false,
   };
+
+  // Build the update data. If status enums are provided instead of explicit times,
+  // synthesize the representative times from the session's configured thresholds.
+  let data = {};
+  let finalInTime = in_time ? new Date(in_time) : null;
+  let finalOutTime = out_time ? new Date(out_time) : null;
+  let finalAutoOut = attendance?.auto_out ?? false;
+
+  if (in_status) {
+    const cfg = await settingsService.getSettings();
+    const dutyDateYear = slot.duty_date.getUTCFullYear();
+    const dutyDateMonth = slot.duty_date.getUTCMonth() + 1;
+    const dutyDateDay = slot.duty_date.getUTCDate();
+
+    if (in_status === 'absent') {
+      // Absent override: clear in_time and out_time
+      finalInTime = null;
+      finalOutTime = null;
+      finalAutoOut = false;
+    } else if (in_status === 'normal') {
+      // Normal (on-time) override: set in_time to session start
+      const startHour = slot.session_type === 'morning'
+        ? cfg.session_start_morning_hour
+        : cfg.session_start_afternoon_hour;
+      const startMin = slot.session_type === 'morning'
+        ? cfg.session_start_morning_min
+        : cfg.session_start_afternoon_min;
+      finalInTime = istWallToUTC(dutyDateYear, dutyDateMonth, dutyDateDay, startHour, startMin);
+    } else if (in_status === 'late') {
+      // Late override: set in_time to 1 minute past late threshold
+      const thresholdHour = slot.session_type === 'morning'
+        ? cfg.late_threshold_morning_hour
+        : cfg.late_threshold_afternoon_hour;
+      const thresholdMin = slot.session_type === 'morning'
+        ? cfg.late_threshold_morning_min
+        : cfg.late_threshold_afternoon_min;
+      const lateMin = thresholdMin + 1;
+      const lateHour = lateMin >= 60 ? thresholdHour + 1 : thresholdHour;
+      finalInTime = istWallToUTC(dutyDateYear, dutyDateMonth, dutyDateDay, lateHour, lateMin % 60);
+    }
+  }
+
+  if (out_status) {
+    const cfg = await settingsService.getSettings();
+    if (out_status === 'auto') {
+      // Auto checkout override: set out_time to auto-checkout time
+      const autoHour = slot.session_type === 'morning'
+        ? cfg.auto_checkout_morning_hour
+        : cfg.auto_checkout_afternoon_hour;
+      const autoMin = slot.session_type === 'morning'
+        ? cfg.auto_checkout_morning_min
+        : cfg.auto_checkout_afternoon_min;
+      finalOutTime = istWallToUTC(
+        slot.duty_date.getUTCFullYear(),
+        slot.duty_date.getUTCMonth() + 1,
+        slot.duty_date.getUTCDate(),
+        autoHour, autoMin,
+      );
+      finalAutoOut = true;
+    } else if (out_status === 'normal') {
+      // Normal checkout override: use provided out_time or now if not provided
+      if (!finalOutTime && !out_time) {
+        finalOutTime = new Date();
+      }
+      finalAutoOut = false;
+    }
+  }
+
+  // If explicit times were provided, use them (overrides synthesized times from status)
+  if (in_time !== undefined) finalInTime = new Date(in_time);
+  if (out_time !== undefined) finalOutTime = new Date(out_time);
+
+  // Build the update data with the resolved values
+  data.in_time = finalInTime;
+  data.out_time = finalOutTime;
+  data.auto_out = finalAutoOut;
 
   if (attendance) {
     attendance = await prisma.dutyAttendance.update({ where: { id: attendance.id }, data });
   } else {
     // When creating from scratch, use the slot's faculty_id as the record owner
-    // (the current owner after any reassignment).
     attendance = await prisma.dutyAttendance.create({
       data: { duty_slot_id: slot.id, faculty_id: slot.faculty_id, ...data },
     });
   }
 
-  if (out_time) {
+  // Update slot status based on the override
+  if (in_status === 'absent') {
+    // Explicitly marking absent
+    await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'absent' } });
+  } else if (data.out_time) {
+    // If out_time is set, mark slot as completed
     await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'completed' } });
+  } else if (finalInTime && slot.status === 'absent') {
+    // Self-heal: a slot marked absent can be un-marked if we just set an in_time (same as checkIn logic)
+    await prisma.dutySlot.update({ where: { id: slot.id }, data: { status: 'scheduled' } });
   }
 
-  logAction({
-    actorId: req.user.id,
-    action: 'ATTENDANCE_OVERRIDE',
-    targetId: slot.id,
-    targetType: 'duty_slot',
-    metadata: { ...data, in_time: data.in_time?.toISOString(), out_time: data.out_time?.toISOString() },
+  // Log the override to the audit table
+  await prisma.attendanceAuditLog.create({
+    data: {
+      duty_attendance_id: attendance.id,
+      changed_by: req.user.id,
+      override_reason,
+      in_time_before: beforeState.in_time,
+      in_time_after: data.in_time ?? null,
+      out_time_before: beforeState.out_time,
+      out_time_after: data.out_time ?? null,
+      auto_out_before: beforeState.auto_out,
+      auto_out_after: data.auto_out,
+    },
   }).catch(() => {});
 
   res.json(attendance);

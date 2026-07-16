@@ -1,3 +1,5 @@
+const { nowInIST } = require('../lib/time');
+
 // Single source of truth for deriving a duty slot's live attendance_status.
 // Every read path that needs to answer "what is this faculty member's
 // attendance state right now" (getLive, getMySummary, getMonthSlots) must go
@@ -33,4 +35,47 @@ function resolveAttendanceStatus({ attendance, dutyDateStr, todayStr, sessionTyp
   return 'not_checked_in';
 }
 
-module.exports = { resolveAttendanceStatus };
+// Derives in_status ('normal' | 'late' | 'absent' | null) from the attendance record.
+// Returns 'absent' if the slot is marked absent by live logic (past cutoff, no check-in).
+// Returns 'late' or 'normal' if in_time is set (compares check-in time vs late threshold).
+// Returns null for upcoming/unstarted slots with no in_time yet.
+function resolveInStatus({ attendance, dutyDateStr, todayStr, sessionType, nowMins, cfg }) {
+  if (attendance?.in_time) {
+    const thresholdHour = sessionType === 'morning'
+      ? cfg.late_threshold_morning_hour
+      : cfg.late_threshold_afternoon_hour;
+    const thresholdMin = sessionType === 'morning'
+      ? cfg.late_threshold_morning_min
+      : cfg.late_threshold_afternoon_min;
+    const ist = nowInIST(attendance.in_time);
+    return ist.hour * 60 + ist.minute > thresholdHour * 60 + thresholdMin ? 'late' : 'normal';
+  }
+
+  const absenceStatus = resolveAttendanceStatus({ attendance, dutyDateStr, todayStr, sessionType, nowMins, cfg });
+  if (absenceStatus === 'absent') return 'absent';
+  return null;
+}
+
+// Derives out_status ('normal' | 'auto' | null) from the attendance record.
+// Returns 'auto' if auto_out flag is true, 'normal' if out_time exists but auto_out is false,
+// and null if out_time is not set yet.
+function resolveOutStatus({ attendance }) {
+  if (!attendance?.out_time) return null;
+  return attendance.auto_out ? 'auto' : 'normal';
+}
+
+// Helper: computes whether in_time represents a late arrival for a given session.
+// Used by reports that need to filter/count late arrivals without reading a non-existent column.
+function isLateInTime({ in_time, sessionType, cfg }) {
+  if (!in_time) return false;
+  const thresholdHour = sessionType === 'morning'
+    ? cfg.late_threshold_morning_hour
+    : cfg.late_threshold_afternoon_hour;
+  const thresholdMin = sessionType === 'morning'
+    ? cfg.late_threshold_morning_min
+    : cfg.late_threshold_afternoon_min;
+  const ist = nowInIST(in_time);
+  return ist.hour * 60 + ist.minute > thresholdHour * 60 + thresholdMin;
+}
+
+module.exports = { resolveAttendanceStatus, resolveInStatus, resolveOutStatus, isLateInTime };
