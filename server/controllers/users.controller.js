@@ -221,7 +221,10 @@ async function deleteUser(req, res) {
   const upcomingDuty = await prisma.dutySlot.findFirst({
     where: {
       faculty_id: user.id,
-      status: 'scheduled',
+      // 'absent' too, not just 'scheduled': a today/upcoming absent slot is
+      // still reassignable, so deleting its owner would orphan it exactly as a
+      // scheduled one would. Force a reassign first in both cases.
+      status: { in: ['scheduled', 'absent'] },
       duty_date: { gte: istDayRangeUTC(year, month, day).gte },
     },
     select: { duty_date: true, session_type: true },

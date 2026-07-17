@@ -391,9 +391,13 @@ async function reassignSlot(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Duty slot not found.' });
   }
 
-  // Only still-scheduled duties can be reassigned — completed/absent slots are
-  // history and must not be rewritten.
-  if (slot.status !== 'scheduled') {
+  // A duty can be reassigned while still scheduled, OR after being marked
+  // absent. 'absent' is a live, self-healing no-show state (it can even stem
+  // from a Duty Timing value that was later corrected), so it must never
+  // permanently lock a today/upcoming slot out of being managed — an
+  // individual's no-show status can't be allowed to strand the session. Only a
+  // genuinely completed duty is immutable history.
+  if (slot.status !== 'scheduled' && slot.status !== 'absent') {
     return res.status(409).json({
       error: true,
       code: 'SLOT_NOT_REASSIGNABLE',
@@ -410,8 +414,11 @@ async function reassignSlot(req, res) {
     });
   }
 
-  // Attendance already recorded means the duty is in progress/done.
-  if (slot.attendance) {
+  // Block only a REAL check-in (in_time set). The placeholder row that
+  // markNoShowAbsent writes for a no-show has in_time null and must not lock
+  // the slot — otherwise an absent duty could never be handed to someone who
+  // can actually cover it.
+  if (slot.attendance?.in_time) {
     return res.status(409).json({
       error: true,
       code: 'ATTENDANCE_EXISTS',
@@ -434,10 +441,17 @@ async function reassignSlot(req, res) {
 
   const fromFacultyId = slot.faculty_id;
 
-  const [updatedSlot, reassignment] = await prisma.$transaction([
+  // Reassigning a no-show 'absent' slot hands the new owner a clean scheduled
+  // duty: reset the status, and repoint the cron's placeholder attendance row
+  // (in_time null) so the new faculty's eventual check-in updates a
+  // correctly-owned record instead of one still pointing at the old owner.
+  const slotUpdateData = { faculty_id: to_faculty_id };
+  if (slot.status === 'absent') slotUpdateData.status = 'scheduled';
+
+  const ops = [
     prisma.dutySlot.update({
       where: { id: slot.id },
-      data:  { faculty_id: to_faculty_id },
+      data:  slotUpdateData,
       select: SLOT_SELECT,
     }),
     prisma.dutyReassignment.create({
@@ -451,7 +465,15 @@ async function reassignSlot(req, res) {
         reassigned_by:   req.user.id,
       },
     }),
-  ]);
+  ];
+  if (slot.attendance && !slot.attendance.in_time) {
+    ops.push(prisma.dutyAttendance.update({
+      where: { id: slot.attendance.id },
+      data:  { faculty_id: to_faculty_id },
+    }));
+  }
+
+  const [updatedSlot, reassignment] = await prisma.$transaction(ops);
 
   await logAction({
     actorId:    req.user.id,

@@ -12,13 +12,18 @@ const { formatDateIST } = require('../lib/time');
 // upcoming, still-scheduled, un-attended duty can change hands.
 function assertSlotReassignable(slot) {
   if (!slot) return { status: 404, code: 'NOT_FOUND', message: 'Duty slot not found.' };
-  if (slot.status !== 'scheduled') {
+  // 'absent' is a live, self-healing no-show state, not terminal history — a
+  // today/upcoming absent slot stays reassignable so one faculty's no-show can
+  // never strand the session. Only a genuinely completed duty is immutable.
+  if (slot.status !== 'scheduled' && slot.status !== 'absent') {
     return { status: 409, code: 'SLOT_NOT_REASSIGNABLE', message: `This duty cannot be reassigned because its status is '${slot.status}'.` };
   }
   if (formatDateIST(slot.duty_date) < formatDateIST(new Date())) {
     return { status: 409, code: 'PAST_DUTY', message: 'This duty date has already passed and cannot be reassigned.' };
   }
-  if (slot.attendance) {
+  // Only a real check-in (in_time set) blocks reassignment; the no-show
+  // placeholder row (in_time null) written by markNoShowAbsent must not.
+  if (slot.attendance?.in_time) {
     return { status: 409, code: 'ATTENDANCE_EXISTS', message: 'Attendance has already been recorded for this duty and it cannot be reassigned.' };
   }
   return null;
@@ -250,10 +255,18 @@ async function respondToRequestCore({ id, respondedById, status }) {
         throw conflictErr;
       }
 
-      await tx.dutySlot.update({
-        where: { id: request.duty_slot_id },
-        data:  { faculty_id: request.to_faculty_id },
-      });
+      // A no-show 'absent' slot is handed over as a clean scheduled duty, and
+      // its placeholder attendance row (in_time null) is repointed to the new
+      // owner so their check-in updates a correctly-owned record.
+      const slotData = { faculty_id: request.to_faculty_id };
+      if (request.dutySlot.status === 'absent') slotData.status = 'scheduled';
+      await tx.dutySlot.update({ where: { id: request.duty_slot_id }, data: slotData });
+      if (request.dutySlot.attendance && !request.dutySlot.attendance.in_time) {
+        await tx.dutyAttendance.update({
+          where: { id: request.dutySlot.attendance.id },
+          data:  { faculty_id: request.to_faculty_id },
+        });
+      }
       await tx.dutyReassignment.create({
         data: {
           duty_slot_id:    request.duty_slot_id,

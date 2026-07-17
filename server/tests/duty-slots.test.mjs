@@ -3,7 +3,10 @@ const _require = createRequire(import.meta.url);
 
 const prisma          = _require('../lib/prisma');
 const settingsService = _require('../services/settings.service');
-const { pickSlot, getMonthSlots } = _require('../controllers/duty-slots.controller');
+const { pickSlot, getMonthSlots, reassignSlot } = _require('../controllers/duty-slots.controller');
+
+// A safely-future duty_date so the PAST_DUTY guard never trips in reassign tests.
+const FUTURE_DATE = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
 const DEFAULT_CFG = {
   session_start_morning_hour: 8, session_start_morning_min: 0,
@@ -136,5 +139,75 @@ describe('getMonthSlots', () => {
     // before this check-in happened — attendance_status is the live truth.
     expect(res._body.data[0].attendance_status).toBe('checked_in');
     expect(res._body.data[0].status).toBe('absent');
+  });
+});
+
+describe('reassignSlot', () => {
+  const admin = { id: 'admin-1', role: 'admin' };
+  const target = { id: 'f2', role: 'faculty', status: 'active', deleted_at: null, name: 'New Fac', telegram_id: null };
+
+  function setup(slot) {
+    vi.spyOn(prisma.dutySlot, 'findUnique').mockResolvedValue(slot);
+    vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(target);
+    vi.spyOn(prisma.dutySlot, 'update').mockResolvedValue({ id: slot.id, faculty_id: 'f2' });
+    vi.spyOn(prisma.dutyReassignment, 'create').mockResolvedValue({ id: 'r1' });
+    vi.spyOn(prisma.dutyAttendance, 'update').mockResolvedValue({ id: 'a1', faculty_id: 'f2' });
+    vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
+    vi.spyOn(prisma, '$transaction').mockResolvedValue([{ id: slot.id, faculty_id: 'f2' }, { id: 'r1' }]);
+  }
+  afterEach(() => vi.restoreAllMocks());
+
+  function reassignReq() {
+    return { params: { id: 's1' }, body: { to_faculty_id: 'f2' }, user: admin };
+  }
+
+  it('reassigns an absent no-show slot — resets status to scheduled and repoints the placeholder', async () => {
+    setup({
+      id: 's1', faculty_id: 'f1', status: 'absent',
+      duty_date: FUTURE_DATE, session_type: 'morning',
+      attendance: { id: 'a1', in_time: null, out_time: null }, // cron no-show placeholder
+      faculty: { id: 'f1', name: 'Old Fac', telegram_id: null },
+    });
+    const res = makeRes();
+    await reassignSlot(reassignReq(), res);
+
+    expect(res._status).toBe(200);
+    expect(prisma.dutySlot.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ faculty_id: 'f2', status: 'scheduled' }),
+    }));
+    // Placeholder attendance handed to the new owner so their check-in updates it.
+    expect(prisma.dutyAttendance.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'a1' }, data: { faculty_id: 'f2' },
+    }));
+  });
+
+  it('blocks reassignment when a real check-in exists (409 ATTENDANCE_EXISTS)', async () => {
+    setup({
+      id: 's1', faculty_id: 'f1', status: 'scheduled',
+      duty_date: FUTURE_DATE, session_type: 'morning',
+      attendance: { id: 'a1', in_time: new Date(), out_time: null }, // actually checked in
+      faculty: { id: 'f1', name: 'Old Fac', telegram_id: null },
+    });
+    const res = makeRes();
+    await reassignSlot(reassignReq(), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('ATTENDANCE_EXISTS');
+    expect(prisma.dutySlot.update).not.toHaveBeenCalled();
+  });
+
+  it('blocks reassignment of a genuinely completed duty (409 SLOT_NOT_REASSIGNABLE)', async () => {
+    setup({
+      id: 's1', faculty_id: 'f1', status: 'completed',
+      duty_date: FUTURE_DATE, session_type: 'morning',
+      attendance: { id: 'a1', in_time: new Date(), out_time: new Date() },
+      faculty: { id: 'f1', name: 'Old Fac', telegram_id: null },
+    });
+    const res = makeRes();
+    await reassignSlot(reassignReq(), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('SLOT_NOT_REASSIGNABLE');
+    expect(prisma.dutySlot.update).not.toHaveBeenCalled();
   });
 });

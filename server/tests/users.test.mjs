@@ -125,6 +125,11 @@ describe('deleteUser', () => {
     expect(res._status).toBe(409);
     expect(res._body.code).toBe('HAS_UPCOMING_DUTY');
     expect(prisma.user.update).not.toHaveBeenCalled();
+    // Guard covers both scheduled and absent upcoming slots — an absent slot is
+    // reassignable, so deleting its owner would orphan it just the same.
+    expect(prisma.dutySlot.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: { in: ['scheduled', 'absent'] } }),
+    }));
   });
 
   it('allows deletion — 200 — when no scheduled duty remains', async () => {

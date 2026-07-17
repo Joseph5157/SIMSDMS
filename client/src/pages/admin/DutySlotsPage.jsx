@@ -31,10 +31,11 @@ function isUpcoming(s) {
   return String(s.duty_date).slice(0, 10) >= todayStr();
 }
 
-// A duty can be reassigned only while it is still scheduled and its date has not
-// passed — matching the server-side guard.
+// A duty can be reassigned while scheduled OR absent (a self-healing no-show
+// state), as long as its date has not passed — matching the server-side guard.
+// An absent status must never lock a today/upcoming slot out of being managed.
 function isReassignable(s) {
-  return s.status === 'scheduled' && isUpcoming(s);
+  return (s.status === 'scheduled' || s.status === 'absent') && isUpcoming(s);
 }
 
 const STATUS_FILTERS = [
