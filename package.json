@@ -15,9 +15,12 @@
     "generate": "node node_modules/prisma/build/index.js generate --schema prisma/schema.prisma",
     "seed": "node prisma/seed.js",
     "seed:department": "node db/seed-department.mjs",
-    "studio": "node node_modules/prisma/build/index.js studio --schema prisma/schema.prisma"
+    "studio": "node node_modules/prisma/build/index.js studio --schema prisma/schema.prisma",
+    "test:e2e": "playwright test",
+    "test:e2e:seed": "node e2e/seed.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "concurrently": "^9.2.1",
     "prisma": "^5.22.0"
   },
