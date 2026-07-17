@@ -1,16 +1,44 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
-export default defineConfig({
+// Institution branding placeholders in index.html use Vite's native %VITE_*%
+// syntax, which leaves the raw placeholder in place when the var is unset at
+// build time (e.g. a Railway build missing the env vars) — shipping an ugly
+// "%VITE_APP_SHORT_NAME%" as the page title. This plugin substitutes them with
+// build-time env values, falling back to the same defaults as src/utils/branding.js
+// so a rebuild never leaks a raw placeholder.
+function brandingHtml(env) {
+  const values = {
+    VITE_INSTITUTION_NAME: env.VITE_INSTITUTION_NAME || 'SIMS College of Pharmacy',
+    VITE_APP_SHORT_NAME: env.VITE_APP_SHORT_NAME || 'SIMS DMS',
+  }
+  return {
+    name: 'branding-html',
+    // Run before Vite's core HTML env pass so we resolve these placeholders
+    // ourselves (with defaults); otherwise an unset var is left raw or blanked.
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        return html.replace(/%(VITE_INSTITUTION_NAME|VITE_APP_SHORT_NAME)%/g,
+          (_, key) => values[key])
+      },
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, path.resolve(__dirname), '')
+  return {
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   plugins: [
+    brandingHtml(env),
     react(),
     tailwindcss(),
     VitePWA({
@@ -84,4 +112,5 @@ export default defineConfig({
       '/health':          { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
+  }
 })
