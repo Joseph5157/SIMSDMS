@@ -23,6 +23,8 @@ function reassignment(slot) {
   return slot.reassignments?.[0] ?? null;
 }
 
+const EMPTY_SLOTS = [];
+
 export default function AllFacultyDutiesPage({ user }) {
   const now = new Date();
   const [year, setYear]   = useState(now.getFullYear());
@@ -31,7 +33,9 @@ export default function AllFacultyDutiesPage({ user }) {
   const [session, setSession] = useState('');
 
   const { data, isLoading, isError, refetch } = useAllFacultyDuties(year, month);
-  const slots = data?.data ?? [];
+  // Stable reference while loading, so the useMemo below (keyed on `slots`)
+  // doesn't recompute on every render before data arrives.
+  const slots = data?.data ?? EMPTY_SLOTS;
 
   function prevMonth() {
     if (month === 1) { setYear((y) => y - 1); setMonth(12); }

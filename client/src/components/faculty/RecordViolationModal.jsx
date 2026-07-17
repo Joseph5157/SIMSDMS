@@ -26,6 +26,9 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   const isMobile = useMediaQuery('(max-width: 639px)');
   // Duty slots/sessions are scheduled on IST calendar dates — derive "today" from
   // IST wall-clock, not the browser's local timezone (see server/lib/time.js).
+  // Only the year/month are read from this below, so re-deriving it each render
+  // (rather than freezing it via useMemo) is what we want.
+  // eslint-disable-next-line react-hooks/purity
   const now = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
 
   const { data: typesData }  = useViolationTypes();

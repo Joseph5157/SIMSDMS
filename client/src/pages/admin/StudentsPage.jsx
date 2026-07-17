@@ -183,8 +183,14 @@ export default function StudentsPage({ user }) {
   const deleteStudent  = useDeleteStudent();
   const bulkDelete     = useBulkDeleteStudents();
 
-  // Selection is page-scoped — clear it whenever the visible row set changes
+  // Selection is page-scoped — clear it whenever the visible row set changes.
+  // Feeds a bulk-delete action, so this matters: kept as one effect (rather than
+  // clearing inline in each filter setter) because debouncedSearch changes on its
+  // own timer, not from a handler. Safe in practice — this clear commits well
+  // before the refetched `data` for the new filter/page arrives and could be
+  // bulk-acted on.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIds(new Set());
   }, [page, filterCourse, filterYear, debouncedSearch]);
 

@@ -7,6 +7,9 @@ export default function OfflineBanner() {
 
   useEffect(() => {
     if (!isOnline) {
+      // Reacting to a genuinely external signal (network status) — there's no
+      // non-effect way to drive this plus the 2s hide-delay timer below.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowBanner(true);
     } else {
       // Keep banner visible for 2 seconds after coming back online

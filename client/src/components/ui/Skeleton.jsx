@@ -13,6 +13,8 @@ export function TableRowSkeleton({ cols = 5 }) {
     <tr className="border-b border-[var(--divider)] hover:bg-[var(--surface-page)]">
       {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3">
+          {/* Randomized width is the intended shimmer effect, not a bug */}
+          {/* eslint-disable-next-line react-hooks/purity */}
           <Skeleton height="16px" width={Math.random() * 40 + 60 + '%'} />
         </td>
       ))}

@@ -28,8 +28,10 @@ export default function ProfileDrawer({ open, onClose, user }) {
   const [form, setForm] = useState({ name: '', department: '', designation: '', title: '', avatar: null });
 
   // Seed the form each time the drawer opens with the latest profile data.
+  // Reset runs before paint, so there's no stale-data flash on reopen.
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         name:        user?.name ?? '',
         department:  user?.department ?? '',

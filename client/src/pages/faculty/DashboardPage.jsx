@@ -134,7 +134,7 @@ export default function DashboardPage({ user }) {
   const [showRecordViolation, setShowRecordViolation] = useState(false);
   const [dismissedAlerts, setDismissedAlerts]         = useState(new Set());
 
-  const { data: slotsData, isLoading: slotsLoading, isError: slotsError, refetch: refetchSlots } = useMonthSlots(year, month);
+  const { data: slotsData, isLoading: slotsLoading, isError: slotsError } = useMonthSlots(year, month);
   const { data: violationsData, isLoading: violationsLoading } = useMyViolations({ limit: 5 });
   const { data: inboxData, isLoading: inboxLoading }            = useInbox({ limit: 5 });
   const { data: reassignedAwayData, isLoading: reassignLoading } = useReassignedAway(year, month);
@@ -182,6 +182,9 @@ export default function DashboardPage({ user }) {
   }
 
   // Minutes until a given session's configured auto clock-out time (per session).
+  // Freezing this via useMemo would be wrong — it needs to reflect the actual
+  // current time on whatever render happens to run it.
+  // eslint-disable-next-line react-hooks/purity
   const nowIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
   function minsUntilSessionEnd(sessionType) {
     const h = timingSettings?.[`auto_checkout_${sessionType}_hour`];

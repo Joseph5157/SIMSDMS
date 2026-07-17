@@ -30,6 +30,8 @@ function distinct(rows, pick) {
   return [...seen.entries()].map(([value, label]) => ({ value: String(value), label: String(label) }));
 }
 
+const EMPTY_ROWS = [];
+
 export default function FlaggedViolationsPage({ user }) {
   const toast = useToast();
   const { data, isLoading, isError, refetch } = useFlaggedViolations();
@@ -41,7 +43,9 @@ export default function FlaggedViolationsPage({ user }) {
     status: 'pending', duty_date: '', course: '', academic_year: '', recorder: '', violation_type: '',
   });
 
-  const rows = data?.data ?? [];
+  // Stable reference while loading, so the useMemo hooks below (keyed on `rows`)
+  // don't recompute on every render before data arrives.
+  const rows = data?.data ?? EMPTY_ROWS;
 
   // Filter option lists come straight from the returned records so they only ever
   // offer values that actually exist in the flagged set.

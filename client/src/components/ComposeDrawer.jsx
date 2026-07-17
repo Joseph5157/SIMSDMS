@@ -42,6 +42,9 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
   // a pre-filled flow (e.g. "Request reassignment") opens with recipient/subject/body set.
   useEffect(() => {
     if (open) {
+      // Reopening for a different prefill (e.g. a new "Request reassignment" target)
+      // reuses this same mounted instance — reset runs before paint, no stale flash.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         to_user_id: prefill?.to_user_id ?? '',
         subject:    prefill?.subject ?? '',

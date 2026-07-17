@@ -15,6 +15,9 @@ export default function RequestReassignmentModal({ slot, onClose }) {
   const create = useCreateReassignmentRequest();
 
   useEffect(() => {
+    // Reopening for a different slot reuses this mounted instance; reset runs
+    // before paint, so there's no stale-selection flash.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (slot) { setToFacultyId(null); setReason(''); }
   }, [slot]);
 

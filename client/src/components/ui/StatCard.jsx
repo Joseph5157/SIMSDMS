@@ -23,6 +23,9 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
   const [display, setDisplay] = useState(isNumber ? 0 : value);
 
   useEffect(() => {
+    // Driving a requestAnimationFrame tween is an inherently effectful loop;
+    // this early-return guard just skips it for non-numeric/zero values.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!isNumber || value === 0) { setDisplay(value ?? '—'); return; }
     const duration = 600;
     const start = performance.now();

@@ -14,10 +14,15 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
   });
 
   useEffect(() => {
+    // Keyed on editing?.id only (not name/default_fine) so an in-flight query
+    // refetch of the same record while the drawer is open doesn't clobber the
+    // user's unsaved edits. Reset runs before paint, no stale-data flash.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm({
       name: editing?.name ?? '',
       default_fine: editing?.default_fine ?? '',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing?.id]);
 
   async function handleSubmit(e) {

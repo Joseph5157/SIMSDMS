@@ -84,6 +84,9 @@ export default function DutyTimingSettingsPage({ user }) {
     if (settings && !form) {
       const initial = {};
       for (const key of FIELDS) initial[key] = settings[key];
+      // One-time init from async-loaded data; the `isLoading || !form` render
+      // guard below means there's nothing painted to flash before this runs.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(initial);
     }
   }, [settings, form]);
