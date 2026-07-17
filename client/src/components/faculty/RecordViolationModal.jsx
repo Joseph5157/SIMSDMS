@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { TextInput, Select, Checkbox, Switch } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import FormModal from '../ui/FormModal';
-import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/BottomDrawer';
+import SheetModal, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/SheetModal';
 import { useToast } from '../ui/Toast';
 import { useCreateViolation } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
@@ -380,7 +380,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
 
   if (isMobile) {
     return (
-      <BottomDrawer
+      <SheetModal
         open={open}
         onClose={onClose}
         title="Record Student Violation"
@@ -401,7 +401,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         <div style={{ padding: '16px 20px 8px' }}>
           {formBody}
         </div>
-      </BottomDrawer>
+      </SheetModal>
     );
   }
 
