@@ -8,7 +8,10 @@
  */
 
 import { createRequire } from 'module';
-import { E2E_FACULTY_EMAIL, E2E_FACULTY_PASSWORD } from './fixtures.mjs';
+import {
+  E2E_FACULTY_EMAIL, E2E_FACULTY_PASSWORD,
+  E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD,
+} from './fixtures.mjs';
 
 const require = createRequire(import.meta.url);
 const bcrypt = require('bcryptjs');
@@ -17,10 +20,10 @@ const { PrismaClient } = require('../server/node_modules/@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const password_hash = await bcrypt.hash(E2E_FACULTY_PASSWORD, 10);
+  const facultyHash = await bcrypt.hash(E2E_FACULTY_PASSWORD, 10);
   await prisma.user.upsert({
     where: { email: E2E_FACULTY_EMAIL },
-    update: { password_hash, status: 'active', must_change_password: false, deleted_at: null },
+    update: { password_hash: facultyHash, status: 'active', must_change_password: false, deleted_at: null },
     create: {
       name: 'E2E Faculty',
       email: E2E_FACULTY_EMAIL,
@@ -28,13 +31,30 @@ async function main() {
       department: 'Computer Science',
       designation: 'Assistant Professor',
       status: 'active',
-      password_hash,
+      password_hash: facultyHash,
       must_change_password: false,
       session_version: 1,
       approved_at: new Date(),
     },
   });
   console.log(`Seeded e2e faculty user: ${E2E_FACULTY_EMAIL}`);
+
+  const adminHash = await bcrypt.hash(E2E_ADMIN_PASSWORD, 10);
+  await prisma.user.upsert({
+    where: { email: E2E_ADMIN_EMAIL },
+    update: { password_hash: adminHash, status: 'active', must_change_password: false, deleted_at: null },
+    create: {
+      name: 'E2E Admin',
+      email: E2E_ADMIN_EMAIL,
+      role: 'admin',
+      status: 'active',
+      password_hash: adminHash,
+      must_change_password: false,
+      session_version: 1,
+      approved_at: new Date(),
+    },
+  });
+  console.log(`Seeded e2e admin user: ${E2E_ADMIN_EMAIL}`);
 }
 
 main()
