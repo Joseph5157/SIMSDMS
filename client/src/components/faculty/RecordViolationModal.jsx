@@ -1,14 +1,14 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { TextInput, Select, Checkbox, Switch } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
+import { ChevronRight } from 'lucide-react';
 import FormModal from '../ui/FormModal';
 import SheetModal, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/SheetModal';
+import StudentSearchOverlay from '../ui/StudentSearchOverlay';
 import { useToast } from '../ui/Toast';
 import { useCreateViolation } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
 import { useMonthSlots } from '../../hooks/useDutySlots';
-import { useStudentSearch } from '../../hooks/useStudents';
-import useKeyboardInset from '../../hooks/useKeyboardInset';
 
 function SectionLabel({ children }) {
   // --color-blue-700 is theme-aware (dark navy on light cards, light blue on dark
@@ -38,14 +38,21 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     student_id: '', duty_slot_id: '', violation_type_id: '',
     custom_violation: '', fine_amount: '', is_warning_only: false, remarks: '',
   });
+  // studentQ holds the selected student's display label ("Name (REG)"); the actual
+  // id lives in form.student_id. Search itself now happens in StudentSearchOverlay.
   const [studentQ, setStudentQ]   = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
   const [showRemarks, setShowRemarks] = useState(false);
   const [quickAdd, setQuickAdd]   = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
-  const studentInputRef = useRef(null);
-  const { data: searchResults }   = useStudentSearch(studentQ);
   const create = useCreateViolation();
+
+  function selectStudent(s) {
+    setForm(f => ({ ...f, student_id: s.id }));
+    setStudentQ(`${s.student_name} (${s.registration_number})`);
+    clearFieldError('student_id');
+  }
 
   const clearFieldError = (k) => setFieldErrors((fe) => (fe[k] ? { ...fe, [k]: undefined } : fe));
 
@@ -94,10 +101,6 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     clearFieldError('violation_type_id');
   }
 
-  // Keyboard-aware student search dropdown (P21): track how much of the viewport
-  // the on-screen keyboard covers so the results list never renders underneath it.
-  const kbInset = useKeyboardInset();
-
   async function submitViolation() {
     if (!canSubmit) return;
     setFormError('');
@@ -120,7 +123,8 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         setStudentQ('');
         setForm(f => ({ ...f, student_id: '', fine_amount: '', violation_type_id: '', custom_violation: '', remarks: '' }));
         setShowRemarks(false);
-        setTimeout(() => studentInputRef.current?.focus(), 50);
+        // Re-open the search surface for the next student.
+        setTimeout(() => setSearchOpen(true), 50);
       } else {
         toast({ message: 'Student violation recorded.' });
         onClose();
@@ -251,47 +255,27 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       {/* ── Student ── */}
       <div className="flex flex-col gap-3 py-6">
         <SectionLabel>Student</SectionLabel>
-        <div className="relative">
-          <input
-            ref={studentInputRef}
-            className="h-12 w-full rounded-xl border bg-[var(--surface-page)] px-4 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all duration-150 focus:bg-[var(--surface-card)] focus:ring-2 focus:ring-[var(--brand)]/20"
-            style={{
-              fontSize: 16,
-              borderColor: fieldErrors.student_id ? 'var(--color-red-border)' : 'var(--border)',
-            }}
-            placeholder="Search by name or reg. number…"
-            value={studentQ}
-            onChange={(e) => { setStudentQ(e.target.value); setForm(f => ({ ...f, student_id: '' })); clearFieldError('student_id'); }}
-            onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: 'nearest' }), 100)}
-          />
-          {fieldErrors.student_id && (
-            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-text)', marginTop: 4 }}>
-              {fieldErrors.student_id}
-            </p>
-          )}
-          {searchResults?.data?.length > 0 && !form.student_id && (
-            <div
-              className="absolute left-0 right-0 top-full mt-1.5 z-10 border border-[var(--border)] rounded-xl divide-y divide-[var(--divider)] overflow-y-auto bg-[var(--surface-card)] shadow-lg"
-              style={{ maxHeight: kbInset > 0 ? Math.max(88, 176 - kbInset) : 176 }}
-            >
-              {searchResults.data.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="w-full text-left px-4 py-3 text-[length:13px] text-[var(--text-secondary)] hover:bg-[var(--color-blue-50)] transition-colors"
-                  onClick={() => {
-                    setForm(f => ({ ...f, student_id: s.id }));
-                    setStudentQ(`${s.student_name} (${s.registration_number})`);
-                  }}
-                >
-                  <span className="font-medium text-[var(--text-primary)]">{s.student_name}</span>
-                  <span className="text-[var(--text-muted)]"> — {s.registration_number}</span>
-                  <span className="block text-[length:11px] text-[var(--text-muted)] mt-0.5">{s.course} · {s.semester_or_year}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
+          className="h-12 w-full rounded-xl border bg-[var(--surface-page)] px-4 flex items-center justify-between gap-2 text-left transition-all duration-150 focus:ring-2 focus:ring-[var(--brand)]/20 outline-none"
+          style={{
+            borderColor: fieldErrors.student_id ? 'var(--color-red-border)' : 'var(--border)',
+          }}
+        >
+          <span
+            className="truncate"
+            style={{ fontSize: 16, color: studentQ ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          >
+            {studentQ || 'Search by name or reg. number…'}
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)]" />
+        </button>
+        {fieldErrors.student_id && (
+          <p style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-text)', marginTop: -4 }}>
+            {fieldErrors.student_id}
+          </p>
+        )}
       </div>
 
       <div className="border-t border-[var(--divider)]" />
@@ -378,45 +362,59 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     </div>
   );
 
+  const searchOverlay = (
+    <StudentSearchOverlay
+      open={searchOpen}
+      onClose={() => setSearchOpen(false)}
+      onSelect={selectStudent}
+    />
+  );
+
   if (isMobile) {
     return (
-      <SheetModal
-        open={open}
-        onClose={onClose}
-        title="Record Student Violation"
-        footer={
-          <>
-            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-            <button
-              disabled={create.isPending || !canSubmit}
-              onClick={submitViolation}
-              style={primaryBtnStyle(create.isPending || !canSubmit)}
-            >
-              {create.isPending && <DrawerSpinner />}
-              {create.isPending ? 'Recording…' : 'Record Student Violation'}
-            </button>
-          </>
-        }
-      >
-        <div style={{ padding: '16px 20px 8px' }}>
-          {formBody}
-        </div>
-      </SheetModal>
+      <>
+        <SheetModal
+          open={open}
+          onClose={onClose}
+          title="Record Student Violation"
+          footer={
+            <>
+              <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+              <button
+                disabled={create.isPending || !canSubmit}
+                onClick={submitViolation}
+                style={primaryBtnStyle(create.isPending || !canSubmit)}
+              >
+                {create.isPending && <DrawerSpinner />}
+                {create.isPending ? 'Recording…' : 'Record Student Violation'}
+              </button>
+            </>
+          }
+        >
+          <div style={{ padding: '16px 20px 8px' }}>
+            {formBody}
+          </div>
+        </SheetModal>
+        {searchOverlay}
+      </>
     );
   }
 
   return (
-    <FormModal
-      opened={open}
-      onClose={onClose}
-      title="Record Student Violation"
-      size="xl"
-      onSubmit={handleSubmit}
-      submitLabel="Record Student Violation"
-      loading={create.isPending}
-      submitDisabled={!canSubmit}
-    >
-      {formBody}
-    </FormModal>
+    <>
+      <FormModal
+        opened={open}
+        onClose={onClose}
+        title="Record Student Violation"
+        size="xl"
+        onSubmit={handleSubmit}
+        submitLabel="Record Student Violation"
+        loading={create.isPending}
+        submitDisabled={!canSubmit}
+      >
+        {formBody}
+      </FormModal>
+      {searchOverlay}
+    </>
   );
 }
