@@ -448,32 +448,66 @@ async function reassignSlot(req, res) {
   const slotUpdateData = { faculty_id: to_faculty_id };
   if (slot.status === 'absent') slotUpdateData.status = 'scheduled';
 
-  const ops = [
-    prisma.dutySlot.update({
-      where: { id: slot.id },
-      data:  slotUpdateData,
-      select: SLOT_SELECT,
-    }),
-    prisma.dutyReassignment.create({
-      data: {
-        duty_slot_id:    slot.id,
-        from_faculty_id: fromFacultyId,
-        to_faculty_id,
-        duty_date:       slot.duty_date,
-        session_type:    slot.session_type,
-        reason:          reason ?? null,
-        reassigned_by:   req.user.id,
-      },
-    }),
-  ];
-  if (slot.attendance && !slot.attendance.in_time) {
-    ops.push(prisma.dutyAttendance.update({
-      where: { id: slot.attendance.id },
-      data:  { faculty_id: to_faculty_id },
-    }));
-  }
+  // The eligibility checked above was a READ; re-assert it inside the WRITE so a
+  // concurrent action that changed the slot between the read and here can't be
+  // clobbered (a request-based approval committing, the faculty checking in, or
+  // a second admin reassigning the same slot). The claim only matches a slot
+  // still owned by the same faculty, still reassignable, and with no real
+  // check-in — count !== 1 means we lost the race and the whole transaction is
+  // aborted (no transfer, no history row). Interactive form is required because
+  // an array-form $transaction runs every statement unconditionally; only the
+  // callback form lets us abort. Mirrors the request-flow guard in
+  // duty-reassignment-requests.controller.js. (ADMIN-MED-002)
+  let updatedSlot, reassignment;
+  try {
+    [updatedSlot, reassignment] = await prisma.$transaction(async (tx) => {
+      const claim = await tx.dutySlot.updateMany({
+        where: {
+          id:         slot.id,
+          faculty_id: fromFacultyId,
+          status:     { in: ['scheduled', 'absent'] },
+          NOT:        { attendance: { in_time: { not: null } } },
+        },
+        data: slotUpdateData,
+      });
+      if (claim.count !== 1) {
+        const conflictErr = new Error('This duty was modified by another action.');
+        conflictErr.code = 'SLOT_CHANGED';
+        throw conflictErr;
+      }
 
-  const [updatedSlot, reassignment] = await prisma.$transaction(ops);
+      const created = await tx.dutyReassignment.create({
+        data: {
+          duty_slot_id:    slot.id,
+          from_faculty_id: fromFacultyId,
+          to_faculty_id,
+          duty_date:       slot.duty_date,
+          session_type:    slot.session_type,
+          reason:          reason ?? null,
+          reassigned_by:   req.user.id,
+        },
+      });
+
+      if (slot.attendance && !slot.attendance.in_time) {
+        await tx.dutyAttendance.update({
+          where: { id: slot.attendance.id },
+          data:  { faculty_id: to_faculty_id },
+        });
+      }
+
+      const fresh = await tx.dutySlot.findUnique({ where: { id: slot.id }, select: SLOT_SELECT });
+      return [fresh, created];
+    });
+  } catch (err) {
+    if (err.code === 'SLOT_CHANGED') {
+      return res.status(409).json({
+        error: true,
+        code: 'SLOT_CHANGED',
+        message: 'This duty was just modified by another action and could not be reassigned. Please refresh and try again.',
+      });
+    }
+    throw err;
+  }
 
   await logAction({
     actorId:    req.user.id,

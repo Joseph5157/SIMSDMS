@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
+const logger = require('../lib/logger');
 const { logAction } = require('../services/audit.service');
 
 /**
@@ -94,7 +95,7 @@ async function createInvite(req, res) {
     metadata: { email, role },
   }).catch((err) => {
     // Log error but don't fail the request
-    console.error('Audit log error in createInvite:', err);
+    logger.error(`Audit log error in createInvite: ${err.message}`);
   });
 
   res.status(201).json({

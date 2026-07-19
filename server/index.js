@@ -23,6 +23,22 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const logger = require('./lib/logger');
+
+// Fail fast on a misconfigured production deploy rather than misbehaving later
+// (bad CORS boundary, unsigned tokens, no DB). Only enforced in production so
+// local/dev with a partial .env still boots; dev just gets a warning.
+(function assertRequiredEnv() {
+  const required = ['DATABASE_URL', 'JWT_SECRET', 'CORS_ORIGIN'];
+  const missing = required.filter((k) => !process.env[k]);
+  if (!missing.length) return;
+  const msg = `Missing required env var(s): ${missing.join(', ')}`;
+  if (process.env.NODE_ENV === 'production') {
+    logger.error(`[STARTUP] ${msg} — refusing to start.`);
+    process.exit(1);
+  }
+  logger.warn(`[STARTUP] ${msg} (allowed in ${process.env.NODE_ENV || 'development'}).`);
+})();
+
 const { APP_SHORT_NAME } = require('./lib/branding');
 const csrfMiddleware = require('./middleware/csrf');
 const botRoutes = require('./routes/bot.routes');
