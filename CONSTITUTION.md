@@ -32,6 +32,10 @@ These decisions are locked. Do not suggest alternatives or use different tools.
 | Tailwind CSS | Mobile-first responsive styling — all custom layout, typography, and one-off components |
 | Mantine (`@mantine/core`, `@mantine/hooks`) | Accessible form primitives (`TextInput`, `Select`, `Checkbox`, `Switch`, `NumberInput`) and overlay focus handling (`Modal`, nav `Drawer`) — kept specifically for behavior not worth re-implementing (focus trapping, keyboard nav, ARIA wiring), not for general styling. **Mantine's color palette is derived from the Tailwind DS tokens** (`client/src/App.jsx` `mantineTheme` object); if brand or status colors change, both `index.css @theme` and `mantineTheme.colors` must be updated in sync to prevent palette drift. |
 | Workbox | PWA service worker caching |
+| Radix (`@radix-ui/react-dialog`) + Framer Motion | **Internal-only.** May be used solely inside the shared `ResponsiveSheet` component (see `docs/UI_ARCHITECTURE.md`) that replaces `BottomDrawer`/`SheetModal`. Feature pages must not import Radix or Framer Motion directly. |
+| Vaul | **Deprecated.** Superseded by `ResponsiveSheet`. Do not add new usages; scheduled for removal once all `BottomDrawer`/`SheetModal` consumers migrate (see `specs/025-ui-architecture-consolidation/`). |
+| Tabler Icons (`@tabler/icons-react`) | **Default icon library.** All new icon usage must import from Tabler. |
+| Lucide (`lucide-react`) | **Deprecated.** Do not add new usages; existing usages migrate to Tabler incrementally as screens are touched. |
 
 > **Evaluated and rejected (2026-07-01): Server-Driven UI (SDUI) for the Admin desktop panel.** SDUI earns its complexity when UI needs to change without a redeploy (native apps gated by app-store review) or one backend serves many heterogeneous clients. Neither applies — this is a single web admin panel for one college's admin team, redeploys are a `git push` to Railway, and scale is ~20-30 faculty. Stick with React + Tailwind + TanStack Query above; do not revisit without a changed scale/deploy constraint.
 
@@ -459,6 +463,15 @@ PORT=3000
 ```
 
 ---
+
+*Constitution version: 3.17 — Updated: July 2026 (UI architecture governance — §2 Frontend
+table amended to formally record Radix/Framer Motion, Vaul, and the icon libraries, which were
+already in production use via the `spike/radix-sheet-modal` branch but never documented here.
+Radix + Framer Motion are now scoped internal-only to the shared `ResponsiveSheet` component;
+Vaul and Lucide are marked deprecated in favor of `ResponsiveSheet` and Tabler Icons
+respectively. No schema/endpoint changes — see `specs/025-ui-architecture-consolidation/plan.md`
+and `docs/UI_ARCHITECTURE.md` for the full 4-phase consolidation plan. This is Phase 1
+(standards/governance) only — no component code migrated yet.)*
 
 *Constitution version: 3.16 — Updated: July 2026 (login-flakiness fix + duplicate-feature
 cleanup, no schema/endpoint changes. §4 Authentication: `POST /auth/login` is now CSRF-exempt
