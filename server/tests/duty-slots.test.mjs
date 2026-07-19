@@ -146,14 +146,25 @@ describe('reassignSlot', () => {
   const admin = { id: 'admin-1', role: 'admin' };
   const target = { id: 'f2', role: 'faculty', status: 'active', deleted_at: null, name: 'New Fac', telegram_id: null };
 
-  function setup(slot) {
+  // `claimCount` = rows matched by the atomic guarded updateMany inside the
+  // transaction. 1 = we won the claim; 0 = the slot changed under us (lost race).
+  function setup(slot, { claimCount = 1 } = {}) {
     vi.spyOn(prisma.dutySlot, 'findUnique').mockResolvedValue(slot);
     vi.spyOn(prisma.user, 'findUnique').mockResolvedValue(target);
-    vi.spyOn(prisma.dutySlot, 'update').mockResolvedValue({ id: slot.id, faculty_id: 'f2' });
-    vi.spyOn(prisma.dutyReassignment, 'create').mockResolvedValue({ id: 'r1' });
-    vi.spyOn(prisma.dutyAttendance, 'update').mockResolvedValue({ id: 'a1', faculty_id: 'f2' });
     vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue({});
-    vi.spyOn(prisma, '$transaction').mockResolvedValue([{ id: slot.id, faculty_id: 'f2' }, { id: 'r1' }]);
+
+    const tx = {
+      dutySlot: {
+        updateMany: vi.fn().mockResolvedValue({ count: claimCount }),
+        findUnique: vi.fn().mockResolvedValue({ id: slot.id, faculty_id: 'f2' }),
+      },
+      dutyReassignment: { create: vi.fn().mockResolvedValue({ id: 'r1' }) },
+      dutyAttendance:   { update: vi.fn().mockResolvedValue({ id: 'a1', faculty_id: 'f2' }) },
+    };
+    // Interactive-form transaction: invoke the callback with our tx mock so the
+    // guarded claim actually runs and can be asserted.
+    vi.spyOn(prisma, '$transaction').mockImplementation((fn) => fn(tx));
+    return tx;
   }
   afterEach(() => vi.restoreAllMocks());
 
@@ -162,7 +173,7 @@ describe('reassignSlot', () => {
   }
 
   it('reassigns an absent no-show slot — resets status to scheduled and repoints the placeholder', async () => {
-    setup({
+    const tx = setup({
       id: 's1', faculty_id: 'f1', status: 'absent',
       duty_date: FUTURE_DATE, session_type: 'morning',
       attendance: { id: 'a1', in_time: null, out_time: null }, // cron no-show placeholder
@@ -172,13 +183,32 @@ describe('reassignSlot', () => {
     await reassignSlot(reassignReq(), res);
 
     expect(res._status).toBe(200);
-    expect(prisma.dutySlot.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ faculty_id: 'f2', status: 'scheduled' }),
+    // The atomic guard claims only a slot still owned by f1 and still reassignable.
+    expect(tx.dutySlot.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 's1', faculty_id: 'f1', status: { in: ['scheduled', 'absent'] } }),
+      data:  expect.objectContaining({ faculty_id: 'f2', status: 'scheduled' }),
     }));
     // Placeholder attendance handed to the new owner so their check-in updates it.
-    expect(prisma.dutyAttendance.update).toHaveBeenCalledWith(expect.objectContaining({
+    expect(tx.dutyAttendance.update).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'a1' }, data: { faculty_id: 'f2' },
     }));
+  });
+
+  it('aborts with 409 SLOT_CHANGED when the slot is claimed by a concurrent action (count 0)', async () => {
+    const tx = setup({
+      id: 's1', faculty_id: 'f1', status: 'scheduled',
+      duty_date: FUTURE_DATE, session_type: 'morning',
+      attendance: { id: 'a1', in_time: null, out_time: null },
+      faculty: { id: 'f1', name: 'Old Fac', telegram_id: null },
+    }, { claimCount: 0 }); // lost the race — the guarded updateMany matched nothing
+    const res = makeRes();
+    await reassignSlot(reassignReq(), res);
+
+    expect(res._status).toBe(409);
+    expect(res._body.code).toBe('SLOT_CHANGED');
+    // Transaction aborted: no history row, no attendance repoint.
+    expect(tx.dutyReassignment.create).not.toHaveBeenCalled();
+    expect(tx.dutyAttendance.update).not.toHaveBeenCalled();
   });
 
   it('blocks reassignment when a real check-in exists (409 ATTENDANCE_EXISTS)', async () => {
@@ -193,7 +223,7 @@ describe('reassignSlot', () => {
 
     expect(res._status).toBe(409);
     expect(res._body.code).toBe('ATTENDANCE_EXISTS');
-    expect(prisma.dutySlot.update).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('blocks reassignment of a genuinely completed duty (409 SLOT_NOT_REASSIGNABLE)', async () => {
@@ -208,6 +238,6 @@ describe('reassignSlot', () => {
 
     expect(res._status).toBe(409);
     expect(res._body.code).toBe('SLOT_NOT_REASSIGNABLE');
-    expect(prisma.dutySlot.update).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
