@@ -18,6 +18,13 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Dev-only Fast-Refresh hint, not a correctness rule. A few UI primitives
+      // deliberately co-locate a hook/context/style-helper with their component
+      // (Toast is imported in many files); forcing a split there is churn with
+      // no runtime benefit. Keep as a warning so the lint gate stays green.
+      'react-refresh/only-export-components': 'warn',
+    },
   },
   {
     files: ['vite.config.js'],
