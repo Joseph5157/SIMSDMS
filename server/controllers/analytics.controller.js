@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { buildWorkbook, sendWorkbook } = require('../lib/excel');
-const { monthRangeUTC: monthRange } = require('../lib/time');
+const { instantMonthRange, instantSpanRange, parseYMD } = require('../lib/reportRange');
+const { nowInIST } = require('../lib/time');
 
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
 
@@ -17,19 +18,21 @@ function weekRange(now) {
   return { gte: monday, lte: sunday };
 }
 
-// range preset (default this_month) or an explicit custom from/to pair.
+// range preset (default this_month) or an explicit custom from/to pair. All
+// presets resolve against IST wall-clock boundaries (created_at is a timestamptz
+// instant), independent of the process TZ. (ADMIN-HIGH-003)
 function resolveDateRange({ range, from_date, to_date }) {
-  const now = new Date();
+  const ist = nowInIST();
   if (range === 'custom' && from_date && to_date) {
-    return { gte: new Date(`${from_date}T00:00:00`), lte: new Date(`${to_date}T23:59:59.999`) };
+    return instantSpanRange(parseYMD(from_date), parseYMD(to_date));
   }
-  if (range === 'this_week') return weekRange(now);
+  if (range === 'this_week') return weekRange(new Date());
   if (range === 'last_month') {
-    const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const m = now.getMonth() === 0 ? 12 : now.getMonth();
-    return monthRange(y, m);
+    const y = ist.month === 1 ? ist.year - 1 : ist.year;
+    const m = ist.month === 1 ? 12 : ist.month - 1;
+    return instantMonthRange(y, m);
   }
-  return monthRange(now.getFullYear(), now.getMonth() + 1);
+  return instantMonthRange(ist.year, ist.month);
 }
 
 // The dynamic, non-date filters shared by every endpoint — dynamic per the P24
@@ -81,14 +84,16 @@ async function summary(req, res) {
 async function trend(req, res) {
   const months = req.query.months ?? 6;
   const base   = extraFilters(req.query);
-  const now    = new Date();
+  const ist    = nowInIST();
 
   const data = [];
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const year = d.getFullYear(), month = d.getMonth() + 1;
+    // Step back i whole months from the current IST month; UTC month overflow
+    // normalises year rollover.
+    const d = new Date(Date.UTC(ist.year, ist.month - 1 - i, 1));
+    const year = d.getUTCFullYear(), month = d.getUTCMonth() + 1;
     const count = await prisma.violation.count({
-      where: { ...base, record_status: 'active', deleted_at: null, created_at: monthRange(year, month) },
+      where: { ...base, record_status: 'active', deleted_at: null, created_at: instantMonthRange(year, month) },
     });
     data.push({ year, month, count });
   }
