@@ -3,6 +3,22 @@
 ## task_id
 025-ui-architecture-consolidation / Phase 3 Waves 1–3 — feature screen migration
 
+## wave_4 (2026-07-20, same branch)
+Wave 4 complete — the LAST page-migration screen, lint/build-green:
+- `2b7ce95` ReportsPage — ReportsPage was already ~95% Tailwind; the only static
+  inline-style debt left was the iOS-zoom-prevention `fontSize: 16` repeated on 15
+  `<select>`/`<input>` controls. Folded it into the two shared class strings
+  (`selectCls` + MonthFilter's local `cls`) as `text-[length:16px]` and deleted all 15
+  inline copies. Zero behavioral change. Bundle flat at 1,503.33 kB / gzip 433.04 kB.
+
+**All page-migration debt is now cleared** (`grep -c "style={{" ReportsPage.jsx` = 0).
+Every remaining `style={{` across the migrated codebase is intentional (runtime values or
+bespoke branding). Remaining initiative work is now ONLY the navbar `sm`→`md` breakpoint
+(Phase 3) + all of Phase 4 (ESLint import guards, drop Radix/Vaul/Lucide/old
+BottomDrawer+SheetModal after zero-usage grep, bundle/a11y re-measure). NOTE: ReportsPage
+still imports the deprecated `BottomDrawer` for its mobile result drawer — a Phase-4
+zero-usage prerequisite (migrate to ResponsiveSheet before BottomDrawer can be deleted).
+
 ## wave_3 (2026-07-20, same branch)
 Wave 3 (long forms / admin) complete — all lint/build-green:
 - `f792e54` SlotPickerPage — 49 of 55 inline styles → Tailwind; runtime calendar
@@ -29,8 +45,7 @@ ViolationRecorder) need no work.
 ALL LOCAL, nothing pushed. `git log --oneline 872cc6b..HEAD` shows them.
 
 **Remaining work, in order:**
-1. **Wave 4** — migrate `client/src/pages/admin/ReportsPage.jsx` (904 lines, ~15 inline
-   styles). The LAST page with real inline-style debt. Same procedure + one commit.
+1. ~~**Wave 4** — migrate `ReportsPage.jsx`.~~ DONE `2b7ce95`. All page migration complete.
 2. **Navbar `sm`→`md` breakpoint** (Phase 3 item): Mantine navbar breakpoint is `sm`
    while the mobile/desktop card-vs-table switch is at `md` — align them in
    `client/src/components/Layout.jsx`.
