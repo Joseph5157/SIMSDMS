@@ -47,14 +47,14 @@ const REPORT_GROUPS = ['Attendance', 'Student Violations', 'Duty & Coverage', 'S
 // ── Month filter ───────────────────────────────────────────────────────────────
 function MonthFilter({ year, month, setYear, setMonth }) {
   const now = new Date();
-  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)]';
-  const controlStyle = { fontSize: 16 };
+  // text-[length:16px] keeps mobile Safari from zooming when a control is focused.
+  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px]';
   return (
     <div className="flex gap-2 mb-5">
-      <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls} style={controlStyle}>
+      <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls}>
         {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y}>{y}</option>)}
       </select>
-      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={cls} style={controlStyle}>
+      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={cls}>
         {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
       </select>
     </div>
@@ -373,7 +373,8 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 }
 
 // ── Student Monthly Violation Report — the primary report (Monthly / Yearly / Overall + Excel export) ──
-const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)]';
+// text-[length:16px] keeps mobile Safari from zooming when a control is focused.
+const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px]';
 
 function StudentViolationReportCard() {
   const toast = useToast();
@@ -489,11 +490,11 @@ function StudentViolationReportCard() {
         <div className="flex gap-2 mb-5 flex-wrap">
           {(mode === 'monthly' || mode === 'yearly') && (
             <>
-              <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+              <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
                 {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
               </select>
               {mode === 'monthly' && (
-                <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
                   {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                 </select>
               )}
@@ -505,7 +506,6 @@ function StudentViolationReportCard() {
               value={dailyDate}
               onChange={(e) => setDailyDate(e.target.value)}
               className={selectCls}
-              style={{ fontSize: 16 }}
             />
           )}
           {mode === 'weekly' && (
@@ -515,7 +515,6 @@ function StudentViolationReportCard() {
                 value={weeklyFromDate}
                 onChange={(e) => setWeeklyFromDate(e.target.value)}
                 className={selectCls}
-                style={{ fontSize: 16 }}
                 placeholder="From"
               />
               <input
@@ -523,7 +522,6 @@ function StudentViolationReportCard() {
                 value={weeklyToDate}
                 onChange={(e) => setWeeklyToDate(e.target.value)}
                 className={selectCls}
-                style={{ fontSize: 16 }}
                 placeholder="To"
               />
             </>
@@ -533,19 +531,19 @@ function StudentViolationReportCard() {
 
       {/* Filters */}
       <div className="flex gap-2 mb-5 flex-wrap">
-        <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+        <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
           <option value="">All Courses</option>
           {(filterOptions?.courses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={studentYear} onChange={(e) => setStudentYear(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+        <select value={studentYear} onChange={(e) => setStudentYear(e.target.value)} className={selectCls}>
           <option value="">All Years</option>
           {(filterOptions?.years ?? []).map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
-        <select value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+        <select value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls}>
           <option value="">All Violation Types</option>
           {(filterOptions?.violation_types ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+        <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls}>
           <option value="">All Recorders</option>
           <option value="admin">Admin</option>
           {(facultyData?.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -687,7 +685,6 @@ function IndividualStudentReportCard() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search student by name or registration number…"
             className={`${selectCls} w-full`}
-            style={{ fontSize: 16 }}
           />
           {query.trim().length >= 2 && (
             <div className="absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-card)] shadow-[var(--shadow-dropdown)]">
@@ -748,23 +745,23 @@ function IndividualStudentReportCard() {
             <div className="flex gap-2 mb-5 flex-wrap">
               {(mode === 'monthly' || mode === 'yearly') && (
                 <>
-                  <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                  <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
                     {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
                   </select>
                   {mode === 'monthly' && (
-                    <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls} style={{ fontSize: 16 }}>
+                    <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
                       {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                   )}
                 </>
               )}
               {mode === 'daily' && (
-                <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
+                <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} />
               )}
               {mode === 'weekly' && (
                 <>
-                  <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
-                  <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} style={{ fontSize: 16 }} />
+                  <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} />
+                  <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} />
                 </>
               )}
             </div>
