@@ -46,7 +46,7 @@ export default function SuperAdminDashboardPage({ user }) {
 
   return (
     <Layout user={user}>
-      <PageHeader title="Super Admin Dashboard" subtitle={dateStr} />
+      <PageHeader variant="operational" title="Super Admin Dashboard" subtitle={dateStr} />
 
       {/* ── Pending account approvals alert ── */}
       {pendingCount > 0 && (
@@ -82,34 +82,29 @@ export default function SuperAdminDashboardPage({ user }) {
           </p>
           <button
             onClick={() => navigate(ROUTES.SUPER_ADMIN_AUDIT)}
-            style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+            className="text-[length:var(--text-small)] text-[var(--brand)] bg-transparent border-0 cursor-pointer p-0 font-[var(--weight-semibold)]"
           >
             View all →
           </button>
         </div>
         <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
           {!logs.length ? (
-            <div className="px-4 py-10 text-center"
-              style={{ color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
+            <div className="px-4 py-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">
               No audit log entries yet.
             </div>
           ) : (
             logs.map((entry, i) => (
               <div key={entry.id}
-                className="flex justify-between items-center gap-3 px-4 py-3"
-                style={{ borderBottom: i < logs.length - 1 ? '1px solid var(--divider)' : 'none' }}>
+                className={`flex justify-between items-center gap-3 px-4 py-3 ${i < logs.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                 <div className="flex-1 min-w-0">
-                  <p className="overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)' }}>
+                  <p className="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)]">
                     {fmtAction(entry.action)}
                   </p>
-                  <p className="mt-[2px]"
-                    style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
+                  <p className="mt-[2px] text-[length:var(--text-micro)] text-[var(--text-muted)]">
                     by {entry.actor?.name ?? 'System'} · {entry.target_type}
                   </p>
                 </div>
-                <p className="shrink-0"
-                  style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
+                <p className="shrink-0 text-[length:var(--text-micro)] text-[var(--text-muted)]">
                   {new Date(entry.created_at).toLocaleDateString('en-IN', {
                     day: '2-digit', month: 'short',
                   })}

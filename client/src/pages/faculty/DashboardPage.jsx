@@ -60,22 +60,23 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
     : (session.session_type === 'morning' ? '8:00 AM' : '1:00 PM');
 
   return (
-    <div style={{
-      borderRadius: 'var(--radius-3xl)', padding: 20, position: 'relative', overflow: 'hidden',
-      background: 'var(--brand-gradient-deep)',
-      boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)',
-    }}>
-      <div style={{ position: 'absolute', top: -40, right: -30, width: 140, height: 140, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.12)' }} />
-      <div style={{ position: 'relative' }}>
+    <div
+      className="rounded-[var(--radius-3xl)] p-5 relative overflow-hidden"
+      style={{
+        background: 'var(--brand-gradient-deep)',
+        boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)',
+      }}>
+      <div className="absolute -top-10 -right-[30px] w-[140px] h-[140px] rounded-[var(--radius-full)] bg-[rgba(255,255,255,0.12)]" />
+      <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+            <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[rgba(255,255,255,0.7)] uppercase tracking-[var(--tracking-wide)] mb-1.5">
               📋 Today's duty
             </p>
-            <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-on-dark)', lineHeight: 1.1, textTransform: 'capitalize' }}>
+            <p className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[1.1] capitalize">
               {session.session_type} session
             </p>
-            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+            <p className="text-[length:var(--text-small)] text-[rgba(255,255,255,0.75)] mt-1">
               Starts {startLabel}
             </p>
           </div>
@@ -88,13 +89,13 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
         </div>
 
         {session.in_time && session.out_time ? (
-          <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-on-dark)' }}>
+          <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-on-dark)]">
             ✓ Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             {' · '}out {new Date(session.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
           </p>
         ) : session.in_time ? (
           <>
-            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)', marginBottom: 8 }}>
+            <p className="text-[length:var(--text-small)] text-[rgba(255,255,255,0.85)] mb-2">
               ● Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </p>
             <Button size="md" color="dark" fullWidth loading={checkOutPending}
@@ -104,12 +105,12 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
             </Button>
           </>
         ) : session.attendance_status === 'absent' ? (
-          <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.85)' }}>
+          <p className="text-[length:var(--text-small)] text-[rgba(255,255,255,0.85)]">
             ● Marked absent — the check-in window for this session has closed.
           </p>
         ) : (
           <>
-            <p style={{ fontSize: 'var(--text-small)', color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+            <p className="text-[length:var(--text-small)] text-[rgba(255,255,255,0.7)] mb-2">
               ● Not checked in
             </p>
             <Button size="md" color="dark" fullWidth loading={checkInPending}
@@ -283,10 +284,10 @@ export default function DashboardPage({ user }) {
     <Layout user={user}>
       {/* ── Header — left-aligned, avatar/notifications live in the shared chrome ── */}
       <div className="mb-5 pb-4 border-b border-[var(--border)]">
-        <p style={{ fontSize: 'var(--text-h2)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+        <p className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] leading-[1.2]">
           Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
         </p>
-        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
+        <p className="text-[length:var(--text-small)] text-[var(--text-muted)] mt-0.5">
           {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
         </p>
       </div>
@@ -325,8 +326,8 @@ export default function DashboardPage({ user }) {
               📅
             </div>
             <div>
-              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>No duty today</p>
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', marginTop: 2 }}>
+              <p className="text-[length:var(--text-card-lg)] font-[var(--weight-bold)] text-[var(--text-primary)]">No duty today</p>
+              <p className="text-[length:var(--text-small)] text-[var(--text-muted)] mt-0.5">
                 Enjoy your day — check upcoming slots below.
               </p>
             </div>
@@ -353,7 +354,7 @@ export default function DashboardPage({ user }) {
                 <button
                   onClick={() => setDismissedAlerts((prev) => new Set(prev).add(activeAlert.key))}
                   aria-label="Dismiss"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, opacity: 0.6, fontSize: 14, lineHeight: 1 }}>
+                  className="bg-transparent border-0 cursor-pointer p-0.5 opacity-60 text-[14px] leading-none">
                   ✕
                 </button>
               </div>
@@ -367,10 +368,10 @@ export default function DashboardPage({ user }) {
       {!todaySessions.length && slots.length === 0 && !slotsLoading && !slotsError && (
         <section className="mb-5">
           <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-[var(--radius-xl)] px-5 py-6 text-center">
-            <p style={{ fontSize: 'var(--text-h2)', fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
+            <p className="text-[length:var(--text-h2)] font-[var(--weight-bold)] mb-2 text-[var(--text-primary)]">
               Welcome to {APP_SHORT_NAME}
             </p>
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <p className="text-[length:var(--text-card)] text-[var(--text-secondary)] leading-[1.5]">
               You don't have any duty slots assigned yet.
               <br />
               Your admin will open the scheduling window and notify you when it's time to pick your slots.
@@ -383,30 +384,30 @@ export default function DashboardPage({ user }) {
       {slots.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
-            <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)]">
               Next 7 days
             </p>
+            {/* padding+negative-margin expands the tap area to ≥44px without shifting the label */}
             <button onClick={() => navigate(ROUTES.FACULTY_SLOTS)}
-              // padding+negative-margin expands the tap area to ≥44px without shifting the label
-              style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: '13px 8px', margin: '-13px -8px', fontWeight: 600, fontFamily: 'var(--font-sans)' }}>
+              className="text-[length:var(--text-small)] text-[var(--brand)] bg-transparent border-0 cursor-pointer py-[13px] px-2 -my-[13px] -mx-2 font-[var(--weight-semibold)] font-[var(--font-sans)]">
               All slots →
             </button>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1">
             {next7Days.map(({ date, iso, isToday, slot }) => (
-              <div key={iso} className="flex flex-col items-center justify-center shrink-0 w-14 h-16 rounded-[var(--radius-lg)]"
-                style={{
-                  background: isToday ? 'var(--brand)' : slot ? 'var(--color-blue-50)' : 'var(--surface-card)',
-                  border: `1px solid ${isToday ? 'var(--brand)' : slot ? 'var(--color-blue-200)' : 'var(--border)'}`,
-                }}>
-                <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, textTransform: 'uppercase', color: isToday ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+              <div key={iso}
+                className={`flex flex-col items-center justify-center shrink-0 w-14 h-16 rounded-[var(--radius-lg)] border ${
+                  isToday ? 'bg-[var(--brand)] border-[var(--brand)]'
+                    : slot ? 'bg-[var(--color-blue-50)] border-[var(--color-blue-200)]'
+                    : 'bg-[var(--surface-card)] border-[var(--border)]'
+                }`}>
+                <span className={`text-[length:var(--text-nano)] font-[var(--weight-bold)] uppercase ${isToday ? 'text-[rgba(255,255,255,0.8)]' : 'text-[var(--text-muted)]'}`}>
                   {date.toLocaleDateString('en-IN', { weekday: 'short' })}
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.6, color: isToday ? 'var(--text-on-dark)' : 'var(--text-primary)' }}>
+                <span className={`text-[16px] font-[var(--weight-extra)] leading-[1.6] ${isToday ? 'text-[var(--text-on-dark)]' : 'text-[var(--text-primary)]'}`}>
                   {date.getDate()}
                 </span>
-                <span className="w-[5px] h-[5px] rounded-full"
-                  style={{ background: slot ? (isToday ? 'rgba(255,255,255,0.9)' : 'var(--brand)') : 'transparent' }} />
+                <span className={`w-[5px] h-[5px] rounded-full ${slot ? (isToday ? 'bg-[rgba(255,255,255,0.9)]' : 'bg-[var(--brand)]') : 'bg-transparent'}`} />
               </div>
             ))}
           </div>
@@ -419,7 +420,7 @@ export default function DashboardPage({ user }) {
       {/* ── 5. Upcoming duties (beyond the 7-day strip — duty cadence is sparse) ── */}
       {upcoming.length > 0 && (
         <div className="mb-4">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+          <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Upcoming duties
           </p>
           <div className="flex flex-col gap-2">
@@ -429,17 +430,17 @@ export default function DashboardPage({ user }) {
               const hasPendingRequest = sentReq?.status === 'pending';
               return (
                 <div key={s.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--brand)' }} />
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--brand)]" />
                   <div className="flex items-center gap-3">
                     <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
-                      <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-blue-800)', lineHeight: 1 }}>{d.getDate()}</span>
-                      <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--brand)', textTransform: 'uppercase' }}>
+                      <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-blue-800)] leading-none">{d.getDate()}</span>
+                      <span className="text-[length:var(--text-nano)] font-[var(--weight-bold)] text-[var(--brand)] uppercase">
                         {d.toLocaleDateString('en-IN', { month: 'short' })}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{s.session_type} session</p>
-                      <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
+                      <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)] capitalize">{s.session_type} session</p>
+                      <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-[1px]">
                         {d.toLocaleDateString('en-IN', { weekday: 'long' })}
                         {wasReassignedToMe(s) && s.reassignments[0].fromFaculty?.name
                           ? ` · reassigned from ${s.reassignments[0].fromFaculty.name}`
@@ -490,7 +491,7 @@ export default function DashboardPage({ user }) {
       {/* ── 5b. Reassigned away — duties moved off this faculty by admin ── */}
       {reassignedAway.length > 0 && (
         <div className="mb-4">
-          <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+          <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Reassigned away
           </p>
           <div className="flex flex-col gap-2">
@@ -498,18 +499,18 @@ export default function DashboardPage({ user }) {
               const d = new Date(r.duty_date);
               return (
                 <div key={r.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--color-indigo-solid)' }} />
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-indigo-solid)]" />
                   <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-indigo-bg)] flex flex-col items-center justify-center">
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-indigo-text)', lineHeight: 1 }}>{d.getDate()}</span>
-                    <span style={{ fontSize: 'var(--text-nano)', fontWeight: 700, color: 'var(--color-indigo-text)', textTransform: 'uppercase' }}>
+                    <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-indigo-text)] leading-none">{d.getDate()}</span>
+                    <span className="text-[length:var(--text-nano)] font-[var(--weight-bold)] text-[var(--color-indigo-text)] uppercase">
                       {d.toLocaleDateString('en-IN', { month: 'short' })}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                    <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)] capitalize">
                       {r.session_type} session
                     </p>
-                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
+                    <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-[1px]">
                       Reassigned to {r.toFaculty?.name ?? '—'}{r.reason ? ` · ${r.reason}` : ''}
                     </p>
                   </div>
@@ -528,28 +529,27 @@ export default function DashboardPage({ user }) {
 
       {/* ── 6. Recent activity — unified feed (violations logged, messages, duty reassignments) ── */}
       <div>
-        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+        <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
           Recent activity
         </p>
         {activityLoading ? (
           <Skeleton height="140px" className="rounded-2xl" />
         ) : !activityItems.length ? (
           <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-dashed border-[var(--border)] px-4 py-5 text-center">
-            <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No recent activity yet.</p>
+            <p className="text-[length:var(--text-card)] text-[var(--text-muted)]">No recent activity yet.</p>
           </div>
         ) : (
           <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
             {activityItems.map((item, i) => (
-              <div key={item.id} className="flex items-center gap-[10px] px-[14px] py-3"
-                style={{ borderBottom: i < activityItems.length - 1 ? '1px solid var(--divider)' : 'none' }}>
+              <div key={item.id}
+                className={`flex items-center gap-[10px] px-[14px] py-3 ${i < activityItems.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                 <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px]"
                   style={{ background: ACTIVITY_TINT[item.accent] ?? 'var(--surface-page)' }}>{item.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="overflow-hidden text-ellipsis whitespace-nowrap"
-                    style={{ fontSize: 'var(--text-card)', color: 'var(--text-primary)', fontWeight: item.unread ? 600 : 500 }}>
+                  <p className={`overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-card)] text-[var(--text-primary)] ${item.unread ? 'font-[var(--weight-semibold)]' : 'font-[var(--weight-medium)]'}`}>
                     {item.text}
                   </p>
-                  <p style={{ fontSize: 'var(--text-nano)', color: 'var(--text-muted)', marginTop: 1 }}>
+                  <p className="text-[length:var(--text-nano)] text-[var(--text-muted)] mt-[1px]">
                     {timeAgo(item.timestamp)}
                   </p>
                 </div>

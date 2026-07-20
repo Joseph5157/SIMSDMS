@@ -72,14 +72,13 @@ export default function AdminDashboardPage({ user }) {
           <p className="text-[length:var(--text-h2)] font-extrabold leading-tight text-white truncate">
             Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
           </p>
-          <p className="text-[length:var(--text-small)] mt-0.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
+          <p className="text-[length:var(--text-small)] mt-0.5 text-[rgba(255,255,255,0.8)]">
             {dateStr} · {APP_SHORT_NAME} Admin
           </p>
         </div>
         {liveSlots.length > 0 && (
-          <div className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-full px-3.5 py-2 text-[length:var(--text-small)] font-bold text-white"
-            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)' }}>
-            <span className="w-[7px] h-[7px] rounded-full" style={{ background: '#4ade80', boxShadow: '0 0 0 3px rgba(74,222,128,0.3)' }} />
+          <div className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-full px-3.5 py-2 text-[length:var(--text-small)] font-bold text-white bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.25)]">
+            <span className="w-[7px] h-[7px] rounded-full bg-[#4ade80] shadow-[0_0_0_3px_rgba(74,222,128,0.3)]" />
             {checkedIn} checked in
           </div>
         )}
@@ -111,14 +110,14 @@ export default function AdminDashboardPage({ user }) {
               borderColor: 'var(--color-indigo-border)',
               boxShadow: 'var(--shadow-stat)',
             }}>
-            <p className="m-0 text-[length:var(--text-micro)] font-semibold uppercase tracking-[0.06em] flex items-center gap-1.5" style={{ color: 'var(--color-indigo-text)' }}>
+            <p className="m-0 text-[length:var(--text-micro)] font-semibold uppercase tracking-[0.06em] flex items-center gap-1.5 text-[var(--color-indigo-text)]">
               <IconUsers size={13} stroke={1.75} /> Active Faculty
             </p>
-            <p className="m-0 mt-1.5 text-[length:var(--text-stat)] font-extrabold leading-none tracking-[var(--tracking-tight)]" style={{ color: 'var(--color-blue-700)' }}>
+            <p className="m-0 mt-1.5 text-[length:var(--text-stat)] font-extrabold leading-none tracking-[var(--tracking-tight)] text-[var(--color-blue-700)]">
               {activeFaculty}
             </p>
-            <p className="m-0 mt-1 text-[length:var(--text-small)]" style={{ color: 'var(--text-secondary)' }}>
-              <b style={{ color: 'var(--color-blue-700)' }}>{liveSlots.length}</b> on duty today
+            <p className="m-0 mt-1 text-[length:var(--text-small)] text-[var(--text-secondary)]">
+              <b className="text-[var(--color-blue-700)]">{liveSlots.length}</b> on duty today
             </p>
           </div>
           {/* Supporting — subtle tonal fills, each clickable to view details */}
@@ -135,7 +134,7 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Pending account approvals alert ── */}
       {pendingCount > 0 && (
-        <Alert tone="warning" icon={<IconHourglass size={18} stroke={1.9} style={{ color: 'var(--color-amber-solid)' }} />} className="mb-3"
+        <Alert tone="warning" icon={<IconHourglass size={18} stroke={1.9} color="var(--color-amber-solid)" />} className="mb-3"
           title={`${pendingCount} account${pendingCount !== 1 ? 's' : ''} awaiting approval`}
           onClick={() => navigate(ROUTES.ADMIN_USERS)}>
           Tap to review and approve.
@@ -144,7 +143,7 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Pending Telegram invites alert ── */}
       {pendingTelegramCount > 0 && (
-        <Alert tone="telegram" icon={<IconBrandTelegram size={18} stroke={1.9} style={{ color: 'var(--color-cyan-solid)' }} />} className="mb-3"
+        <Alert tone="telegram" icon={<IconBrandTelegram size={18} stroke={1.9} color="var(--color-cyan-solid)" />} className="mb-3"
           title={`${pendingTelegramCount} user${pendingTelegramCount !== 1 ? 's' : ''} haven't linked Telegram yet`}
           onClick={() => navigate(ROUTES.ADMIN_USERS + '?status=pending_telegram')}>
           Resend invite links from the Users page.
@@ -165,7 +164,7 @@ export default function AdminDashboardPage({ user }) {
         <CardBody className="p-0 flex-1 flex flex-col min-h-0">
           {!liveSlots.length ? (
             <div className="flex-1 flex items-center justify-center">
-              <p style={{ fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No duty slots scheduled today.</p>
+              <p className="text-[length:var(--text-card)] text-[var(--text-muted)]">No duty slots scheduled today.</p>
             </div>
           ) : (
             <>
@@ -179,8 +178,8 @@ export default function AdminDashboardPage({ user }) {
                 ].map((item) => (
                   <div key={item.label} className="flex-1 rounded-[var(--radius-lg)] px-2 py-1.5 text-center"
                     style={{ background: item.tint }}>
-                    <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 800, color: item.color, lineHeight: 1 }}>{item.n}</p>
-                    <p style={{ fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>{item.label}</p>
+                    <p className="text-[length:var(--text-card-lg)] font-[var(--weight-extra)] leading-none" style={{ color: item.color }}>{item.n}</p>
+                    <p className="text-[length:var(--text-micro)] font-[var(--weight-semibold)] text-[var(--text-muted)] uppercase tracking-[0.04em] mt-0.5">{item.label}</p>
                   </div>
                 ))}
               </div>
@@ -191,12 +190,11 @@ export default function AdminDashboardPage({ user }) {
                     className="flex items-center justify-between px-4 py-[6px] border-b border-[var(--divider)]"
                   >
                     <div className="flex-1 min-w-0">
-                      <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p className="text-[length:var(--text-card)] text-[var(--color-slate-700)] overflow-hidden text-ellipsis whitespace-nowrap">
                         {s.faculty?.name}
                       </p>
                     </div>
-                    <span className="shrink-0 mr-[10px]"
-                      style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', textTransform: 'capitalize' }}>
+                    <span className="shrink-0 mr-[10px] text-[length:var(--text-micro)] text-[var(--text-muted)] capitalize">
                       {s.session_type}
                     </span>
                     <Badge
@@ -226,7 +224,7 @@ export default function AdminDashboardPage({ user }) {
         <CardBody className={`p-0 ${!hasFlagged ? 'flex-1 flex flex-col min-h-0' : ''}`}>
           {!reassignments.length ? (
             <div className={!hasFlagged ? 'flex-1 flex items-center justify-center' : ''}>
-              <p style={{ padding: !hasFlagged ? 0 : '10px 16px', fontSize: 'var(--text-card)', color: 'var(--text-muted)' }}>No reassignments this month.</p>
+              <p className={`text-[length:var(--text-card)] text-[var(--text-muted)] ${!hasFlagged ? 'p-0' : 'px-4 py-2.5'}`}>No reassignments this month.</p>
             </div>
           ) : (
             <div className={!hasFlagged ? 'flex-1 min-h-0 overflow-y-auto' : 'max-h-[180px] overflow-y-auto'}>
@@ -236,10 +234,10 @@ export default function AdminDashboardPage({ user }) {
                   className="flex items-center justify-between px-4 py-[6px] border-b border-[var(--divider)] gap-[10px]"
                 >
                   <div className="min-w-0 flex-1">
-                    <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--color-slate-700)] overflow-hidden text-ellipsis whitespace-nowrap">
                       {r.from_faculty?.name} → {r.to_faculty?.name}
                     </p>
-                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1, textTransform: 'capitalize' }}>
+                    <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-[1px] capitalize">
                       {r.session_type}
                       {r.duty_date && ` · ${new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`}
                     </p>
@@ -263,18 +261,14 @@ export default function AdminDashboardPage({ user }) {
                 value={flaggedShowCount}
                 onChange={(e) => setFlaggedShowCount(Number(e.target.value))}
                 aria-label="Number of flagged violations to show"
-                style={{
-                  fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-secondary)',
-                  border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                  padding: '2px 6px', background: 'var(--surface-card)', cursor: 'pointer',
-                }}
+                className="text-[length:var(--text-micro)] font-[var(--weight-semibold)] text-[var(--text-secondary)] border border-[var(--border)] rounded-[var(--radius-md)] px-1.5 py-0.5 bg-[var(--surface-card)] cursor-pointer"
               >
                 {[3, 5, 10, 20].map((n) => <option key={n} value={n}>Show {n}</option>)}
               </select>
             </div>
           </CardHeader>
-          <div className="px-4 pt-1.5 pb-0.5 shrink-0" style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
-            Total: <strong style={{ color: 'var(--text-secondary)' }}>{pendingFlaggedCount}</strong> · Showing: {pendingFlaggedViolations.length} latest
+          <div className="px-4 pt-1.5 pb-0.5 shrink-0 text-[length:var(--text-micro)] text-[var(--text-muted)]">
+            Total: <strong className="text-[var(--text-secondary)]">{pendingFlaggedCount}</strong> · Showing: {pendingFlaggedViolations.length} latest
           </div>
           <CardBody className="p-0 flex-1 flex flex-col min-h-0">
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -284,15 +278,14 @@ export default function AdminDashboardPage({ user }) {
                   className="flex items-center justify-between px-4 py-[9px] border-b border-[var(--divider)] gap-[10px]"
                 >
                   <div className="min-w-0 flex-1">
-                    <p style={{ fontSize: 'var(--text-card)', color: 'var(--color-slate-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p className="text-[length:var(--text-card)] text-[var(--color-slate-700)] overflow-hidden text-ellipsis whitespace-nowrap">
                       {v.student?.student_name}
                     </p>
-                    <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>
+                    <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-[1px]">
                       {v.violationType?.name}{v.flag_note ? ` · ${v.flag_note.slice(0, 40)}` : ''}
                     </p>
                   </div>
-                  <span className="shrink-0"
-                    style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-semibold)', color: 'var(--color-amber-text)' }}>
+                  <span className="shrink-0 text-[length:var(--text-micro)] font-[var(--weight-semibold)] text-[var(--color-amber-text)]">
                     {v.faculty?.name}
                   </span>
                 </div>
@@ -301,7 +294,7 @@ export default function AdminDashboardPage({ user }) {
             <div className="px-4 py-2 border-t border-[var(--divider)] shrink-0">
               <button
                 onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)}
-                style={{ fontSize: 'var(--text-small)', color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                className="text-[length:var(--text-small)] text-[var(--brand)] bg-transparent border-0 cursor-pointer p-0"
               >
                 Review all flagged student violations →
               </button>
@@ -314,7 +307,7 @@ export default function AdminDashboardPage({ user }) {
 
       {/* ── Quick actions ── */}
       <div>
-        <p style={{ fontSize: 'var(--text-micro)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 'var(--tracking-wide)', marginBottom: 10 }}>
+        <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-muted)] uppercase tracking-[var(--tracking-wide)] mb-2.5">
           Quick actions
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-[10px]">
@@ -322,19 +315,16 @@ export default function AdminDashboardPage({ user }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex items-center gap-3 rounded-[var(--radius-2xl)] px-[14px] py-[14px] cursor-pointer text-left transition-all hover:-translate-y-px ${
+              className={`flex items-center gap-3 rounded-[var(--radius-2xl)] px-[14px] py-[14px] min-h-[var(--control-min)] cursor-pointer text-left transition-all hover:-translate-y-px ${
                 item.primary ? 'text-white' : 'bg-[var(--surface-card)] border border-[var(--border)] hover:border-[var(--brand)]'
               }`}
-              style={{
-                minHeight: 'var(--control-min)',
-                ...(item.primary ? { background: 'var(--brand-gradient-deep)', boxShadow: '0 6px 16px -6px rgba(37,99,235,0.5)' } : {}),
-              }}
+              style={item.primary ? { background: 'var(--brand-gradient-deep)', boxShadow: '0 6px 16px -6px rgba(37,99,235,0.5)' } : undefined}
             >
               <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center"
                 style={{ background: item.primary ? 'rgba(255,255,255,0.18)' : item.tint }}>
-                <item.Icon size={20} stroke={1.9} style={{ color: item.primary ? '#fff' : item.ink }} />
+                <item.Icon size={20} stroke={1.9} color={item.primary ? '#fff' : item.ink} />
               </span>
-              <span style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-bold)', color: item.primary ? '#fff' : 'var(--text-primary)' }}>{item.label}</span>
+              <span className="text-[length:var(--text-card)] font-[var(--weight-bold)]" style={{ color: item.primary ? '#fff' : 'var(--text-primary)' }}>{item.label}</span>
             </button>
           ))}
         </div>
