@@ -50,38 +50,29 @@ export default function AuditLogsPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{
-        backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)',
-        border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16,
-      }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
+        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No logs found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No logs found.</div>}
         {data?.data?.map((log) => (
-          <div key={log.id} style={{
-            padding: '14px 16px',
-            borderBottom: '1px solid var(--border)',
-            backgroundColor: 'var(--surface-card)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-              <span style={{
-                fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-on-brand)',
-                backgroundColor: getActionColor(log.action),
-                padding: '3px 8px', borderRadius: 'var(--radius-sm)',
-                textTransform: 'uppercase', letterSpacing: 'var(--tracking-label)',
-              }}>
+          <div key={log.id} className="px-4 py-3.5 border-b border-[var(--border)] bg-[var(--surface-card)]">
+            <div className="flex justify-between items-start mb-1.5">
+              <span
+                className="text-[length:var(--text-small)] font-[var(--weight-bold)] text-[var(--text-on-brand)] px-2 py-[3px] rounded-[var(--radius-sm)] uppercase tracking-[var(--tracking-label)]"
+                style={{ backgroundColor: getActionColor(log.action) }}
+              >
                 {log.action?.replace(/_/g, ' ')}
               </span>
-              <span style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>
+              <span className="text-[length:var(--text-micro)] text-[var(--text-muted)]">
                 {new Date(log.created_at).toLocaleString('en-IN', {
                   day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                 })}
               </span>
             </div>
-            <p style={{ fontSize: 'var(--text-card)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2 }}>
+            <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)] mb-0.5">
               {log.actor?.name ?? 'System'}
             </p>
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+            <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">
               {log.target_type} · {log.target_id?.slice(0, 8)}…
             </p>
           </div>
@@ -107,18 +98,14 @@ export default function AuditLogsPage({ user }) {
               <tr key={log.id}>
                 <Td className="font-medium">{log.actor?.name ?? log.actor_id}</Td>
                 <Td>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 'var(--text-micro)',
-                    backgroundColor: 'var(--color-slate-100)', color: 'var(--color-slate-600)',
-                    padding: '2px 6px', borderRadius: 'var(--radius-sm)',
-                  }}>
+                  <span className="font-mono text-[length:var(--text-micro)] bg-[var(--color-slate-100)] text-[var(--color-slate-600)] px-1.5 py-0.5 rounded-[var(--radius-sm)]">
                     {log.action}
                   </span>
                 </Td>
-                <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--color-slate-500)' }}>
+                <Td className="text-[length:var(--text-micro)] text-[var(--color-slate-500)]">
                   {log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ''}
                 </Td>
-                <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--color-slate-400)' }}>
+                <Td className="text-[length:var(--text-micro)] text-[var(--color-slate-400)]">
                   {new Date(log.created_at).toLocaleString()}
                 </Td>
               </tr>
