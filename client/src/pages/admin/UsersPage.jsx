@@ -4,6 +4,7 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, Menu, ActionIcon, Modal, Text, Group } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
+import Alert from '../../components/ui/Alert';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import CreateUserDrawer from '../../components/CreateUserDrawer';
@@ -165,8 +166,7 @@ export default function UsersPage({ user }) {
     }
   }
 
-  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[var(--text-secondary)] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 bg-[var(--surface-card)]';
-  const selectStyle = { fontSize: 16 };
+  const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 text-[16px] text-[var(--text-secondary)] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 bg-[var(--surface-card)]';
 
   return (
     <Layout user={user}>
@@ -180,19 +180,18 @@ export default function UsersPage({ user }) {
       {/* Filter bar */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <input
-          className="border border-[var(--border)] rounded-lg px-3 py-2 flex-1 min-w-[200px] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)] text-[var(--text-primary)]"
-          style={{ fontSize: 16 }}
+          className="border border-[var(--border)] rounded-lg px-3 py-2 flex-1 min-w-[200px] text-[16px] outline-none focus:border-[var(--brand)] focus:ring-[3px] focus:ring-[var(--brand)]/15 placeholder:text-[var(--text-muted)] bg-[var(--surface-card)] text-[var(--text-primary)]"
           placeholder="Search by name or Telegram ID…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         />
-        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className={selectCls} style={selectStyle}>
+        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(1); }} className={selectCls}>
           <option value="">All roles</option>
           <option value="faculty">Faculty</option>
           <option value="admin">Admin</option>
           <option value="super_admin">Super Admin</option>
         </select>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls} style={selectStyle}>
+        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={selectCls}>
           <option value="">All status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
@@ -203,24 +202,19 @@ export default function UsersPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
+        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No users found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No users found.</div>}
         {data?.data?.map((u) => (
-          <div key={u.id} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--border)', gap: 12,
-          }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div key={u.id} className="flex items-center justify-between px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)] gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
                 {u.name}
               </p>
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>{u.email}</p>
+              <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">{u.email}</p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div className="flex items-center gap-2 shrink-0">
               <Badge status={u.role} label={u.role.replace(/_/g, ' ')} />
               <Badge status={u.status} />
               {u.activation_notification_failed && (
@@ -291,14 +285,9 @@ export default function UsersPage({ user }) {
         </Table>
       </div>
 
-      <div style={{
-        marginTop: 16, padding: '12px 16px',
-        backgroundColor: 'var(--surface-page)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      }}>
-        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Showing</span>
-        <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+      <div className="mt-4 px-4 py-3 bg-[var(--surface-page)] rounded-[var(--radius-lg)] border border-[var(--border)] flex justify-between items-center">
+        <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Showing</span>
+        <span className="text-[length:var(--text-body)] font-[var(--weight-bold)] text-[var(--text-primary)]">
           {data?.meta?.total ?? 0}
         </span>
       </div>
@@ -306,11 +295,11 @@ export default function UsersPage({ user }) {
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
 
       {/* ── PENDING INVITES SECTION ── */}
-      <div style={{ marginTop: 32, marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div className="mt-8 mb-8">
+        <div className="flex justify-between items-center mb-4">
           <div>
-            <h2 style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)', marginBottom: 2 }}>Pending Invites</h2>
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>Invite links not yet activated</p>
+            <h2 className="text-[length:var(--text-card-lg)] font-[var(--weight-bold)] text-[var(--text-primary)] mb-0.5">Pending Invites</h2>
+            <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">Invite links not yet activated</p>
           </div>
         </div>
 
@@ -453,10 +442,10 @@ export default function UsersPage({ user }) {
               Copy password
             </Button>
           </Group>
-          <div className="rounded-lg px-3 py-2 text-xs" style={{ marginBottom: 24, backgroundColor: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', color: 'var(--color-amber-text)' }}>
-            ⚠ Share this password directly with the user (phone call, in person, etc.) —
+          <Alert tone="warning" icon="⚠" className="mb-6">
+            Share this password directly with the user (phone call, in person, etc.) —
             don't send it over email or a public/group chat.
-          </div>
+          </Alert>
           <Group justify="flex-end">
             <Button onClick={() => setPasswordResetResult(null)}>Done</Button>
           </Group>
