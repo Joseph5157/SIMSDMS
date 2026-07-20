@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Download } from 'lucide-react';
+import { IconFileText, IconDownload } from '@tabler/icons-react';
 import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
@@ -145,7 +145,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
         >
-          <Download size={15} strokeWidth={2} />
+          <IconDownload size={15} strokeWidth={2} />
           {downloading ? 'Downloading…' : 'Download sample template (.xlsx)'}
         </button>
 
@@ -168,7 +168,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
           transition: 'all 0.15s',
           marginBottom: 16,
         }}>
-          <FileText size={22} strokeWidth={1.5} color={file ? 'var(--brand)' : 'var(--text-muted)'} />
+          <IconFileText size={22} strokeWidth={1.5} color={file ? 'var(--brand)' : 'var(--text-muted)'} />
           <span style={{
             fontSize: 'var(--text-card)', fontWeight: 600, textAlign: 'center',
             color: file ? 'var(--brand)' : 'var(--text-secondary)',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Building2, IdCard, Tag, Mail, KeyRound, ChevronRight } from 'lucide-react';
+import { IconUser, IconBuilding, IconId, IconTag, IconMail, IconKey, IconChevronRight } from '@tabler/icons-react';
 import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import UserAvatar from './ui/UserAvatar';
 import { useUpdateProfile } from '../hooks/useUsers';
@@ -155,28 +155,28 @@ export default function ProfileDrawer({ open, onClose, user }) {
         </div>
 
         <div>
-          <FieldLabel label="Name" icon={User} htmlFor="profile-name" />
+          <FieldLabel label="Name" icon={IconUser} htmlFor="profile-name" />
           <input id="profile-name" value={form.name} onChange={set('name')} required className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Department" icon={Building2} htmlFor="profile-department" />
+          <FieldLabel label="Department" icon={IconBuilding} htmlFor="profile-department" />
           <input id="profile-department" value={form.department} onChange={set('department')} className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Designation" icon={IdCard} htmlFor="profile-designation" />
+          <FieldLabel label="Designation" icon={IconId} htmlFor="profile-designation" />
           <input id="profile-designation" value={form.designation} onChange={set('designation')} className={inputClassName} style={inputInline} />
         </div>
 
         <div>
-          <FieldLabel label="Title" icon={Tag} htmlFor="profile-title" />
+          <FieldLabel label="Title" icon={IconTag} htmlFor="profile-title" />
           <input id="profile-title" value={form.title} onChange={set('title')} placeholder="Dr. / Prof. / Mr." className={inputClassName} style={inputInline} />
           <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-1">Shown in your dashboard greeting.</p>
         </div>
 
         <div>
-          <FieldLabel label="Email" icon={Mail} htmlFor="profile-email" />
+          <FieldLabel label="Email" icon={IconMail} htmlFor="profile-email" />
           <input id="profile-email" value={user?.email ?? ''} disabled className={`${inputClassName} opacity-60 cursor-not-allowed`} style={inputInline} />
           <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-1">Managed by administrators.</p>
         </div>
@@ -187,9 +187,9 @@ export default function ProfileDrawer({ open, onClose, user }) {
           className="flex items-center justify-between h-11 px-3.5 rounded-[var(--radius-lg)] border-[1.5px] border-[var(--border)] bg-[var(--surface-page)] cursor-pointer"
         >
           <span className="flex items-center gap-[7px] text-[length:var(--text-card)] font-semibold text-[color:var(--text-primary)]">
-            <KeyRound size={15} strokeWidth={2} /> Change password
+            <IconKey size={15} strokeWidth={2} /> Change password
           </span>
-          <ChevronRight size={16} className="text-[color:var(--text-muted)]" />
+          <IconChevronRight size={16} className="text-[color:var(--text-muted)]" />
         </button>
 
       </form>

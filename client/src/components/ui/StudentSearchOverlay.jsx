@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { IconSearch, IconX } from '@tabler/icons-react';
 import { useMediaQuery, useDebouncedValue } from '@mantine/hooks';
 import { useStudentSearch } from '../../hooks/useStudents';
 import useKeyboardInset from '../../hooks/useKeyboardInset';
@@ -26,10 +26,13 @@ function studentMeta(s) {
  * opens this surface, which owns the whole viewport (mobile) / a centered command
  * panel (desktop). Selecting a student calls onSelect(student) and closes.
  *
- * Built as a Radix Dialog so it nests cleanly INSIDE the SheetModal drawer (also a
- * Radix Dialog): Radix's focus-scope stack pauses the parent scope and hands focus
- * to our search input, which is the fix for the vaul focus-steal bug that killed
- * the first attempt (spec 021). No hand-rolled body portal, no focus war.
+ * Built as its own Radix Dialog so it nests cleanly INSIDE the ResponsiveSheet host
+ * (also a Radix Dialog): Radix's focus-scope stack pauses the parent scope and hands
+ * focus to our search input, which is the fix for the vaul focus-steal bug that
+ * killed the first attempt (spec 021). No hand-rolled body portal, no focus war.
+ * This is a deliberate exception to "consumers never import Radix/Framer directly"
+ * (see ResponsiveSheet.jsx) — nesting requires its own Dialog.Root, ResponsiveSheet
+ * can't provide that for a child. Keep this file's Radix/Framer imports.
  *
  * States are always explicit (never a silent empty box): keep-typing hint →
  * loading → no-results → results.
@@ -120,7 +123,7 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
                     className="flex items-center gap-2 flex-1 h-11 rounded-[var(--radius-lg)] px-3 border"
                     style={{ borderColor: 'var(--border)', background: 'var(--surface-page)' }}
                   >
-                    <Search size={17} className="shrink-0 text-[var(--text-muted)]" />
+                    <IconSearch size={17} className="shrink-0 text-[var(--text-muted)]" />
                     <input
                       ref={inputRef}
                       className="flex-1 bg-transparent outline-none text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
@@ -139,7 +142,7 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
                         onClick={() => { setQ(''); inputRef.current?.focus(); }}
                         className="shrink-0 text-[var(--text-muted)] flex items-center"
                       >
-                        <X size={15} />
+                        <IconX size={15} />
                       </button>
                     )}
                   </div>

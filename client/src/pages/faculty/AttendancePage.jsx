@@ -6,7 +6,7 @@ import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
-import { ClipboardList } from 'lucide-react';
+import { IconClipboardList } from '@tabler/icons-react';
 import { useMyAttendanceSummary } from '../../hooks/useAttendance';
 import { ROUTES } from '../../utils/constants';
 
@@ -159,7 +159,7 @@ export default function AttendancePage({ user }) {
             <Card>
               <CardBody>
                 <EmptyState
-                  icon={ClipboardList}
+                  icon={IconClipboardList}
                   title="No duty slots this month"
                   subtitle="The admin will assign your duty slots when the scheduling window opens."
                 />

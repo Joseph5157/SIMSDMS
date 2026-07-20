@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, AlignLeft, MessageSquare } from 'lucide-react';
+import { IconUsers, IconAlignLeft, IconMessage } from '@tabler/icons-react';
 import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import { useSendMessage } from '../hooks/useMessages';
 import { useMessageRecipients } from '../hooks/useUsers';
@@ -92,7 +92,7 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 pt-4 px-5 pb-2">
 
         <div>
-          <FieldLabel label="To" icon={Users} htmlFor="compose-to" />
+          <FieldLabel label="To" icon={IconUsers} htmlFor="compose-to" />
           <select id="compose-to" value={form.to_user_id} onChange={set('to_user_id')} className={selectClassName} style={selectInline}>
             <option value="">Select recipient…</option>
             {usersData?.data?.map((u) => (
@@ -102,7 +102,7 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
         </div>
 
         <div>
-          <FieldLabel label="Subject" icon={AlignLeft} htmlFor="compose-subject" />
+          <FieldLabel label="Subject" icon={IconAlignLeft} htmlFor="compose-subject" />
           <input
             id="compose-subject"
             placeholder="Re: Duty schedule"
@@ -114,7 +114,7 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
         </div>
 
         <div>
-          <FieldLabel label="Message" icon={MessageSquare} htmlFor="compose-message" />
+          <FieldLabel label="Message" icon={IconMessage} htmlFor="compose-message" />
           <textarea
             id="compose-message"
             rows={5}

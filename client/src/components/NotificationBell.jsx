@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { IconBell } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useMarkMessageRead } from '../hooks/useNotifications';
 import { useInbox } from '../hooks/useMessages';
@@ -81,7 +81,7 @@ export default function NotificationBell({ role }) {
         title={`${totalUnreadCount} unread messages`}
         className="bg-transparent border-none cursor-pointer w-11 h-11 flex items-center justify-center relative rounded-[var(--radius-md)] transition-colors duration-[var(--dur-fast)] hover:bg-[var(--color-slate-100)]"
       >
-        <Bell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
+        <IconBell size={20} color="var(--color-blue-600)" strokeWidth={1.5} />
         {totalUnreadCount > 0 && (
           <span className="absolute top-0 right-0 w-5 h-5 rounded-full bg-[var(--color-red-solid)] text-white text-[length:var(--text-micro)] font-bold flex items-center justify-center border-2 border-[var(--surface-card)]">
             {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
