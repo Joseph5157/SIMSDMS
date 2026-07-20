@@ -1,187 +1,204 @@
 # Handoff Report
 
 ## task_id
-025-ui-architecture-consolidation / Phase 2 complete — all 7 shared components
+025-ui-architecture-consolidation / Phase 3 Waves 1–3 — feature screen migration
+
+## wave_3 (2026-07-20, same branch)
+Wave 3 (long forms / admin) complete — all lint/build-green:
+- `f792e54` SlotPickerPage — 49 of 55 inline styles → Tailwind; runtime calendar
+  cell colors/transform + session-dot colors kept inline; bespoke orange Pick button
+  keeps its Mantine style.
+- `42b441a` NotificationsPage — 12 → Tailwind; JS onMouseEnter/Leave hover → Tailwind
+  hover: class. (Feature disabled; dead-branch window.confirm left.)
+- `790c73e` AuditLogsPage — 12 → Tailwind; runtime getActionColor badge kept inline.
+- `5c6d36a` ChangePasswordPage — bespoke branded (Login family), conservative: fontSize
+  → shared class, 2 banners → Alert; branded gradients/glow/CTA kept inline.
+- `7e69551` AllFacultyDutiesPage + CalendarPage + MessagesPage + DutySlotsPage (finished
+  its Phase 2 leftovers).
+
+**Remaining inline-style debt across all pages is now ONLY ReportsPage (15).** Every
+other `style={{` left in migrated pages is intentional: runtime values (heatmap/bar
+widths, per-cell calendar colors, badge colors, message-bubble colors) or bespoke
+auth/hero branding (gradients + shadows with no clean Tailwind equivalent). The
+already-clean 0-inline pages (DutyTimingSettings, AttendanceLive, AttendancePage,
+ViolationRecorder) need no work.
+
+## resume_instructions (READ FIRST next session — 2026-07-20, session paused on usage limit)
+
+**Branch:** `feat/phase3-wave1` — 15 commits (Phase 2 + Wave 1×4 + Wave 2×5 + Wave 3×6),
+ALL LOCAL, nothing pushed. `git log --oneline 872cc6b..HEAD` shows them.
+
+**Remaining work, in order:**
+1. **Wave 4** — migrate `client/src/pages/admin/ReportsPage.jsx` (904 lines, ~15 inline
+   styles). The LAST page with real inline-style debt. Same procedure + one commit.
+2. **Navbar `sm`→`md` breakpoint** (Phase 3 item): Mantine navbar breakpoint is `sm`
+   while the mobile/desktop card-vs-table switch is at `md` — align them in
+   `client/src/components/Layout.jsx`.
+3. **Phase 4** — add ESLint `no-restricted-imports` blocking feature code from importing
+   `@radix-ui/react-dialog`/`framer-motion`/`vaul`/`lucide-react` directly (Radix+Framer
+   allowed only inside `ResponsiveSheet`); then delete Vaul/Lucide/old
+   `BottomDrawer`+`SheetModal` ONLY after a zero-usage grep; re-measure bundle vs the
+   Phase-1 baseline (1,505.19 kB / gzip 432.73 kB).
+
+**Migration conventions (keep consistent):** static inline `style={{}}` on div/p/span →
+Tailwind arbitrary-value token classes (`fontSize:'var(--text-micro)'` →
+`text-[length:var(--text-micro)]`; `fontWeight:600` → `font-[var(--weight-semibold)]`;
+`letterSpacing:'0.08em'` → `tracking-[var(--tracking-wide)]`). KEEP inline only:
+runtime-computed values (data-driven colors/widths) and bespoke branding (brand gradients
++ shadows, glow circles). Page-level Mantine `Select` filters stay Mantine (AppSelect is
+overlay-only). Green Mantine buttons stay Mantine (AppButton has no success variant). Raw
+`<Select>`/`<input>` inside modals → AppSelect/AppTextInput. Hand-styled banners →
+`<Alert tone=...>`. Raw `window.confirm` → `ConfirmDialog`.
+
+**Dev env for live verification (ALL EPHEMERAL — recreate each session):** configured dev
+DB (:5433 `sims_dms_dev`, user `postgres`) and the old Docker dev DB are down. The :5433
+container is the NURSING project's (`sims-nursing-postgres`; `POSTGRES_USER=sims` /
+`POSTGRES_PASSWORD=sims_dev_password` / `POSTGRES_DB=sims_nursing_dms`) — never touch its
+`sims_nursing_dms` DB. Recipe (isolated DB inside that container, nursing data untouched):
+```
+docker start sims-nursing-postgres              # if not running
+docker exec sims-nursing-postgres psql -U sims -d sims_nursing_dms -c "CREATE DATABASE sims_dms_dev;"
+export DATABASE_URL="postgresql://sims:sims_dev_password@localhost:5433/sims_dms_dev"
+node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
+node node_modules/prisma/build/index.js generate --schema prisma/schema.prisma
+node e2e/seed.mjs                                # faculty + admin
+node specs/025-ui-architecture-consolidation/dev-seed-superadmin.mjs   # super_admin
+node specs/025-ui-architecture-consolidation/dev-seed-rich.mjs         # rich data
+DATABASE_URL="$DATABASE_URL" npm run dev --workspace=server    # dotenv won't override shell env
+npm run dev --workspace=client                  # app at http://localhost:5173
+# teardown (optional): DROP DATABASE sims_dms_dev; + taskkill the :3000/:5173 pids
+```
+The two `dev-seed-*.mjs` are saved in THIS spec folder (copied out of ephemeral scratchpad).
+`e2e/seed.mjs` still doesn't seed slots/violation-types/system_config — `dev-seed-rich.mjs`
+covers that.
+
+**Login credentials (seeded throwaway DB):**
+- Faculty — `e2e.faculty@sims.test` / `E2eTest1234!`
+- Admin — `e2e.admin@sims.test` / `AdminTest1234!`
+- Super-admin — `e2e.superadmin@sims.test` / `SuperTest1234!`
+
+Not seeded: an OPEN scheduling window (SlotPickerPage shows its "window closed" state until
+an admin opens a calendar window or `CalendarConfig.is_window_open=true` is seeded).
+
+## wave_2 (2026-07-20, same branch)
+Wave 2 complete — 5 admin screens, one commit each, all lint/build-green:
+- `0c1cb12` StudentsPage — 25 inline styles → Tailwind; promote-modal Select→AppSelect,
+  input→AppTextInput.
+- `5dd980a` UsersPage (+ Approvals) — 17 inline → Tailwind; amber warning → Alert.
+- `757f78d` ViolationsPage — mobile card list → Tailwind (analytics section was
+  already Tailwind; runtime heatmap/bar/grid styles kept inline).
+- `b0ea6cc` ViolationTypesPage — 19 inline → Tailwind; **raw window.confirm →
+  ConfirmDialog**.
+- `aeddabd` FlaggedViolationsPage — mobile card list → Tailwind.
+Pattern held: page-level Mantine `Select` filters stay Mantine (AppSelect is for
+overlay-hosted selects only); green Mantine buttons stay Mantine (AppButton has no
+success variant). Rich dev data was seeded (see below) so all these render populated.
 
 ## status
-complete
+complete (code); dashboards + reassignment modal pending user's live visual check
 
 ## completed
-Continuing from the `ResponsiveSheet` handoff (same branch, `feat/responsive-sheet`), built and
-migrated the remaining Phase 2 line items. Checked what already existed before building anything
-new — found two were already done under different names, which changed scope for the better:
+Phase 2 was committed as a clean checkpoint, then Phase 3 Wave 1 was executed one
+screen per commit on branch `feat/phase3-wave1` (off `feat/responsive-sheet`).
 
-- **Surveyed existing `client/src/components/ui/` first.** Found `ConfirmDialog.jsx` (Mantine
-  `Modal`-based, `isDangerous`/`isLoading`/`zIndex` props, **already 11 consumers**) and
-  `Alert.jsx` (single tone-based banner: info/success/warning/danger/telegram, semantic tokens)
-  already existed as genuinely consolidated, canonical components — building new
-  `ConfirmAction`/feedback components from scratch would have recreated the exact duplication
-  problem this whole initiative exists to fix. Documented both as canonical in
-  `docs/UI_ARCHITECTURE.md` instead of building parallel components.
-- **`AppButton.jsx`** (new): `primary`/`secondary`/`danger`/`ghost`/`icon` variants, Mantine
-  `Button`/`ActionIcon`-backed, bakes in the `minHeight: var(--control-min)` (44px touch target)
-  boilerplate that was previously copy-pasted per call site. `icon` variant throws if
-  `aria-label` is missing (no visible text for a screen reader otherwise). Migrated
-  `DutySlotsPage.jsx`'s mobile Reassign button (the exact call site carrying that boilerplate).
-- **`AppField.jsx`** (new): `AppSelect`/`AppTextInput`/`AppNumberInput` thin Mantine wrappers.
-  `AppSelect` bakes in `comboboxProps={{ withinPortal: false }}` by default — the fix for the
-  known "Mantine Select untappable inside an overlay" bug class (previously hand-added per call
-  site, e.g. `RecordViolationModal.jsx` had it twice already). Migrated both of
-  `RecordViolationModal.jsx`'s `Select` fields to `AppSelect`, removing the now-redundant manual
-  prop.
-- **`MobileList.jsx`** (new): `MobileList`, `MobileListItem`, `MobileListItemHeader`,
-  `MobileListItemMeta`, `MobileListItemStatus`, `MobileListItemActions`, `MobileSectionHeader` —
-  formalizes the card-list shape `DutySlotsPage.jsx` already used well (per the source audit:
-  "substantially better than squeezing a table onto a phone screen") but had hand-rolled with
-  ~50 lines of inline styles. `MobileListItem` takes flat `title`/`subtitle`/`status`/`action`
-  props for the common case (matching the source spec's usage example) or `children` for finer
-  control via the individual primitives. Migrated `DutySlotsPage.jsx`'s entire mobile card block.
-- **`PageHeader` variants** (`Layout.jsx`, edited not replaced): added `operational`
-  (left-aligned title+subtitle, compact action) and `compact` (title only) variants.
-  **`centered` stays the default** — byte-for-byte the original markup — specifically so the
-  ~17 other existing `PageHeader` callers see zero visual change; only `DutySlotsPage.jsx` opts
-  into `variant="operational"` in this pass, matching the exact example
-  (`docs/MOBILE_PATTERNS.md` already used this screen as its own worked example before any code
-  existed).
-- **`ResponsiveDataView.jsx`** (new): formalizes the "render both, let CSS pick one" pattern
-  `DutySlotsPage.jsx` already used correctly (`md:hidden` / `hidden md:block`) rather than
-  introducing a JS `isMobile` conditional (which would add a hydration-flash risk the existing
-  pattern doesn't have). Takes already-built `mobile`/`desktop` JSX, not a per-item render
-  callback — most screens in this app group/paginate before render (this screen groups by
-  morning/afternoon session), so a flat per-item shape doesn't fit real usage here. **Caught a
-  second instance of the exact dynamic-Tailwind-class bug from the `ResponsiveSheet` handoff**
-  while writing this: first draft built the breakpoint class via `` `${breakpoint}:hidden` ``
-  template-literal interpolation — same silent-failure mode (Tailwind can't see what a JS
-  variable resolves to). Fixed with a static `{sm,md,lg}` lookup table instead, before it was
-  ever tested. Migrated `DutySlotsPage.jsx`'s mobile-card/desktop-table pair into it.
-- **Feedback consolidation**: `RecordViolationModal.jsx` had three hand-styled banner `div`s
-  (submit error, admin-mode note, session-status note) duplicating `Alert.jsx`'s exact styling
-  approach independently. Replaced all three with `<Alert tone="danger|info|success|warning">`.
-- **Fixed a real JSX bug caught by the lint/build check, not by chance**: the
-  `ResponsiveDataView` migration on `DutySlotsPage.jsx` initially left an unbalanced `</div>` —
-  removing the old mobile/desktop wrapper `div`s accidentally also removed the closing tag for
-  an unrelated outer `max-w-[1080px] mx-auto` wrapper opened much earlier in the file. `npm run
-  lint`/`build` caught it immediately (`Parsing error: Unexpected token`) before any live testing
-  — restored the missing `</div>`, reran, clean.
-- **Ran lint + build after every single component migration** (not batched at the end) — 0
-  errors throughout, same 7 pre-existing `react-refresh` warnings the whole session.
-- **Full regression + live verification, once, covering everything built this pass**:
-  - Server tests: 191/191 (unaffected, no server changes this session).
-  - Spun up a disposable UTF8 Postgres 18, migrated, seeded users, **and additionally seeded a
-    `system_config` row and one duty slot + active attendance record** — needed because
-    `e2e/seed.mjs` doesn't seed either (same gap flagged in the previous handoff), and both
-    `DutySlotsPage` and `RecordViolationModal`'s auto-slot-detection needed real data to exercise
-    for real rather than just their empty states.
-  - **Desktop** (chrome-devtools MCP, admin login): `/admin/duty-slots` — confirmed
-    `PageHeader operational` renders left-aligned (not centered), `ResponsiveDataView`'s desktop
-    table renders the seeded slot correctly, no console errors.
-  - **Mobile** (Playwright, Pixel 7 profile — chrome-devtools' resize tool still doesn't work in
-    this environment): `/admin/duty-slots` mobile cards (`MobileList`/`MobileListItem`/
-    `AppButton` all rendering correctly with real data) and `RecordViolationModal` mobile sheet
-    (`Alert tone="success"` banner correctly showing the auto-detected session, `AppSelect`
-    rendering).
-  - **Specifically verified `AppSelect`'s actual reason for existing**: seeded one violation
-    type, opened the "Student violation type" dropdown inside the mobile `ResponsiveSheet`,
-    clicked an option, confirmed the field updated (`Late to Duty (₹50)`) — i.e. the dropdown is
-    genuinely tappable inside the overlay, not just visually present. This is the exact bug class
-    (`comboboxProps={{ withinPortal: false }}`) `AppSelect` bakes in a fix for.
-  - Tore down the interactive-test DB, spun up a **second, independent** disposable DB, ran the
-    full Playwright suite fresh: **6/6 passed**.
-  - Final `npm run build --workspace=client`: clean, bundle 1,507.17 kB / gzip 433.56 kB (flat
-    vs. the Phase 1 baseline of 1,505.19 kB — expected, nothing's been deleted yet, only added;
-    Phase 4 is where dependency removal should show a real reduction).
-  - Tore down the final DB, confirmed ports clear.
-- **Repeated the same stale-process trap from the previous handoff, twice**, and resolved it the
-  same way both times: a manual `npm run dev` left running from the interactive-testing step
-  squatted on :3000/:5173, and the next `npm run dev` (and separately, the next `npx playwright
-  test`) either crashed on `EADDRINUSE` or silently reused the stale, DB-mismatched server. Fixed
-  via `netstat -ano | grep LISTENING` + `taskkill //F //PID <pid>` each time — `pkill -f` by
-  process-name pattern does not reliably work in this environment. Worth automating a
-  kill-by-port step before any future `npm run dev` in this kind of session instead of
-  rediscovering this each time.
+Commits (local only, nothing pushed — per the "nothing merges until tested" rule):
+- `225b70c` Phase 2 shared component consolidation (the whole Phase 2 working-tree
+  diff, committed as one checkpoint).
+- `9fbbf47` **Login** — conservative scope (agreed with user): hand-styled error
+  `div` → `<Alert tone="danger">`; two inline eye/eye-off `<svg>` → Tabler
+  `IconEye`/`IconEyeOff`. Branded gradient CTA + custom login inputs left as-is on
+  purpose (bespoke onboarding, not duplication).
+- `9e87ca0` **Dashboards ×3** — full inline-style cleanup (agreed scope):
+  - `faculty/DashboardPage.jsx` (~35 conversions), `admin/AdminDashboardPage.jsx`,
+    `super-admin/SuperAdminDashboardPage.jsx`.
+  - Every static-value inline `style={{…}}` on raw `div/p/span` → Tailwind token
+    classes (`fontSize:'var(--text-micro)'` → `text-[length:var(--text-micro)]`,
+    `marginBottom:12` → `mb-3`, `letterSpacing:'0.08em'` → `tracking-[var(--tracking-wide)]`,
+    etc.). Runtime-conditional styles → conditional className expressions.
+  - Kept inline ONLY where justified: bespoke hero **brand gradients + shadows**
+    (no clean Tailwind equivalent, matches the Login CTA precedent), the two bespoke
+    hero Check In/Out Buttons, and genuinely runtime values (`ACTIVITY_TINT[...]`,
+    `item.tint`, `item.color`, conditional primary gradient). Tabler icon `style={{color}}`
+    → the icon `color` prop.
+  - super-admin `PageHeader` switched to `variant="operational"` (left-aligned) — the
+    plan's default for management screens; **the one intentional visual change in the
+    batch**, flagged to the user.
+- `d7984f3` **Reassignment Requests** (last Wave 1 screen):
+  - `PendingReassignmentRequests.jsx` — inline styles → token classes; Reject/Accept
+    left as Mantine `<Button>` (Accept is green; AppButton has no success variant).
+  - `RequestReassignmentModal.jsx` — raw Mantine `<Modal>` → `<ResponsiveSheet>`
+    (canonical overlay), `<Select>` → `<AppSelect>`. This **removed the hand-rolled
+    soft-keyboard handling** (top-anchor `styles.inner` + `kbInset` padding) because
+    ResponsiveSheet owns that internally via the same `useKeyboardInset` hook; dropped
+    the now-redundant `comboboxProps={{ withinPortal:false }}` (baked into AppSelect)
+    and the `onFocus` scrollIntoView (compensated for the old Modal not lifting above
+    the keyboard). Footer uses the shared `cancelBtnStyle`/`primaryBtnStyle`/`DrawerSpinner`
+    helpers, matching the RecordViolationModal representative exactly.
+
+Verification: `npm run lint --workspace=client` = 0 errors (7 pre-existing
+react-refresh warnings) and `npm run build --workspace=client` = clean, run after
+**every** screen. Bundle flat at ~1,506.6 kB (vs. 1,505.19 Phase-1 baseline — expected;
+nothing deleted yet, that's Phase 4).
 
 ## failed_or_blocked
-- None in the final state. Two real bugs (the `ResponsiveDataView` dynamic-Tailwind-class repeat,
-  and the unbalanced `</div>`) were caught by lint/build before any live testing and fixed within
-  this session.
+- Live before/after browser verification could not be run by the agent: the persistent
+  Docker dev DB from prior sessions is gone (Docker not running) and the configured dev
+  DB (`localhost:5433/sims_dms_dev`) is down. User chose to eyeball the screens in their
+  own dev app instead of having the agent stand up a fresh disposable DB. So the
+  dashboards and the reassignment modal are **code-complete + lint/build-green but not
+  yet visually confirmed**.
 
 ## commands_run
 ```
-npm run lint --workspace=client        # run after every component migration, not batched
-npm run build --workspace=client       # same
-npm run test --workspace=server
-# Interactive live-test DB — disposable Postgres 18, port 5547:
-initdb / pg_ctl start / createdb sims_phase2_test
-node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
-node e2e/seed.mjs
-psql -p 5547 -U postgres -d sims_phase2_test -c "INSERT INTO system_config (id, updated_at) VALUES ('global', now()) ON CONFLICT DO NOTHING;"
-node _tmp_seed_slot.mjs                # throwaway: duty slot + active attendance for today
-psql ... INSERT INTO violation_types ...  # throwaway: one violation type for the AppSelect check
-npm run dev                            # backgrounded
-# chrome-devtools MCP: navigate_page, take_snapshot, click, fill, take_screenshot (desktop)
-# Playwright throwaway scripts (Pixel 7 profile) for mobile screenshots + the AppSelect
-# tap-through-overlay check; deleted after each use
-netstat -ano | grep -E ":3000 |:5173 " | grep LISTENING   # x2, diagnosing stale-server reuse
-taskkill //F //PID <pid>                                   # x2 rounds
-pg_ctl -D <pg_phase2_test dir> stop -m fast
-# Final independent regression — disposable Postgres 18, port 5548:
-initdb / pg_ctl start / createdb sims_phase2_final
-node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
-node e2e/seed.mjs
-npx playwright test                    # 6/6 passed
-pg_ctl -D <pg_phase2_final dir> stop -m fast
-npm run build --workspace=client       # final clean build
+git checkout -b feat/phase3-wave1
+npm run lint --workspace=client        # after every screen — 0 errors throughout
+npm run build --workspace=client       # after every screen — clean throughout
+git add <per-screen files> && git commit -F <msg>   # one commit per screen
 ```
 
 ## constraints_discovered
-- **`e2e/seed.mjs`'s data gap is broader than previously known.** Beyond the `system_config` gap
-  flagged in the `ResponsiveSheet` handoff, it also seeds zero duty slots and zero violation
-  types — meaning any live/e2e test of `DutySlotsPage`, `RecordViolationModal`'s auto-slot
-  detection, or any `Select` populated from `violation_types` needs manual seeding first (raw SQL
-  or a throwaway script) on top of the existing seed. Still not fixed in `e2e/seed.mjs` itself
-  (out of scope for a UI-component migration pass) but now documented with the exact gap surface
-  rather than just "settings are missing."
-- **The stale dev-server-on-stale-DB trap (from the previous handoff) recurred twice in this
-  session** despite already being documented — worth actually automating a
-  `netstat`+`taskkill`-by-port preflight before the next `npm run dev` in any future session that
-  does repeated live-test cycles, rather than relying on remembering to `pkill` cleanly (which
-  doesn't reliably work here anyway).
-- `system_config`'s `updated_at` column uses Prisma's `@updatedAt` (application-managed), not a
-  DB-level default — a raw SQL seed insert needs to supply it explicitly or the insert fails a
-  NOT NULL constraint.
+- **No live-verifiable DB is currently up.** Docker isn't running; `:5433` dev DB is
+  down; only an unrelated Postgres sits on `:5432`. Any future agent-run live
+  verification needs the disposable-Postgres-18 harness again (binaries at
+  `C:\Program Files\PostgreSQL\18\bin`) plus rich seeding across roles.
+- `ResponsiveSheet` already bakes in `useKeyboardInset` lift-above-keyboard behavior —
+  future Modal→ResponsiveSheet migrations should DELETE the consumer's manual keyboard
+  code rather than keep it (double-handling).
+- `AppSelect` forwards all props and injects `comboboxProps={{ withinPortal:false }}`;
+  `AppButton` has **no green/success variant** — green Mantine buttons (Accept) stay
+  Mantine for now.
 
 ## deviations_from_constitution
-- None. No schema, route, or role changes — this pass is entirely `client/src` component work
-  plus documentation.
+- None. Entirely `client/src` UI-layer work — no schema/route/role/API changes.
 
 ## files_touched
-- client/src/components/ui/AppButton.jsx (new)
-- client/src/components/ui/AppField.jsx (new)
-- client/src/components/ui/MobileList.jsx (new)
-- client/src/components/ui/ResponsiveDataView.jsx (new)
-- client/src/components/Layout.jsx (PageHeader variants added)
-- client/src/pages/admin/DutySlotsPage.jsx (AppButton, MobileList primitives, PageHeader
-  operational variant, ResponsiveDataView all migrated in)
-- client/src/components/faculty/RecordViolationModal.jsx (AppSelect, Alert migrated in — on top
-  of the ResponsiveSheet migration from the previous handoff)
-- docs/UI_ARCHITECTURE.md (component inventory updated: ConfirmDialog/Alert/Toast documented as
-  already-canonical rather than to-be-built; AppButton/AppField rows added; new prohibited-
-  pattern entry for the dynamic-Tailwind-class bug class)
-- specs/025-ui-architecture-consolidation/plan.md (Phase 2 completion section)
+- client/src/pages/auth/LoginPage.jsx
+- client/src/pages/faculty/DashboardPage.jsx
+- client/src/pages/admin/AdminDashboardPage.jsx
+- client/src/pages/super-admin/SuperAdminDashboardPage.jsx
+- client/src/components/faculty/PendingReassignmentRequests.jsx
+- client/src/components/faculty/RequestReassignmentModal.jsx
 - specs/025-ui-architecture-consolidation/handoff.md (this file)
 
 ## open_questions_for_owner
-- **Nothing on `feat/responsive-sheet` has been committed or pushed** — still fully local, per
-  your "nothing merges until tested" instruction. The branch now contains both the
-  `ResponsiveSheet` work and all of Phase 2 on top of it, uncommitted as one working-tree diff.
-  Say the word to commit (as one or multiple commits — your call) or to start reviewing before
-  that.
-- **Phase 2 is done; Phase 3 (feature screen migration, wave-by-wave) hasn't started.** Every new
-  component so far has exactly one representative migration — e.g. `BottomDrawer` still has 7
-  untouched consumers, `PageHeader` still defaults to `centered` for ~17 screens, most
-  raw-styled buttons/cards elsewhere in the app are untouched. That's by design (Phase 2's own
-  procedure caps scope at "migrate one screen, defer the rest"), not an oversight — but worth
-  confirming before assuming "Phase 2 complete" means "the whole app looks consistent now." It
-  doesn't yet; Phase 3 is what rolls these out everywhere.
-- **`e2e/seed.mjs`'s gap** (system_config, duty slots, violation types) is now fully mapped but
-  still unfixed — worth a small follow-up before Phase 3 needs richer e2e coverage than login.
+- **User's visual check pending** on the 3 dashboards (esp. the super-admin
+  centered→operational header change) and the reassignment modal. Report anything off.
+- **Mobile soft-keyboard** interaction with the searchable colleague picker inside the
+  new `ResponsiveSheet` reassignment modal wants a **real-device check** (same open item
+  as the Phase 2 RecordViolationModal migration).
+- **Waves 1–3 done; Wave 4 not started.** Wave 4 = Reports/settings — in practice just
+  `ReportsPage.jsx` (904 lines, 15 inline styles), since the settings pages already have
+  0 inline styles. Also still pending across the initiative: the `sm`→`md` navbar
+  breakpoint fix (Phase 3) and all of Phase 4 (dep removal of Radix/Vaul/Lucide once
+  zero-usage, ESLint import restrictions, bundle/a11y re-measure).
+- **Dev env for verification (2026-07-20):** the configured dev DB (`:5433`) and the
+  Docker dev DB were both down; the container that came up on `:5433` is the *nursing*
+  project's (`sims-nursing-postgres`, user `sims`). Stood up an isolated `sims_dms_dev`
+  database inside that same server (nursing DB untouched), migrated + richly seeded it
+  (2 faculty, admin, super_admin — passwords `E2eTest1234!`/`AdminTest1234!`/
+  `SuperTest1234!`; today's duty slots + attendance, 4 violations incl. 2 flagged,
+  upcoming slots, reassignment history + requests, messages, audit logs). Client `:5173`
+  + server `:3000` (DATABASE_URL override) run against it. Throwaway — drop with
+  `DROP DATABASE sims_dms_dev`. Seed scripts in session scratchpad (ephemeral).
+- Nothing pushed. `feat/phase3-wave1` now holds Phase 2 + Wave 1 (4) + Wave 2 (5)
+  commits, all local.
