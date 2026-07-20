@@ -81,19 +81,17 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
               ? 'bg-[var(--brand)] text-[var(--text-on-brand)] rounded-br-sm'
               : 'bg-[var(--surface-card)] border border-[var(--border)] text-[var(--text-primary)] rounded-bl-sm'
           }`}>
-            <p style={{
-              fontSize: 'var(--text-small)', fontWeight: 600,
-              color: isSent ? 'rgba(255,255,255,0.75)' : 'var(--text-secondary)',
-              marginBottom: 2,
-            }}>
+            <p
+              className="text-[length:var(--text-small)] font-[var(--weight-semibold)] mb-0.5"
+              style={{ color: isSent ? 'rgba(255,255,255,0.75)' : 'var(--text-secondary)' }}
+            >
               {isSent ? 'You' : data.sender?.name}
             </p>
             <p className="text-[length:13px] whitespace-pre-wrap leading-relaxed">{data.body}</p>
-            <p style={{
-              fontSize: 'var(--text-micro)',
-              color: isSent ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)',
-              marginTop: 4,
-            }}>
+            <p
+              className="text-[length:var(--text-micro)] mt-1"
+              style={{ color: isSent ? 'rgba(255,255,255,0.55)' : 'var(--text-muted)' }}
+            >
               {new Date(data.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
@@ -169,7 +167,7 @@ export default function MessagesPage({ user }) {
         Mobile:  show EITHER the list OR the thread (full-width), never both.
         Desktop: side-by-side panel layout.
       */}
-      <div className="flex bg-[var(--surface-card)] border border-[var(--border)] rounded-xl overflow-hidden flex-1" style={{ minHeight: 400 }}>
+      <div className="flex bg-[var(--surface-card)] border border-[var(--border)] rounded-xl overflow-hidden flex-1 min-h-[400px]">
 
         {/* ── Left panel — list ── */}
         {/* On mobile: hidden when a message is open; full-width when no message selected.

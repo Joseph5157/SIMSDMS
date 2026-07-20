@@ -53,7 +53,7 @@ function AssignSlotsModal({ faculty, year, month, onClose }) {
             value={s.duty_date}
             onChange={(e) => updateSlot(i, 'duty_date', e.target.value)}
             required
-            style={{ flex: 1 }}
+            className="flex-1"
           />
           <Select
             label={i === 0 ? 'Session' : ''}
@@ -63,11 +63,11 @@ function AssignSlotsModal({ faculty, year, month, onClose }) {
               { value: 'morning',   label: 'Morning' },
               { value: 'afternoon', label: 'Afternoon' },
             ]}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
           {slots.length > 1 && (
             <Button type="button" variant="subtle" size="xs" onClick={() => removeSlot(i)}
-              style={{ marginBottom: 1 }}>✕</Button>
+              className="mb-px">✕</Button>
           )}
         </div>
       ))}
@@ -277,17 +277,10 @@ export default function CalendarPage({ user }) {
           </div>
 
           {/* Calendar legend */}
-          <div style={{
-            marginTop: 16, padding: '14px 16px',
-            backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--border)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--color-red-bg)', border: '1px solid var(--color-red-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'var(--text-small)', color: 'var(--color-red-600)', fontWeight: 'var(--weight-bold)' }}>1</div>
-              <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Red — Blocked Date</span>
+          <div className="mt-4 px-4 py-3.5 bg-[var(--surface-card)] rounded-[var(--radius-lg)] border border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-[var(--radius-sm)] bg-[var(--color-red-bg)] border border-[var(--color-red-border)] flex items-center justify-center text-[length:var(--text-small)] text-[var(--color-red-600)] font-[var(--weight-bold)]">1</div>
+              <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Red — Blocked Date</span>
             </div>
           </div>
 

@@ -103,28 +103,28 @@ export default function AllFacultyDutiesPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {isError && <div style={{ padding: 24, textAlign: 'center' }}><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
-        {!isLoading && !isError && !filtered.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No booked duties this month.</div>}
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
+        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isError && <div className="p-6 text-center"><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
+        {!isLoading && !isError && !filtered.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No booked duties this month.</div>}
         {filtered.map((s) => {
           const r = reassignment(s);
           return (
-            <div key={s.id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+            <div key={s.id} className="px-4 py-3.5 border-b border-[var(--border)]">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis">
                     {s.faculty?.name}
                   </p>
-                  <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>{s.faculty?.department ?? '—'}</p>
+                  <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">{s.faculty?.department ?? '—'}</p>
                 </div>
                 <Badge status={s.status} />
               </div>
-              <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 4 }}>
+              <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-1">
                 {fmtDate(s.duty_date)} · {sessionLabel(s.session_type)}
               </p>
               {r && (
-                <p style={{ fontSize: 'var(--text-micro)', color: 'var(--color-indigo-text)', marginTop: 4, fontWeight: 600 }}>
+                <p className="text-[length:var(--text-micro)] text-[var(--color-indigo-text)] mt-1 font-[var(--weight-semibold)]">
                   Reassigned: {r.fromFaculty?.name} → {r.toFaculty?.name}
                 </p>
               )}

@@ -160,13 +160,13 @@ export default function DutySlotsPage({ user }) {
         mobile={['morning', 'afternoon'].map((session) => {
           const group = session === 'morning' ? morning : afternoon;
           return (
-            <div key={session} style={{ marginBottom: 20 }}>
+            <div key={session} className="mb-5">
               <MobileSectionHeader count={group.length}>{session} slots</MobileSectionHeader>
               <MobileList>
                 {isError ? (
                   <ErrorBlock onRetry={refetch} />
                 ) : !group.length ? (
-                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>
+                  <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">
                     No {statusFilterLabel} {session} slots
                   </div>
                 ) : (
