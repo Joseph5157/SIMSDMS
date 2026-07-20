@@ -13,6 +13,8 @@ const studentViolationQuery = yearMonthQuery.extend({
   student_year:       z.coerce.number().int().min(1).max(6).optional(),
   violation_type_id:  z.string().uuid('Invalid violation type ID.').optional(),
   faculty_id:         z.string().uuid('Invalid faculty ID.').optional(),
+  recorded_by:        z.enum(['admin']).optional(),
+  session:            z.enum(['morning', 'afternoon']).optional(),
 });
 
 const dailyViolationQuery = z.object({
@@ -20,6 +22,8 @@ const dailyViolationQuery = z.object({
   student_year:       z.coerce.number().int().min(1).max(6).optional(),
   violation_type_id:  z.string().uuid('Invalid violation type ID.').optional(),
   faculty_id:         z.string().uuid('Invalid faculty ID.').optional(),
+  recorded_by:        z.enum(['admin']).optional(),
+  session:            z.enum(['morning', 'afternoon']).optional(),
 });
 
 const weeklyViolationQuery = z.object({
@@ -29,6 +33,8 @@ const weeklyViolationQuery = z.object({
   student_year:       z.coerce.number().int().min(1).max(6).optional(),
   violation_type_id:  z.string().uuid('Invalid violation type ID.').optional(),
   faculty_id:         z.string().uuid('Invalid faculty ID.').optional(),
+  recorded_by:        z.enum(['admin']).optional(),
+  session:            z.enum(['morning', 'afternoon']).optional(),
 });
 
 const facultyActivityQuery = yearMonthQuery.extend({

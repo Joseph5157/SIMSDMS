@@ -394,6 +394,7 @@ function StudentViolationReportCard() {
   const [studentYear, setStudentYear]       = useState('');
   const [violationTypeId, setViolationTypeId] = useState('');
   const [facultyId, setFacultyId]           = useState('');
+  const [session, setSession]               = useState(''); // '' = Full Day | 'morning' | 'afternoon'
 
   const filterParams = {
     ...(course && { course }),
@@ -401,6 +402,9 @@ function StudentViolationReportCard() {
     ...(violationTypeId && { violation_type_id: violationTypeId }),
     // "admin" is the Admin recorder bucket; any other value is a specific faculty id.
     ...(facultyId === 'admin' ? { recorded_by: 'admin' } : facultyId ? { faculty_id: facultyId } : {}),
+    // Admin ad-hoc violations have no duty slot/session — they only ever show
+    // under Full Day (session omitted), never under Morning or Afternoon.
+    ...(session && { session }),
   };
 
   const params = { ...(mode === 'monthly' ? { year, month } : mode === 'yearly' ? { year } : {}), ...filterParams };
@@ -547,6 +551,11 @@ function StudentViolationReportCard() {
           <option value="">All Recorders</option>
           <option value="admin">Admin</option>
           {(facultyData?.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <select value={session} onChange={(e) => setSession(e.target.value)} className={selectCls}>
+          <option value="">Full Day</option>
+          <option value="morning">Morning Session</option>
+          <option value="afternoon">Afternoon Session</option>
         </select>
       </div>
 

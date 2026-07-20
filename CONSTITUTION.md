@@ -352,7 +352,7 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 
 Three module counts above were previously wrong, undercounting real endpoints that existed but were never folded into any changelog entry: **Duty Attendance 5→6** (`GET /attendance/mine/summary`, the personalized faculty attendance-dashboard endpoint), **Violation Types 5→6** (`PATCH /violation-types/:id/reactivate`), and **Reports 22→24** (below). **Users & Accounts** is unchanged at 13 here — it already reflects the `PATCH /admin/settings` restoration from v3.13.
 
-Reports is 24 endpoints, not 22: two pre-existing JSON display routes, `GET /reports/student-violations/daily/:date` and `GET /reports/student-violations/weekly`, predate P28 and were never folded into any prior count in this file. Growth 17→24 overall: the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report.
+Reports is 24 endpoints, not 22: two pre-existing JSON display routes, `GET /reports/student-violations/daily/:date` and `GET /reports/student-violations/weekly`, predate P28 and were never folded into any prior count in this file. Growth 17→24 overall: the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report. The Student Violation Report's filters are Course / Academic Year / Violation Type / Recorder (Admin or a named faculty member) / **Session** (Full Day / Morning / Afternoon, added — see §5 `duty_slots.session_type`), applied uniformly across all five periods, the on-screen table, and both exports — no endpoint/route change from the Session filter, it's a query-param addition on the existing routes (v3.18).
 
 Analytics (10): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel export; see `specs/004-student-analytics-dashboard/handoff.md`).
 
@@ -464,6 +464,21 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.18 — Updated: July 2026 (Student Violation Report — §6: fixed a bug
+where the Recorder filter's "Admin" option had no effect on-screen or in either export because
+`recorded_by` was never declared in the three Zod schemas gating `/reports/student-violations`,
+`/daily/:date`, and `/weekly` — `validateQuery`'s `schema.safeParse()` silently strips any
+undeclared query key, so the value never reached the already-correct controller logic. Added
+`recorded_by` to all three schemas, plus a regression test that calls `safeParse()` directly
+(the earlier test only exercised the controller function, bypassing `validateQuery`, which is
+how the bug shipped unnoticed). Also added a new **Session** filter (Full Day / Morning /
+Afternoon) to the same report, using the pre-existing `duty_slots.session_type` /
+`violations.duty_slot_id` relation (§5) — no schema/migration change. Full Day (session
+omitted) keeps including admin ad-hoc violations (no duty slot) as before; selecting Morning or
+Afternoon excludes them, since a record with no duty slot has no session to match. Both fixes
+apply through the single shared `studentViolationWhere()` filter builder, so the on-screen
+table, record count, summary stats, PDF export, and Excel export all stay in sync by
+construction — see `specs/026-report-recorder-session-filters/handoff.md`.)*
 *Constitution version: 3.17 — Updated: July 2026 (UI architecture governance — §2 Frontend
 table amended to formally record Radix/Framer Motion, Vaul, and the icon libraries, which were
 already in production use via the `spike/radix-sheet-modal` branch but never documented here.

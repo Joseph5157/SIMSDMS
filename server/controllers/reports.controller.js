@@ -18,7 +18,14 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 // reports/exports. Each branch takes boundaries computed for its own column
 // type: `dateRange` for the calendar @db.Date column, `instantRange` for the
 // created_at instant. (ADMIN-HIGH-003)
-function violationInPeriod(dateRange, instantRange) {
+//
+// `session` (Morning/Afternoon) narrows to violations recorded during a duty
+// slot of that session_type — admin ad-hoc records have no duty slot, hence no
+// session, so they never match a specific session and the duty_slot_id-null
+// branch is dropped entirely in that case. "Full Day" (session omitted) keeps
+// the original OR-based behavior, including ad-hoc records.
+function violationInPeriod(dateRange, instantRange, session) {
+  if (session) return { dutySlot: { session_type: session, duty_date: dateRange } };
   return { OR: [
     { dutySlot: { duty_date: dateRange } },
     { duty_slot_id: null, created_at: instantRange },
@@ -27,9 +34,9 @@ function violationInPeriod(dateRange, instantRange) {
 
 // Dual-range violation filter for a weekly (from_date → to_date) window. Both
 // bounds are validated YYYY-MM-DD strings (weeklyViolationQuery).
-function violationInSpan(from_date, to_date) {
+function violationInSpan(from_date, to_date, session) {
   const from = parseYMD(from_date), to = parseYMD(to_date);
-  return violationInPeriod(dateSpanRange(from, to), instantSpanRange(from, to));
+  return violationInPeriod(dateSpanRange(from, to), instantSpanRange(from, to), session);
 }
 
 // Recorder label — a violation is recorded by a faculty member on duty OR by an
@@ -43,8 +50,10 @@ function recorderLabel(faculty) {
 // since P28, the daily/weekly variants too) — year+month = one month, year
 // alone = whole year, neither = all-time. `course`/`student_year` filter on
 // the related Student; `violation_type_id`/`faculty_id` filter on the
-// violation row directly.
-function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id, recorded_by }) {
+// violation row directly. `session` (Morning/Afternoon) filters on the related
+// DutySlot's session_type — see violationInPeriod for how it interacts with
+// admin ad-hoc (no-duty-slot) records.
+function studentViolationWhere({ student_id, year, month, course, student_year, violation_type_id, faculty_id, recorded_by, session }) {
   const where = { record_status: 'active', deleted_at: null };
   if (student_id)        where.student_id = student_id;
   if (violation_type_id) where.violation_type_id = violation_type_id;
@@ -60,10 +69,15 @@ function studentViolationWhere({ student_id, year, month, course, student_year, 
   }
   if (year && month) {
     const y = parseInt(year, 10), m = parseInt(month, 10);
-    Object.assign(where, violationInPeriod(dateMonthRange(y, m), instantMonthRange(y, m)));
+    Object.assign(where, violationInPeriod(dateMonthRange(y, m), instantMonthRange(y, m), session));
   } else if (year) {
     const y = parseInt(year, 10);
-    Object.assign(where, violationInPeriod(dateYearRange(y), instantYearRange(y)));
+    Object.assign(where, violationInPeriod(dateYearRange(y), instantYearRange(y), session));
+  } else if (session) {
+    // Overall / no period, but a specific session was requested — admin
+    // ad-hoc violations have no duty slot, so they never match a specific
+    // session (only "Full Day", i.e. session omitted, includes them).
+    where.dutySlot = { session_type: session };
   }
   return where;
 }
@@ -262,7 +276,7 @@ async function dailyViolationReport(req, res) {
     return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
   }
   const { year, month, day } = parseYMD(date);
-  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day)) };
+  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day), req.query.session) };
   const violations = await _getStudentViolations(where);
 
   res.json({ date, data: violations, total: violations.length });
@@ -275,7 +289,7 @@ async function dailyViolationReportExport(req, res) {
     return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
   }
   const { year, month, day } = parseYMD(date);
-  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day)) };
+  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day), req.query.session) };
   const violations = await _getStudentViolations(where);
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
@@ -285,7 +299,7 @@ async function dailyViolationReportExport(req, res) {
 // 6d. Weekly Violation Report
 async function weeklyViolationReport(req, res) {
   const { from_date, to_date, ...filters } = req.query; // YYYY-MM-DD format
-  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date) };
+  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date, filters.session) };
   const violations = await _getStudentViolations(where);
 
   res.json({ from_date, to_date, data: violations, total: violations.length });
@@ -294,7 +308,7 @@ async function weeklyViolationReport(req, res) {
 // 6d-export. Weekly Violation Report — Export (.xlsx, NO fine amounts)
 async function weeklyViolationReportExport(req, res) {
   const { from_date, to_date, ...filters } = req.query;
-  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date) };
+  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date, filters.session) };
   const violations = await _getStudentViolations(where);
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
@@ -382,7 +396,7 @@ async function dailyViolationReportPdfExport(req, res) {
     return res.status(422).json({ error: true, code: 'VALIDATION_ERROR', message: 'date must be in YYYY-MM-DD format.' });
   }
   const { year, month, day } = parseYMD(date);
-  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day)) };
+  const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day), req.query.session) };
 
   await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Daily — ${date}`, filenameSuffix: `daily-${date}` }, res);
 }
@@ -390,7 +404,7 @@ async function dailyViolationReportPdfExport(req, res) {
 // 6d-pdf. Weekly Violation Report — PDF
 async function weeklyViolationReportPdfExport(req, res) {
   const { from_date, to_date, ...filters } = req.query;
-  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date) };
+  const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date, filters.session) };
 
   await _sendStudentViolationPdf(where, { title: 'Student Violation Report', subtitle: `Weekly — ${from_date} to ${to_date}`, filenameSuffix: `weekly-${from_date}-to-${to_date}` }, res);
 }

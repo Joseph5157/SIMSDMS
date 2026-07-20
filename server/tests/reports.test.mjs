@@ -8,6 +8,7 @@ const {
   monthlyDutyCoverage, unassignedFacultyReport, dutyReassignmentReport,
   studentViolationHistory,
 } = _require('../controllers/reports.controller');
+const { studentViolationQuery, dailyViolationQuery, weeklyViolationQuery } = _require('../schemas/reports.schema');
 
 function makeReq(query = {}) { return { query }; }
 function makeRes() {
@@ -221,6 +222,23 @@ describe('studentViolationHistory / studentViolationWhere', () => {
     expect(count.mock.calls[0][0].where.faculty_id).toBeUndefined();
   });
 
+  // Regression: recorded_by=admin was correctly handled by studentViolationWhere,
+  // but was missing from the Zod schemas below, so validateQuery's
+  // schema.safeParse(req.query) silently stripped it from every real HTTP
+  // request before the controller ever saw it — "Admin" behaved identically to
+  // "All Recorders" in production despite the controller-level test above
+  // passing (it calls studentViolationHistory directly, bypassing validateQuery).
+  it('schema.safeParse keeps recorded_by=admin instead of stripping it (validateQuery uses safeParse under the hood)', () => {
+    for (const schema of [studentViolationQuery, dailyViolationQuery, weeklyViolationQuery]) {
+      const input = schema === weeklyViolationQuery
+        ? { recorded_by: 'admin', from_date: '2026-07-01', to_date: '2026-07-07' }
+        : { recorded_by: 'admin' };
+      const result = schema.safeParse(input);
+      expect(result.success).toBe(true);
+      expect(result.data.recorded_by).toBe('admin');
+    }
+  });
+
   it('applies course/student_year as a nested student filter, and year+month as a date range', async () => {
     const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
     vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
@@ -237,5 +255,68 @@ describe('studentViolationHistory / studentViolationWhere', () => {
       { dutySlot: { duty_date: expect.any(Object) } },
       { duty_slot_id: null, created_at: expect.any(Object) },
     ]);
+  });
+
+  // Session filter (Morning/Afternoon): admin ad-hoc violations have no duty
+  // slot, so a specific session must exclude them entirely — only "Full Day"
+  // (session omitted) includes them, via the pre-existing OR above.
+  it('session=morning with no period narrows to dutySlot.session_type, no OR / no ad-hoc branch', async () => {
+    const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await studentViolationHistory(makeReq({ session: 'morning' }), res);
+
+    const where = count.mock.calls[0][0].where;
+    expect(where.dutySlot).toEqual({ session_type: 'morning' });
+    expect(where.OR).toBeUndefined();
+  });
+
+  it('session=afternoon combined with year+month narrows dutySlot to session_type AND duty_date, dropping the ad-hoc OR branch', async () => {
+    const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await studentViolationHistory(makeReq({ session: 'afternoon', year: 2026, month: 7 }), res);
+
+    const where = count.mock.calls[0][0].where;
+    expect(where.dutySlot).toEqual({ session_type: 'afternoon', duty_date: expect.any(Object) });
+    expect(where.OR).toBeUndefined();
+  });
+
+  it('recorded_by=admin + session=morning combine as AND — admin ad-hoc rows (no dutySlot) can never satisfy both', async () => {
+    const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await studentViolationHistory(makeReq({ recorded_by: 'admin', session: 'morning' }), res);
+
+    const where = count.mock.calls[0][0].where;
+    expect(where.faculty).toEqual({ role: { in: ['admin', 'super_admin'] } });
+    expect(where.dutySlot).toEqual({ session_type: 'morning' });
+  });
+
+  it('no session (Full Day) leaves the existing OR-based ad-hoc-inclusive behavior untouched', async () => {
+    const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await studentViolationHistory(makeReq({ year: 2026, month: 7 }), res);
+
+    const where = count.mock.calls[0][0].where;
+    expect(where.dutySlot).toBeUndefined();
+    expect(where.OR).toEqual([
+      { dutySlot: { duty_date: expect.any(Object) } },
+      { duty_slot_id: null, created_at: expect.any(Object) },
+    ]);
+  });
+
+  it('schema.safeParse accepts session=morning/afternoon and rejects any other value', () => {
+    for (const schema of [studentViolationQuery, dailyViolationQuery, weeklyViolationQuery]) {
+      const base = schema === weeklyViolationQuery ? { from_date: '2026-07-01', to_date: '2026-07-07' } : {};
+      expect(schema.safeParse({ ...base, session: 'morning' }).success).toBe(true);
+      expect(schema.safeParse({ ...base, session: 'afternoon' }).success).toBe(true);
+      expect(schema.safeParse({ ...base, session: 'evening' }).success).toBe(false);
+    }
   });
 });
