@@ -3,6 +3,39 @@
 ## task_id
 025-ui-architecture-consolidation / Phase 4 — optimization & enforcement
 
+## visual_pass (2026-07-20, same branch)
+Live browser verification of all Phase 4 changes, using the existing seeded
+`sims_dms_dev` DB inside the nursing container (still there from the prior
+session — schema + migrations were already current, no reseeding needed; only
+had to `prisma generate` since `npm install` had wiped the generated client).
+Logged in as super_admin. Checked via chrome-devtools MCP (claude-in-chrome
+extension wasn't connected this session):
+
+- **ReportsPage** — desktop inline result panel and mobile `ResponsiveSheet`
+  drawer both render correctly; the Wave 4 `text-[length:16px]` fix shows no
+  visual regression on the filter selects.
+- **BottomDrawer→ResponsiveSheet migrations** — ProfileDrawer, CreateUserDrawer,
+  ComposeDrawer, RecordViolationModal all open/close cleanly via
+  ResponsiveSheet with correct drag handle, backdrop, and footer buttons.
+- **Nested StudentSearchOverlay inside ResponsiveSheet** (the highest-risk
+  piece of Phase 4 — the documented Radix-nesting exception) — opened from
+  RecordViolationModal, focus landed correctly on the search input, live
+  search against the real backend worked, selecting a result closed the
+  overlay and returned focus to the parent sheet cleanly. No focus-steal bug.
+- **lucide→Tabler icon migrations** — all verified rendering: ComposeDrawer
+  (Users/AlignLeft/Message), ProfileDrawer (User/Building/Id/Tag/Mail/Key/
+  ChevronRight), NotificationBell (Bell), StudentSearchOverlay (Search/X).
+- **Navbar breakpoint fix** — verified pixel-exact at the boundary: 767px width
+  shows full mobile chrome (hamburger + bottom tab bar), 768px shows the full
+  desktop sidebar. Also checked 700px (dead in the middle of the old broken
+  640–767px range) — correctly mobile, no stranded no-nav state.
+- **Console** — zero errors or warnings across the entire pass.
+
+No issues found. Dev server processes were stopped after the pass; the
+`sims_dms_dev` DB was left in place (cheap to reuse next session — confirmed
+schema/migrations stay valid across sessions as long as no new migrations
+land in between).
+
 ## phase_4 (2026-07-20, same branch)
 Phase 4 complete — 5 commits, all lint/build-green:
 - `7f99a81` Deleted SheetModal.jsx (zero real consumers — a stale doc-comment
