@@ -3,6 +3,9 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Select, Modal, Textarea, Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
+import AppButton from '../../components/ui/AppButton';
+import { MobileList, MobileListItem, MobileSectionHeader } from '../../components/ui/MobileList';
+import ResponsiveDataView from '../../components/ui/ResponsiveDataView';
 import { useMonthSlots, useReassignSlot } from '../../hooks/useDutySlots';
 import { useMessageRecipients } from '../../hooks/useUsers';
 import { useToast } from '../../components/ui/Toast';
@@ -123,7 +126,7 @@ export default function DutySlotsPage({ user }) {
   return (
     <Layout user={user}>
       <Breadcrumb items={[{ label: 'Admin', href: '/admin/dashboard' }, { label: 'Duty Slots' }]} />
-      <PageHeader title="Duty Slots" subtitle="Monthly slot assignments" />
+      <PageHeader title="Duty Slots" subtitle="Monthly slot assignments" variant="operational" />
 
       <div className="max-w-[1080px] mx-auto">
       {/* Filters + at-a-glance counts — split totals visible without scrolling */}
@@ -153,18 +156,13 @@ export default function DutySlotsPage({ user }) {
         </div>
       </div>
 
-      {/* Mobile card list */}
-      <div className="md:hidden">
-        {['morning', 'afternoon'].map((session) => {
+      <ResponsiveDataView
+        mobile={['morning', 'afternoon'].map((session) => {
           const group = session === 'morning' ? morning : afternoon;
           return (
             <div key={session} style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 'var(--text-small)', fontWeight: 'var(--weight-bold)', color: 'var(--text-muted)', textTransform: 'uppercase',
-                letterSpacing: 'var(--tracking-wide)', marginBottom: 8 }}>
-                {session} slots ({group.length})
-              </p>
-              <div style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
-                overflow: 'hidden', marginBottom: 16 }}>
+              <MobileSectionHeader count={group.length}>{session} slots</MobileSectionHeader>
+              <MobileList>
                 {isError ? (
                   <ErrorBlock onRetry={refetch} />
                 ) : !group.length ? (
@@ -173,80 +171,65 @@ export default function DutySlotsPage({ user }) {
                   </div>
                 ) : (
                   group.map((s) => (
-                    <div key={s.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-                      borderBottom: '1px solid var(--border)', gap: 12,
-                    }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
-                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {s.faculty?.name}
-                        </p>
-                        <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
-                          {new Date(s.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                          {s.reassignments?.length ? ` · ${reassignedFromLabel(s)}` : ''}
-                        </p>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <Badge status={s.status} />
-                        {isReassignable(s) && (
-                          <Button
-                            size="sm"
-                            variant="light"
-                            onClick={() => openReassign(s)}
-                            styles={{ root: { minHeight: 'var(--control-min)' } }}
-                          >
-                            Reassign
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+                    <MobileListItem
+                      key={s.id}
+                      title={s.faculty?.name}
+                      subtitle={
+                        `${new Date(s.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}` +
+                        (s.reassignments?.length ? ` · ${reassignedFromLabel(s)}` : '')
+                      }
+                      status={<Badge status={s.status} />}
+                      action={isReassignable(s) && (
+                        <AppButton
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openReassign(s)}
+                        >
+                          Reassign
+                        </AppButton>
+                      )}
+                    />
                   ))
                 )}
-              </div>
+              </MobileList>
             </div>
           );
         })}
-      </div>
-
-      {/* Desktop table */}
-      <div className="hidden md:block">
-      {['morning', 'afternoon'].map((session) => {
-        const group = session === 'morning' ? morning : afternoon;
-        return (
-          <div key={session} className="mb-6">
-            <h3 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2 capitalize">{session} slots ({group.length})</h3>
-            <Table>
-              <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th>Action</Th></tr></thead>
-              <tbody className="divide-y divide-[var(--divider)]">
-                {isLoading && <EmptyRow cols={5} message="Loading…" />}
-                {isError && <ErrorRow cols={5} onRetry={refetch} />}
-                {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${statusFilterLabel} ${session} slots.`} />}
-                {group.map((s) => (
-                  <tr key={s.id}>
-                    <Td className="font-medium whitespace-nowrap">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>
-                    <Td>
-                      <span className="text-[var(--text-primary)]">{s.faculty?.name}</span>
-                      {s.reassignments?.length ? (
-                        <span className="block text-[length:12px] text-[var(--color-indigo-text)] mt-0.5">{reassignedFromLabel(s)}</span>
-                      ) : null}
-                    </Td>
-                    <Td>{s.faculty?.department ?? '—'}</Td>
-                    <Td><Badge status={s.status} /></Td>
-                    <Td>
-                      {isReassignable(s)
-                        ? <Button size="compact-xs" variant="light" onClick={() => openReassign(s)}>Reassign</Button>
-                        : <span className="text-[var(--text-muted)]">—</span>}
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        );
-      })}
-      </div>
+        desktop={['morning', 'afternoon'].map((session) => {
+          const group = session === 'morning' ? morning : afternoon;
+          return (
+            <div key={session} className="mb-6">
+              <h3 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2 capitalize">{session} slots ({group.length})</h3>
+              <Table>
+                <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th>Action</Th></tr></thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {isLoading && <EmptyRow cols={5} message="Loading…" />}
+                  {isError && <ErrorRow cols={5} onRetry={refetch} />}
+                  {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${statusFilterLabel} ${session} slots.`} />}
+                  {group.map((s) => (
+                    <tr key={s.id}>
+                      <Td className="font-medium whitespace-nowrap">{new Date(s.duty_date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })}</Td>
+                      <Td>
+                        <span className="text-[var(--text-primary)]">{s.faculty?.name}</span>
+                        {s.reassignments?.length ? (
+                          <span className="block text-[length:12px] text-[var(--color-indigo-text)] mt-0.5">{reassignedFromLabel(s)}</span>
+                        ) : null}
+                      </Td>
+                      <Td>{s.faculty?.department ?? '—'}</Td>
+                      <Td><Badge status={s.status} /></Td>
+                      <Td>
+                        {isReassignable(s)
+                          ? <Button size="compact-xs" variant="light" onClick={() => openReassign(s)}>Reassign</Button>
+                          : <span className="text-[var(--text-muted)]">—</span>}
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          );
+        })}
+      />
       </div>
 
       {/* Reassign Duty modal */}

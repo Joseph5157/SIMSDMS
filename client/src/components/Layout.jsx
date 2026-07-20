@@ -286,7 +286,49 @@ export default function Layout({ user, children }) {
 
 // ── Shared layout exports ──────────────────────────────────────────────────────
 
-export function PageHeader({ title, subtitle, action }) {
+/**
+ * PageHeader variants (docs/MOBILE_PATTERNS.md):
+ *   centered    (default — unchanged from the original single-shape header,
+ *                so every existing caller sees zero visual change unless it
+ *                opts in) — onboarding, empty states, major summary screens.
+ *   operational — left-aligned title+subtitle with a compact action on the
+ *                 right, no forced centering. Default recommendation for
+ *                 management/list screens going forward (see DutySlotsPage
+ *                 for the first migrated example) — not yet the prop default
+ *                 itself, since flipping the default would silently change
+ *                 all ~18 existing callers at once.
+ *   compact     — nested/detail screens with limited vertical space: title
+ *                 only, no subtitle row.
+ */
+export function PageHeader({ title, subtitle, action, variant = 'centered' }) {
+  if (variant === 'operational') {
+    return (
+      <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm" mb={10} pb={10}
+        className="border-b border-b-[var(--border)]"
+      >
+        <Box style={{ minWidth: 0 }}>
+          <Title order={2} className="text-[length:var(--text-h2)] font-bold leading-[1.3]">
+            {title}
+          </Title>
+          {subtitle && (
+            <Text size="xs" c="dimmed">{subtitle}</Text>
+          )}
+        </Box>
+        {action && <Box style={{ flexShrink: 0 }}>{action}</Box>}
+      </Group>
+    );
+  }
+
+  if (variant === 'compact') {
+    return (
+      <Box mb={10} pb={10} className="border-b border-b-[var(--border)]">
+        <Title order={3} className="text-[length:var(--text-page-title)] font-bold leading-[1.3]">
+          {title}
+        </Title>
+      </Box>
+    );
+  }
+
   return (
     <Stack align="center" gap={4} py={0} mb={10}
       className="border-b border-b-[var(--border)] text-center"

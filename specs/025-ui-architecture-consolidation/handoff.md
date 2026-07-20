@@ -1,131 +1,187 @@
 # Handoff Report
 
 ## task_id
-025-ui-architecture-consolidation / Phase 1 — Standards and Governance
+025-ui-architecture-consolidation / Phase 2 complete — all 7 shared components
 
 ## status
 complete
 
 ## completed
-- **Verified the source audit against the live codebase before acting on it** (2026-07-19,
-  earlier in this session): confirmed `SheetModal.jsx` literally comments itself as duplicated
-  from `BottomDrawer.jsx`; `Layout.jsx` navbar breakpoint is `sm` while page-level mobile/desktop
-  switches use `md`; `Table.jsx` + 5 other files use `MTable.ScrollContainer` +
-  `whitespace-nowrap`; `PageHeader` hardcodes `<Stack align="center" ... text-center>` with no
-  variant prop; `index.css` duplicates the color ramp between `@theme` and `:root`; 9 files
-  import `lucide-react` vs 7 `@tabler/icons-react`; `package.json` has `@radix-ui/react-dialog`,
-  `framer-motion`, and `vaul` all installed simultaneously. Every claim in the source zip that
-  was checkable turned out accurate.
-- **Extracted and read the full 5-doc migration plan** from
-  `Sims_Pharmacy_UI_Architecture_Phase_Documents.zip` (repo root, user-supplied) and saved it to
-  persistent memory (`ui_architecture_migration_plan_2026_07_19`) so future sessions don't need
-  the zip re-extracted to know the plan.
-- **Branched**: `chore/ui-architecture-phase1` off `fix/audit-high-findings` (clean, up to date
-  with `origin` at branch time). Confirmed `origin/mantine-migration` (a stale remote branch) is
-  already fully merged into current history (merge-base check) — not a parallel effort to
-  reconcile with.
-- **`CONSTITUTION.md` amended, v3.16 → v3.17**: §2 Frontend table gained rows for Radix
-  (`@radix-ui/react-dialog`) + Framer Motion (internal-only, scoped to the future
-  `ResponsiveSheet`), Vaul (deprecated), Tabler Icons (confirmed default), and Lucide
-  (deprecated). These libraries were already in production use via `spike/radix-sheet-modal` but
-  had never been recorded in the Constitution's "Non-Negotiable Tech Stack" — this closes that
-  gap rather than introducing anything new.
-- **`docs/UI_ARCHITECTURE.md` created** (new `docs/` directory — didn't exist before): library
-  responsibility table, overlay consolidation target table, component inventory grounded in the
-  confirmed findings above, a semantic-token section that explains *why* `@theme` and `:root`
-  both legitimately exist in `index.css` (Tailwind can only read `@theme`; everything else —
-  inline styles, CSS Modules, `mantineTheme` — needs the `:root` mirror) rather than just calling
-  it duplication, plus a concrete usage rule and prohibited-patterns list.
-- **`docs/MOBILE_PATTERNS.md` created**: breakpoint fix plan (`sm`→`md`, deferred to Phase 3 since
-  it touches the live app shell), `PageHeader` 3-variant spec (`operational`/`centered`/`compact`),
-  the mobile-table-strategy decision table, the confirmed arbitrary-`text-[Npx]` type-scale
-  fragmentation with a target scale, and required-states/anti-pattern lists.
-- **`CLAUDE.md` amended** with a new "UI Architecture" section (outside the speckit-managed
-  block) summarizing the enforced rules and pointing to the two new docs, so this governance is
-  read automatically on every future session touching this codebase, not just discoverable by
-  chance.
-- **Captured a full pre-change baseline** so later phases have something real to diff against:
-  - `npm run build --workspace=client`: main JS 1,505.19 kB / gzip 432.73 kB, CSS 292.79 kB /
-    gzip 46.48 kB, PWA precache 28 entries / 2,357.61 KiB.
-  - `npm run test --workspace=server`: 191/191 passed (20 files).
-  - `npm run lint --workspace=client`: 0 errors, 5 warnings — all pre-existing
-    `react-refresh/only-export-components` (`BottomDrawer.jsx` ×2, `SheetModal.jsx` ×2,
-    `Toast.jsx` ×1). Noted that `SheetModal.jsx` now carries the same warning `BottomDrawer.jsx`
-    already had — the duplication these two represent has doubled the lint noise, not just the
-    code.
-  - Playwright e2e: spun up a disposable UTF8/C-locale Postgres 18 (no Docker, same technique as
-    `specs/024-quality-hardening-pass`), applied all 27 migrations clean, seeded via
-    `e2e/seed.mjs`, ran the full suite — **6/6 passed** (`login.spec.js` ×2 tests +
-    `duty-timing-settings.spec.js` ×1 test, both `chromium` and `mobile-chrome` projects; the
-    latter spec is new since the 024 baseline). Disposable instance torn down after.
-- **No component code was touched.** Phase 1 is documentation + one Constitution table edit only,
-  per plan.
+Continuing from the `ResponsiveSheet` handoff (same branch, `feat/responsive-sheet`), built and
+migrated the remaining Phase 2 line items. Checked what already existed before building anything
+new — found two were already done under different names, which changed scope for the better:
+
+- **Surveyed existing `client/src/components/ui/` first.** Found `ConfirmDialog.jsx` (Mantine
+  `Modal`-based, `isDangerous`/`isLoading`/`zIndex` props, **already 11 consumers**) and
+  `Alert.jsx` (single tone-based banner: info/success/warning/danger/telegram, semantic tokens)
+  already existed as genuinely consolidated, canonical components — building new
+  `ConfirmAction`/feedback components from scratch would have recreated the exact duplication
+  problem this whole initiative exists to fix. Documented both as canonical in
+  `docs/UI_ARCHITECTURE.md` instead of building parallel components.
+- **`AppButton.jsx`** (new): `primary`/`secondary`/`danger`/`ghost`/`icon` variants, Mantine
+  `Button`/`ActionIcon`-backed, bakes in the `minHeight: var(--control-min)` (44px touch target)
+  boilerplate that was previously copy-pasted per call site. `icon` variant throws if
+  `aria-label` is missing (no visible text for a screen reader otherwise). Migrated
+  `DutySlotsPage.jsx`'s mobile Reassign button (the exact call site carrying that boilerplate).
+- **`AppField.jsx`** (new): `AppSelect`/`AppTextInput`/`AppNumberInput` thin Mantine wrappers.
+  `AppSelect` bakes in `comboboxProps={{ withinPortal: false }}` by default — the fix for the
+  known "Mantine Select untappable inside an overlay" bug class (previously hand-added per call
+  site, e.g. `RecordViolationModal.jsx` had it twice already). Migrated both of
+  `RecordViolationModal.jsx`'s `Select` fields to `AppSelect`, removing the now-redundant manual
+  prop.
+- **`MobileList.jsx`** (new): `MobileList`, `MobileListItem`, `MobileListItemHeader`,
+  `MobileListItemMeta`, `MobileListItemStatus`, `MobileListItemActions`, `MobileSectionHeader` —
+  formalizes the card-list shape `DutySlotsPage.jsx` already used well (per the source audit:
+  "substantially better than squeezing a table onto a phone screen") but had hand-rolled with
+  ~50 lines of inline styles. `MobileListItem` takes flat `title`/`subtitle`/`status`/`action`
+  props for the common case (matching the source spec's usage example) or `children` for finer
+  control via the individual primitives. Migrated `DutySlotsPage.jsx`'s entire mobile card block.
+- **`PageHeader` variants** (`Layout.jsx`, edited not replaced): added `operational`
+  (left-aligned title+subtitle, compact action) and `compact` (title only) variants.
+  **`centered` stays the default** — byte-for-byte the original markup — specifically so the
+  ~17 other existing `PageHeader` callers see zero visual change; only `DutySlotsPage.jsx` opts
+  into `variant="operational"` in this pass, matching the exact example
+  (`docs/MOBILE_PATTERNS.md` already used this screen as its own worked example before any code
+  existed).
+- **`ResponsiveDataView.jsx`** (new): formalizes the "render both, let CSS pick one" pattern
+  `DutySlotsPage.jsx` already used correctly (`md:hidden` / `hidden md:block`) rather than
+  introducing a JS `isMobile` conditional (which would add a hydration-flash risk the existing
+  pattern doesn't have). Takes already-built `mobile`/`desktop` JSX, not a per-item render
+  callback — most screens in this app group/paginate before render (this screen groups by
+  morning/afternoon session), so a flat per-item shape doesn't fit real usage here. **Caught a
+  second instance of the exact dynamic-Tailwind-class bug from the `ResponsiveSheet` handoff**
+  while writing this: first draft built the breakpoint class via `` `${breakpoint}:hidden` ``
+  template-literal interpolation — same silent-failure mode (Tailwind can't see what a JS
+  variable resolves to). Fixed with a static `{sm,md,lg}` lookup table instead, before it was
+  ever tested. Migrated `DutySlotsPage.jsx`'s mobile-card/desktop-table pair into it.
+- **Feedback consolidation**: `RecordViolationModal.jsx` had three hand-styled banner `div`s
+  (submit error, admin-mode note, session-status note) duplicating `Alert.jsx`'s exact styling
+  approach independently. Replaced all three with `<Alert tone="danger|info|success|warning">`.
+- **Fixed a real JSX bug caught by the lint/build check, not by chance**: the
+  `ResponsiveDataView` migration on `DutySlotsPage.jsx` initially left an unbalanced `</div>` —
+  removing the old mobile/desktop wrapper `div`s accidentally also removed the closing tag for
+  an unrelated outer `max-w-[1080px] mx-auto` wrapper opened much earlier in the file. `npm run
+  lint`/`build` caught it immediately (`Parsing error: Unexpected token`) before any live testing
+  — restored the missing `</div>`, reran, clean.
+- **Ran lint + build after every single component migration** (not batched at the end) — 0
+  errors throughout, same 7 pre-existing `react-refresh` warnings the whole session.
+- **Full regression + live verification, once, covering everything built this pass**:
+  - Server tests: 191/191 (unaffected, no server changes this session).
+  - Spun up a disposable UTF8 Postgres 18, migrated, seeded users, **and additionally seeded a
+    `system_config` row and one duty slot + active attendance record** — needed because
+    `e2e/seed.mjs` doesn't seed either (same gap flagged in the previous handoff), and both
+    `DutySlotsPage` and `RecordViolationModal`'s auto-slot-detection needed real data to exercise
+    for real rather than just their empty states.
+  - **Desktop** (chrome-devtools MCP, admin login): `/admin/duty-slots` — confirmed
+    `PageHeader operational` renders left-aligned (not centered), `ResponsiveDataView`'s desktop
+    table renders the seeded slot correctly, no console errors.
+  - **Mobile** (Playwright, Pixel 7 profile — chrome-devtools' resize tool still doesn't work in
+    this environment): `/admin/duty-slots` mobile cards (`MobileList`/`MobileListItem`/
+    `AppButton` all rendering correctly with real data) and `RecordViolationModal` mobile sheet
+    (`Alert tone="success"` banner correctly showing the auto-detected session, `AppSelect`
+    rendering).
+  - **Specifically verified `AppSelect`'s actual reason for existing**: seeded one violation
+    type, opened the "Student violation type" dropdown inside the mobile `ResponsiveSheet`,
+    clicked an option, confirmed the field updated (`Late to Duty (₹50)`) — i.e. the dropdown is
+    genuinely tappable inside the overlay, not just visually present. This is the exact bug class
+    (`comboboxProps={{ withinPortal: false }}`) `AppSelect` bakes in a fix for.
+  - Tore down the interactive-test DB, spun up a **second, independent** disposable DB, ran the
+    full Playwright suite fresh: **6/6 passed**.
+  - Final `npm run build --workspace=client`: clean, bundle 1,507.17 kB / gzip 433.56 kB (flat
+    vs. the Phase 1 baseline of 1,505.19 kB — expected, nothing's been deleted yet, only added;
+    Phase 4 is where dependency removal should show a real reduction).
+  - Tore down the final DB, confirmed ports clear.
+- **Repeated the same stale-process trap from the previous handoff, twice**, and resolved it the
+  same way both times: a manual `npm run dev` left running from the interactive-testing step
+  squatted on :3000/:5173, and the next `npm run dev` (and separately, the next `npx playwright
+  test`) either crashed on `EADDRINUSE` or silently reused the stale, DB-mismatched server. Fixed
+  via `netstat -ano | grep LISTENING` + `taskkill //F //PID <pid>` each time — `pkill -f` by
+  process-name pattern does not reliably work in this environment. Worth automating a
+  kill-by-port step before any future `npm run dev` in this kind of session instead of
+  rediscovering this each time.
 
 ## failed_or_blocked
-- None.
+- None in the final state. Two real bugs (the `ResponsiveDataView` dynamic-Tailwind-class repeat,
+  and the unbalanced `</div>`) were caught by lint/build before any live testing and fixed within
+  this session.
 
 ## commands_run
 ```
-git checkout -b chore/ui-architecture-phase1
-git log origin/mantine-migration --oneline -15
-git merge-base fix/audit-high-findings origin/mantine-migration
-npm run build --workspace=client
+npm run lint --workspace=client        # run after every component migration, not batched
+npm run build --workspace=client       # same
 npm run test --workspace=server
-npm run lint --workspace=client
-# Disposable Postgres 18 (no Docker), C:\Program Files\PostgreSQL\18\bin:
-initdb -D <dir> -A trust -U postgres --encoding=UTF8 --locale=C
-pg_ctl -D <dir> -l <dir>/log.txt -o "-p 5544" start
-createdb -p 5544 -U postgres --encoding=UTF8 sims_ui_baseline
+# Interactive live-test DB — disposable Postgres 18, port 5547:
+initdb / pg_ctl start / createdb sims_phase2_test
 node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
 node e2e/seed.mjs
-npx playwright test
-pg_ctl -D <dir> stop -m fast
+psql -p 5547 -U postgres -d sims_phase2_test -c "INSERT INTO system_config (id, updated_at) VALUES ('global', now()) ON CONFLICT DO NOTHING;"
+node _tmp_seed_slot.mjs                # throwaway: duty slot + active attendance for today
+psql ... INSERT INTO violation_types ...  # throwaway: one violation type for the AppSelect check
+npm run dev                            # backgrounded
+# chrome-devtools MCP: navigate_page, take_snapshot, click, fill, take_screenshot (desktop)
+# Playwright throwaway scripts (Pixel 7 profile) for mobile screenshots + the AppSelect
+# tap-through-overlay check; deleted after each use
+netstat -ano | grep -E ":3000 |:5173 " | grep LISTENING   # x2, diagnosing stale-server reuse
+taskkill //F //PID <pid>                                   # x2 rounds
+pg_ctl -D <pg_phase2_test dir> stop -m fast
+# Final independent regression — disposable Postgres 18, port 5548:
+initdb / pg_ctl start / createdb sims_phase2_final
+node node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma
+node e2e/seed.mjs
+npx playwright test                    # 6/6 passed
+pg_ctl -D <pg_phase2_final dir> stop -m fast
+npm run build --workspace=client       # final clean build
 ```
 
 ## constraints_discovered
-- `origin/mantine-migration` is a stale-but-fully-merged remote branch (its tip is an ancestor of
-  current `HEAD` via `git merge-base`) — it's the original Mantine adoption work ("Phase 0-3d,
-  all 22 pages complete"), already fully incorporated. Not a parallel effort; safe to ignore, and
-  explains why the codebase is already Mantine-heavy going into this new consolidation effort.
-- `docs/` did not exist at the project root before this session — this is a new top-level
-  directory, first use is these two files.
-- The Playwright e2e suite has grown since the `024-quality-hardening-pass` baseline (login-only
-  then) to also cover `duty-timing-settings.spec.js` — presumably added during
-  `fix/audit-high-findings` work between those two sessions. Worth knowing the e2e suite is
-  actively growing, not static.
-- No project-root `AGENTS.md` exists (only an unrelated one inside `node_modules/recharts`) and
-  no `.github/pull_request_template.md` exists — the source doc's Phase 1 deliverables 5
-  ("Codex instructions") and the master roadmap's PR-checklist governance control were folded
-  into `CLAUDE.md` and this handoff instead of creating those specific files, since `CLAUDE.md`
-  is the file this project's agent sessions actually load automatically.
+- **`e2e/seed.mjs`'s data gap is broader than previously known.** Beyond the `system_config` gap
+  flagged in the `ResponsiveSheet` handoff, it also seeds zero duty slots and zero violation
+  types — meaning any live/e2e test of `DutySlotsPage`, `RecordViolationModal`'s auto-slot
+  detection, or any `Select` populated from `violation_types` needs manual seeding first (raw SQL
+  or a throwaway script) on top of the existing seed. Still not fixed in `e2e/seed.mjs` itself
+  (out of scope for a UI-component migration pass) but now documented with the exact gap surface
+  rather than just "settings are missing."
+- **The stale dev-server-on-stale-DB trap (from the previous handoff) recurred twice in this
+  session** despite already being documented — worth actually automating a
+  `netstat`+`taskkill`-by-port preflight before the next `npm run dev` in any future session that
+  does repeated live-test cycles, rather than relying on remembering to `pkill` cleanly (which
+  doesn't reliably work here anyway).
+- `system_config`'s `updated_at` column uses Prisma's `@updatedAt` (application-managed), not a
+  DB-level default — a raw SQL seed insert needs to supply it explicitly or the insert fails a
+  NOT NULL constraint.
 
 ## deviations_from_constitution
-- None beyond the intentional, in-scope amendment itself (v3.16 → v3.17, documented above and in
-  the Constitution's own version history). No schema, role, or endpoint changes.
+- None. No schema, route, or role changes — this pass is entirely `client/src` component work
+  plus documentation.
 
 ## files_touched
-- CONSTITUTION.md (amended §2 Frontend table + new v3.17 version-history entry)
-- CLAUDE.md (new "UI Architecture" section)
-- docs/UI_ARCHITECTURE.md (new)
-- docs/MOBILE_PATTERNS.md (new)
-- specs/025-ui-architecture-consolidation/plan.md (new)
-- specs/025-ui-architecture-consolidation/handoff.md (new, this file)
+- client/src/components/ui/AppButton.jsx (new)
+- client/src/components/ui/AppField.jsx (new)
+- client/src/components/ui/MobileList.jsx (new)
+- client/src/components/ui/ResponsiveDataView.jsx (new)
+- client/src/components/Layout.jsx (PageHeader variants added)
+- client/src/pages/admin/DutySlotsPage.jsx (AppButton, MobileList primitives, PageHeader
+  operational variant, ResponsiveDataView all migrated in)
+- client/src/components/faculty/RecordViolationModal.jsx (AppSelect, Alert migrated in — on top
+  of the ResponsiveSheet migration from the previous handoff)
+- docs/UI_ARCHITECTURE.md (component inventory updated: ConfirmDialog/Alert/Toast documented as
+  already-canonical rather than to-be-built; AppButton/AppField rows added; new prohibited-
+  pattern entry for the dynamic-Tailwind-class bug class)
+- specs/025-ui-architecture-consolidation/plan.md (Phase 2 completion section)
+- specs/025-ui-architecture-consolidation/handoff.md (this file)
 
 ## open_questions_for_owner
-- **Nothing in this branch has been pushed** per your instruction — it's local-only on
-  `chore/ui-architecture-phase1`. Say the word when you want it pushed/reviewed, or if you'd
-  rather it get folded into a PR alongside Phase 2 work instead of standing alone.
-- **Phase 2 has not been started.** The next concrete step per `plan.md` is building
-  `ResponsiveSheet` (highest priority — replaces `BottomDrawer`, `SheetModal`, and direct
-  Radix/Vaul usage) standalone, then migrating one representative screen to it before touching
-  anything else. Confirm before I start component code, since that's a materially different risk
-  level than this doc-only phase.
-- **The `sm`→`md` navbar breakpoint fix** (`Layout.jsx`) is scoped to Phase 3 in the plan because
-  it touches the live app shell on every single screen — flagging again here in case you'd rather
-  pull it forward as an early, isolated fix instead of waiting for Phase 3's screen-by-screen
-  wave.
-- Untracked files noticed in the working tree at session start
-  (`SIMS_Duty_Reassignment_Hook_Code_Review_Report.docx`,
-  `SIMS_Prisma_Database_Optimization_Report (1).pdf`,
-  `Sims_Pharmacy_UI_Architecture_Phase_Documents.zip`) were left untouched — not part of this
-  task's scope, just noting they're still sitting untracked in case that's not intentional.
+- **Nothing on `feat/responsive-sheet` has been committed or pushed** — still fully local, per
+  your "nothing merges until tested" instruction. The branch now contains both the
+  `ResponsiveSheet` work and all of Phase 2 on top of it, uncommitted as one working-tree diff.
+  Say the word to commit (as one or multiple commits — your call) or to start reviewing before
+  that.
+- **Phase 2 is done; Phase 3 (feature screen migration, wave-by-wave) hasn't started.** Every new
+  component so far has exactly one representative migration — e.g. `BottomDrawer` still has 7
+  untouched consumers, `PageHeader` still defaults to `centered` for ~17 screens, most
+  raw-styled buttons/cards elsewhere in the app are untouched. That's by design (Phase 2's own
+  procedure caps scope at "migrate one screen, defer the rest"), not an oversight — but worth
+  confirming before assuming "Phase 2 complete" means "the whole app looks consistent now." It
+  doesn't yet; Phase 3 is what rolls these out everywhere.
+- **`e2e/seed.mjs`'s gap** (system_config, duty slots, violation types) is now fully mapped but
+  still unfixed — worth a small follow-up before Phase 3 needs richer e2e coverage than login.

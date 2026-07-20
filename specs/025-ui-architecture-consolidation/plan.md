@@ -117,6 +117,53 @@ now carries the same `react-refresh` warning `BottomDrawer.jsx` already had — 
 the duplication these two components represent has already doubled the warning, not just the
 code.
 
-## Next steps (not this session)
+## Phase 2 progress (2026-07-19, branch `feat/responsive-sheet` off `chore/ui-architecture-phase1` @ 872cc6b)
 
-Phase 2 begins with `ResponsiveSheet` (highest priority — replaces `BottomDrawer`, `SheetModal`, and direct Radix/Vaul usage). Do not start Phase 2 component code without explicit go-ahead — this branch is Phase 1 (docs/governance) only, per user instruction to keep phases isolated and tested before anything merges.
+`ResponsiveSheet` (`client/src/components/ui/ResponsiveSheet.jsx`) is built and has its first
+representative-screen migration: `RecordViolationModal.jsx`. Full detail in
+`specs/025-ui-architecture-consolidation/handoff.md`. Summary:
+
+- `ResponsiveSheet` is `SheetModal.jsx` promoted to canonical, not a rewrite: same Radix Dialog +
+  Framer Motion internals (already live-verified via the `spike/radix-sheet-modal` work), same
+  `open`/`onClose`/`title`/`subtitle`/`children`/`footer` contract, plus the full spec's `size`
+  (`sm`/`md`/`lg`/`xl` desktop widths — `md`=520px matches the old hardcoded value exactly, so
+  every caller that omits `size` sees zero visual change), `mobileMode` (`sheet` default /
+  `fullscreen`, only `sheet` has a live consumer so far), and `confirmClose` +
+  `onDismissAttempt` (unsaved-change interception — implemented, not yet exercised by any
+  consumer). Icon swapped from `lucide-react`'s `X` to `@tabler/icons-react`'s `IconX` per the
+  Phase 1 governance rule.
+- `RecordViolationModal.jsx` previously branched `if (isMobile)` between `SheetModal` (mobile)
+  and a completely separate `FormModal` (desktop) — literally the anti-pattern `ResponsiveSheet`
+  exists to fix. Collapsed to one unconditional `<ResponsiveSheet size="xl">` call; `FormModal`
+  import removed from this file only (still used by 6 other files — not touched, not deprecated,
+  it's a different, valid pattern for plain Mantine-Modal-shaped forms, out of scope here).
+- **Not yet touched**: `BottomDrawer`'s other 7 consumers (`ComposeDrawer`, `StudentDetailsDrawer`,
+  `ProfileDrawer`, `UploadStudentsDrawer`, `ViolationTypeDrawer`, `ReportsPage`, and
+  `CreateUserDrawer` — the last one may already be dead code per the `fix/audit-high-findings`
+  "drop dead CreateUserDrawer" commit, worth confirming before migrating it). `SheetModal.jsx`
+  and `BottomDrawer.jsx` are both left in place — deleted only once a repo-wide search returns
+  zero usages, per the migration procedure.
+
+## Phase 2 complete (2026-07-19, same branch `feat/responsive-sheet`)
+
+All 7 Phase 2 component line items now have a canonical implementation and at least one
+representative-screen migration, per the "build once, migrate one screen, test, defer full
+rollout to Phase 3" procedure. Full detail in `handoff.md`. Summary table:
+
+| Component | Status | Representative migration |
+|---|---|---|
+| `ResponsiveSheet` | Built | `RecordViolationModal.jsx` (full — replaced both mobile+desktop branches) |
+| `AppButton` | Built | `DutySlotsPage.jsx` mobile Reassign button |
+| `AppField` (`AppSelect`/`AppTextInput`/`AppNumberInput`) | Built | `RecordViolationModal.jsx`'s 2 `Select` fields → `AppSelect` |
+| `AppCard`/`MobileListItem` primitives (`MobileList.jsx`) | Built | `DutySlotsPage.jsx` mobile card list |
+| `PageHeader` variants | Built (`centered` stays default — zero change for ~17 other callers) | `DutySlotsPage.jsx` → `variant="operational"` |
+| `ResponsiveDataView` | Built | `DutySlotsPage.jsx` (wraps its own mobile-card/desktop-table pair) |
+| `ConfirmDialog` (was going to be `ConfirmAction`) | **Already existed** — 11 consumers, no new build needed | N/A — documented as canonical instead |
+| Feedback (`Alert`, `Toast`) | **`Alert`/`Toast` already existed**, consolidated | `RecordViolationModal.jsx`'s 3 hand-styled banner `div`s → `Alert` |
+
+**Not in scope for Phase 2** (deferred to Phase 3's wave-by-wave rollout): migrating
+`BottomDrawer`'s other 7 consumers, migrating every other screen's raw buttons/selects/cards to
+the new primitives, the `sm`→`md` navbar breakpoint fix.
+
+Everything is uncommitted on `feat/responsive-sheet`, per the user's "nothing merges until
+tested" instruction.

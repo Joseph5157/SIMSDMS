@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { TextInput, Select, Checkbox, Switch } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import { ChevronRight } from 'lucide-react';
-import FormModal from '../ui/FormModal';
-import SheetModal, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/SheetModal';
+import { TextInput, Checkbox, Switch } from '@mantine/core';
+import { IconChevronRight } from '@tabler/icons-react';
+import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/ResponsiveSheet';
+import { AppSelect } from '../ui/AppField';
+import Alert from '../ui/Alert';
 import StudentSearchOverlay from '../ui/StudentSearchOverlay';
 import { useToast } from '../ui/Toast';
 import { useCreateViolation } from '../../hooks/useViolations';
@@ -23,7 +23,6 @@ function SectionLabel({ children }) {
 
 export default function RecordViolationModal({ open, onClose, adminMode = false }) {
   const toast = useToast();
-  const isMobile = useMediaQuery('(max-width: 639px)');
   // Duty slots/sessions are scheduled on IST calendar dates — derive "today" from
   // IST wall-clock, not the browser's local timezone (see server/lib/time.js).
   // Only the year/month are read from this below, so re-deriving it each render
@@ -149,62 +148,28 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     }
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    await submitViolation();
-  }
-
   const formBody = (
     <div className="flex flex-col">
 
       {/* ── Submit error ── */}
       {formError && (
-        <div
-          style={{
-            padding: '10px 14px', marginBottom: 16,
-            background: 'var(--color-red-bg)',
-            border: '1px solid var(--color-red-border)',
-            borderRadius: 'var(--radius-lg)',
-            color: 'var(--color-red-text)',
-            fontSize: 'var(--text-card)', fontWeight: 600,
-          }}
-        >
-          ⚠️ {formError}
+        <div style={{ marginBottom: 16 }}>
+          <Alert tone="danger" icon="⚠️">{formError}</Alert>
         </div>
       )}
 
       {/* ── Session status (faculty) / admin authority note (admin) ── */}
-      {adminMode ? (
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 14px', marginBottom: 16,
-            background: 'var(--color-blue-50)',
-            border: '1px solid var(--color-blue-200)',
-            borderRadius: 'var(--radius-lg)',
-            color: 'var(--color-blue-700)',
-            fontSize: 'var(--text-card)', fontWeight: 600,
-          }}
-        >
-          🛡️ Recording as Admin — no duty session required.
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '10px 14px', marginBottom: 16,
-            background: sessionActive ? 'var(--color-emerald-bg)' : 'var(--color-amber-bg)',
-            border: `1px solid ${sessionActive ? 'var(--color-emerald-border)' : 'var(--color-amber-border)'}`,
-            borderRadius: 'var(--radius-lg)',
-            color: sessionActive ? 'var(--color-emerald-text)' : 'var(--color-amber-text)',
-            fontSize: 'var(--text-card)', fontWeight: 600,
-          }}
-        >
-          {sessionActive
-            ? `✓ Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
-            : '⚠️ Student violations can only be recorded during an active duty session.'}
-        </div>
-      )}
+      <div style={{ marginBottom: 16 }}>
+        {adminMode ? (
+          <Alert tone="info" icon="🛡️">Recording as Admin — no duty session required.</Alert>
+        ) : sessionActive ? (
+          <Alert tone="success" icon="✓">
+            {`Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+          </Alert>
+        ) : (
+          <Alert tone="warning" icon="⚠️">Student violations can only be recorded during an active duty session.</Alert>
+        )}
+      </div>
 
       {/* ── Quick-add toggle ── */}
       <div className="flex items-center justify-between pb-4">
@@ -234,7 +199,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
             {new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
           </div>
         ) : (
-          <Select
+          <AppSelect
             placeholder="Select duty slot…"
             value={effectiveDutySlotId || null}
             onChange={(value) => { setForm(f => ({ ...f, duty_slot_id: value ?? '' })); clearFieldError('duty_slot_id'); }}
@@ -244,7 +209,6 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
               value: String(s.id),
               label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
             }))}
-            comboboxProps={{ withinPortal: false }}
           />
         )}
       </div>
@@ -269,7 +233,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
           >
             {studentQ || 'Search by name or reg. number…'}
           </span>
-          <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)]" />
+          <IconChevronRight size={18} className="shrink-0 text-[var(--text-muted)]" />
         </button>
         {fieldErrors.student_id && (
           <p style={{ fontSize: 'var(--text-micro)', color: 'var(--color-red-text)', marginTop: -4 }}>
@@ -283,7 +247,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       {/* ── Violation type + Fine ── */}
       <div className="flex flex-col gap-4 py-6">
         <SectionLabel>Student Violation</SectionLabel>
-        <Select
+        <AppSelect
           label="Student violation type"
           placeholder="Select type…"
           value={form.violation_type_id || null}
@@ -294,7 +258,6 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
             value: String(t.id),
             label: `${t.name} (₹${t.default_fine})`,
           }))}
-          comboboxProps={{ withinPortal: false }}
         />
         {isOthers && (
           <TextInput
@@ -370,50 +333,31 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     />
   );
 
-  if (isMobile) {
-    return (
-      <>
-        <SheetModal
-          open={open}
-          onClose={onClose}
-          title="Record Student Violation"
-          footer={
-            <>
-              <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-              <button
-                disabled={create.isPending || !canSubmit}
-                onClick={submitViolation}
-                style={primaryBtnStyle(create.isPending || !canSubmit)}
-              >
-                {create.isPending && <DrawerSpinner />}
-                {create.isPending ? 'Recording…' : 'Record Student Violation'}
-              </button>
-            </>
-          }
-        >
-          <div style={{ padding: '16px 20px 8px' }}>
-            {formBody}
-          </div>
-        </SheetModal>
-        {searchOverlay}
-      </>
-    );
-  }
-
   return (
     <>
-      <FormModal
-        opened={open}
+      <ResponsiveSheet
+        open={open}
         onClose={onClose}
         title="Record Student Violation"
         size="xl"
-        onSubmit={handleSubmit}
-        submitLabel="Record Student Violation"
-        loading={create.isPending}
-        submitDisabled={!canSubmit}
+        footer={
+          <>
+            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+            <button
+              disabled={create.isPending || !canSubmit}
+              onClick={submitViolation}
+              style={primaryBtnStyle(create.isPending || !canSubmit)}
+            >
+              {create.isPending && <DrawerSpinner />}
+              {create.isPending ? 'Recording…' : 'Record Student Violation'}
+            </button>
+          </>
+        }
       >
-        {formBody}
-      </FormModal>
+        <div style={{ padding: '16px 20px 8px' }}>
+          {formBody}
+        </div>
+      </ResponsiveSheet>
       {searchOverlay}
     </>
   );

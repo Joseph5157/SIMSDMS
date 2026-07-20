@@ -36,7 +36,7 @@ ones to copy from.
 |---|---|---|
 | Desktop dialog | Mantine `Modal` | ad hoc dialogs |
 | Mobile bottom sheet / full-screen task | `ResponsiveSheet` | `BottomDrawer`, `SheetModal`, direct Radix/Vaul usage |
-| Confirmation (especially destructive actions) | `ConfirmAction` | mixed inline confirm patterns |
+| Confirmation (especially destructive actions) | `ConfirmDialog` (already exists — see §3 note below) | mixed inline confirm patterns |
 | Dropdown menu | Mantine `Menu` | — |
 | Tooltip | Mantine `Tooltip` | — |
 | Toast/feedback | Mantine notifications | custom toast/banner variants |
@@ -57,6 +57,10 @@ repo-wide usage search returns zero, per the migration procedure in
 | Tables/lists | `Table.jsx` (`MTable.ScrollContainer` + `whitespace-nowrap`) used inconsistently alongside dedicated mobile-card pages and column-hiding — 3 different strategies across the app today | `ResponsiveDataView` — see `docs/MOBILE_PATTERNS.md` for which pattern each data type gets |
 | Page headers | `Layout.jsx` `PageHeader` — hardcoded `<Stack align="center" ... text-center>`, no variant prop exists | `PageHeader` with `operational` / `centered` / `compact` variants — see `docs/MOBILE_PATTERNS.md` |
 | Icons | `@tabler/icons-react` (7 files) and `lucide-react` (9 files) both live | Tabler only |
+| Confirmation | Already consolidated — `ConfirmDialog.jsx`, 11 consumers | `ConfirmDialog` (keep as-is, do not rebuild) |
+| Toast/banner feedback | Already consolidated — `Toast.jsx` (single `ToastProvider`/`useToast`) and `Alert.jsx` (single tone-based banner: info/success/warning/danger/telegram) both exist as single canonical implementations | Use `Alert` instead of hand-rolled inline-styled banner `div`s — e.g. `RecordViolationModal.jsx` had 3 duplicating `Alert`'s exact styling before its Phase 2 migration |
+| Buttons | Mixed: Mantine `Button` with inline `styles={{root:{minHeight:'var(--control-min)'}}}` boilerplate repeated per-call, plus raw `<button>` in places (e.g. `ResponsiveSheet`'s `cancelBtnStyle`/`primaryBtnStyle` sheet-footer buttons — deliberately kept raw/non-Mantine for that context, not migrated to `AppButton`) | `AppButton` — bakes in the 44px touch-target fix once instead of per-call, for Mantine-backed usage sites |
+| Form fields | Mantine inputs used correctly but repeat gotcha-prone props per call (e.g. `comboboxProps={{ withinPortal: false }}` on every `Select` inside an overlay — see `[[mantine_select_in_drawer_gotcha]]`) | `AppSelect`/`AppTextInput`/`AppNumberInput` thin wrappers bake the gotcha fix in once |
 
 New shared components land in `client/src/components/ui/` (where `BottomDrawer.jsx`,
 `SheetModal.jsx`, `FormModal.jsx` already live) — this repo does not use a separate
@@ -107,12 +111,21 @@ hex or `blue-600`/`slate-500` Tailwind utility) so a future brand-color change i
 ## 5. Prohibited patterns (effective immediately, Phase 1)
 
 - No new direct `import` of `@radix-ui/react-dialog`, `vaul`, or `framer-motion` in
-  `client/src/pages/**` or `client/src/components/**` outside `ui/ResponsiveSheet.jsx` (once it
-  exists). Existing `BottomDrawer`/`SheetModal`/`StudentSearchOverlay` usages are grandfathered
-  until their Phase 2/3 migration.
+  `client/src/pages/**` or `client/src/components/**` outside `ui/ResponsiveSheet.jsx` (built
+  Phase 2, 2026-07-19). Existing `BottomDrawer`/`SheetModal`/`StudentSearchOverlay` usages are
+  grandfathered until their migration.
 - No new `import` from `lucide-react`. Use `@tabler/icons-react`.
 - No new static inline `style={{ padding: '16px', borderRadius: '12px', ... }}` objects. Inline
   `style` is for runtime-computed values only.
+- **No Tailwind class built from a JS template literal or string concatenation**, e.g.
+  `` `sm:max-w-[${size}px]` ``. Tailwind generates CSS by statically scanning source files for
+  complete class-name strings — it does not execute your JS, so it can't see what an
+  interpolated value resolves to and silently never generates the rule. The class name still
+  shows up in the rendered DOM (harmless-looking on inspection), but no CSS backs it, so the
+  style silently does nothing. Caught this exact bug while building `ResponsiveSheet`'s `size`
+  prop (2026-07-19) before it shipped. **Fix:** compute the value in JS and apply it via inline
+  `style`, gated on whatever breakpoint/condition you already have in JS (e.g. a
+  `useMediaQuery` result) — never try to hand Tailwind a dynamic arbitrary-value class.
 - No new raw `<button>`/`<input>` reimplementing what Mantine already provides.
 - No new UI or icon library added without an explicit `CONSTITUTION.md` amendment.
 
@@ -121,7 +134,9 @@ hex or `blue-600`/`slate-500` Tailwind utility) so a future brand-color change i
 - Feature code imports shared controls from `client/src/components/ui/`.
 - Every new operational list screen must state its mobile rendering strategy explicitly (card,
   compact row, or scroll table) — see `docs/MOBILE_PATTERNS.md` for the decision rule.
-- Destructive actions use the shared confirmation pattern once `ConfirmAction` exists (Phase 2).
+- Destructive actions use the shared confirmation pattern — `ConfirmDialog`
+  (`client/src/components/ui/ConfirmDialog.jsx`), already built, already the canonical pattern
+  with 11 consumers as of 2026-07-19.
 - This file and `CONSTITUTION.md` §2 must be updated together if a responsibility changes —
   `CONSTITUTION.md` is the version-numbered, enforced source of truth; this file is the detail
   behind it.
