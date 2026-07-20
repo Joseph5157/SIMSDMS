@@ -113,28 +113,28 @@ export default function FlaggedViolationsPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
-        {isError && <div style={{ padding: 24 }}><Button variant="subtle" size="xs" onClick={refetch}>Retry</Button></div>}
-        {!isLoading && !isError && !filtered.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No flagged violations.</div>}
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
+        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isError && <div className="p-6"><Button variant="subtle" size="xs" onClick={refetch}>Retry</Button></div>}
+        {!isLoading && !isError && !filtered.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No flagged violations.</div>}
         {filtered.map((v, i) => (
-          <div key={v.id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', backgroundColor: v.is_flagged ? 'var(--color-amber-bg)' : 'var(--surface-card)' }}>
+          <div key={v.id} className={`px-4 py-3.5 border-b border-[var(--border)] ${v.is_flagged ? 'bg-[var(--color-amber-bg)]' : 'bg-[var(--surface-card)]'}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis">
                   {(i + 1)}. {v.student?.student_name}
                 </p>
-                <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+                <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">
                   {v.student?.registration_number} • {v.student?.course}
                 </p>
               </div>
               <Badge status={v.is_flagged ? 'flagged' : 'completed'} label={v.is_flagged ? '⚑ Pending' : 'Reviewed'} />
             </div>
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)', marginTop: 4 }}>{v.violationType?.name}</p>
-            <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
+            <p className="text-[length:var(--text-small)] text-[var(--text-secondary)] mt-1">{v.violationType?.name}</p>
+            <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-0.5">
               Faculty: {recorderName(v.faculty)} · Duty {fmtDate(v.dutySlot?.duty_date)} · Recorded {fmtDate(v.created_at)}
             </p>
-            {v.flag_note && <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-secondary)', marginTop: 4 }}>Note: {v.flag_note}</p>}
+            {v.flag_note && <p className="text-[length:var(--text-micro)] text-[var(--text-secondary)] mt-1">Note: {v.flag_note}</p>}
             <div className="flex justify-end gap-1 mt-2">
               {v.is_flagged && !v.flag_resolved_at && (
                 <Button variant="subtle" size="xs" onClick={() => setResolving(v)}>Mark as Reviewed</Button>
