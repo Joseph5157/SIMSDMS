@@ -112,22 +112,18 @@ export default function SlotPickerPage({ user }) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <Layout user={user}>
-      <div style={{ textAlign: 'center', paddingTop: 16, paddingBottom: 10, marginBottom: 12, borderBottom: '1px solid var(--border-strong)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>My Duty Slots</h2>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Pick your duty slots for the month</p>
+      <div className="text-center pt-4 pb-2.5 mb-3 border-b border-[var(--border-strong)]">
+        <h2 className="text-[18px] font-[var(--weight-bold)] leading-[1.3] m-0">My Duty Slots</h2>
+        <p className="text-[12px] text-[var(--text-muted)] mt-1 mb-0">Pick your duty slots for the month</p>
       </div>
 
       {/* ── Window status ── */}
       {loadingAvail ? (
         <Skeleton height="44px" className="rounded-xl mb-4" />
       ) : windowOpen ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)',
-          borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: 'var(--color-emerald-solid)', flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: 'var(--color-emerald-text)', margin: 0 }}>
+        <div className="flex items-center gap-2.5 bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5 mb-4">
+          <span className="w-[7px] h-[7px] rounded-[var(--radius-full)] bg-[var(--color-emerald-solid)] shrink-0" />
+          <p className="text-[13px] text-[var(--color-emerald-text)] m-0">
             Window <strong>open</strong> ·{' '}
             {loadingMine
               ? <Skeleton width="80px" height="12px" className="inline-block" />
@@ -135,64 +131,49 @@ export default function SlotPickerPage({ user }) {
           </p>
         </div>
       ) : (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: 'var(--surface-page)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)', padding: '10px 14px', marginBottom: 16,
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: 'var(--text-muted)', flexShrink: 0 }} />
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>
+        <div className="flex items-center gap-2.5 bg-[var(--surface-page)] border border-[var(--border)] rounded-[var(--radius-lg)] px-3.5 py-2.5 mb-4">
+          <span className="w-[7px] h-[7px] rounded-[var(--radius-full)] bg-[var(--text-muted)] shrink-0" />
+          <p className="text-[13px] text-[var(--text-muted)] m-0">
             Scheduling window is <strong>closed</strong>.
           </p>
         </div>
       )}
 
       {/* ── Calendar ── */}
-      <div className="md:max-w-[420px]" style={{
-        background: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)',
-        padding: '16px', marginBottom: 20,
-      }}>
+      <div className="md:max-w-[420px] bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-4 mb-5">
         {/* Month nav */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <button onClick={prevMonth} style={{
-            width: 44, height: 44, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
-            background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>‹</button>
-          <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={prevMonth} className="w-11 h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] cursor-pointer text-[16px] text-[var(--text-secondary)] flex items-center justify-center">‹</button>
+          <p className="font-[var(--weight-bold)] text-[15px] text-[var(--text-primary)] m-0">
             {MONTH_NAMES[month - 1]} {year}
           </p>
-          <button onClick={nextMonth} style={{
-            width: 44, height: 44, borderRadius: 'var(--radius-md)', border: '1px solid var(--border)',
-            background: 'var(--surface-page)', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>›</button>
+          <button onClick={nextMonth} className="w-11 h-11 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-page)] cursor-pointer text-[16px] text-[var(--text-secondary)] flex items-center justify-center">›</button>
         </div>
 
         {/* Legend — above grid */}
-        <div style={{ display: 'flex', gap: 14, marginBottom: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-blue-500)', display: 'inline-block' }} />
-            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Morning</span>
+        <div className="flex gap-3.5 mb-2.5 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[var(--radius-full)] bg-[var(--color-blue-500)] inline-block" />
+            <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Morning</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-orange-solid)', display: 'inline-block' }} />
-            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Afternoon</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[var(--radius-full)] bg-[var(--color-orange-solid)] inline-block" />
+            <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Afternoon</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-emerald-solid)', display: 'inline-block' }} />
-            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Picked</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[var(--radius-full)] bg-[var(--color-emerald-solid)] inline-block" />
+            <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Picked</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--radius-full)', background: 'var(--color-slate-400)', display: 'inline-block' }} />
-            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Past</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-[var(--radius-full)] bg-[var(--color-slate-400)] inline-block" />
+            <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Past</span>
           </div>
         </div>
 
         {/* Day-of-week headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 4 }}>
+        <div className="grid grid-cols-7 mb-1">
           {DAY_LABELS.map((d, i) => (
-            <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', padding: '4px 0' }}>
+            <div key={i} className="text-center text-[10px] font-[var(--weight-bold)] text-[var(--text-muted)] py-1">
               {d}
             </div>
           ))}
@@ -200,13 +181,13 @@ export default function SlotPickerPage({ user }) {
 
         {/* Loading state */}
         {(loadingAvail || loadingMine) ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+          <div className="grid grid-cols-7 gap-[3px]">
             {Array.from({ length: 35 }).map((_, i) => (
               <Skeleton key={i} height="40px" className="rounded-lg" />
             ))}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+          <div className="grid grid-cols-7 gap-[3px]">
             {cells.map((dateStr, i) => {
               if (!dateStr) return <div key={i} />;
 
@@ -246,35 +227,30 @@ export default function SlotPickerPage({ user }) {
                   aria-label={ariaLabel}
                   aria-pressed={isSelected}
                   aria-disabled={!isClickable}
+                  className="w-full aspect-square rounded-[var(--radius-md)] flex flex-col items-center justify-center p-0.5 gap-0.5 transition-[transform,background-color] duration-150 ease-in-out"
                   style={{
-                    width: '100%', aspectRatio: '1', borderRadius: 'var(--radius-md)',
                     border: border || '1px solid transparent',
-                    background: bg, cursor: isClickable ? 'pointer' : 'default',
-                    display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    padding: 2, gap: 2,
+                    background: bg,
+                    cursor: isClickable ? 'pointer' : 'default',
                     transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                    transition: 'transform 0.15s ease, background-color 0.15s ease',
                   }}
                 >
-                  <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color, lineHeight: 1 }}>
+                  <span className="text-[13px] leading-none" style={{ fontWeight: isToday ? 700 : 500, color }}>
                     {d}
                   </span>
                   {/* Session dots */}
-                  <div style={{ display: 'flex', gap: 3, minHeight: 8 }}>
+                  <div className="flex gap-[3px] min-h-2">
                     {(hasMorn || pickedMorn) && (
-                      <span style={{
-                        width: 8, height: 8, borderRadius: 'var(--radius-full)',
-                        background: pickedMorn ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-blue-500)',
-                        flexShrink: 0,
-                      }} />
+                      <span
+                        className="w-2 h-2 rounded-[var(--radius-full)] shrink-0"
+                        style={{ background: pickedMorn ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-blue-500)' }}
+                      />
                     )}
                     {(hasAftern || pickedAftern) && (
-                      <span style={{
-                        width: 8, height: 8, borderRadius: 'var(--radius-full)',
-                        background: pickedAftern ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-orange-solid)',
-                        flexShrink: 0,
-                      }} />
+                      <span
+                        className="w-2 h-2 rounded-[var(--radius-full)] shrink-0"
+                        style={{ background: pickedAftern ? (isPast ? 'var(--color-slate-400)' : 'var(--color-emerald-solid)') : 'var(--color-orange-solid)' }}
+                      />
                     )}
                   </div>
                 </button>
@@ -294,20 +270,16 @@ export default function SlotPickerPage({ user }) {
           const d            = new Date(selected);
 
           return (
-            <div ref={panelRef} style={{
-              marginTop: 14, padding: 14,
-              background: 'var(--surface-page)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
-              scrollMarginTop: 80, scrollMarginBottom: 80,
-            }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>
+            <div ref={panelRef} className="mt-3.5 p-3.5 bg-[var(--surface-page)] border border-[var(--border)] rounded-[var(--radius-lg)] scroll-mt-20 scroll-mb-20">
+              <p className="text-[13px] font-[var(--weight-bold)] text-[var(--text-primary)] mt-0 mb-2.5">
                 {DAY_LABELS_FULL[d.getDay()]}, {d.getDate()} {MONTH_NAMES[d.getMonth()]}
               </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 {/* Morning */}
                 {pickedMorn ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Morning picked</span>
+                  <div className="flex items-center justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
+                    <span className="text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">✅ Morning picked</span>
                   </div>
                 ) : hasMorn ? (
                   <Button
@@ -315,7 +287,7 @@ export default function SlotPickerPage({ user }) {
                     loading={pickingId === `${selected}|morning`}
                     disabled={!!pickingId && pickingId !== `${selected}|morning`}
                     onClick={() => handlePick(selected, 'morning')}
-                    leftSection={<span style={{ fontSize: 11, background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>AM</span>}
+                    leftSection={<span className="text-[11px] bg-[rgba(255,255,255,0.25)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">AM</span>}
                   >
                     Pick Morning ({morningStartLabel})
                   </Button>
@@ -323,8 +295,8 @@ export default function SlotPickerPage({ user }) {
 
                 {/* Afternoon */}
                 {pickedAftern ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-emerald-bg)', border: '1px solid var(--color-emerald-border)', borderRadius: 'var(--radius-lg)', padding: '10px 14px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--color-emerald-text)', fontWeight: 600 }}>✅ Afternoon picked</span>
+                  <div className="flex items-center justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
+                    <span className="text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">✅ Afternoon picked</span>
                   </div>
                 ) : hasAftern ? (
                   <Button
@@ -333,14 +305,14 @@ export default function SlotPickerPage({ user }) {
                     disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
                     onClick={() => handlePick(selected, 'afternoon')}
                     style={{ background: 'var(--color-orange-bg)', color: 'var(--color-orange-solid)', border: '1px solid var(--color-orange-border)' }}
-                    leftSection={<span style={{ fontSize: 11, background: 'var(--color-orange-border)', padding: '2px 6px', borderRadius: 'var(--radius-sm)', fontWeight: 700 }}>PM</span>}
+                    leftSection={<span className="text-[11px] bg-[var(--color-orange-border)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">PM</span>}
                   >
                     Pick Afternoon ({afternoonStartLabel})
                   </Button>
                 ) : null}
 
                 {remainingSlots <= 0 && !pickedMorn && !pickedAftern && (
-                  <p style={{ fontSize: 12, color: 'var(--color-amber-text)', margin: 0, textAlign: 'center' }}>
+                  <p className="text-[12px] text-[var(--color-amber-text)] m-0 text-center">
                     You've reached your {requiredSlots}-slot limit. To change a picked slot, ask your Admin to reassign it, or request a reassignment from a colleague.
                   </p>
                 )}
@@ -351,11 +323,8 @@ export default function SlotPickerPage({ user }) {
 
         {/* No slots message when window is open but empty */}
         {windowOpen && !loadingAvail && (available?.data ?? []).length === 0 && (
-          <div style={{
-            marginTop: 16, padding: '12px 14px',
-            background: 'var(--color-amber-bg)', border: '1px solid var(--color-amber-border)', borderRadius: 'var(--radius-lg)',
-          }}>
-            <p style={{ fontSize: 12, color: 'var(--color-amber-text)', margin: 0 }}>
+          <div className="mt-4 px-3.5 py-3 bg-[var(--color-amber-bg)] border border-[var(--color-amber-border)] rounded-[var(--radius-lg)]">
+            <p className="text-[12px] text-[var(--color-amber-text)] m-0">
               ⚠️ No slots set up for this month yet. Ask your Admin to configure working days on the Duty Calendar page.
             </p>
           </div>
@@ -364,31 +333,27 @@ export default function SlotPickerPage({ user }) {
 
       {/* ── My Picks summary ── */}
       <div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        <p className="text-[11px] font-[var(--weight-bold)] text-[var(--text-muted)] uppercase tracking-[var(--tracking-wide)] mb-2.5">
           My picks · {pickedCount} / {requiredSlots} required
         </p>
         {loadingMine ? (
           <Skeleton height="52px" className="rounded-xl" />
         ) : !mySlots?.data?.length ? (
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>
+          <p className="text-[13px] text-[var(--text-muted)] text-center py-4">
             Tap a highlighted date above to pick your slots.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="flex flex-col gap-1.5">
             {mySlots.data.map((s) => {
               const key = String(s.duty_date).slice(0, 10);
               const d = new Date(key);
               return (
-                <div key={s.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)',
-                  padding: '10px 14px',
-                }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: 'var(--radius-full)', flexShrink: 0,
-                    background: s.session_type === 'morning' ? 'var(--color-blue-500)' : 'var(--color-orange-solid)',
-                  }} />
-                  <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: 0, textTransform: 'capitalize' }}>
+                <div key={s.id} className="flex items-center gap-2.5 bg-[var(--surface-card)] rounded-[var(--radius-lg)] border border-[var(--border)] px-3.5 py-2.5">
+                  <span
+                    className="w-2 h-2 rounded-[var(--radius-full)] shrink-0"
+                    style={{ background: s.session_type === 'morning' ? 'var(--color-blue-500)' : 'var(--color-orange-solid)' }}
+                  />
+                  <p className="flex-1 text-[13px] font-[var(--weight-semibold)] text-[var(--text-primary)] m-0 capitalize">
                     {s.session_type} · {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
                   </p>
                   <Badge status={s.status} />
