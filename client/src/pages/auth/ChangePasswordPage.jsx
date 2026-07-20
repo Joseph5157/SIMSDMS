@@ -3,12 +3,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
+import Alert from '../../components/ui/Alert';
 import { INSTITUTION_NAME, APP_SHORT_NAME } from '../../utils/branding';
 
 /* Shared Tailwind class string for password/text inputs */
 const fieldClass = (isLoading) => [
   'border-2 border-[var(--border)] rounded-[var(--radius-xl)] px-4 py-3.5',
-  'text-[var(--text-primary)]',
+  'text-[16px] text-[var(--text-primary)]',
   'outline-none w-full bg-[var(--surface-page)]',
   'transition-[border-color] duration-[var(--dur-fast)]',
   'focus:border-[var(--brand)]',
@@ -147,19 +148,9 @@ export default function ChangePasswordPage() {
 
         {/* Mandatory change banner */}
         {isMandatory && (
-          <div
-            className="rounded-[var(--radius-lg)] px-3.5 py-3 mb-5 flex gap-2.5 items-start"
-            style={{
-              backgroundColor: 'var(--color-amber-bg)',
-              border: '1px solid var(--color-amber-border)',
-              borderLeft: '3px solid var(--color-amber-solid)',
-            }}
-          >
-            <span className="text-base shrink-0">⚠️</span>
-            <p className="text-[length:var(--text-card)] text-[var(--color-amber-text)] leading-[var(--leading-snug)] m-0">
-              You must set a new password before continuing to access the system.
-            </p>
-          </div>
+          <Alert tone="warning" icon="⚠️" className="mb-5">
+            You must set a new password before continuing to access the system.
+          </Alert>
         )}
 
         <form onSubmit={handleChangePassword} className="flex flex-col gap-5">
@@ -183,7 +174,6 @@ export default function ChangePasswordPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
           </div>
@@ -199,7 +189,6 @@ export default function ChangePasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
             {newPassword.length > 0 && newPassword.length < 8 && (
@@ -220,7 +209,6 @@ export default function ChangePasswordPage() {
               onChange={(e) => setConfirmNewPassword(e.target.value)}
               required
               disabled={isLoading}
-              style={{ fontSize: 16 }}
               className={fieldClass(isLoading)}
             />
             {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
@@ -231,18 +219,7 @@ export default function ChangePasswordPage() {
           </div>
 
           {/* Error message */}
-          {error && (
-            <div
-              className="rounded-[var(--radius-lg)] px-3.5 py-3 text-[length:var(--text-card)] text-[var(--color-red-text)]"
-              style={{
-                backgroundColor: 'var(--color-red-bg)',
-                border: '1px solid var(--color-red-border)',
-                borderLeft: '3px solid var(--color-red-solid)',
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {error && <Alert tone="danger">{error}</Alert>}
 
           {/* Buttons */}
           <div className="flex flex-col gap-3">
