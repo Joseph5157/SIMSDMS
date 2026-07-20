@@ -75,15 +75,12 @@ export default function NotificationsPage({ user }) {
           { label: 'Notifications' },
         ]} />
         <PageHeader title="Notifications" subtitle="View and manage your notifications" />
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', minHeight: 400, gap: 16, padding: '48px 24px', textAlign: 'center',
-        }}>
-          <div style={{ fontSize: 48 }}>🔔</div>
-          <h2 style={{ fontSize: 'var(--text-h2)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 px-6 py-12 text-center">
+          <div className="text-[48px]">🔔</div>
+          <h2 className="text-[length:var(--text-h2)] font-[var(--weight-bold)] text-[var(--text-primary)] m-0">
             Notifications Not Yet Available
           </h2>
-          <p style={{ color: 'var(--text-muted)', maxWidth: 400, margin: 0 }}>
+          <p className="text-[var(--text-muted)] max-w-[400px] m-0">
             The notifications feature is currently under development. Check back soon for real-time updates and alerts.
           </p>
         </div>
@@ -151,7 +148,7 @@ export default function NotificationsPage({ user }) {
         title="Notifications"
         subtitle="View and manage your notifications"
         action={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             <Button variant="default" size="sm" onClick={markAllAsRead} disabled={notifications.length === 0}>
               Mark all read
             </Button>
@@ -163,21 +160,16 @@ export default function NotificationsPage({ user }) {
       />
 
       {/* Filters */}
-      <div style={{ marginBottom: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <div className="mb-4 flex gap-2 flex-wrap">
         {['all', 'unread', 'duty_assigned', 'duty_reassigned', 'violation', 'message'].map((f) => (
           <button
             key={f}
             onClick={() => { setFilter(f); setPage(1); }}
-            style={{
-              padding: '6px 12px', borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border)',
-              backgroundColor: filter === f ? 'var(--color-blue-600)' : 'transparent',
-              color: filter === f ? 'white' : 'var(--text-primary)',
-              fontSize: 'var(--text-card)', fontWeight: 'var(--weight-medium)',
-              cursor: 'pointer', transition: 'all var(--dur-fast)',
-            }}
-            onMouseEnter={(e) => { if (filter !== f) e.currentTarget.style.backgroundColor = 'var(--color-slate-100)'; }}
-            onMouseLeave={(e) => { if (filter !== f) e.currentTarget.style.backgroundColor = 'transparent'; }}
+            className={`px-3 py-1.5 rounded-[var(--radius-lg)] border border-[var(--border)] text-[length:var(--text-card)] font-[var(--weight-medium)] cursor-pointer transition-[background-color] duration-[var(--dur-fast)] ${
+              filter === f
+                ? 'bg-[var(--color-blue-600)] text-white'
+                : 'bg-transparent text-[var(--text-primary)] hover:bg-[var(--color-slate-100)]'
+            }`}
           >
             {f === 'all' ? 'All' : getNotificationTypeLabel(f)}
           </button>
@@ -203,32 +195,27 @@ export default function NotificationsPage({ user }) {
           {notifications.map((notif) => (
             <tr key={notif.id}>
               <Td>
-                <span style={{
-                  display: 'inline-block', padding: '4px 8px',
-                  borderRadius: 'var(--radius-md)', fontSize: 'var(--text-small)',
-                  fontWeight: 'var(--weight-semibold)', color: getTypeColor(notif.type),
-                  backgroundColor: `${getTypeColor(notif.type)}15`,
-                }}>
+                <span
+                  className="inline-block px-2 py-1 rounded-[var(--radius-md)] text-[length:var(--text-small)] font-[var(--weight-semibold)]"
+                  style={{ color: getTypeColor(notif.type), backgroundColor: `${getTypeColor(notif.type)}15` }}
+                >
                   {getNotificationTypeLabel(notif.type)}
                 </span>
               </Td>
               <Td className="font-medium">{notif.title}</Td>
-              <Td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>
+              <Td className="max-w-[280px] overflow-hidden text-ellipsis whitespace-nowrap text-[var(--text-secondary)]">
                 {notif.message}
               </Td>
-              <Td style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)' }}>{formatDate(notif.createdAt)}</Td>
+              <Td className="text-[length:var(--text-micro)] text-[var(--text-muted)]">{formatDate(notif.createdAt)}</Td>
               <Td>
-                <span style={{
-                  display: 'inline-block', padding: '4px 8px', borderRadius: 'var(--radius-md)',
-                  fontSize: 'var(--text-small)', fontWeight: 'var(--weight-semibold)',
-                  backgroundColor: notif.readAt ? 'var(--color-slate-100)' : 'var(--color-blue-100)',
-                  color: notif.readAt ? 'var(--color-slate-700)' : 'var(--color-blue-700)',
-                }}>
+                <span className={`inline-block px-2 py-1 rounded-[var(--radius-md)] text-[length:var(--text-small)] font-[var(--weight-semibold)] ${
+                  notif.readAt ? 'bg-[var(--color-slate-100)] text-[var(--color-slate-700)]' : 'bg-[var(--color-blue-100)] text-[var(--color-blue-700)]'
+                }`}>
                   {notif.readAt ? 'Read' : 'Unread'}
                 </span>
               </Td>
               <Td>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div className="flex gap-1.5">
                   {!notif.readAt && (
                     <Button variant="subtle" size="xs" onClick={() => markAsRead(notif.id)}>
                       Mark read
