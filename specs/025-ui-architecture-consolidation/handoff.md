@@ -46,9 +46,11 @@ ALL LOCAL, nothing pushed. `git log --oneline 872cc6b..HEAD` shows them.
 
 **Remaining work, in order:**
 1. ~~**Wave 4** — migrate `ReportsPage.jsx`.~~ DONE `2b7ce95`. All page migration complete.
-2. **Navbar `sm`→`md` breakpoint** (Phase 3 item): Mantine navbar breakpoint is `sm`
-   while the mobile/desktop card-vs-table switch is at `md` — align them in
-   `client/src/components/Layout.jsx`.
+2. ~~**Navbar breakpoint unify.**~~ DONE `93c644e`. It was NOT a `sm`→`md` prop change —
+   that framing was based on a swapped token→pixel mapping. Reality: Mantine `sm` = 48em =
+   768px, and the navbar/Drawer were already at 768px; the outlier was `Layout.module.css`
+   chrome hardcoded at 640px, creating a 640–767px no-navigation dead-zone. Fix moved the
+   CSS 640→768. **Do NOT set `breakpoint:'md'` (=992px).** Phase 3 is now fully complete.
 3. **Phase 4** — add ESLint `no-restricted-imports` blocking feature code from importing
    `@radix-ui/react-dialog`/`framer-motion`/`vaul`/`lucide-react` directly (Radix+Framer
    allowed only inside `ResponsiveSheet`); then delete Vaul/Lucide/old
