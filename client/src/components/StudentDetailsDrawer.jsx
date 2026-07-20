@@ -1,4 +1,4 @@
-import BottomDrawer, { cancelBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { cancelBtnStyle } from './ui/ResponsiveSheet';
 import Badge from './ui/Badge';
 import { useStudent } from '../hooks/useStudents';
 import { useViolations } from '../hooks/useViolations';
@@ -49,7 +49,7 @@ export default function StudentDetailsDrawer({ studentId, onClose }) {
   const breakdownEntries = Array.from(breakdown.entries()).sort((a, b) => b[1] - a[1]);
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={!!studentId}
       onClose={onClose}
       title={isLoading ? 'Loading…' : (student?.student_name ?? 'Student')}
@@ -97,6 +97,6 @@ export default function StudentDetailsDrawer({ studentId, onClose }) {
           </>
         )}
       </div>
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }

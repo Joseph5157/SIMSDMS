@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { TextInput } from '@mantine/core';
-import BottomDrawer, { cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 
 const sectionTitle = "text-[length:var(--text-micro)] font-[800] text-[color:var(--text-muted)] uppercase tracking-[0.12em]";
 
@@ -74,7 +74,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
   }
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={open}
       onClose={inviteLink ? resetAndClose : onClose}
       title={inviteLink ? 'Invite created' : 'Invite user'}
@@ -189,6 +189,6 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
 
         </form>
       )}
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }

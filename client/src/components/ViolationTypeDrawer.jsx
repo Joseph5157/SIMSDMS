@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TextInput, NumberInput } from '@mantine/core';
-import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import { useCreateViolationType, useUpdateViolationType } from '../hooks/useViolationTypes';
 import { useToast } from './ui/Toast';
 
@@ -46,7 +46,7 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
   const canSubmit = form.name.trim() && form.default_fine !== '';
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={open}
       onClose={onClose}
       title={editing ? 'Edit student violation type' : 'New student violation type'}
@@ -89,6 +89,6 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
           onChange={(value) => setForm(f => ({ ...f, default_fine: value }))}
         />
       </form>
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }

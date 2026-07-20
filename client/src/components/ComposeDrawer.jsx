@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, AlignLeft, MessageSquare } from 'lucide-react';
-import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import { useSendMessage } from '../hooks/useMessages';
 import { useMessageRecipients } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
@@ -69,7 +69,7 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
   const canSend = form.to_user_id && form.body.trim();
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={open}
       onClose={onClose}
       title="New message"
@@ -126,6 +126,6 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
         </div>
 
       </form>
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorBlock } from '../../components/ui/Table';
 import Badge from '../../components/ui/Badge';
-import BottomDrawer from '../../components/ui/BottomDrawer';
+import ResponsiveSheet from '../../components/ui/ResponsiveSheet';
 import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
@@ -867,16 +867,16 @@ export default function ReportsPage({ user }) {
         </div>
       ))}
 
-      {/* Mobile: BottomDrawer for report results */}
+      {/* Mobile: ResponsiveSheet for report results */}
       {isMobile && (
-        <BottomDrawer
+        <ResponsiveSheet
           open={!!active}
           onClose={() => setActive(null)}
           title={activeReport?.label ?? ''}
           subtitle={activeReport?.desc}
         >
           {reportContent}
-        </BottomDrawer>
+        </ResponsiveSheet>
       )}
 
       {/* Desktop: inline result panel */}

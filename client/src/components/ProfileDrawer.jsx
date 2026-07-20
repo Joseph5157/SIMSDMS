@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Building2, IdCard, Tag, Mail, KeyRound, ChevronRight } from 'lucide-react';
-import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import UserAvatar from './ui/UserAvatar';
 import { useUpdateProfile } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
@@ -86,7 +86,7 @@ export default function ProfileDrawer({ open, onClose, user }) {
   const canSave = form.name.trim().length > 0;
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={open}
       onClose={onClose}
       title="Profile settings"
@@ -193,6 +193,6 @@ export default function ProfileDrawer({ open, onClose, user }) {
         </button>
 
       </form>
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }

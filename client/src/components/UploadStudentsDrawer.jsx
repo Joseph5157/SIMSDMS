@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileText, Download } from 'lucide-react';
-import BottomDrawer, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/BottomDrawer';
+import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
 import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
 import { Checkbox } from '@mantine/core';
@@ -73,7 +73,7 @@ export default function UploadStudentsDrawer({ open, onClose }) {
   }
 
   return (
-    <BottomDrawer
+    <ResponsiveSheet
       open={open}
       onClose={handleClose}
       title="Upload students"
@@ -272,6 +272,6 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         )}
 
       </div>
-    </BottomDrawer>
+    </ResponsiveSheet>
   );
 }
