@@ -36,7 +36,7 @@ export default function PendingReassignmentRequests() {
 
   return (
     <div className="mb-4">
-      <p style={{ fontSize: 'var(--text-micro)', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+      <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
         Reassignment requests for you
       </p>
       <div className="flex flex-col gap-2">
@@ -44,11 +44,11 @@ export default function PendingReassignmentRequests() {
           const d = new Date(r.dutySlot.duty_date);
           return (
             <div key={r.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-              <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: 'var(--color-amber-600)' }} />
-              <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-amber-600)]" />
+              <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)]">
                 {r.fromFaculty?.name} wants you to take over their {r.dutySlot.session_type} duty
               </p>
-              <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 2 }}>
+              <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-0.5">
                 {d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
                 {r.reason ? ` · ${r.reason}` : ''}
               </p>
