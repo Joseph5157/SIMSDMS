@@ -5,19 +5,26 @@
 
 ## Breakpoints
 
-**Current state (confirmed 2026-07-19):** `client/src/components/Layout.jsx` switches the
-Mantine `AppShell` navbar (desktop sidebar → mobile hamburger) at `sm` (~640px), but most
-page-level mobile-card-vs-desktop-table switches (e.g. `DutySlotsPage.jsx`'s
-`md:hidden`/`hidden md:block` pair) happen at `md` (~768px). Between 640–768px, a device can get
-the **desktop sidebar** (eating horizontal space) at the same time as **mobile-card content** —
-the two systems disagree.
+**The single cutoff is 768px.** Below 768px the app is in mobile chrome (hamburger + bottom
+tab bar, sidebar collapsed); at 768px and above it shows the desktop sidebar. The dominant
+page-level mobile-card-vs-desktop-table switch uses Tailwind `md:` (`md:hidden` / `hidden
+md:block`), which is also 768px, so shell and content agree.
 
-**Rule:** the navbar breakpoint moves to `md` in Phase 3 (`Layout.jsx` `navbar={{ breakpoint:
-'md', ... }}`) so both systems agree on the same cutoff. This is a Phase 3 change (touches the
-live app shell on every screen) — not done in Phase 1.
+> **Token note (important — Mantine ≠ Tailwind naming):** in this stack **768px = Mantine
+> `sm` (48em) = Tailwind `md`**. `Layout.jsx` intentionally uses `navbar={{ breakpoint: 'sm'
+> }}` and the Drawer uses `hiddenFrom="sm"` — both resolve to 768px. Do **not** "fix" this to
+> Mantine `'md'`; that is 62em/992px and would re-introduce a dead-zone.
 
-- Mobile bottom navigation: below 768px (`md`)
-- Desktop sidebar: 768px (`md`) and above
+**Resolved (2026-07-20, Phase 3):** previously the Mantine navbar + Drawer cut over at 768px
+(`sm`) while the `Layout.module.css` chrome (mobile header / desktop header / bottom bar /
+page padding) was hardcoded at 640px — so between **640–767px** the CSS flipped to the desktop
+layout while the navbar was still collapsed, leaving the screen with **no navigation at all**.
+Fix: moved every `Layout.module.css` breakpoint from 640px → 768px to match the
+already-correct navbar. (Earlier drafts of this doc had the token→pixel mapping swapped and
+recommended changing the navbar prop to `'md'`; that was wrong — see the token note above.)
+
+- Mobile bottom navigation: below 768px
+- Desktop sidebar: 768px and above
 - Tablet-specific layout adjustments: 768–1024px, only where content genuinely benefits from a
   two-column treatment — don't force it
 

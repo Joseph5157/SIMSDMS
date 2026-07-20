@@ -210,10 +210,14 @@ export default function Layout({ user, children }) {
       </Drawer>
 
       <AppShell
+        // Mantine `sm` = 48em = 768px. The whole shell (this navbar, the mobile
+        // Drawer's hiddenFrom, the CSS-module header/bottom-bar, and the dominant
+        // page card↔table `md:` switch) all cut over at 768px — one unified
+        // breakpoint, no dead-zone. See docs/MOBILE_PATTERNS.md § Breakpoints.
         navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: true } }}
         padding={0}
       >
-        {/* Sidebar — desktop only (≥ 640px) */}
+        {/* Sidebar — desktop only (≥ 768px) */}
         <AppShell.Navbar p={0} style={{ border: 'none' }}>
           {sidebarContent}
         </AppShell.Navbar>
@@ -233,7 +237,7 @@ export default function Layout({ user, children }) {
           <NotificationBell role={user?.role} />
         </div>
 
-        {/* Desktop top header — visible on desktop only (≥ 640px) */}
+        {/* Desktop top header — visible on desktop only (≥ 768px) */}
         <div className={classes.desktopHeader}>
           <NotificationBell role={user?.role} />
         </div>
@@ -253,7 +257,7 @@ export default function Layout({ user, children }) {
         </AppShell.Main>
       </AppShell>
 
-      {/* ── Bottom tab bar — fixed, mobile only (hidden ≥ 640px via CSS) ── */}
+      {/* ── Bottom tab bar — fixed, mobile only (hidden ≥ 768px via CSS) ── */}
       <div className={classes.bottomBar}>
         {bottomTabs.map((tab) => (
           <RouterNavLink
