@@ -451,37 +451,31 @@ export default function ViolationsPage({ user }) {
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
-        {isLoading && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>Loading…</div>}
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
+        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No student violations found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No student violations found.</div>}
         {data?.data?.map((v, i) => (
-          <div key={v.id} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--border)', gap: 12,
-            opacity: v.record_status === 'hidden' ? 0.6 : 1,
-          }}>
-            <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>
+          <div key={v.id} className={`flex items-center justify-between px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)] gap-3 ${v.record_status === 'hidden' ? 'opacity-60' : ''}`}>
+            <span className="text-[length:var(--text-small)] text-[var(--text-muted)] font-[var(--weight-semibold)] shrink-0">
               {(page - 1) * 20 + i + 1}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="flex-1 min-w-0">
+              <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
                 {v.student?.student_name}
               </p>
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+              <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">
                 {v.student?.registration_number} • {v.violationType?.name}
               </p>
-              <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+              <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">
                 Recorded by: {recorderName(v.faculty)}
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <div className="flex items-center gap-1 shrink-0">
               {v.is_flagged && <Badge status="pending" label="Flagged" />}
               <Badge status={v.record_status} />
             </div>
-            <div style={{ display: 'flex', gap: 2, flexShrink: 0, marginLeft: 4 }}>
+            <div className="flex gap-0.5 shrink-0 ml-1">
               {v.is_flagged && !v.flag_resolved_at && (
                 <Button variant="subtle" size="xs" onClick={() => navigate(ROUTES.ADMIN_FLAGGED_VIOLATIONS)}>Review</Button>
               )}
