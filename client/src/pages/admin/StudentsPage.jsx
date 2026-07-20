@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Breadcrumb from '../../components/Breadcrumb';
 import { Table, Th, Td, Tr, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
-import { Button, Select, Checkbox } from '@mantine/core';
+import { Button, Checkbox } from '@mantine/core';
+import { AppSelect, AppTextInput } from '../../components/ui/AppField';
 import Badge from '../../components/ui/Badge';
 import FormModal from '../../components/ui/FormModal';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -69,14 +70,14 @@ function PromoteModal({ open, student, onClose }) {
       submitLabel="Promote"
       loading={promote.isPending}
     >
-      <Select
+      <AppSelect
         label="Year"
         data={YEAR_OPTIONS}
         value={form.year}
         onChange={(v) => setForm((f) => ({ ...f, year: v }))}
         required
       />
-      <Select
+      <AppSelect
         label="Semester"
         data={SEMESTER_OPTIONS}
         value={form.semester}
@@ -84,15 +85,11 @@ function PromoteModal({ open, student, onClose }) {
         required
         mt="sm"
       />
-      <input
+      <AppTextInput
+        mt="sm"
         placeholder="Academic Year e.g. 2025-26 (optional)"
         value={form.academic_year}
         onChange={(e) => setForm((f) => ({ ...f, academic_year: e.target.value }))}
-        style={{
-          marginTop: 12, width: '100%', padding: '8px 12px',
-          border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-          fontSize: 16,
-        }}
       />
     </FormModal>
   );
@@ -129,14 +126,14 @@ function BulkPromoteModal({ open, ids, onClose, onDone }) {
       submitLabel="Promote"
       loading={promote.isPending}
     >
-      <Select
+      <AppSelect
         label="Year"
         data={YEAR_OPTIONS}
         value={form.year}
         onChange={(v) => setForm((f) => ({ ...f, year: v }))}
         required
       />
-      <Select
+      <AppSelect
         label="Semester"
         data={SEMESTER_OPTIONS}
         value={form.semester}
@@ -144,15 +141,11 @@ function BulkPromoteModal({ open, ids, onClose, onDone }) {
         required
         mt="sm"
       />
-      <input
+      <AppTextInput
+        mt="sm"
         placeholder="Academic Year e.g. 2025-26 (optional)"
         value={form.academic_year}
         onChange={(e) => setForm((f) => ({ ...f, academic_year: e.target.value }))}
-        style={{
-          marginTop: 12, width: '100%', padding: '8px 12px',
-          border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-          fontSize: 16,
-        }}
       />
     </FormModal>
   );
@@ -268,22 +261,17 @@ export default function StudentsPage({ user }) {
       />
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
+      <div className="flex gap-2 flex-wrap mb-4 items-center">
         <input
           placeholder="Search name or reg. no…"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          style={{
-            flex: '1 1 180px', minWidth: 160,
-            border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-            padding: '7px 12px', fontSize: 16,
-            backgroundColor: 'var(--surface-card)',
-          }}
+          className="flex-[1_1_180px] min-w-40 border border-[var(--border)] rounded-[var(--radius-md)] px-3 py-[7px] text-[16px] bg-[var(--surface-card)]"
         />
         <select
           value={filterCourse}
           onChange={(e) => { setFilterCourse(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterCourse ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          className={`border border-[var(--border)] rounded-[var(--radius-md)] px-2.5 py-[7px] text-[16px] bg-[var(--surface-card)] ${filterCourse ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
         >
           <option value="">All courses</option>
           <option value="b_pharm">B.Pharm</option>
@@ -293,32 +281,28 @@ export default function StudentsPage({ user }) {
         <select
           value={filterYear}
           onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
-          style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '7px 10px', fontSize: 16, backgroundColor: 'var(--surface-card)', color: filterYear ? 'var(--text-primary)' : 'var(--text-muted)' }}
+          className={`border border-[var(--border)] rounded-[var(--radius-md)] px-2.5 py-[7px] text-[16px] bg-[var(--surface-card)] ${filterYear ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`}
         >
           <option value="">All years</option>
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={resetFilters} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', fontWeight: 600 }}>
+          <button onClick={resetFilters} className="text-[12px] text-[var(--text-secondary)] bg-transparent border-0 cursor-pointer px-1.5 py-1 font-[var(--weight-semibold)]">
             Clear
           </button>
         )}
       </div>
 
       {/* Mobile card list */}
-      <div className="md:hidden" style={{ backgroundColor: 'var(--surface-card)', borderRadius: 'var(--radius-2xl)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 16 }}>
+      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
         {!isLoading && !isError && data?.data?.length > 0 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 16px', borderBottom: '1px solid var(--border)',
-            backgroundColor: 'var(--surface-page)',
-          }}>
+          <div className="flex items-center gap-2.5 px-4 py-2.5 border-b border-[var(--border)] bg-[var(--surface-page)]">
             <Checkbox
               checked={allSelected}
               indeterminate={someSelected && !allSelected}
               onChange={toggleSelectAll}
             />
-            <span style={{ fontSize: 'var(--text-small)', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <span className="text-[length:var(--text-small)] font-[var(--weight-semibold)] text-[var(--text-secondary)]">
               {allSelected ? `All ${pageIds.length} selected` : `Select all (${pageIds.length})`}
             </span>
           </div>
@@ -326,13 +310,10 @@ export default function StudentsPage({ user }) {
         {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
         {!isLoading && !isError && !data?.data?.length && (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 'var(--text-card)' }}>No students found.</div>
+          <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No students found.</div>
         )}
         {data?.data?.map((s) => (
-          <div key={s.id} style={{
-            padding: '14px 16px', backgroundColor: 'var(--surface-card)',
-            borderBottom: '1px solid var(--border)',
-          }}>
+          <div key={s.id} className="px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)]">
             <div
               onClick={() => setViewingId(s.id)}
               role="button"
@@ -343,25 +324,22 @@ export default function StudentsPage({ user }) {
                   setViewingId(s.id);
                 }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                gap: 12, cursor: 'pointer',
-              }}
+              className="flex items-center justify-between gap-3 cursor-pointer"
             >
-              <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+              <span onClick={(e) => e.stopPropagation()} className="shrink-0">
                 <Checkbox checked={selectedIds.has(s.id)} onChange={() => toggleSelect(s.id)} />
               </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 'var(--text-card-lg)', fontWeight: 'var(--weight-semibold)', color: 'var(--text-primary)', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div className="flex-1 min-w-0">
+                <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
                   {s.student_name}
                 </p>
-                <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
+                <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">
                   {s.registration_number} · {COURSE_LABELS[s.course] ?? s.course} · Yr {s.year}, Sem {s.semester}
                 </p>
               </div>
               <Badge status={s.status} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+            <div className="flex gap-2 mt-2.5 pt-2.5 border-t border-[var(--border)]">
               <Button variant="subtle" size="xs" onClick={() => setPromoting(s)}>Promote</Button>
               <Button variant="subtle" size="xs" color="red" onClick={() => setDeleting(s)}>Delete</Button>
             </div>
@@ -423,35 +401,22 @@ export default function StudentsPage({ user }) {
         </Table>
       </div>
 
-      <div style={{
-        marginTop: 16, padding: '12px 16px',
-        backgroundColor: 'var(--surface-page)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
-        <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>Total students</span>
-        <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-bold)', color: 'var(--text-primary)' }}>
+      <div className="mt-4 px-4 py-3 bg-[var(--surface-page)] rounded-[var(--radius-lg)] border border-[var(--border)] flex justify-between items-center">
+        <span className="text-[length:var(--text-small)] text-[var(--text-secondary)]">Total students</span>
+        <span className="text-[length:var(--text-body)] font-[var(--weight-bold)] text-[var(--text-primary)]">
           {data?.meta?.total ?? 0}
         </span>
       </div>
 
       <Pagination meta={data?.meta} page={page} onPage={setPage} />
-      {selectedIds.size > 0 && <div style={{ height: 64 }} />}
+      {selectedIds.size > 0 && <div className="h-16" />}
 
       {selectedIds.size > 0 && (
-        <div
-          className="fixed left-0 right-0 z-40 bottom-[60px] sm:bottom-0"
-          style={{
-            backgroundColor: 'var(--surface-card)', borderTop: '1px solid var(--border)',
-            boxShadow: '0 -4px 12px rgba(0,0,0,0.06)',
-            padding: '10px 16px', display: 'flex', alignItems: 'center',
-            justifyContent: 'space-between', gap: 10, flexWrap: 'wrap',
-          }}
-        >
-          <span style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div className="fixed left-0 right-0 z-40 bottom-[60px] sm:bottom-0 bg-[var(--surface-card)] border-t border-[var(--border)] shadow-[0_-4px_12px_rgba(0,0,0,0.06)] px-4 py-2.5 flex items-center justify-between gap-2.5 flex-wrap">
+          <span className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)]">
             {selectedIds.size} selected
           </span>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             <Button variant="subtle" size="sm" onClick={clearSelection}>Clear</Button>
             <Button variant="light" size="sm" onClick={() => setShowBulkPromote(true)}>Bulk Promote</Button>
             <Button variant="light" color="red" size="sm" onClick={() => setBulkDeleting(true)}>Bulk Delete</Button>
