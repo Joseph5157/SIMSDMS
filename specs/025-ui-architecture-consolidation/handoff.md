@@ -1,6 +1,58 @@
 # Handoff Report
 
 ## task_id
+025-ui-architecture-consolidation / Phase 4 — optimization & enforcement
+
+## phase_4 (2026-07-20, same branch)
+Phase 4 complete — 5 commits, all lint/build-green:
+- `7f99a81` Deleted SheetModal.jsx (zero real consumers — a stale doc-comment
+  reference, no actual import). Migrated the 8 real BottomDrawer consumers to
+  ResponsiveSheet (ComposeDrawer, CreateUserDrawer, ProfileDrawer,
+  StudentDetailsDrawer, UploadStudentsDrawer, ViolationTypeDrawer, ReportsPage's
+  mobile drawer) — pure import + component-name swap, same
+  open/onClose/title/subtitle/children/footer contract and identical
+  DrawerSpinner/cancelBtnStyle/primaryBtnStyle exports, zero behavioral change.
+- `c98ee54` Migrated the last 6 lucide-react usages to Tabler (ComposeDrawer,
+  ProfileDrawer, UploadStudentsDrawer, NotificationBell, AttendancePage,
+  StudentSearchOverlay). Every target icon name was verified against the
+  installed `@tabler/icons-react` package before use.
+- `b783627` Deleted BottomDrawer.jsx (zero usage confirmed repo-wide) and
+  removed `vaul` + `lucide-react` from `client/package.json`; ran `npm install`
+  to update the lockfile (9 pre-existing audit findings unchanged, see
+  [[npm_audit_status]] memory — none newly introduced).
+- `068055e` Added an ESLint `no-restricted-imports` guard blocking
+  `@radix-ui/react-dialog`/`framer-motion`/`vaul`/`lucide-react` in
+  `client/src/pages/**` and `client/src/components/**`, each rule with a
+  message pointing at the replacement. Two documented exceptions:
+  `ResponsiveSheet.jsx` (canonical internal implementation) and
+  `StudentSearchOverlay.jsx` (nests as its own `Dialog.Root` inside
+  ResponsiveSheet — Radix's focus-scope stack needs a real nested root, can't
+  route through ResponsiveSheet like every other overlay; see that file's
+  header comment). **Verified the rule actually fires**: a throwaway probe
+  file importing `lucide-react` was flagged before being deleted.
+
+**Bundle re-measure vs Phase-1 baseline (1,505.19 kB / gzip 432.73 kB):**
+final Phase 4 build = **1,469.64 kB / gzip 423.43 kB** — down 35.55 kB raw / 9.30
+kB gzip (−2.4% / −2.1%). Most of the drop (1,503.33→1,471.70 kB) came from
+deleting SheetModal.jsx, whose dead code was still being bundled despite zero
+consumers.
+
+**a11y re-measure — NOT done, flagged as an open item.** No a11y tooling
+(axe-core, Lighthouse script, etc.) exists anywhere in this repo — there is no
+prior baseline to compare against and none was set up this session. If the
+user wants this, it needs to be scoped as its own piece of work (choose a
+tool, establish a baseline, decide what counts as a regression), not silently
+skipped or fabricated.
+
+**Phase 4 is now fully complete except a11y tooling** (which never existed).
+The whole `specs/025-ui-architecture-consolidation` initiative (Phases 1–4) is
+done modulo that gap. Nothing pushed — still local on `feat/phase3-wave1`.
+
+---
+
+# Phase 3 handoff (superseded by phase_4 above — kept for history)
+
+## task_id
 025-ui-architecture-consolidation / Phase 3 Waves 1–3 — feature screen migration
 
 ## wave_4 (2026-07-20, same branch)
