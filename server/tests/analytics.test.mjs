@@ -1,28 +1,32 @@
 import { createRequire } from 'module';
 const _require = createRequire(import.meta.url);
 
-const prisma = _require('../lib/prisma');
+const prisma          = _require('../lib/prisma');
+const settingsService = _require('../services/settings.service');
 const {
-  summary, repeatViolators, courseAnalysis, yearAnalysis, facultyAnalysis, heatmap,
+  summary, repeatViolators, courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounsellingPdf,
 } = _require('../controllers/analytics.controller');
 
 function makeReq(query = {}) { return { query }; }
 function makeRes() {
-  const r = { _status: 200, _body: null };
-  r.status = (c) => { r._status = c; return r; };
-  r.json   = (b) => { r._body = b; return r; };
+  const r = { _status: 200, _body: null, _headers: {}, _sent: null };
+  r.status     = (c) => { r._status = c; return r; };
+  r.json       = (b) => { r._body = b; return r; };
+  r.setHeader  = (k, v) => { r._headers[k] = v; return r; };
+  r.send       = (b) => { r._sent = b; return r; };
   return r;
 }
 
 describe('summary', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('counts students above the threshold as repeat violators and surfaces the most common type', async () => {
+  it('counts students at/above the configured threshold as repeat violators and surfaces the most common type', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 3 });
     vi.spyOn(prisma.violation, 'count').mockResolvedValue(10);
     vi.spyOn(prisma.violation, 'groupBy')
       .mockResolvedValueOnce([
-        { student_id: 's1', _count: { id: 5 } }, // above default threshold 3
-        { student_id: 's2', _count: { id: 2 } }, // at/below threshold
+        { student_id: 's1', _count: { id: 5 } }, // above threshold
+        { student_id: 's2', _count: { id: 2 } }, // below threshold
       ])
       .mockResolvedValueOnce([
         { violation_type_id: 't1', _count: { id: 7 } },
@@ -39,22 +43,41 @@ describe('summary', () => {
     expect(res._body.most_common).toEqual({ type: 'Late to duty', count: 7 });
   });
 
-  it('respects a custom threshold from the query', async () => {
+  it('reads the threshold from settingsService, not the query string', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 5 });
     vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
     vi.spyOn(prisma.violation, 'groupBy')
       .mockResolvedValueOnce([{ student_id: 's1', _count: { id: 5 } }])
       .mockResolvedValueOnce([]);
 
     const res = makeRes();
-    await summary(makeReq({ threshold: '5' }), res);
+    // A query threshold, if sent, must have no effect — the setting is authoritative.
+    await summary(makeReq({ threshold: '1' }), res);
 
-    // 5 is not > 5, so no repeat violators at this threshold.
-    expect(res._body.repeat_violators_count).toBe(0);
-    expect(res._body.most_common).toBeNull();
+    expect(res._body.repeat_violators_count).toBe(1); // 5 >= configured 5
+  });
+
+  it('is inclusive: a student with exactly the configured threshold counts as a repeat violator', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 4 });
+    vi.spyOn(prisma.violation, 'count').mockResolvedValue(0);
+    vi.spyOn(prisma.violation, 'groupBy')
+      .mockResolvedValueOnce([
+        { student_id: 's1', _count: { id: 4 } }, // exactly at threshold
+        { student_id: 's2', _count: { id: 3 } }, // one below
+      ])
+      .mockResolvedValueOnce([]);
+
+    const res = makeRes();
+    await summary(makeReq(), res);
+
+    expect(res._body.repeat_violators_count).toBe(1);
   });
 });
 
 describe('repeatViolators', () => {
+  beforeEach(() => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 3 });
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it('picks each repeat violator\'s most frequent violation type as "main issue"', async () => {
@@ -102,7 +125,7 @@ describe('repeatViolators', () => {
     expect(res._body.data.map((d) => d.student_id)).toEqual(['s3', 's2', 's1']);
   });
 
-  it('returns an empty list without querying students/violations when nobody is above threshold', async () => {
+  it('returns an empty list without querying students/violations when nobody is at/above threshold', async () => {
     vi.spyOn(prisma.violation, 'groupBy').mockResolvedValue([{ student_id: 's1', _count: { id: 1 } }]);
     const findMany = vi.spyOn(prisma.student, 'findMany');
 
@@ -133,17 +156,32 @@ describe('courseAnalysis / yearAnalysis', () => {
     ]);
   });
 
-  it('aggregates violation counts by student year, sorted ascending', async () => {
+  it('aggregates violation counts by (course, year), sorted by course then year', async () => {
     vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
-      { student: { year: 3 } },
-      { student: { year: 1 } },
-      { student: { year: 1 } },
+      { student: { course: 'pharm_d', year: 3 } },
+      { student: { course: 'b_pharm', year: 1 } },
+      { student: { course: 'b_pharm', year: 1 } },
+      { student: { course: 'm_pharm', year: 2 } },
     ]);
     const res = makeRes();
     await yearAnalysis(makeReq(), res);
     expect(res._body.data).toEqual([
-      { year: 1, count: 2 },
-      { year: 3, count: 1 },
+      { course: 'b_pharm', year: 1, count: 2 },
+      { course: 'm_pharm', year: 2, count: 1 },
+      { course: 'pharm_d', year: 3, count: 1 },
+    ]);
+  });
+
+  it('never mixes counts across courses that happen to share a year number', async () => {
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      { student: { course: 'b_pharm', year: 1 } },
+      { student: { course: 'pharm_d', year: 1 } },
+    ]);
+    const res = makeRes();
+    await yearAnalysis(makeReq(), res);
+    expect(res._body.data).toEqual([
+      { course: 'b_pharm', year: 1, count: 1 },
+      { course: 'pharm_d', year: 1, count: 1 },
     ]);
   });
 });
@@ -186,5 +224,28 @@ describe('heatmap', () => {
 
     expect(res._body.data).toEqual([{ date: '2026-07-16', count: 2 }]);
     expect(res._body.max).toBe(2);
+  });
+});
+
+describe('exportCounsellingPdf', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('sends a PDF attachment named after the configured threshold', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 3 });
+    vi.spyOn(prisma.violation, 'groupBy').mockResolvedValue([{ student_id: 's1', _count: { id: 4 } }]);
+    vi.spyOn(prisma.student, 'findMany').mockResolvedValue([
+      { id: 's1', student_name: 'Alice', registration_number: 'R1', course: 'b_pharm', year: 2 },
+    ]);
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      { student_id: 's1', created_at: new Date('2026-07-01'), violationType: { name: 'Late' } },
+    ]);
+
+    const res = makeRes();
+    await exportCounsellingPdf(makeReq(), res);
+
+    expect(res._headers['Content-Type']).toBe('application/pdf');
+    expect(res._headers['Content-Disposition']).toContain('counselling-list-threshold-3.pdf');
+    expect(Buffer.isBuffer(res._sent)).toBe(true);
+    expect(res._sent.length).toBeGreaterThan(0);
   });
 });

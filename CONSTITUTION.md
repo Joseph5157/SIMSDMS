@@ -89,7 +89,8 @@ There are exactly 3 roles. Do not add, merge, or rename roles.
 - Views all violations, can hide records
 - Manages violation types
 - Reassigns a faculty member's duty slot to another faculty member from the Duty Slots section when the original faculty cannot attend (Admin Duty Reassignment)
-- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin — the only `system_config` fields Admin can edit; other system-wide settings remain Super-Admin-only via `/admin/settings`)
+- Configures Duty Timing Settings — Morning/Afternoon session start times, late-arrival cutoffs, and auto clock-out times (`/duty-timing-settings`, shared with Super Admin)
+- Configures the Violation Settings repeat-violation counselling threshold (`/violation-settings`, Admin + Super Admin) — these two settings surfaces are the only `system_config` fields Admin can edit; other system-wide settings remain Super-Admin-only via `/admin/settings`
 - Access to all 16 reports
 
 ### Faculty
@@ -305,7 +306,7 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 | `duty_reassignment_requests` | Faculty-Requested Reassignment (Method 2, §4) — pending/approved/declined requests between faculty; ephemeral workflow state, not history (history lives in `duty_reassignments` once approved) |
 | `calendar_config` | Monthly window config — open/close state, blocked holidays, working days, sessions per faculty |
 | `messages` | Two-way internal messaging between users |
-| `system_config` | Single-row system-wide timing thresholds — session start, late detection, and auto clock-out (each per Morning/Afternoon session) |
+| `system_config` | Single-row system-wide config — timing thresholds (session start, late detection, auto clock-out, each per Morning/Afternoon session) plus the `repeat_violation_threshold` used by the Student Violations analytics dashboard's counselling card |
 | `photo_access_log` | ⚠ Foundation placeholder — not active in Phase 1 |
 | `student_upload_log` | History of Excel uploads including error rows |
 | `pending_invites` | Temporary invite tokens for new account activation via Telegram |
@@ -326,10 +327,12 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 - `student_upload_log.errors` — JSONB array of failed rows with reason
 - `calendar_config.working_days` — JSONB array of working days set by Admin before opening window
 - `system_config` timing fields are session-scoped by naming convention (`{concept}_{morning,afternoon}_{hour,min}`) — there is no shared/default fallback field for any timing concept. Ordering (`session_start < late_threshold ≤ auto_checkout`, per session) is enforced at the application layer via `settingsService.findOrderingViolation`, not as a DB constraint — shared by every write path onto these fields (`PATCH /duty-timing-settings` and `PATCH /admin/settings`) so neither can write out-of-order values; any new code path that writes to `system_config` timing fields directly (bypassing this check) would skip it
+- `system_config.repeat_violation_threshold` — a single flat Int (not session-scoped like the timing fields above), default `4`. Read via the same `settingsService.getSettings()` singleton, written via `PATCH /violation-settings`. Used inclusively (`>=`) by the analytics dashboard's counselling card/summary/exports: a student qualifies once their violation count reaches this value. Never hardcode this comparison threshold in application code — always read it from `system_config`, same rule as the timing fields (§10)
+- `students.course` + `students.year` — course is one of `b_pharm`/`pharm_d`/`m_pharm`; valid year ranges differ per course (B.Pharm 1–4, Pharm.D 1–6, M.Pharm 1–2) and are the single source of truth in `server/lib/academicStructure.js` (`COURSE_YEAR_RANGES`, `COURSE_LABELS`), consumed by both the student-upload row validator (`students.controller.js`) and the analytics "Violations by Year" chart's course grouping — not enforced as a DB constraint, so any new write path touching `students.year` must validate against this same map rather than a flat range (v3.19)
 
 ---
 
-## 6. API — 114 Endpoints Across 14 Modules
+## 6. API — 117 Endpoints Across 15 Modules
 
 Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2). Violations dropped from 10 to 9 endpoints (2026-07): `PATCH /:id/hide` and `GET /:id/audit-log` were removed (Hide and the per-violation Log view no longer exist anywhere in the app) and `DELETE /:id` was added (soft-delete, §4 Violations).
 
@@ -342,19 +345,22 @@ Counts verified directly against `server/routes/*.routes.js`. The Need Cover mod
 | Duty Slots | 7 | `/duty-slots` |
 | Duty Attendance | 6 | `/attendance` |
 | Duty Timing Settings | 2 | `/duty-timing-settings` |
+| Violation Settings | 2 | `/violation-settings` |
 | Violations | 9 | `/violations` |
 | Violation Types | 6 | `/violation-types` |
 | Messages | 6 | `/messages` |
 | Invites | 4 | `/invites` |
 | Reports | 24 | `/reports` |
-| Analytics | 10 | `/analytics` |
+| Analytics | 11 | `/analytics` |
 | Duty Reassignment Requests | 6 | `/duty-reassignment-requests` |
 
 Three module counts above were previously wrong, undercounting real endpoints that existed but were never folded into any changelog entry: **Duty Attendance 5→6** (`GET /attendance/mine/summary`, the personalized faculty attendance-dashboard endpoint), **Violation Types 5→6** (`PATCH /violation-types/:id/reactivate`), and **Reports 22→24** (below). **Users & Accounts** is unchanged at 13 here — it already reflects the `PATCH /admin/settings` restoration from v3.13.
 
 Reports is 24 endpoints, not 22: two pre-existing JSON display routes, `GET /reports/student-violations/daily/:date` and `GET /reports/student-violations/weekly`, predate P28 and were never folded into any prior count in this file. Growth 17→24 overall: the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report. The Student Violation Report's filters are Course / Academic Year / Violation Type / Recorder (Admin or a named faculty member) / **Session** (Full Day / Morning / Afternoon, added — see §5 `duty_slots.session_type`), applied uniformly across all five periods, the on-screen table, and both exports — no endpoint/route change from the Session filter, it's a query-param addition on the existing routes (v3.18).
 
-Analytics (10): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel export; see `specs/004-student-analytics-dashboard/handoff.md`).
+Analytics (11): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/export/counselling/pdf`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel/PDF export; see `specs/004-student-analytics-dashboard/handoff.md`). `year-analysis` groups by `(course, year)`, not year alone (v3.19 — see §5 `lib/academicStructure.js` note), since B.Pharm/Pharm.D/M.Pharm have different valid year ranges and a bare year number is ambiguous across them.
+
+Violation Settings (2): `GET /`, `PATCH /` — admin/super_admin only. Single-field settings surface (`system_config.repeat_violation_threshold`) for the Students Requiring Counselling threshold, added alongside Duty Timing Settings as the second Admin-writable slice of `system_config` (v3.19).
 
 Duty Reassignment Requests (6): `POST /`, `GET /`, `GET /sent`, `GET /eligible-faculty/:dutySlotId`, `PATCH /:id`, `PATCH /:id/cancel` — faculty only. Implements Method 2 of §4 Duty Reassignment. `PATCH /:id/cancel` lets the requester withdraw their own still-pending request (distinct from `PATCH /:id`, which is the target faculty approving/declining).
 
@@ -446,7 +452,7 @@ These must be implemented by end of Phase 1 for the system to function correctly
 - Never expose the JWT secret, Telegram bot token, or database URL in code or comments
 - Never create a new role or modify role names — system has exactly 3 roles: Super Admin, Admin, Faculty
 - Never change the folder structure without explicit instruction
-- Never hardcode a time-of-day threshold (session start, late cutoff, not-checked-in cutoff, auto clock-out) in application code — always read it from `system_config` via `settingsService.getSettings()`. This is exactly the anti-pattern the Duty Timing Settings feature (§3 Admin permissions, §4 Duty Attendance) was built to eliminate; reintroducing a hardcoded value in a new code path defeats it silently
+- Never hardcode a time-of-day threshold (session start, late cutoff, not-checked-in cutoff, auto clock-out) or the repeat-violation counselling threshold in application code — always read it from `system_config` via `settingsService.getSettings()`. This is exactly the anti-pattern the Duty Timing Settings and Violation Settings features (§3 Admin permissions, §4 Duty Attendance, §5 `system_config`) were built to eliminate; reintroducing a hardcoded value in a new code path defeats it silently
 
 ---
 
@@ -463,6 +469,26 @@ PORT=3000
 ```
 
 ---
+
+*Constitution version: 3.19 — Updated: July 2026 (Student Discipline Analytics Dashboard
+improvements — §3/§5/§6/§10: the counselling-card repeat-violation threshold moved from a
+hardcoded `?? 3` default (strictly-greater comparison) to an Admin-configurable
+`system_config.repeat_violation_threshold` field (default 4, preserving prior behavior), read via
+the existing `settingsService.getSettings()` singleton and edited at the new `/violation-settings`
+page — the second Admin-writable slice of `system_config` alongside Duty Timing Settings. The
+comparison is now inclusive (`>=`), matching the literal spec ("N or more violations"). The
+"Violations by Year" chart (`GET /analytics/year-analysis`) now groups by `(course, year)` instead
+of year alone and is rendered as a grouped/legended bar chart per course, since B.Pharm (years
+1–4), Pharm.D (years 1–6), and M.Pharm (years 1–2) have different valid ranges and a bare year
+number was ambiguous across the 3 courses — the student-upload validator (`students.controller.js`)
+now enforces these same per-course ranges (`lib/academicStructure.js`) instead of a flat 1–6 for
+every course. The Students Requiring Counselling card gained client-side pagination (5/page, reusing
+the shared `Pagination` component) and a PDF export (`GET /analytics/export/counselling/pdf`,
+reusing `lib/pdf.js`) alongside its existing Excel export — both exports now always reflect the
+configured threshold, never a query param. Deferred, explicitly out of scope: Violation Trend's
+date-range-filter-skipping behavior (pre-existing, by design) and adding a Recorder filter to the
+analytics dashboard (currently only on the separate "All Records" table). §6: Analytics 10→11
+endpoints, new Violation Settings module (2 endpoints); total 114→117, 14→15 modules.)*
 
 *Constitution version: 3.18 — Updated: July 2026 (Student Violation Report — §6: fixed a bug
 where the Recorder filter's "Admin" option had no effect on-screen or in either export because

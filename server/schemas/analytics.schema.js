@@ -10,7 +10,6 @@ const analyticsQuery = z.object({
   year:              z.coerce.number().int().min(1).max(12).optional(),
   academic_year:     z.string().max(10).optional(),
   violation_type_id: z.string().uuid('Invalid violation type ID.').optional(),
-  threshold:         z.coerce.number().int().min(1).optional(),
 });
 
 const trendQuery = analyticsQuery.extend({

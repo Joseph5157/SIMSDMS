@@ -21,6 +21,7 @@ const DEFAULTS = {
   auto_checkout_morning_min:     30,
   auto_checkout_afternoon_hour:  16,
   auto_checkout_afternoon_min:   30,
+  repeat_violation_threshold:    4,
 };
 
 // Returns the single SystemConfig row, creating it with defaults if absent.

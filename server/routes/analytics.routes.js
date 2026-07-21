@@ -18,6 +18,7 @@ router.get('/year-analysis',   validateQuery(analyticsQuery), asyncHandler(ctrl.
 router.get('/faculty-analysis',validateQuery(analyticsQuery), asyncHandler(ctrl.facultyAnalysis));
 router.get('/heatmap',         validateQuery(analyticsQuery), asyncHandler(ctrl.heatmap));
 router.get('/export/counselling', validateQuery(analyticsQuery), asyncHandler(ctrl.exportCounselling));
+router.get('/export/counselling/pdf', validateQuery(analyticsQuery), asyncHandler(ctrl.exportCounsellingPdf));
 router.get('/filter-options',  asyncHandler(ctrl.filterOptions));
 
 module.exports = router;

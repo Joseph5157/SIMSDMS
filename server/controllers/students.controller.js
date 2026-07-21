@@ -2,6 +2,7 @@ const ExcelJS = require('exceljs');
 const prisma = require('../lib/prisma');
 const { logAction } = require('../services/audit.service');
 const logger = require('../lib/logger');
+const { COURSE_YEAR_RANGES } = require('../lib/academicStructure');
 
 const VALID_COURSES = ['b_pharm', 'pharm_d', 'm_pharm'];
 
@@ -71,8 +72,15 @@ function parseWorkbook(workbook) {
     if (!reg)                                rowErrors.push('registration_number is empty');
     if (!name)                               rowErrors.push('student_name is empty');
     if (!VALID_COURSES.includes(course))     rowErrors.push(`course must be one of: ${VALID_COURSES.join(', ')}`);
-    if (!yearRaw || isNaN(year) || year < 1 || year > 6)
-                                             rowErrors.push('year must be a number 1–6');
+    // Year range depends on the course (B.Pharm 1-4, Pharm.D 1-6, M.Pharm 1-2)
+    // — only checkable once course itself is valid.
+    if (VALID_COURSES.includes(course)) {
+      const [minYear, maxYear] = COURSE_YEAR_RANGES[course];
+      if (!yearRaw || isNaN(year) || year < minYear || year > maxYear)
+        rowErrors.push(`year must be between ${minYear} and ${maxYear} for ${course}`);
+    } else if (!yearRaw || isNaN(year)) {
+      rowErrors.push('year must be a number');
+    }
     if (!semesterRaw || isNaN(semester) || semester < 1 || semester > 12)
                                              rowErrors.push('semester must be a number 1–12');
     if (!acYear)                             rowErrors.push('academic_year is empty');
@@ -541,5 +549,5 @@ async function downloadTemplate(req, res) {
 module.exports = {
   uploadStudents, getUploadLogs, listStudents, getStudent, searchStudents,
   promoteStudent, deleteStudent, bulkPromoteStudents, bulkDeleteStudents,
-  downloadTemplate,
+  downloadTemplate, parseWorkbook,
 };

@@ -30,6 +30,16 @@ import Breadcrumb from '../../components/Breadcrumb';
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+// Course series for the "Violations by Year" chart — years alone are
+// ambiguous across programmes (B.Pharm 1-4, Pharm.D 1-6, M.Pharm 1-2), so
+// every bar is grouped and colored by course, with a legend.
+const YEAR_SERIES = [
+  { name: 'b_pharm', label: 'B.Pharm', color: 'blue.6' },
+  { name: 'pharm_d', label: 'Pharm.D', color: 'violet.6' },
+  { name: 'm_pharm', label: 'M.Pharm', color: 'teal.6' },
+];
+const COUNSELLING_PAGE_SIZE = 5;
+
 // A violation's recorder is a faculty member on duty OR an admin who recorded it
 // directly. Admin recorders surface as "Admin"; faculty as their name.
 function recorderName(faculty) {
@@ -137,6 +147,8 @@ function DisciplineAnalytics() {
 
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [counsellingPage, setCounsellingPage] = useState(1);
 
   const { data: filterOptions }  = useAnalyticsFilterOptions();
   const { data: summary }        = useAnalyticsSummary(params);
@@ -156,24 +168,50 @@ function DisciplineAnalytics() {
     count: t.count,
   }));
   const courseChartData = (courseData?.data ?? []).map((c) => ({ course: COURSE_LABELS[c.course] ?? c.course, count: c.count }));
-  const yearChartData   = (yearData?.data ?? []).map((y) => ({ year: `Year ${y.year}`, count: y.count }));
 
-  async function handleExportCounselling() {
-    setExporting(true);
+  // Pivot [{course, year, count}] into one row per year with a key per course
+  // series — omitted keys render no bar (never a fabricated 0 for a
+  // course/year combo outside that programme's actual range).
+  const yearChartData = Array.from({ length: 6 }, (_, i) => i + 1)
+    .map((year) => {
+      const row = { year: `Year ${year}` };
+      for (const s of YEAR_SERIES) {
+        const match = (yearData?.data ?? []).find((d) => d.course === s.name && d.year === year);
+        if (match) row[s.name] = match.count;
+      }
+      return row;
+    })
+    .filter((row) => YEAR_SERIES.some((s) => row[s.name] != null));
+
+  const counsellingTotal = repeatData?.data?.length ?? 0;
+  const counsellingMeta = { limit: COUNSELLING_PAGE_SIZE, total: counsellingTotal, pages: Math.max(1, Math.ceil(counsellingTotal / COUNSELLING_PAGE_SIZE)) };
+  // Clamp defensively: the 30s background refetch (useAnalytics.js) can shrink
+  // the list out from under a page number the admin is already sitting on.
+  const counsellingValidPage = Math.min(counsellingPage, counsellingMeta.pages);
+  const counsellingPageData = (repeatData?.data ?? []).slice(
+    (counsellingValidPage - 1) * COUNSELLING_PAGE_SIZE,
+    counsellingValidPage * COUNSELLING_PAGE_SIZE,
+  );
+
+  async function downloadCounsellingExport(path, filename, setLoading) {
+    setLoading(true);
     try {
-      const res = await api.get('/analytics/export/counselling', { params, responseType: 'blob' });
+      const res = await api.get(path, { params, responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'counselling-list.xlsx';
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
       toast({ message: 'Could not export the counselling list.', type: 'error' });
     } finally {
-      setExporting(false);
+      setLoading(false);
     }
   }
+
+  const handleExportCounselling    = () => downloadCounsellingExport('/analytics/export/counselling', 'counselling-list.xlsx', setExporting);
+  const handleExportCounsellingPdf = () => downloadCounsellingExport('/analytics/export/counselling/pdf', 'counselling-list.pdf', setExportingPdf);
 
   return (
     <div className="mb-6">
@@ -192,28 +230,28 @@ function DisciplineAnalytics() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <select value={range} onChange={(e) => setRange(e.target.value)} className={selectCls}>
+        <select value={range} onChange={(e) => { setRange(e.target.value); setCounsellingPage(1); }} className={selectCls}>
           {RANGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         {range === 'custom' && (
           <>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className={selectCls} />
-            <input type="date" value={toDate}   onChange={(e) => setToDate(e.target.value)}   className={selectCls} />
+            <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setCounsellingPage(1); }} className={selectCls} />
+            <input type="date" value={toDate}   onChange={(e) => { setToDate(e.target.value); setCounsellingPage(1); }}   className={selectCls} />
           </>
         )}
-        <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
+        <select value={course} onChange={(e) => { setCourse(e.target.value); setCounsellingPage(1); }} className={selectCls}>
           <option value="">All Courses</option>
           {filterOptions?.courses?.map((c) => <option key={c} value={c}>{COURSE_LABELS[c] ?? c}</option>)}
         </select>
-        <select value={year} onChange={(e) => setYear(e.target.value)} className={selectCls}>
+        <select value={year} onChange={(e) => { setYear(e.target.value); setCounsellingPage(1); }} className={selectCls}>
           <option value="">All Years</option>
           {filterOptions?.years?.map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
-        <select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className={selectCls}>
+        <select value={academicYear} onChange={(e) => { setAcademicYear(e.target.value); setCounsellingPage(1); }} className={selectCls}>
           <option value="">All Academic Years</option>
           {filterOptions?.academic_years?.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
-        <select value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls}>
+        <select value={violationTypeId} onChange={(e) => { setViolationTypeId(e.target.value); setCounsellingPage(1); }} className={selectCls}>
           <option value="">All Violation Types</option>
           {filterOptions?.violation_types?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
@@ -247,42 +285,50 @@ function DisciplineAnalytics() {
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-[length:13px] font-semibold text-[var(--text-primary)]">
               Students Requiring Counselling
-              {repeatData?.threshold != null && <span className="font-normal text-[var(--text-muted)]"> (&gt;{repeatData.threshold} violations)</span>}
+              {repeatData?.threshold != null && <span className="font-normal text-[var(--text-muted)]"> (&ge;{repeatData.threshold} violations)</span>}
             </p>
             {!!repeatData?.data?.length && (
-              <Button size="xs" variant="light" loading={exporting} onClick={handleExportCounselling}>
-                ⬇ Excel
-              </Button>
+              <div className="flex gap-1.5 shrink-0">
+                <Button size="xs" variant="light" loading={exporting} onClick={handleExportCounselling}>
+                  ⬇ Excel
+                </Button>
+                <Button size="xs" variant="light" loading={exportingPdf} onClick={handleExportCounsellingPdf}>
+                  ⬇ PDF
+                </Button>
+              </div>
             )}
           </div>
           {!repeatData?.data?.length ? (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No repeat violators in this period.</p>
           ) : (
-            <table className="w-full text-[length:12px]">
-              <thead>
-                <tr className="text-left text-[var(--text-muted)] border-b border-[var(--divider)]">
-                  <th className="pb-1.5 pr-3 font-medium">Student</th>
-                  <th className="pb-1.5 pr-3 font-medium">Course</th>
-                  <th className="pb-1.5 pr-3 font-medium">Year</th>
-                  <th className="pb-1.5 pr-3 font-medium text-right">Count</th>
-                  <th className="pb-1.5 font-medium">Main Issue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repeatData.data.map((s) => (
-                  <tr key={s.student_id} className="border-b border-[var(--divider)] last:border-b-0">
-                    <td className="py-1.5 pr-3">
-                      <p className="font-medium text-[var(--text-primary)]">{s.student_name}</p>
-                      <p className="text-[length:11px] text-[var(--text-muted)]">{s.registration_number}</p>
-                    </td>
-                    <td className="py-1.5 pr-3 text-[var(--text-secondary)]">{COURSE_LABELS[s.course] ?? s.course}</td>
-                    <td className="py-1.5 pr-3 text-[var(--text-secondary)]">{s.year}</td>
-                    <td className="py-1.5 pr-3 text-right font-semibold text-[var(--color-red-600)]">{s.violation_count}</td>
-                    <td className="py-1.5 text-[var(--text-secondary)]">{s.main_issue ?? '—'}</td>
+            <>
+              <table className="w-full text-[length:12px]">
+                <thead>
+                  <tr className="text-left text-[var(--text-muted)] border-b border-[var(--divider)]">
+                    <th className="pb-1.5 pr-3 font-medium">Student</th>
+                    <th className="pb-1.5 pr-3 font-medium">Course</th>
+                    <th className="pb-1.5 pr-3 font-medium">Year</th>
+                    <th className="pb-1.5 pr-3 font-medium text-right">Count</th>
+                    <th className="pb-1.5 font-medium">Main Issue</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {counsellingPageData.map((s) => (
+                    <tr key={s.student_id} className="border-b border-[var(--divider)] last:border-b-0">
+                      <td className="py-1.5 pr-3">
+                        <p className="font-medium text-[var(--text-primary)]">{s.student_name}</p>
+                        <p className="text-[length:11px] text-[var(--text-muted)]">{s.registration_number}</p>
+                      </td>
+                      <td className="py-1.5 pr-3 text-[var(--text-secondary)]">{COURSE_LABELS[s.course] ?? s.course}</td>
+                      <td className="py-1.5 pr-3 text-[var(--text-secondary)]">{s.year}</td>
+                      <td className="py-1.5 pr-3 text-right font-semibold text-[var(--color-red-600)]">{s.violation_count}</td>
+                      <td className="py-1.5 text-[var(--text-secondary)]">{s.main_issue ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination meta={counsellingMeta} page={counsellingValidPage} onPage={setCounsellingPage} />
+            </>
           )}
         </div>
       </div>
@@ -332,8 +378,9 @@ function DisciplineAnalytics() {
               h={200}
               data={yearChartData}
               dataKey="year"
-              series={[{ name: 'count', label: 'Violations', color: 'violet.6' }]}
+              series={YEAR_SERIES}
               gridAxis="y"
+              withLegend
             />
           )}
         </div>

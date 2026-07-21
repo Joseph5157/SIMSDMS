@@ -20,6 +20,7 @@ import UsersPage          from './pages/admin/UsersPage';
 import StudentsPage       from './pages/admin/StudentsPage';
 import CalendarPage       from './pages/admin/CalendarPage';
 import DutyTimingSettingsPage from './pages/admin/DutyTimingSettingsPage';
+import ViolationSettingsPage from './pages/admin/ViolationSettingsPage';
 import DutySlotsPage      from './pages/admin/DutySlotsPage';
 import AttendanceLivePage from './pages/admin/AttendanceLivePage';
 import ViolationsPage     from './pages/admin/ViolationsPage';
@@ -130,6 +131,7 @@ function AppRoutes() {
         <Route path="/admin/violations"       element={<ViolationsPage user={user} />} />
         <Route path="/admin/flagged-violations" element={<FlaggedViolationsPage user={user} />} />
         <Route path="/admin/violation-types"  element={<ViolationTypesPage user={user} />} />
+        <Route path="/admin/violation-settings" element={<ViolationSettingsPage user={user} />} />
         <Route path="/admin/messages"         element={<MessagesPage user={user} />} />
         <Route path="/admin/reports"          element={<ReportsPage user={user} />} />
       </Route>

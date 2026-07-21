@@ -1,9 +1,10 @@
 import { createRequire } from 'module';
 const _require = createRequire(import.meta.url);
 
+const ExcelJS = _require('exceljs');
 const prisma = _require('../lib/prisma');
 const {
-  promoteStudent, deleteStudent, bulkPromoteStudents, bulkDeleteStudents,
+  promoteStudent, deleteStudent, bulkPromoteStudents, bulkDeleteStudents, parseWorkbook,
 } = _require('../controllers/students.controller');
 
 function makeReq({ params = {}, body = {}, user = { id: 'admin-1', role: 'admin' } } = {}) {
@@ -207,5 +208,53 @@ describe('bulkDeleteStudents', () => {
     expect(res._body.deleted).toBe(0);
     expect(res._body.skipped).toEqual([{ id: 's1', reason: 'not found' }]);
     expect(capturedTx.student.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+// Upload validation now enforces per-course year ranges (B.Pharm 1-4,
+// Pharm.D 1-6, M.Pharm 1-2) instead of a flat 1-6 for every course.
+describe('parseWorkbook — per-course year validation', () => {
+  const HEADERS = ['registration_number', 'student_name', 'course', 'year', 'semester', 'batch_year', 'academic_year'];
+
+  function buildWorkbook(rows) {
+    const wb = new ExcelJS.Workbook();
+    const sheet = wb.addWorksheet('Students');
+    sheet.addRow(HEADERS);
+    for (const row of rows) sheet.addRow(row);
+    return wb;
+  }
+
+  it('rejects a B.Pharm student with year 5 (out of the 1-4 range)', () => {
+    const wb = buildWorkbook([['BP001', 'Anjali Sharma', 'b_pharm', 5, 9, 2023, '2025-26']]);
+    const { errors, uniqueRows } = parseWorkbook(wb);
+
+    expect(uniqueRows).toHaveLength(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].reasons).toEqual(['year must be between 1 and 4 for b_pharm']);
+  });
+
+  it('rejects an M.Pharm student with year 3 (out of the 1-2 range)', () => {
+    const wb = buildWorkbook([['MP001', 'Priya Nair', 'm_pharm', 3, 5, 2024, '2025-26']]);
+    const { errors, uniqueRows } = parseWorkbook(wb);
+
+    expect(uniqueRows).toHaveLength(0);
+    expect(errors[0].reasons).toEqual(['year must be between 1 and 2 for m_pharm']);
+  });
+
+  it('accepts a Pharm.D student with year 6 (top of the 1-6 range)', () => {
+    const wb = buildWorkbook([['PD001', 'Rahul Verma', 'pharm_d', 6, 11, 2020, '2025-26']]);
+    const { errors, uniqueRows } = parseWorkbook(wb);
+
+    expect(errors).toHaveLength(0);
+    expect(uniqueRows).toHaveLength(1);
+    expect(uniqueRows[0]).toEqual(expect.objectContaining({ course: 'pharm_d', year: 6 }));
+  });
+
+  it('accepts a B.Pharm student within its 1-4 range', () => {
+    const wb = buildWorkbook([['BP002', 'Deepa Reddy', 'b_pharm', 4, 8, 2022, '2025-26']]);
+    const { errors, uniqueRows } = parseWorkbook(wb);
+
+    expect(errors).toHaveLength(0);
+    expect(uniqueRows).toHaveLength(1);
   });
 });

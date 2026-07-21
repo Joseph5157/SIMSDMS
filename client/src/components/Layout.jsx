@@ -10,7 +10,7 @@ import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
   IconTag, IconMail, IconChartBar,
-  IconBolt, IconFileText, IconLogout, IconMenu2, IconClock, IconFlag,
+  IconBolt, IconFileText, IconLogout, IconMenu2, IconClock, IconFlag, IconSettings,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
@@ -41,6 +41,7 @@ const adminNav = [
     { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
     { to: ROUTES.ADMIN_FLAGGED_VIOLATIONS, label: 'Flagged Violations', Icon: IconFlag },
     { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Violation Types',    Icon: IconTag },
+    { to: ROUTES.ADMIN_VIOLATION_SETTINGS, label: 'Violation Settings', Icon: IconSettings },
   ]},
   { group: 'Workspace', items: [
     { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',           Icon: IconMail },

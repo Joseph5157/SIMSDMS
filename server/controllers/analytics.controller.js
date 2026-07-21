@@ -1,9 +1,10 @@
 const prisma = require('../lib/prisma');
 const { buildWorkbook, sendWorkbook } = require('../lib/excel');
+const { buildReportPdf, sendPdf } = require('../lib/pdf');
 const { instantMonthRange, instantSpanRange, parseYMD } = require('../lib/reportRange');
 const { nowInIST } = require('../lib/time');
-
-const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
+const settingsService = require('../services/settings.service');
+const { COURSE_LABELS } = require('../lib/academicStructure');
 
 // Monday–Sunday range containing `now`.
 function weekRange(now) {
@@ -55,7 +56,7 @@ function analyticsWhere(query) {
 // 1. Dashboard Summary Cards
 async function summary(req, res) {
   const where = analyticsWhere(req.query);
-  const threshold = req.query.threshold ?? 3;
+  const { repeat_violation_threshold: threshold } = await settingsService.getSettings();
 
   const [total, byStudent, byType] = await Promise.all([
     prisma.violation.count({ where }),
@@ -73,7 +74,7 @@ async function summary(req, res) {
   res.json({
     total_violations:      total,
     students_affected:     byStudent.length,
-    repeat_violators_count: byStudent.filter((g) => g._count.id > threshold).length,
+    repeat_violators_count: byStudent.filter((g) => g._count.id >= threshold).length,
     most_common:           mostCommon,
   });
 }
@@ -127,11 +128,11 @@ async function violationTypeAnalysis(req, res) {
 // Shared computation for the repeat-violators list — used by both the JSON
 // endpoint and the counselling-list Excel export so the two never drift.
 async function computeRepeatViolators(query) {
-  const where     = analyticsWhere(query);
-  const threshold = query.threshold ?? 3;
+  const where = analyticsWhere(query);
+  const { repeat_violation_threshold: threshold } = await settingsService.getSettings();
 
   const grouped = await prisma.violation.groupBy({ by: ['student_id'], where, _count: { id: true } });
-  const repeatIds = grouped.filter((g) => g._count.id > threshold).map((g) => g.student_id);
+  const repeatIds = grouped.filter((g) => g._count.id >= threshold).map((g) => g.student_id);
 
   if (!repeatIds.length) return { data: [], threshold };
 
@@ -209,18 +210,27 @@ async function courseAnalysis(req, res) {
   res.json({ data });
 }
 
-// 7. Academic Year-Wise Violation Analysis — same JS-aggregation reasoning as above.
+// 7. Academic Year-Wise Violation Analysis — grouped by (course, year) so the
+// chart can show which programme each year belongs to (B.Pharm/Pharm.D/M.Pharm
+// have different year ranges — see lib/academicStructure.js). Same
+// JS-aggregation reasoning as courseAnalysis above.
 async function yearAnalysis(req, res) {
   const where = analyticsWhere(req.query);
-  const violations = await prisma.violation.findMany({ where, select: { student: { select: { year: true } } } });
+  const violations = await prisma.violation.findMany({ where, select: { student: { select: { course: true, year: true } } } });
 
-  const counts = new Map();
+  const counts = new Map(); // key: `${course}|${year}`
   for (const v of violations) {
-    const y = v.student?.year ?? 0;
-    counts.set(y, (counts.get(y) ?? 0) + 1);
+    const course = v.student?.course ?? 'unknown';
+    const year   = v.student?.year ?? 0;
+    const key    = `${course}|${year}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  const data = Array.from(counts, ([year, count]) => ({ year, count })).sort((a, b) => a.year - b.year);
+  const data = Array.from(counts, ([key, count]) => {
+    const [course, year] = key.split('|');
+    return { course, year: Number(year), count };
+  }).sort((a, b) => a.course.localeCompare(b.course) || a.year - b.year);
+
   res.json({ data });
 }
 
@@ -295,6 +305,35 @@ async function exportCounselling(req, res) {
   sendWorkbook(res, buffer, `counselling-list-threshold-${threshold}.xlsx`);
 }
 
+// 12. Export — Counselling list (repeat violators) as PDF. Same data source
+// as the Excel export (computeRepeatViolators), so the two never drift.
+async function exportCounsellingPdf(req, res) {
+  const { data, threshold } = await computeRepeatViolators(req.query);
+
+  const buffer = await buildReportPdf({
+    title: 'Students Requiring Counselling',
+    subtitle: `Threshold: ${threshold}+ violations`,
+    columns: [
+      { header: 'Registration Number', key: 'reg_no',     width: 110 },
+      { header: 'Student Name',        key: 'name',       width: 120 },
+      { header: 'Course',              key: 'course',     width: 70 },
+      { header: 'Year',                key: 'year',       width: 40 },
+      { header: 'Violation Count',     key: 'count',      width: 70 },
+      { header: 'Main Issue',          key: 'main_issue' },
+    ],
+    rows: data.map((s) => ({
+      reg_no:     s.registration_number,
+      name:       s.student_name,
+      course:     COURSE_LABELS[s.course] ?? s.course,
+      year:       s.year,
+      count:      s.violation_count,
+      main_issue: s.main_issue ?? '—',
+    })),
+  });
+
+  sendPdf(res, buffer, `counselling-list-threshold-${threshold}.pdf`);
+}
+
 // 5. Filter Options — dynamic dropdown sources (never hardcoded per the P24 spec).
 async function filterOptions(req, res) {
   const [courses, years, academicYears, types] = await Promise.all([
@@ -315,4 +354,5 @@ async function filterOptions(req, res) {
 module.exports = {
   summary, trend, violationTypeAnalysis, repeatViolators, filterOptions,
   courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounselling,
+  exportCounsellingPdf,
 };
