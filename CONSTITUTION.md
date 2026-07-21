@@ -470,6 +470,19 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.25 — Updated: July 2026 (Student Violations stat-card row — §—: Total
+Violations/Students Affected/Repeat Violators now share one row even on mobile
+(`grid-cols-3 lg:grid-cols-4`, `StatCard`'s existing `compact` variant applied via
+`useMediaQuery`), replacing the prior 2-column mobile grid that also left an awkward empty gap
+next to "Most Common" once that card became `col-span-2`. "Most Common" now spans the full row
+width below instead of sharing the numeric-card row. While screenshotting this at desktop width
+(1440px) for the first time this session, found a second, pre-existing instance of the same
+truncation bug fixed in v3.24 for mobile: "Most Common" also truncated on desktop, because the
+40px `--text-stat` font never fit a violation-type name in a 1-of-4 desktop column either — v3.24
+only checked/fixed the mobile case. Fixed by making `StatCard`'s `compact` (22px value font)
+unconditional for this one card, at every viewport, since its value is always a category-name
+string, never a short number, regardless of screen width.)*
+
 *Constitution version: 3.24 — Updated: July 2026 (Student Violations analytics dashboard mobile
 fixes, live-verified at 390px in chrome-devtools — the 3 Mantine charts (Violation Trend,
 Violations by Course, Violations by Year) rendered correctly all along; what looked like "graphs

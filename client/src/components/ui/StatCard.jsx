@@ -17,7 +17,7 @@ const ACCENTS = {
   default: { bar: 'var(--border-strong)', bg: 'var(--color-surface-container-low)', fill: 'var(--color-surface-container-low)', text: 'var(--text-primary)', border: 'var(--border)' },
 };
 
-export default function StatCard({ label, value, sub, accent = 'default', icon, onClick, compact = false, tonal = false, className = '' }) {
+export default function StatCard({ label, value, sub, accent = 'default', icon, onClick, compact = false, tonal = false, className = '', mobileCenter = false }) {
   const c = ACCENTS[accent] ?? ACCENTS.default;
   const isNumber = typeof value === 'number';
   const [display, setDisplay] = useState(isNumber ? 0 : value);
@@ -44,7 +44,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } } : undefined}
-      className={`relative rounded-[var(--radius-xl)] overflow-hidden min-w-0 ${compact ? '' : 'min-h-24'} flex flex-col justify-start ${compact ? 'gap-0.5' : 'gap-2'} font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''} ${className}`}
+      className={`relative rounded-[var(--radius-xl)] overflow-hidden min-w-0 ${compact ? '' : 'min-h-24'} flex flex-col justify-start ${compact ? 'gap-0.5' : 'gap-2'} font-[var(--font-sans)] ${onClick ? 'transition-transform hover:-translate-y-px cursor-pointer' : ''} ${mobileCenter ? 'items-center text-center md:items-start md:text-left' : ''} ${className}`}
       style={{
         border: `1px solid ${c.border}`,
         backgroundColor: tonal ? c.fill : c.bg,
@@ -63,7 +63,7 @@ export default function StatCard({ label, value, sub, accent = 'default', icon, 
 
       {/* Label */}
       <p
-        className="m-0 text-[length:var(--text-micro)] font-[600] uppercase tracking-[0.06em] flex items-center gap-1"
+        className={`m-0 text-[length:var(--text-micro)] font-[600] uppercase tracking-[0.06em] flex items-center gap-1 ${mobileCenter ? 'justify-center md:justify-start' : ''}`}
         style={{ color: 'var(--color-slate-500)' }}
       >
         {icon && <span className="text-[13px] shrink-0">{icon}</span>}

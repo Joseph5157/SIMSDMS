@@ -226,13 +226,17 @@ function DisciplineAnalytics() {
 
   return (
     <div className="mb-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <StatCard label="Total Violations"  value={summary?.total_violations ?? 0}  sub="Selected period" accent="blue" />
-        <StatCard label="Students Affected" value={summary?.students_affected ?? 0} sub="Unique students" accent="indigo" />
-        <StatCard label="Repeat Violators"  value={summary?.repeat_violators_count ?? 0} sub="Need counselling" accent="red" />
+      {/* Summary cards — Total/Affected/Repeat share one row even on mobile
+          (compact StatCard variant); Most Common holds a category name, not
+          a short number, so it gets its own full-width row to stay readable. */}
+      <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 mb-4">
+        <StatCard compact={isMobile} label="Total Violations"  value={summary?.total_violations ?? 0}  sub="Selected period" accent="blue" />
+        <StatCard compact={isMobile} label="Students Affected" value={summary?.students_affected ?? 0} sub="Unique students" accent="indigo" />
+        <StatCard compact={isMobile} label="Repeat Violators"  value={summary?.repeat_violators_count ?? 0} sub="Need counselling" accent="red" />
         <StatCard
-          className="col-span-2 lg:col-span-1"
+          compact
+          mobileCenter
+          className="col-span-3 lg:col-span-1"
           label="Most Common"
           value={summary?.most_common?.type ?? '—'}
           sub={summary?.most_common ? `${summary.most_common.count} cases` : 'No data'}
