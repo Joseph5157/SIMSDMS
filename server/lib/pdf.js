@@ -1,10 +1,16 @@
+const path = require('path');
 const PDFDocument = require('pdfkit');
-const { APP_SHORT_NAME } = require('./branding');
+const { INSTITUTION_NAME } = require('./branding');
 
 const BRAND_BLUE = '#2563EB';
 const ROW_ALT    = '#EFF6FF';
 const TEXT_MUTED = '#64748B';
 const TEXT_DARK  = '#0F172A';
+// Same asset as client/src/assets/sims-logo.png — duplicated here rather than
+// reached across the workspace boundary, so the server owns its own PDF
+// branding assets independent of the client build.
+const LOGO_PATH   = path.join(__dirname, '../assets/sims-logo.png');
+const LOGO_HEIGHT = 42;
 
 // Builds a simple tabular report PDF (title + generated-date header, an
 // optional summary key/value block, then a table) and returns a Buffer.
@@ -22,7 +28,9 @@ function buildReportPdf({ title, subtitle, summary = [], columns, rows }) {
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
     // ── Header ──────────────────────────────────────────────────────────────
-    doc.fontSize(16).font('Helvetica-Bold').fillColor(TEXT_DARK).text(APP_SHORT_NAME, { align: 'center' });
+    doc.image(LOGO_PATH, doc.page.margins.left, doc.y, { fit: [pageWidth, LOGO_HEIGHT], align: 'center' });
+    doc.y += LOGO_HEIGHT + 6;
+    doc.fontSize(16).font('Helvetica-Bold').fillColor(TEXT_DARK).text(INSTITUTION_NAME.toUpperCase(), { align: 'center' });
     doc.fontSize(13).text(title, { align: 'center' });
     doc.fontSize(9).font('Helvetica').fillColor(TEXT_MUTED)
       .text(`${subtitle ? subtitle + ' · ' : ''}Generated ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`, { align: 'center' });

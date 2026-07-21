@@ -470,6 +470,54 @@ PORT=3000
 
 ---
 
+*Constitution version: 3.28 — Updated: July 2026 (Admin Student Violations dashboard — "Violations
+by Course" bar chart bars were rendering full category width (~130px each on desktop), visibly
+heavier/bigger than the sibling "Violations by Year" grouped-bar chart in the same row, which reads
+thin because Recharts naturally narrows bars when multiple series share a category. Fixed in
+`client/src/pages/admin/ViolationsPage.jsx` by capping bar width via Mantine `BarChart`'s
+`barProps={{ maxBarSize: isMobile ? 36 : 56 }}` (forwarded to Recharts' `<Bar>`), matching the
+visual weight of the Year chart's bars instead of stretching to fill the slot. Chart height/data
+logic untouched — this was purely a bar-width proportion issue, confirmed by comparing rendered
+`<rect>` widths via `evaluate_script` before/after (130px→56px desktop, capped→36px mobile) and by
+side-by-side screenshots at both viewports.)*
+
+*Constitution version: 3.27 — Updated: July 2026 (App-wide font swap — §2 Tech Stack: `--font-sans`
+changed from `'DM Sans'` to `'Public Sans'` (self-hosted via `@fontsource/public-sans`, same
+loading pattern DM Sans used — `client/src/main.jsx` + `client/src/index.css` imports, weights
+400/500/600/700/800 to cover every weight actually used in the app: Tailwind's `font-medium`
+through `font-extrabold` plus the `--weight-*` custom-property scale). User asked for "Graphik,
+Arial, sans-serif" (the neo-grotesque Stripe/Airbnb-era typeface) — Graphik is a **paid/licensed
+font** (Commercial Type foundry), not freely distributable, so without actual licensed font files
+that request would have silently rendered as Arial for virtually every user (no CDN, no free
+self-hosting). Public Sans was recommended and accepted instead — it's the free/open alternative
+the U.S. federal government's design system team built specifically to have Graphik's character
+without the license cost, so it's the closest faithful substitute available. `@fontsource/dm-sans`
+uninstalled (fully replaced, no dual-loading left behind). `--font-mono` (DM Mono) untouched — out
+of scope, the request was about the body/UI sans font only. Verified via `document.fonts` showing
+"Public Sans" genuinely loaded (not silently falling back) plus live screenshots at both desktop
+and mobile viewports, zero console errors.)*
+
+*Constitution version: 3.26 — Updated: July 2026 (PDF exports gained the SIMS logo + full
+institution name — §—: `server/lib/pdf.js`'s shared `buildReportPdf()` now embeds the SIMS crest
+(`server/assets/sims-logo.png`, a JPEG despite the `.png` name/extension — pdfkit auto-detects
+format from content, not extension, so this works transparently) centered above the header text,
+via pdfkit's `fit`+`align:'center'` sizing so it scales safely without knowing the source image's
+exact pixel dimensions. The header text itself changed from `APP_SHORT_NAME` ("SIMS DMS") to a new
+`INSTITUTION_NAME` branding constant (`server/lib/branding.js`, mirroring the client's existing
+`client/src/utils/branding.js` — same default "SIMS College of Pharmacy", same env-var-override
+pattern), rendered `.toUpperCase()` for the formal document header. Logo is a **duplicate** of
+`client/src/assets/sims-logo.png`, not a shared reference across the workspace boundary — the repo
+is a single Railway deployment unit (whole monorepo checked out, `npm run build --workspace=client`
++ `npm run start --workspace=server`) so a cross-workspace path *would* have worked at runtime, but
+a server-owned copy keeps the two packages' asset ownership independent, matching how branding
+constants already live server-side in `lib/branding.js` rather than being read from the client.
+Since every PDF export in the app already funnels through this one shared function (Student
+Violation Report and its daily/weekly variants, the counselling list, Audit Logs), both changes
+appear on all of them at once — verified by generating a real sample PDF directly (not just
+through the UI) and opening it in Chrome's native PDF viewer; confirmed at the binary level too
+(`DCTDecode`/`/Image` markers present in the output, i.e. a real embedded JPEG XObject, not
+silently skipped).)*
+
 *Constitution version: 3.25 — Updated: July 2026 (Student Violations stat-card row — §—: Total
 Violations/Students Affected/Repeat Violators now share one row even on mobile
 (`grid-cols-3 lg:grid-cols-4`, `StatCard`'s existing `compact` variant applied via

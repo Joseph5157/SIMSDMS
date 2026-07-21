@@ -388,6 +388,7 @@ function DisciplineAnalytics() {
               dataKey="course"
               series={[{ name: 'count', label: 'Violations', color: 'indigo.6' }]}
               gridAxis="y"
+              barProps={{ maxBarSize: isMobile ? 36 : 56 }}
             />
           )}
         </div>

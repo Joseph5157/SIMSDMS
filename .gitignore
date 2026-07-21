@@ -28,6 +28,7 @@ Thumbs.db
 !client/public/icons/
 !client/public/icons/*.png
 !client/src/assets/*.png
+!server/assets/*.png
 
 # IDE
 .vscode/

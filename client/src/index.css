@@ -20,10 +20,11 @@
 }
 
 /* ── Fonts ── */
-@import "@fontsource/dm-sans/400.css";
-@import "@fontsource/dm-sans/500.css";
-@import "@fontsource/dm-sans/600.css";
-@import "@fontsource/dm-sans/700.css";
+@import "@fontsource/public-sans/400.css";
+@import "@fontsource/public-sans/500.css";
+@import "@fontsource/public-sans/600.css";
+@import "@fontsource/public-sans/700.css";
+@import "@fontsource/public-sans/800.css";
 @import "@fontsource/dm-mono/400.css";
 
 /* ── Dark mode variant ── */
@@ -32,7 +33,7 @@
 /* ── Design system tokens — all Tailwind utilities flow from here ── */
 @theme {
   /* Typography families */
-  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-sans: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'DM Mono', 'Courier New', ui-monospace, monospace;
 
   /* ── Brand blue ramp ── */
