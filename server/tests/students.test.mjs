@@ -22,7 +22,7 @@ describe('promoteStudent', () => {
 
   it('promotes an existing student and logs the action', async () => {
     vi.spyOn(prisma.student, 'findUnique').mockResolvedValue({
-      id: 's1', deleted_at: null, year: 1, semester: 1, academic_year: '2025-26',
+      id: 's1', deleted_at: null, course: 'b_pharm', year: 1, semester: 1, academic_year: '2025-26',
     });
     vi.spyOn(prisma.student, 'update').mockResolvedValue({ id: 's1', year: 2, semester: 1 });
     vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue(null);
@@ -48,6 +48,36 @@ describe('promoteStudent', () => {
 
     expect(res._status).toBe(404);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  // Same course-wise range as Excel upload (COURSE_YEAR_RANGES) — a single
+  // source of truth for every entry point that writes students.year.
+  it('rejects promoting a B.Pharm student to year 6 (out of the 1-4 range)', async () => {
+    vi.spyOn(prisma.student, 'findUnique').mockResolvedValue({
+      id: 's1', deleted_at: null, course: 'b_pharm', year: 4, semester: 7, academic_year: '2025-26',
+    });
+    const update = vi.spyOn(prisma.student, 'update');
+
+    const res = makeRes();
+    await promoteStudent(makeReq({ params: { id: 's1' }, body: { year: 6, semester: 11 } }), res);
+
+    expect(res._status).toBe(422);
+    expect(res._body.code).toBe('VALIDATION_ERROR');
+    expect(res._body.message).toBe('year must be between 1 and 4 for b_pharm.');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('allows promoting a Pharm.D student up to year 6', async () => {
+    vi.spyOn(prisma.student, 'findUnique').mockResolvedValue({
+      id: 's1', deleted_at: null, course: 'pharm_d', year: 5, semester: 9, academic_year: '2025-26',
+    });
+    vi.spyOn(prisma.student, 'update').mockResolvedValue({ id: 's1', year: 6, semester: 11 });
+    vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue(null);
+
+    const res = makeRes();
+    await promoteStudent(makeReq({ params: { id: 's1' }, body: { year: 6, semester: 11 } }), res);
+
+    expect(res._status).toBe(200);
   });
 });
 
@@ -110,7 +140,7 @@ describe('bulkPromoteStudents', () => {
     vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (fn) => {
       capturedTx = {
         student: {
-          findMany:   vi.fn().mockResolvedValue([{ id: 's1' }, { id: 's2' }]),
+          findMany:   vi.fn().mockResolvedValue([{ id: 's1', course: 'b_pharm' }, { id: 's2', course: 'b_pharm' }]),
           updateMany: vi.fn().mockResolvedValue({ count: 2 }),
         },
       };
@@ -145,6 +175,45 @@ describe('bulkPromoteStudents', () => {
 
     expect(res._body.updated).toBe(0);
     expect(res._body.skipped).toEqual([{ id: 's1', reason: 'not found' }]);
+  });
+
+  // Same course-wise range as Excel upload and single-student promote
+  // (COURSE_YEAR_RANGES) — a mixed-course batch must promote the eligible
+  // students and skip the rest with a reason, never fail (or silently
+  // mis-promote) the whole batch.
+  it('promotes only the students whose course allows the target year, skips the rest with a reason', async () => {
+    let capturedTx;
+    vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (fn) => {
+      capturedTx = {
+        student: {
+          // s1: b_pharm (1-4) — year 4 valid. s2: m_pharm (1-2) — year 4 invalid.
+          // s3: pharm_d (1-6) — year 4 valid.
+          findMany:   vi.fn().mockResolvedValue([
+            { id: 's1', course: 'b_pharm' },
+            { id: 's2', course: 'm_pharm' },
+            { id: 's3', course: 'pharm_d' },
+          ]),
+          updateMany: vi.fn().mockResolvedValue({ count: 2 }),
+        },
+      };
+      return fn(capturedTx);
+    });
+    vi.spyOn(prisma.adminAuditLog, 'create').mockResolvedValue(null);
+
+    const res = makeRes();
+    await bulkPromoteStudents(makeReq({
+      body: { ids: ['s1', 's2', 's3'], year: 4, semester: 7 },
+    }), res);
+
+    expect(res._status).toBe(200);
+    expect(res._body.updated).toBe(2);
+    expect(res._body.skipped).toEqual([
+      { id: 's2', reason: 'year 4 not valid for m_pharm (must be 1-2)' },
+    ]);
+    expect(capturedTx.student.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['s1', 's3'] } },
+      data: expect.objectContaining({ year: 4, semester: 7 }),
+    });
   });
 });
 

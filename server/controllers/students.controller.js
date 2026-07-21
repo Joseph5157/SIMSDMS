@@ -361,6 +361,17 @@ async function promoteStudent(req, res) {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'Student not found.' });
   }
 
+  // Same course-wise range enforced at Excel upload (COURSE_YEAR_RANGES) — the
+  // promote schema can't express this itself since `course` isn't part of the
+  // request body (it comes from the existing student record).
+  const [minYear, maxYear] = COURSE_YEAR_RANGES[student.course];
+  if (req.body.year < minYear || req.body.year > maxYear) {
+    return res.status(422).json({
+      error: true, code: 'VALIDATION_ERROR',
+      message: `year must be between ${minYear} and ${maxYear} for ${student.course}.`,
+    });
+  }
+
   const data = {
     year:             req.body.year,
     semester:         req.body.semester,
@@ -427,20 +438,32 @@ async function bulkPromoteStudents(req, res) {
 
   await prisma.$transaction(async (tx) => {
     // One query to find which of the requested ids are actually promotable,
-    // instead of a findUnique per id — `data` is identical for every row here,
-    // so the actual update is a single updateMany too.
+    // instead of a findUnique per id — the target `year` is identical for
+    // every row here, but eligibility isn't: each student's own course caps
+    // which years are valid (COURSE_YEAR_RANGES, same rule as Excel upload),
+    // so `course` is selected here to filter in memory before the batch
+    // `updateMany`, which stays a single call either way.
     const found = await tx.student.findMany({
       where:  { id: { in: ids }, deleted_at: null },
-      select: { id: true },
+      select: { id: true, course: true },
     });
-    const foundSet = new Set(found.map((s) => s.id));
+    const foundIds = new Set(found.map((s) => s.id));
+    const promotableIds = [];
 
+    for (const s of found) {
+      const [minYear, maxYear] = COURSE_YEAR_RANGES[s.course];
+      if (year >= minYear && year <= maxYear) {
+        promotableIds.push(s.id);
+      } else {
+        skipped.push({ id: s.id, reason: `year ${year} not valid for ${s.course} (must be ${minYear}-${maxYear})` });
+      }
+    }
     for (const id of ids) {
-      if (!foundSet.has(id)) skipped.push({ id, reason: 'not found' });
+      if (!foundIds.has(id)) skipped.push({ id, reason: 'not found' });
     }
 
-    if (foundSet.size > 0) {
-      const result = await tx.student.updateMany({ where: { id: { in: [...foundSet] } }, data });
+    if (promotableIds.length > 0) {
+      const result = await tx.student.updateMany({ where: { id: { in: promotableIds } }, data });
       updated = result.count;
     }
   });
