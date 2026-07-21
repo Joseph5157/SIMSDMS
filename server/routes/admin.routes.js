@@ -22,6 +22,12 @@ router.use(authenticate, authorize('super_admin'));
 // GET /admin/audit-logs
 router.get('/audit-logs', validateQuery(auditLogsQuery), asyncHandler(ctrl.getAuditLogs));
 
+// GET /admin/audit-logs/export — .xlsx
+router.get('/audit-logs/export', validateQuery(auditLogsQuery), asyncHandler(ctrl.exportAuditLogs));
+
+// GET /admin/audit-logs/export/pdf
+router.get('/audit-logs/export/pdf', validateQuery(auditLogsQuery), asyncHandler(ctrl.exportAuditLogsPdf));
+
 // POST /admin/users/:id/reset-login
 router.post('/users/:id/reset-login', asyncHandler(ctrl.resetUserLogin));
 

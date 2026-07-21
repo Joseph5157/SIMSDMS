@@ -38,7 +38,7 @@ function resolveDateRange({ range, from_date, to_date }) {
 
 // The dynamic, non-date filters shared by every endpoint — dynamic per the P24
 // spec (violation type, course, year come from real data, never hardcoded).
-function extraFilters({ violation_type_id, course, year, academic_year }) {
+function extraFilters({ violation_type_id, course, year, academic_year, recorded_by, faculty_id }) {
   const where = {};
   if (violation_type_id) where.violation_type_id = violation_type_id;
   const studentFilter = {};
@@ -46,6 +46,11 @@ function extraFilters({ violation_type_id, course, year, academic_year }) {
   if (year)          studentFilter.year           = year;
   if (academic_year) studentFilter.academic_year = academic_year;
   if (Object.keys(studentFilter).length) where.student = studentFilter;
+  // Recorder — same "Admin" bucket / named-faculty logic as the All Records
+  // table (violations.controller.js) and Reports (reports.controller.js), so
+  // every analytics card/chart stays consistent with those.
+  if (recorded_by === 'admin') where.faculty = { role: { in: ['admin', 'super_admin'] } };
+  else if (faculty_id)         where.faculty_id = faculty_id;
   return where;
 }
 

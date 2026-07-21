@@ -9,15 +9,17 @@ const _require   = createRequire(import.meta.url);
 
 const prisma = _require('../lib/prisma');
 const logger = _require('../lib/logger');
-const { updateProfile, deleteUser } = _require('../controllers/users.controller');
+const { updateProfile, deleteUser, getAuditLogs, exportAuditLogs, exportAuditLogsPdf } = _require('../controllers/users.controller');
 
-function makeReq({ params = {}, body = {}, user = {} } = {}) {
-  return { params, body, user, cookies: {}, headers: {} };
+function makeReq({ params = {}, body = {}, query = {}, user = {} } = {}) {
+  return { params, body, query, user, cookies: {}, headers: {} };
 }
 function makeRes() {
-  const res = { _status: 200, _body: null };
-  res.status = (c) => { res._status = c; return res; };
-  res.json = (b) => { res._body = b; return res; };
+  const res = { _status: 200, _body: null, _headers: {}, _sent: null };
+  res.status    = (c) => { res._status = c; return res; };
+  res.json      = (b) => { res._body = b; return res; };
+  res.setHeader = (k, v) => { res._headers[k] = v; return res; };
+  res.send      = (b) => { res._sent = b; return res; };
   return res;
 }
 
@@ -142,5 +144,66 @@ describe('deleteUser', () => {
       where: { id: faculty.id },
       data: expect.objectContaining({ deleted_at: expect.any(Date) }),
     });
+  });
+});
+
+describe('getAuditLogs', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('applies actor/action/from-to as a single where clause, shared with the exports', async () => {
+    const findMany = vi.spyOn(prisma.adminAuditLog, 'findMany').mockResolvedValue([]);
+    vi.spyOn(prisma.adminAuditLog, 'count').mockResolvedValue(0);
+
+    const req = makeReq({ query: { actor: 'a1', action: 'DELETE_STUDENT', from: '2026-07-01', to: '2026-07-20' } });
+    await getAuditLogs(req, makeRes());
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        actor_id: 'a1',
+        action: 'DELETE_STUDENT',
+        created_at: { gte: new Date('2026-07-01'), lte: new Date('2026-07-20T23:59:59.999') },
+      },
+    }));
+  });
+
+  it('paginates the JSON view but exports fetch the full filtered set unbounded', async () => {
+    const findMany = vi.spyOn(prisma.adminAuditLog, 'findMany').mockResolvedValue([]);
+    vi.spyOn(prisma.adminAuditLog, 'count').mockResolvedValue(0);
+
+    await getAuditLogs(makeReq({ query: { limit: '10' } }), makeRes());
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ take: 10 }));
+
+    findMany.mockClear();
+    await exportAuditLogs(makeReq(), makeRes());
+    expect(findMany).toHaveBeenCalledWith(expect.not.objectContaining({ take: expect.anything() }));
+  });
+});
+
+describe('exportAuditLogs / exportAuditLogsPdf', () => {
+  const logs = [
+    { id: 'l1', actor_id: 'a1', actor: { name: 'Dr. Rao' }, action: 'DELETE_STUDENT', target_type: 'student', target_id: 'abcdefgh-1111', created_at: new Date('2026-07-20T10:00:00.000Z') },
+  ];
+
+  beforeEach(() => {
+    vi.spyOn(prisma.adminAuditLog, 'findMany').mockResolvedValue(logs);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('sends an .xlsx attachment', async () => {
+    const res = makeRes();
+    await exportAuditLogs(makeReq(), res);
+
+    expect(res._headers['Content-Type']).toContain('spreadsheetml');
+    expect(res._headers['Content-Disposition']).toContain('audit-logs.xlsx');
+    expect(Buffer.isBuffer(res._sent)).toBe(true);
+  });
+
+  it('sends a PDF attachment', async () => {
+    const res = makeRes();
+    await exportAuditLogsPdf(makeReq(), res);
+
+    expect(res._headers['Content-Type']).toBe('application/pdf');
+    expect(res._headers['Content-Disposition']).toContain('audit-logs.pdf');
+    expect(Buffer.isBuffer(res._sent)).toBe(true);
   });
 });

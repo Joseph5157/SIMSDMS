@@ -84,9 +84,9 @@ function SessionSection({ session, form, onChange }) {
   );
 }
 
-// Mounted only while open (see DutyTimingSettingsPage), so the form is seeded
-// once from `settings` via the useState initializer — no null state, no
-// seed-on-open effect.
+// Mounted only while open (see SettingsPage's Duty Timing tab), so the form is
+// seeded once from `settings` via the useState initializer — no null state,
+// no seed-on-open effect.
 export default function DutyTimingSettingsModal({ settings, onClose }) {
   const toast = useToast();
   const updateSettings = useUpdateDutyTimingSettings();

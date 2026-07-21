@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import { Button, Select } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { LineChart, BarChart } from '@mantine/charts';
 import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
@@ -128,6 +129,11 @@ function ViolationHeatmap({ data, max }) {
 }
 
 function DisciplineAnalytics() {
+  // Charts default to desktop-sized heights that are oversized on a narrow
+  // phone screen (768px is this app's single mobile/desktop cutoff — see
+  // docs/MOBILE_PATTERNS.md) — shrink them there instead of rendering the
+  // same fixed height at every width.
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [range, setRange]           = useState('this_month');
   const [fromDate, setFromDate]     = useState('');
   const [toDate, setToDate]         = useState('');
@@ -135,6 +141,9 @@ function DisciplineAnalytics() {
   const [year, setYear]             = useState('');
   const [academicYear, setAcademicYear] = useState('');
   const [violationTypeId, setViolationTypeId] = useState('');
+  // '' = all, 'admin' = the Admin bucket, or a faculty id — same convention
+  // as the "All Records" table's Recorder filter below.
+  const [recorder, setRecorder] = useState('');
 
   const params = useMemo(() => ({
     range,
@@ -143,14 +152,16 @@ function DisciplineAnalytics() {
     ...(year ? { year } : {}),
     ...(academicYear ? { academic_year: academicYear } : {}),
     ...(violationTypeId ? { violation_type_id: violationTypeId } : {}),
-  }), [range, fromDate, toDate, course, year, academicYear, violationTypeId]);
+    ...(recorder === 'admin' ? { recorded_by: 'admin' } : recorder ? { faculty_id: recorder } : {}),
+  }), [range, fromDate, toDate, course, year, academicYear, violationTypeId, recorder]);
 
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [counsellingPage, setCounsellingPage] = useState(1);
 
-  const { data: filterOptions }  = useAnalyticsFilterOptions();
+  const { data: filterOptions }   = useAnalyticsFilterOptions();
+  const { data: facultyUsers }    = useUsers({ role: 'faculty' });
   const { data: summary }        = useAnalyticsSummary(params);
   const { data: trendData }      = useAnalyticsTrend(params);
   const { data: typeAnalysis }   = useViolationTypeAnalysis(params);
@@ -221,6 +232,7 @@ function DisciplineAnalytics() {
         <StatCard label="Students Affected" value={summary?.students_affected ?? 0} sub="Unique students" accent="indigo" />
         <StatCard label="Repeat Violators"  value={summary?.repeat_violators_count ?? 0} sub="Need counselling" accent="red" />
         <StatCard
+          className="col-span-2 lg:col-span-1"
           label="Most Common"
           value={summary?.most_common?.type ?? '—'}
           sub={summary?.most_common ? `${summary.most_common.count} cases` : 'No data'}
@@ -255,11 +267,16 @@ function DisciplineAnalytics() {
           <option value="">All Violation Types</option>
           {filterOptions?.violation_types?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
+        <select value={recorder} onChange={(e) => { setRecorder(e.target.value); setCounsellingPage(1); }} className={selectCls}>
+          <option value="">All Recorders</option>
+          <option value="admin">Admin</option>
+          {facultyUsers?.data?.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Violation type breakdown */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4">
           <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Violation Type Breakdown</p>
           {!typeAnalysis?.data?.length && (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations in this period.</p>
@@ -281,7 +298,7 @@ function DisciplineAnalytics() {
         </div>
 
         {/* Repeat violators / counselling table */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4 overflow-x-auto">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4 overflow-x-auto">
           <div className="flex items-center justify-between gap-2 mb-3">
             <p className="text-[length:13px] font-semibold text-[var(--text-primary)]">
               Students Requiring Counselling
@@ -334,13 +351,16 @@ function DisciplineAnalytics() {
       </div>
 
       {/* Violation trend — last 6 months, independent of the date-range filter */}
-      <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4 mb-4">
-        <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Violation Trend (last 6 months)</p>
+      <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4 mb-4">
+        <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-0.5">Violation Trend</p>
+        <p className="text-[length:11px] text-[var(--text-muted)] mb-3">
+          Always shows the trailing 6 months, regardless of the Time Period filter above.
+        </p>
         {!trendChartData.some((t) => t.count > 0) ? (
           <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations recorded in the last 6 months.</p>
         ) : (
           <LineChart
-            h={220}
+            h={isMobile ? 160 : 220}
             data={trendChartData}
             dataKey="label"
             series={[{ name: 'count', label: 'Violations', color: 'blue.6' }]}
@@ -353,13 +373,13 @@ function DisciplineAnalytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Course-wise breakdown */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4">
           <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Violations by Course</p>
           {!courseChartData.length ? (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations in this period.</p>
           ) : (
             <BarChart
-              h={200}
+              h={isMobile ? 150 : 200}
               data={courseChartData}
               dataKey="course"
               series={[{ name: 'count', label: 'Violations', color: 'indigo.6' }]}
@@ -369,13 +389,13 @@ function DisciplineAnalytics() {
         </div>
 
         {/* Academic year-wise breakdown */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4">
           <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Violations by Year</p>
           {!yearChartData.length ? (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations in this period.</p>
           ) : (
             <BarChart
-              h={200}
+              h={isMobile ? 150 : 200}
               data={yearChartData}
               dataKey="year"
               series={YEAR_SERIES}
@@ -388,7 +408,7 @@ function DisciplineAnalytics() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Faculty recording analysis */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4">
           <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Recorded By</p>
           {!facultyData?.data?.length ? (
             <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations in this period.</p>
@@ -408,7 +428,7 @@ function DisciplineAnalytics() {
         </div>
 
         {/* Calendar heatmap */}
-        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-4">
+        <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4">
           <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-3">Violation Heatmap</p>
           <ViolationHeatmap data={heatmapData?.data} max={heatmapData?.max} />
         </div>

@@ -2,16 +2,41 @@ import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
 import Pagination from '../../components/ui/Pagination';
-import { TextInput } from '@mantine/core';
+import { TextInput, Button } from '@mantine/core';
+import { useToast } from '../../components/ui/Toast';
 import { useAuditLogs } from '../../hooks/useUsers';
+import api from '../../utils/api';
 
 export default function AuditLogsPage({ user }) {
+  const toast = useToast();
   const [page,   setPage]   = useState(1);
   const [action, setAction] = useState('');
   const [from,   setFrom]   = useState('');
   const [to,     setTo]     = useState('');
+  const [exporting,    setExporting]    = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const { data, isLoading, isError, refetch } = useAuditLogs({ action, from, to, page, limit: 50 });
+
+  async function downloadExport(path, filename, setLoading) {
+    setLoading(true);
+    try {
+      const res = await api.get(path, { params: { action, from, to }, responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ message: 'Could not export the audit log.', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleExportExcel = () => downloadExport('/admin/audit-logs/export', 'audit-logs.xlsx', setExporting);
+  const handleExportPdf   = () => downloadExport('/admin/audit-logs/export/pdf', 'audit-logs.pdf', setExportingPdf);
 
   function getActionColor(act) {
     if (!act) return 'var(--text-muted)';
@@ -47,6 +72,14 @@ export default function AuditLogsPage({ user }) {
           onChange={(e) => { setTo(e.target.value); setPage(1); }}
           w={160}
         />
+        <div className="flex gap-1.5 ml-auto">
+          <Button size="xs" variant="light" loading={exporting} onClick={handleExportExcel}>
+            ⬇ Excel
+          </Button>
+          <Button size="xs" variant="light" loading={exportingPdf} onClick={handleExportPdf}>
+            ⬇ PDF
+          </Button>
+        </div>
       </div>
 
       {/* Mobile card list */}

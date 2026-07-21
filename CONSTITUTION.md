@@ -332,14 +332,14 @@ All migrations must match this schema exactly. Full column definitions in `SIMS_
 
 ---
 
-## 6. API — 117 Endpoints Across 15 Modules
+## 6. API — 119 Endpoints Across 15 Modules
 
 Counts verified directly against `server/routes/*.routes.js`. The Need Cover module (9 endpoints under `/cover-requests`) was removed; Duty Slots grew from 6 to 8 with the admin reassignment endpoints (`POST /duty-slots/:id/reassign`, `GET /duty-slots/reassigned-away/:year/:month`), then dropped to 7 when `DELETE /duty-slots/:id/unpick` was removed (P26 — faculty can no longer unpick a picked slot; Admin Duty Reassignment or Faculty-Requested Reassignment are now the only ways to change a picked slot's owner). Two modules were added since: Analytics (P24 Student Discipline Analytics Dashboard) and Duty Reassignment Requests (P27 Faculty-Requested Reassignment, §4 Method 2). Violations dropped from 10 to 9 endpoints (2026-07): `PATCH /:id/hide` and `GET /:id/audit-log` were removed (Hide and the per-violation Log view no longer exist anywhere in the app) and `DELETE /:id` was added (soft-delete, §4 Violations).
 
 | Module | Count | Base Path |
 |---|---|---|
 | Authentication | 3 | `/auth` |
-| Users & Accounts | 13 | `/users`, `/admin` |
+| Users & Accounts | 15 | `/users`, `/admin` |
 | Students | 10 | `/students` |
 | Duty Calendar | 8 | `/calendar` |
 | Duty Slots | 7 | `/duty-slots` |
@@ -358,7 +358,7 @@ Three module counts above were previously wrong, undercounting real endpoints th
 
 Reports is 24 endpoints, not 22: two pre-existing JSON display routes, `GET /reports/student-violations/daily/:date` and `GET /reports/student-violations/weekly`, predate P28 and were never folded into any prior count in this file. Growth 17→24 overall: the Student Violation Report gained a `format=pdf`-equivalent sibling route (`GET /reports/student-violations/pdf`) alongside its existing `/export` (.xlsx), and the Daily and Weekly variants each gained their own `/export` (.xlsx) and `/pdf` routes (`GET /reports/student-violations/daily/:date/export`, `/daily/:date/pdf`, `/weekly/export`, `/weekly/pdf`) — fixing a bug where Daily/Weekly "Excel" downloads previously pointed at the JSON display endpoints and saved a corrupt file. All Student Violation Report exports (Excel and PDF, all five periods) exclude Fine Amount — the report is a discipline-tracking tool, not a financial one; fine amounts remain in the unrelated Pending Fines report. The Student Violation Report's filters are Course / Academic Year / Violation Type / Recorder (Admin or a named faculty member) / **Session** (Full Day / Morning / Afternoon, added — see §5 `duty_slots.session_type`), applied uniformly across all five periods, the on-screen table, and both exports — no endpoint/route change from the Session filter, it's a query-param addition on the existing routes (v3.18).
 
-Analytics (11): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/export/counselling/pdf`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel/PDF export; see `specs/004-student-analytics-dashboard/handoff.md`). `year-analysis` groups by `(course, year)`, not year alone (v3.19 — see §5 `lib/academicStructure.js` note), since B.Pharm/Pharm.D/M.Pharm have different valid year ranges and a bare year number is ambiguous across them.
+Analytics (11): `GET /summary`, `/trend`, `/violation-types`, `/repeat-violators`, `/course-analysis`, `/year-analysis`, `/faculty-analysis`, `/heatmap`, `/export/counselling`, `/export/counselling/pdf`, `/filter-options` — admin/super_admin only, backs the Student Discipline Analytics Dashboard (all 3 phases now built: summary/filters/repeat-violators, trend+course+year charts, faculty analysis + heatmap + Excel/PDF export; see `specs/004-student-analytics-dashboard/handoff.md`). `year-analysis` groups by `(course, year)`, not year alone (v3.19 — see §5 `lib/academicStructure.js` note), since B.Pharm/Pharm.D/M.Pharm have different valid year ranges and a bare year number is ambiguous across them. **Recorder filter (v3.20)**: `recorded_by`/`faculty_id` — same "Admin" bucket / named-faculty logic as the All Records table (`violations.controller.js`) and Reports (`reports.controller.js`) — now applies uniformly through the shared `extraFilters()`/`analyticsWhere()` builder to every endpoint above, closing a prior gap where Time Period/Course/Year/Academic Year/Violation Type all filtered consistently but Recorder only existed on the separate All Records table, not on the analytics dashboard itself.
 
 Violation Settings (2): `GET /`, `PATCH /` — admin/super_admin only. Single-field settings surface (`system_config.repeat_violation_threshold`) for the Students Requiring Counselling threshold, added alongside Duty Timing Settings as the second Admin-writable slice of `system_config` (v3.19).
 
@@ -469,6 +469,65 @@ PORT=3000
 ```
 
 ---
+
+*Constitution version: 3.24 — Updated: July 2026 (Student Violations analytics dashboard mobile
+fixes, live-verified at 390px in chrome-devtools — the 3 Mantine charts (Violation Trend,
+Violations by Course, Violations by Year) rendered correctly all along; what looked like "graphs
+too big/not looking good" was real: fixed `h={220}`/`h={200}` chart heights regardless of
+viewport, and the "Most Common" `StatCard` (a category-name string, not a short number like its 3
+siblings) truncating unreadably in the 2-column mobile stat grid with no way for a touch user to
+see the full text (`title` tooltips don't help touch — `docs/MOBILE_PATTERNS.md`). Fixed: chart
+heights now respond to the existing 768px cutoff (`useMediaQuery('(max-width: 767px)')`,
+220→160/200→150 on mobile only, desktop unchanged); `StatCard` gained a `className` passthrough
+prop so "Most Common" can span the full 2-column width on mobile instead of being squeezed into
+one cell; the 7 analytics chart-card containers went from a fixed `p-4` to `p-3 sm:p-4`. Not a bug:
+one x-axis month label (of 6) not rendering on the Trend chart at narrow width is Recharts'
+own collision-avoidance tick-skipping — confirmed all 6 render at desktop width, left as-is rather
+than adding custom tick-interval logic for a single label at the narrowest supported width.)*
+
+*Constitution version: 3.23 — Updated: July 2026 (Violation Types folded into Settings — §3/§6:
+`/admin/violation-types` (its own page + sidebar entry) became the third tab on `/admin/settings`
+("Violation Types", alongside "Duty Timing" and "Violations"), reachable directly via
+`?tab=violation-types`. Same reasoning as the original two-tab consolidation (v3.21): a small,
+rarely-visited admin-configuration surface, same audience, same "policy" shape as the other two
+tabs — not a daily workflow like Flagged Violations, which stays a separate page. Content/logic
+moved verbatim (add/edit/deactivate/delete violation types, default fines, system-type protection)
+— no behavior change. Backend `/violation-types/*` API routes untouched. Not an endpoint-count
+change — frontend-only, one more page folded into the same shell.)*
+
+*Constitution version: 3.22 — Updated: July 2026 (Audit Logs export — §6: added `GET
+/admin/audit-logs/export` (.xlsx) and `GET /admin/audit-logs/export/pdf`, Super-Admin-only, using
+`lib/excel.js`/`lib/pdf.js` — the same helpers every other export in the app already uses. Closes
+the last remaining record table in the app with no export option. The paginated JSON view and both
+exports now share one `auditLogsWhere()` filter builder (extracted from `getAuditLogs`) so the
+actor/action/date-range filters can't drift between what's shown on screen and what's downloaded;
+the JSON view stays paginated (`take`), the exports are unbounded — same convention as every other
+export/JSON-view pair in the app (e.g. Student Violation Report's `_getStudentViolations`). Also,
+during the same review: Violation Trend's card now carries a one-line caption explaining it always
+shows the trailing 6 months "regardless of the Time Period filter above" (was previously only
+explained in a code comment, invisible to the admin using the page) — no behavior change. §6, Users
+& Accounts module 13→15 endpoints, total 117→119.)*
+
+*Constitution version: 3.21 — Updated: July 2026 (Admin settings pages consolidated — §3/§6:
+`/admin/duty-timing-settings` and `/admin/violation-settings` (two separate frontend pages, one nav
+entry each) merged into a single `/admin/settings` page with a Mantine `Tabs` shell ("Duty Timing" /
+"Violations"), one "Settings" nav entry under the Workspace group. Tab selection lives in the URL
+(`?tab=violations`) so a direct link to either settings area still works. This supersedes the "new
+`/violation-settings` page" wording in the v3.19 entry below — that frontend route no longer exists
+(the backend API route `PATCH /violation-settings` is unchanged, still mounted exactly as
+described in §5/§6). Content/logic of both settings areas moved verbatim into the new tab panels,
+no behavior change. Not a backend/endpoint-count change — frontend-only.)*
+
+*Constitution version: 3.20 — Updated: July 2026 (Analytics Recorder filter — §6: `recorded_by`/
+`faculty_id` added to `analyticsQuery` (`server/schemas/analytics.schema.js`) and to
+`extraFilters()`/`analyticsWhere()` (`server/controllers/analytics.controller.js`), using the same
+"Admin" bucket / named-faculty logic as the All Records table and Reports. Closes the inconsistency
+flagged during the panel-map review: Time Period/Course/Year/Academic Year/Violation Type all
+filtered every analytics card and chart, but Recorder only existed on the separate All Records
+table below the dashboard, not on the dashboard itself. Not a new endpoint — a query-param addition
+applied through the existing shared filter builder, so it reaches every analytics endpoint
+uniformly (summary, trend, violation-types, repeat-violators, course/year/faculty analysis,
+heatmap, both counselling exports) with no per-endpoint special-casing.)*
 
 *Constitution version: 3.19 — Updated: July 2026 (Student Discipline Analytics Dashboard
 improvements — §3/§5/§6/§10: the counselling-card repeat-violation threshold moved from a

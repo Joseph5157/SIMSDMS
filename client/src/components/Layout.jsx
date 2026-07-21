@@ -9,8 +9,8 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconLayoutDashboard, IconUsers, IconSchool, IconCalendar,
   IconCalendarEvent, IconClipboardCheck, IconAlertTriangle,
-  IconTag, IconMail, IconChartBar,
-  IconBolt, IconFileText, IconLogout, IconMenu2, IconClock, IconFlag, IconSettings,
+  IconMail, IconChartBar,
+  IconBolt, IconFileText, IconLogout, IconMenu2, IconFlag, IconSettings,
 } from '@tabler/icons-react';
 import { useLogout } from '../hooks/useAuth';
 import { cycleTheme, getTheme, getThemeIcon, getThemeLabel } from '../lib/theme';
@@ -35,17 +35,15 @@ const adminNav = [
     { to: ROUTES.ADMIN_CALENDAR,        label: 'Calendar',           Icon: IconCalendar },
     { to: ROUTES.ADMIN_DUTY_SLOTS,      label: 'Duty Slots',         Icon: IconCalendarEvent },
     { to: ROUTES.ADMIN_ATTENDANCE,      label: 'Live Attendance',    Icon: IconClipboardCheck },
-    { to: ROUTES.ADMIN_DUTY_TIMING_SETTINGS, label: 'Duty Timing Settings', Icon: IconClock },
   ]},
   { group: 'Discipline', items: [
     { to: ROUTES.ADMIN_VIOLATIONS,      label: 'Student Violations', Icon: IconAlertTriangle },
     { to: ROUTES.ADMIN_FLAGGED_VIOLATIONS, label: 'Flagged Violations', Icon: IconFlag },
-    { to: ROUTES.ADMIN_VIOLATION_TYPES, label: 'Violation Types',    Icon: IconTag },
-    { to: ROUTES.ADMIN_VIOLATION_SETTINGS, label: 'Violation Settings', Icon: IconSettings },
   ]},
   { group: 'Workspace', items: [
     { to: ROUTES.ADMIN_MESSAGES,        label: 'Messages',           Icon: IconMail },
     { to: ROUTES.ADMIN_REPORTS,         label: 'Reports',            Icon: IconChartBar },
+    { to: ROUTES.ADMIN_SETTINGS,        label: 'Settings',           Icon: IconSettings },
   ]},
 ];
 

@@ -7,6 +7,8 @@ const telegram = require('../lib/telegram');
 const { safeUser } = require('../lib/safeUser');
 const { APP_SHORT_NAME } = require('../lib/branding');
 const { formatDateIST, nowInIST, istDayRangeUTC } = require('../lib/time');
+const { buildWorkbook, sendWorkbook } = require('../lib/excel');
+const { buildReportPdf, sendPdf } = require('../lib/pdf');
 
 // ─── GET /users/me ─────────────────────────────────────────────────────────────
 
@@ -255,12 +257,9 @@ async function deleteUser(req, res) {
 
 // ─── GET /admin/audit-logs — Super Admin ──────────────────────────────────────
 
-async function getAuditLogs(req, res) {
-  const { actor, action, from, to, page = '1', limit = '50' } = req.query;
-
-  const pageNum = Math.max(1, parseInt(page, 10) || 1);
-  const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
-
+// Shared by the paginated JSON view and both exports, so a filter can never
+// drift between what's shown on screen and what gets downloaded.
+function auditLogsWhere({ actor, action, from, to }) {
   const where = {};
   if (actor) where.actor_id = actor;
   if (action) where.action = action;
@@ -269,6 +268,15 @@ async function getAuditLogs(req, res) {
     if (from) where.created_at.gte = new Date(from);
     if (to)   where.created_at.lte = new Date(`${to}T23:59:59.999`);
   }
+  return where;
+}
+
+async function getAuditLogs(req, res) {
+  const { page = '1', limit = '50' } = req.query;
+  const where = auditLogsWhere(req.query);
+
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
 
   const [total, logs] = await Promise.all([
     prisma.adminAuditLog.count({ where }),
@@ -287,6 +295,55 @@ async function getAuditLogs(req, res) {
     data: logs,
     meta: { total, page: pageNum, limit: pageSize, pages: Math.ceil(total / pageSize) },
   });
+}
+
+const AUDIT_LOG_EXPORT_COLUMNS = [
+  { header: 'Actor',       key: 'actor',       width: 24 },
+  { header: 'Action',      key: 'action',      width: 26 },
+  { header: 'Target Type', key: 'target_type', width: 16 },
+  { header: 'Target ID',   key: 'target_id',   width: 26 },
+  { header: 'Timestamp',   key: 'timestamp',   width: 22 },
+];
+
+function mapAuditLogRow(log) {
+  return {
+    actor:       log.actor?.name ?? log.actor_id ?? 'System',
+    action:      log.action,
+    target_type: log.target_type ?? '—',
+    target_id:   log.target_id ?? '—',
+    timestamp:   new Date(log.created_at).toLocaleString('en-IN'),
+  };
+}
+
+// Unbounded — exports the full filtered result, not just the current page
+// (same convention as every other export in the app).
+async function _getAuditLogsForExport(where) {
+  return prisma.adminAuditLog.findMany({
+    where,
+    orderBy: { created_at: 'desc' },
+    include: { actor: { select: { id: true, name: true, email: true, role: true } } },
+  });
+}
+
+// ─── GET /admin/audit-logs/export — Super Admin (.xlsx) ──────────────────────
+
+async function exportAuditLogs(req, res) {
+  const logs = await _getAuditLogsForExport(auditLogsWhere(req.query));
+  const buffer = await buildWorkbook('Audit Logs', AUDIT_LOG_EXPORT_COLUMNS, logs.map(mapAuditLogRow));
+  sendWorkbook(res, buffer, 'audit-logs.xlsx');
+}
+
+// ─── GET /admin/audit-logs/export/pdf — Super Admin ───────────────────────────
+
+async function exportAuditLogsPdf(req, res) {
+  const logs = await _getAuditLogsForExport(auditLogsWhere(req.query));
+  const buffer = await buildReportPdf({
+    title: 'Audit Logs',
+    subtitle: 'Immutable system-level action history',
+    columns: AUDIT_LOG_EXPORT_COLUMNS,
+    rows: logs.map(mapAuditLogRow),
+  });
+  sendPdf(res, buffer, 'audit-logs.pdf');
 }
 
 // ─── POST /admin/users/:id/reset-login — Super Admin ─────────────────────────
@@ -444,6 +501,8 @@ module.exports = {
   reactivateUser,
   deleteUser,
   getAuditLogs,
+  exportAuditLogs,
+  exportAuditLogsPdf,
   resetUserLogin,
   hardDelete,
   getSettings,

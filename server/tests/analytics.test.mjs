@@ -186,6 +186,53 @@ describe('courseAnalysis / yearAnalysis', () => {
   });
 });
 
+// Recorder filter — same "Admin" bucket / named-faculty logic as the All
+// Records table and Reports; applies via the shared extraFilters()/
+// analyticsWhere() builder, so any endpoint exercises the same code path.
+describe('recorder filter (analyticsWhere)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('recorded_by=admin filters to admin/super_admin recorders', async () => {
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+    const res = makeRes();
+    await courseAnalysis(makeReq({ recorded_by: 'admin' }), res);
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ faculty: { role: { in: ['admin', 'super_admin'] } } }),
+    }));
+  });
+
+  it('faculty_id filters to that named faculty member', async () => {
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+    const res = makeRes();
+    await courseAnalysis(makeReq({ faculty_id: 'f1' }), res);
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ faculty_id: 'f1' }),
+    }));
+  });
+
+  it('recorded_by=admin takes precedence over a faculty_id sent alongside it', async () => {
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+    const res = makeRes();
+    await courseAnalysis(makeReq({ recorded_by: 'admin', faculty_id: 'f1' }), res);
+
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.faculty).toEqual({ role: { in: ['admin', 'super_admin'] } });
+    expect(where.faculty_id).toBeUndefined();
+  });
+
+  it('omits the recorder clause entirely when neither is provided', async () => {
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+    const res = makeRes();
+    await courseAnalysis(makeReq(), res);
+
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.faculty).toBeUndefined();
+    expect(where.faculty_id).toBeUndefined();
+  });
+});
+
 describe('facultyAnalysis', () => {
   afterEach(() => vi.restoreAllMocks());
 
