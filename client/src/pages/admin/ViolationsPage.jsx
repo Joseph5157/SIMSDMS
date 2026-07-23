@@ -10,6 +10,7 @@ import StatCard from '../../components/ui/StatCard';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
+import TrendBreakdownDrawer from '../../components/admin/TrendBreakdownDrawer';
 import { useToast } from '../../components/ui/Toast';
 import { useViolations, useDeleteViolation } from '../../hooks/useViolations';
 import { ROUTES } from '../../utils/constants';
@@ -29,7 +30,6 @@ import api from '../../utils/api';
 import Breadcrumb from '../../components/Breadcrumb';
 
 const COURSE_LABELS = { b_pharm: 'B.Pharm', pharm_d: 'Pharm.D', m_pharm: 'M.Pharm' };
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Course series for the "Violations by Year" chart — years alone are
 // ambiguous across programmes (B.Pharm 1-4, Pharm.D 1-6, M.Pharm 1-2), so
@@ -56,6 +56,27 @@ const RANGE_OPTIONS = [
   { value: 'last_month', label: 'Last Month' },
   { value: 'custom',     label: 'Custom Range' },
 ];
+
+const GRANULARITY_LABELS = { day: 'Day', week: 'Week', month: 'Month', quarter: 'Quarter', year: 'Year' };
+const PREVIOUS_PERIOD_LABELS = {
+  this_week:  'vs last week',
+  this_month: 'vs last month',
+  last_month: 'vs the month before',
+  custom:     'vs previous period',
+};
+
+// ▲/▼/➜ + magnitude, driven entirely by the server-computed direction_pct —
+// this is display formatting only, no threshold logic (that lives in the
+// admin-configurable trend_stable_band_pct, applied server-side).
+function trendDirectionLabel(directionPct, currentTotal, previousTotal) {
+  if (directionPct == null) {
+    if (currentTotal > 0 && previousTotal === 0) return '▲ New activity';
+    return '➜ No prior data';
+  }
+  if (directionPct > 0) return `▲ Increased by ${directionPct}%`;
+  if (directionPct < 0) return `▼ Decreased by ${Math.abs(directionPct)}%`;
+  return '➜ No change';
+}
 
 // Tiered green→red fill for a heatmap cell, keyed on count / max ratio.
 // Green = quiet day, red = high-violation day (per the P24 spec).
@@ -159,6 +180,7 @@ function DisciplineAnalytics() {
   const [exporting, setExporting] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [counsellingPage, setCounsellingPage] = useState(1);
+  const [selectedTrendBucket, setSelectedTrendBucket] = useState(null);
 
   const { data: filterOptions }   = useAnalyticsFilterOptions();
   const { data: facultyUsers }    = useUsers({ role: 'faculty' });
@@ -174,10 +196,10 @@ function DisciplineAnalytics() {
   const maxTypeCount = Math.max(1, ...(typeAnalysis?.data?.map((t) => t.count) ?? [0]));
   const maxFacultyCount = Math.max(1, ...(facultyData?.data?.map((f) => f.count) ?? [0]));
 
-  const trendChartData = (trendData?.data ?? []).map((t) => ({
-    label: `${MONTH_LABELS[t.month - 1]} ${String(t.year).slice(2)}`,
-    count: t.count,
-  }));
+  // Server already labels/clips each bucket (day/week/month/quarter — whatever
+  // granularity fits the selected Time Period) and computes the trend
+  // indicators below it; the chart just renders what it's given.
+  const trendChartData = trendData?.data ?? [];
   const courseChartData = (courseData?.data ?? []).map((c) => ({ course: COURSE_LABELS[c.course] ?? c.course, count: c.count }));
 
   // Pivot [{course, year, count}] into one row per year with a key per course
@@ -354,26 +376,79 @@ function DisciplineAnalytics() {
         </div>
       </div>
 
-      {/* Violation trend — last 6 months, independent of the date-range filter */}
+      {/* Violation trend — fully synchronized with every filter above; bucket
+          granularity (day/week/month/quarter) adapts to the selected Time
+          Period, and the indicators below compare against the previous
+          equivalent period. */}
       <div className="rounded-[var(--radius-xl)] border border-[var(--border)] bg-[var(--surface-card)] p-3 sm:p-4 mb-4">
-        <p className="text-[length:13px] font-semibold text-[var(--text-primary)] mb-0.5">Violation Trend</p>
-        <p className="text-[length:11px] text-[var(--text-muted)] mb-3">
-          Always shows the trailing 6 months, regardless of the Time Period filter above.
-        </p>
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <p className="text-[length:13px] font-semibold text-[var(--text-primary)]">Violation Trend</p>
+          {trendData?.status && <Badge status={trendData.status} />}
+        </div>
+
+        {trendData && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+            <StatCard
+              compact
+              label="Direction"
+              value={trendDirectionLabel(trendData.direction_pct, trendData.current_total, trendData.previous_total)}
+              sub={PREVIOUS_PERIOD_LABELS[range] ?? 'vs previous period'}
+              accent={trendData.status === 'worsening' ? 'red' : trendData.status === 'improving' ? 'green' : 'yellow'}
+            />
+            <StatCard
+              compact
+              label={`Highest ${GRANULARITY_LABELS[trendData.granularity] ?? 'Period'}`}
+              value={trendData.peak?.label ?? '—'}
+              sub={trendData.peak ? `${trendData.peak.count} violations` : 'No violations recorded'}
+              accent="indigo"
+            />
+            <StatCard
+              compact
+              label={`Average / ${GRANULARITY_LABELS[trendData.granularity] ?? 'Period'}`}
+              value={trendData.average ?? 0}
+              sub="violations"
+              accent="blue"
+            />
+          </div>
+        )}
+
         {!trendChartData.some((t) => t.count > 0) ? (
-          <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations recorded in the last 6 months.</p>
+          <p className="text-[length:13px] text-[var(--text-muted)] py-4 text-center">No violations recorded in this period.</p>
         ) : (
-          <LineChart
-            h={isMobile ? 160 : 220}
-            data={trendChartData}
-            dataKey="label"
-            series={[{ name: 'count', label: 'Violations', color: 'blue.6' }]}
-            curveType="monotone"
-            withDots
-            gridAxis="y"
-          />
+          <>
+            <div style={{ cursor: 'pointer' }}>
+              <LineChart
+                h={isMobile ? 160 : 220}
+                data={trendChartData}
+                dataKey="label"
+                series={[{ name: 'count', label: 'Violations', color: 'blue.6' }]}
+                curveType="monotone"
+                withDots
+                gridAxis="y"
+                lineChartProps={{
+                  // activePayload isn't reliably populated by this chart's click
+                  // event, but activeLabel (the dataKey value) is — look the
+                  // point back up by label instead, since labels are unique
+                  // within a single trend response.
+                  onClick: (e) => {
+                    const point = trendChartData.find((t) => t.label === e?.activeLabel);
+                    if (point) setSelectedTrendBucket(point);
+                  },
+                }}
+              />
+            </div>
+            <p className="text-[length:11px] text-[var(--text-muted)] mt-2 text-center">Click a point for a detailed breakdown.</p>
+          </>
         )}
       </div>
+
+      {selectedTrendBucket && (
+        <TrendBreakdownDrawer
+          bucket={selectedTrendBucket}
+          params={params}
+          onClose={() => setSelectedTrendBucket(null)}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {/* Course-wise breakdown */}

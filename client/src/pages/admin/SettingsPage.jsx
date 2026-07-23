@@ -115,31 +115,121 @@ function ViolationsTab() {
   }
 
   return (
-    <div className="max-w-[480px] mx-auto bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4">
-      <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Repeat Violation Threshold for Counselling</p>
+    <div className="max-w-[480px] mx-auto flex flex-col gap-4">
+      <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4">
+        <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Repeat Violation Threshold for Counselling</p>
+        <p className="text-[13px] text-[var(--text-muted)] mb-4">
+          Students with this many violations or more appear in the Students Requiring Counselling
+          card, and in its Excel/PDF exports, everywhere in the app.
+        </p>
+
+        <div className="flex items-end gap-2">
+          <Select
+            label="Threshold"
+            w={180}
+            value={preset}
+            onChange={(value) => setPreset(value ?? '')}
+            data={[
+              ...THRESHOLD_PRESETS.map((p) => ({ value: p, label: `${p} violations` })),
+              { value: 'custom', label: 'Custom value' },
+            ]}
+          />
+          {preset === 'custom' && (
+            <TextInput
+              label="Custom value"
+              w={140}
+              type="number"
+              min={1}
+              max={50}
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+            />
+          )}
+        </div>
+
+        <Button
+          mt="md"
+          leftSection={<IconDeviceFloppy size={16} />}
+          disabled={!isValid}
+          loading={updateSettings.isPending}
+          onClick={handleSave}
+        >
+          Save Changes
+        </Button>
+      </div>
+
+      <TrendSensitivityCard settings={settings} />
+    </div>
+  );
+}
+
+// ─── Trend Status sensitivity (Violation Trend "Improving / Stable /
+// Worsening" classification) — same admin-configurable pattern as the
+// counselling threshold above, so institutions can tune both without a code
+// change. Same tab, own save button: the two settings are independent and
+// the backend accepts either field on its own.
+
+const BAND_PRESETS = ['5', '10', '15', '20'];
+
+function TrendSensitivityCard({ settings }) {
+  const toast = useToast();
+  const updateSettings = useUpdateViolationSettings();
+
+  const [preset, setPreset] = useState('');
+  const [custom, setCustom] = useState('');
+  const [seededFrom, setSeededFrom] = useState(null);
+
+  if (settings != null && seededFrom !== settings) {
+    setSeededFrom(settings);
+    const value = String(settings.trend_stable_band_pct);
+    if (BAND_PRESETS.includes(value)) {
+      setPreset(value);
+      setCustom('');
+    } else {
+      setPreset('custom');
+      setCustom(value);
+    }
+  }
+
+  const effectiveValue = preset === 'custom' ? custom : preset;
+  const parsed = parseInt(effectiveValue, 10);
+  const isValid = effectiveValue !== '' && !isNaN(parsed) && parsed >= 1 && parsed <= 100;
+
+  async function handleSave() {
+    try {
+      await updateSettings.mutateAsync({ trend_stable_band_pct: parsed });
+      toast({ message: 'Trend sensitivity updated.' });
+    } catch (err) {
+      toast({ message: err.response?.data?.message ?? 'Failed to save setting.', type: 'error' });
+    }
+  }
+
+  return (
+    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border)] p-4">
+      <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Violation Trend Sensitivity</p>
       <p className="text-[13px] text-[var(--text-muted)] mb-4">
-        Students with this many violations or more appear in the Students Requiring Counselling
-        card, and in its Excel/PDF exports, everywhere in the app.
+        A period within this percentage of the previous equivalent period is classified as Stable
+        on the dashboard&apos;s Violation Trend chart; beyond it, Improving or Worsening.
       </p>
 
       <div className="flex items-end gap-2">
         <Select
-          label="Threshold"
+          label="Stable band"
           w={180}
           value={preset}
           onChange={(value) => setPreset(value ?? '')}
           data={[
-            ...THRESHOLD_PRESETS.map((p) => ({ value: p, label: `${p} violations` })),
+            ...BAND_PRESETS.map((p) => ({ value: p, label: `±${p}%` })),
             { value: 'custom', label: 'Custom value' },
           ]}
         />
         {preset === 'custom' && (
           <TextInput
-            label="Custom value"
+            label="Custom value (%)"
             w={140}
             type="number"
             min={1}
-            max={50}
+            max={100}
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
           />

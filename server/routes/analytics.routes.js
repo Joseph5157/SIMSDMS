@@ -4,13 +4,14 @@ const authorize     = require('../middleware/authorize');
 const validateQuery = require('../middleware/validateQuery');
 const asyncHandler  = require('../middleware/asyncHandler');
 const ctrl          = require('../controllers/analytics.controller');
-const { analyticsQuery, trendQuery } = require('../schemas/analytics.schema');
+const { analyticsQuery, trendBreakdownQuery } = require('../schemas/analytics.schema');
 
 const router = Router();
 router.use(authenticate, authorize('admin', 'super_admin'));
 
 router.get('/summary',         validateQuery(analyticsQuery), asyncHandler(ctrl.summary));
-router.get('/trend',           validateQuery(trendQuery),     asyncHandler(ctrl.trend));
+router.get('/trend',           validateQuery(analyticsQuery), asyncHandler(ctrl.trend));
+router.get('/trend/breakdown', validateQuery(trendBreakdownQuery), asyncHandler(ctrl.trendBreakdown));
 router.get('/violation-types', validateQuery(analyticsQuery), asyncHandler(ctrl.violationTypeAnalysis));
 router.get('/repeat-violators',validateQuery(analyticsQuery), asyncHandler(ctrl.repeatViolators));
 router.get('/course-analysis', validateQuery(analyticsQuery), asyncHandler(ctrl.courseAnalysis));

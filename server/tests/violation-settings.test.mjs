@@ -18,21 +18,22 @@ function makeRes() {
 const currentSettings = {
   id: 'cfg-1',
   repeat_violation_threshold: 4,
-  // Fields outside repeat_violation_threshold — must never leak through this
-  // endpoint (unrelated to the duty-timing surface).
+  trend_stable_band_pct: 10,
+  // Fields outside these two — must never leak through this endpoint
+  // (unrelated to the duty-timing surface).
   session_start_morning_hour: 8,
 };
 
 describe('getViolationSettings', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('exposes only the counselling threshold, never other system_config fields', async () => {
+  it('exposes the counselling threshold and trend stable-band, never other system_config fields', async () => {
     vi.spyOn(settingsService, 'getSettings').mockResolvedValue(currentSettings);
     const res = makeRes();
     await getViolationSettings(makeReq(), res);
 
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ repeat_violation_threshold: 4 });
+    expect(res._body).toEqual({ repeat_violation_threshold: 4, trend_stable_band_pct: 10 });
     expect(res._body).not.toHaveProperty('id');
     expect(res._body).not.toHaveProperty('session_start_morning_hour');
   });
@@ -47,14 +48,26 @@ describe('updateViolationSettings', () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it('persists the new threshold and returns only the picked field', async () => {
+  it('persists the new threshold and returns both fields', async () => {
     const body = { repeat_violation_threshold: 2 };
     const res = makeRes();
     await updateViolationSettings(makeReq(body), res);
 
     expect(settingsService.updateSettings).toHaveBeenCalledWith(body, 'admin-1');
     expect(res._status).toBe(200);
-    expect(res._body).toEqual({ repeat_violation_threshold: 2 });
+    expect(res._body).toEqual({ repeat_violation_threshold: 2, trend_stable_band_pct: 10 });
+  });
+
+  it('can update the trend stable-band independently of the repeat-violation threshold', async () => {
+    const body = { trend_stable_band_pct: 15 };
+    const updatedBandRow = { ...currentSettings, trend_stable_band_pct: 15 };
+    settingsService.updateSettings.mockResolvedValue(updatedBandRow);
+
+    const res = makeRes();
+    await updateViolationSettings(makeReq(body), res);
+
+    expect(settingsService.updateSettings).toHaveBeenCalledWith(body, 'admin-1');
+    expect(res._body).toEqual({ repeat_violation_threshold: 4, trend_stable_band_pct: 15 });
   });
 
   it('writes a VIOLATION_SETTINGS_UPDATE audit log entry', async () => {

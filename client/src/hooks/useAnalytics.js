@@ -29,3 +29,16 @@ export const useAnalyticsFilterOptions = () => useQuery({
   },
   staleTime: 5 * 60 * 1000,
 });
+
+// `bucket` is a trend data point ({ bucket_start, bucket_end, ... }) or null
+// when no point is selected — the query stays disabled until one is clicked.
+export const useTrendBreakdown = (bucket, params = {}) => useQuery({
+  queryKey: ['analytics', 'trend-breakdown', bucket?.bucket_start, bucket?.bucket_end, params],
+  queryFn: async () => {
+    const res = await api.get('/analytics/trend/breakdown', {
+      params: { ...params, bucket_start: bucket.bucket_start, bucket_end: bucket.bucket_end },
+    });
+    return res.data;
+  },
+  enabled: !!bucket,
+});

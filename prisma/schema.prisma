@@ -505,6 +505,7 @@ model SystemConfig {
   auto_checkout_afternoon_hour  Int      @default(16) @db.SmallInt
   auto_checkout_afternoon_min   Int      @default(30) @db.SmallInt
   repeat_violation_threshold    Int      @default(4) @db.SmallInt
+  trend_stable_band_pct         Int      @default(10) @db.SmallInt
   updated_by                    String?
   updated_at                    DateTime @updatedAt
 

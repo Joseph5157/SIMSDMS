@@ -51,6 +51,9 @@ export const STATUS_COLORS = {
   upcoming:         'bg-blue-50 text-blue-700',
   checked_in:       'bg-blue-100 text-blue-700',
   checked_out:      'bg-emerald-tint text-emerald-text',
+  improving:        'bg-emerald-tint text-emerald-text',
+  worsening:        'bg-red-tint text-red-text',
+  stable:           'bg-amber-tint text-amber-text',
 };
 
 export const ROLE_COLORS = {

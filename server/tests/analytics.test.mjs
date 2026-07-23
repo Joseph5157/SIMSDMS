@@ -4,7 +4,7 @@ const _require = createRequire(import.meta.url);
 const prisma          = _require('../lib/prisma');
 const settingsService = _require('../services/settings.service');
 const {
-  summary, repeatViolators, courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounsellingPdf,
+  summary, trend, trendBreakdown, repeatViolators, courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounsellingPdf,
 } = _require('../controllers/analytics.controller');
 
 function makeReq(query = {}) { return { query }; }
@@ -253,6 +253,176 @@ describe('facultyAnalysis', () => {
       { faculty_id: 'f1', name: 'Dr. Rao', department: 'Pharmacology', count: 5 },
       { faculty_id: 'a1', name: 'Admin', department: null, count: 3 },
     ]);
+  });
+});
+
+describe('trend', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('fetches current + previous period in a single query — never one query per bucket', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      // Previous period (2026-06-24..30).
+      { created_at: new Date('2026-06-25T10:00:00.000Z') },
+      { created_at: new Date('2026-06-25T11:00:00.000Z') },
+      // Current period (2026-07-01..07), day granularity.
+      { created_at: new Date('2026-07-02T10:00:00.000Z') },
+      { created_at: new Date('2026-07-02T11:00:00.000Z') },
+      { created_at: new Date('2026-07-02T12:00:00.000Z') },
+      { created_at: new Date('2026-07-05T10:00:00.000Z') },
+    ]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-07-01', to_date: '2026-07-07' }), res);
+
+    expect(findMany).toHaveBeenCalledTimes(1);
+
+    expect(res._body.granularity).toBe('day');
+    expect(res._body.data).toHaveLength(7);
+    expect(res._body.data.map((d) => d.count)).toEqual([0, 3, 0, 0, 1, 0, 0]);
+    expect(res._body.data[1]).toEqual(expect.objectContaining({ key: '2026-07-02', label: '2 Jul', count: 3 }));
+
+    expect(res._body.current_total).toBe(4);
+    expect(res._body.previous_total).toBe(2);
+    expect(res._body.direction_pct).toBe(100); // (4-2)/2 * 100
+    expect(res._body.average).toBe(1);          // 4/7 rounded to the nearest whole violation
+    expect(res._body.peak).toEqual(expect.objectContaining({ key: '2026-07-02', count: 3 }));
+    expect(res._body.status).toBe('worsening'); // +100% is well beyond the 10% band
+    expect(res._body.stable_band_pct).toBe(10);
+  });
+
+  it('picks daily granularity for this_week and weekly for this_month, without depending on the current date', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const weekRes = makeRes();
+    await trend(makeReq({ range: 'this_week' }), weekRes);
+    expect(weekRes._body.granularity).toBe('day');
+
+    const monthRes = makeRes();
+    await trend(makeReq({ range: 'this_month' }), monthRes);
+    expect(monthRes._body.granularity).toBe('week');
+  });
+
+  it('escalates a long custom range to a coarser granularity but still issues one query', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-01-01', to_date: '2026-06-01' }), res); // ~152 days
+    expect(findMany).toHaveBeenCalledTimes(1);
+    expect(res._body.granularity).toBe('week');
+  });
+
+  it('treats a zero-to-zero change as stable with no peak and a null direction', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-07-01', to_date: '2026-07-07' }), res);
+
+    expect(res._body.current_total).toBe(0);
+    expect(res._body.previous_total).toBe(0);
+    expect(res._body.direction_pct).toBeNull();
+    expect(res._body.peak).toBeNull();
+    expect(res._body.status).toBe('stable');
+  });
+
+  it('treats a rise from a zero baseline as worsening rather than an infinite/undefined percentage', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      { created_at: new Date('2026-07-02T10:00:00.000Z') },
+    ]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-07-01', to_date: '2026-07-07' }), res);
+
+    expect(res._body.previous_total).toBe(0);
+    expect(res._body.current_total).toBe(1);
+    expect(res._body.direction_pct).toBeNull();
+    expect(res._body.status).toBe('worsening');
+  });
+
+  it('classifies a drop beyond the configured band as improving', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      // Previous: 10 violations.
+      ...Array.from({ length: 10 }, () => ({ created_at: new Date('2026-06-25T10:00:00.000Z') })),
+      // Current: 2 violations — an 80% drop, well beyond the 10% band.
+      { created_at: new Date('2026-07-02T10:00:00.000Z') },
+      { created_at: new Date('2026-07-02T11:00:00.000Z') },
+    ]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-07-01', to_date: '2026-07-07' }), res);
+
+    expect(res._body.direction_pct).toBe(-80);
+    expect(res._body.status).toBe('improving');
+  });
+
+  it('stays within the configured band and reports stable', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+    vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([
+      ...Array.from({ length: 10 }, () => ({ created_at: new Date('2026-06-25T10:00:00.000Z') })),
+      // Current: 11 violations — +10%, exactly at the band edge, still stable (strict >).
+      ...Array.from({ length: 11 }, (_, i) => ({ created_at: new Date(`2026-07-0${(i % 7) + 1}T10:00:00.000Z`) })),
+    ]);
+
+    const res = makeRes();
+    await trend(makeReq({ range: 'custom', from_date: '2026-07-01', to_date: '2026-07-07' }), res);
+
+    expect(res._body.direction_pct).toBe(10);
+    expect(res._body.status).toBe('stable');
+  });
+
+  it('still applies course/violation-type filters to the underlying query', async () => {
+    const findMany = vi.spyOn(prisma.violation, 'findMany').mockResolvedValue([]);
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ trend_stable_band_pct: 10 });
+
+    await trend(makeReq({ range: 'this_month', course: 'b_pharm', violation_type_id: 't1' }), makeRes());
+
+    const where = findMany.mock.calls[0][0].where;
+    expect(where.student).toEqual({ course: 'b_pharm' });
+    expect(where.violation_type_id).toBe('t1');
+  });
+});
+
+describe('trendBreakdown', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('scopes to the exact bucket range sent by the client, not a resolved date-range preset', async () => {
+    vi.spyOn(settingsService, 'getSettings').mockResolvedValue({ repeat_violation_threshold: 3 });
+    const count = vi.spyOn(prisma.violation, 'count').mockResolvedValue(6);
+    vi.spyOn(prisma.violation, 'groupBy')
+      .mockResolvedValueOnce([{ student_id: 's1', _count: { id: 4 } }, { student_id: 's2', _count: { id: 2 } }]) // by student
+      .mockResolvedValueOnce([{ violation_type_id: 't1', _count: { id: 5 } }, { violation_type_id: 't2', _count: { id: 1 } }]) // by type
+      .mockResolvedValueOnce([{ faculty_id: 'a1', _count: { id: 3 } }, { faculty_id: 'f1', _count: { id: 3 } }]); // by faculty
+    vi.spyOn(prisma.violationType, 'findUnique').mockResolvedValue({ name: 'Late to duty' });
+    vi.spyOn(prisma.user, 'findMany').mockResolvedValue([
+      { id: 'a1', name: 'Admin One', role: 'admin' },
+      { id: 'f1', name: 'Dr. Rao', role: 'faculty' },
+    ]);
+
+    const res = makeRes();
+    await trendBreakdown(makeReq({
+      bucket_start: '2026-07-01T18:30:00.000Z',
+      bucket_end:   '2026-07-02T18:29:59.999Z',
+      course:       'b_pharm',
+    }), res);
+
+    expect(count.mock.calls[0][0].where.created_at).toEqual({
+      gte: new Date('2026-07-01T18:30:00.000Z'),
+      lte: new Date('2026-07-02T18:29:59.999Z'),
+    });
+    expect(count.mock.calls[0][0].where.student).toEqual({ course: 'b_pharm' });
+
+    expect(res._body.total_violations).toBe(6);
+    expect(res._body.students_involved).toBe(2);
+    expect(res._body.most_frequent_violation).toEqual({ name: 'Late to duty', count: 5 });
+    expect(res._body.repeat_violators_count).toBe(1); // only s1 (4) is >= threshold 3
+    expect(res._body.recorded_by).toEqual(
+      expect.arrayContaining([{ name: 'Admin', count: 3 }, { name: 'Dr. Rao', count: 3 }]),
+    );
   });
 });
 

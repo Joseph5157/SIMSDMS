@@ -22,6 +22,9 @@ const STATUS_LABELS = {
   super_admin:      'Super Admin',
   admin:            'Admin',
   faculty:          'Faculty',
+  improving:        '🟢 Improving',
+  worsening:        '🔴 Worsening',
+  stable:           '🟡 Stable',
 };
 
 export default function Badge({ status, label, className = '' }) {

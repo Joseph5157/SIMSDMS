@@ -5,6 +5,18 @@ const { instantMonthRange, instantSpanRange, parseYMD } = require('../lib/report
 const { nowInIST } = require('../lib/time');
 const settingsService = require('../services/settings.service');
 const { COURSE_LABELS } = require('../lib/academicStructure');
+const {
+  addISTDays, mondayOfISTWeek, dayDiff, instantRangeForISTDates,
+  pickGranularity, enumerateBuckets, bucketStartFor, bucketKeyFor, istDateOf,
+} = require('../lib/trendBuckets');
+
+// A violation's recorder is a faculty member on duty OR an admin who recorded
+// it directly. Admin recorders surface as "Admin" per the discipline-oversight
+// model. Shared by facultyAnalysis and the trend breakdown so the two
+// "recorded by" groupings never drift.
+function recorderName(u) {
+  return u?.role === 'admin' || u?.role === 'super_admin' ? 'Admin' : u?.name ?? 'Unknown';
+}
 
 // Monday–Sunday range containing `now`.
 function weekRange(now) {
@@ -54,8 +66,10 @@ function extraFilters({ violation_type_id, course, year, academic_year, recorded
   return where;
 }
 
-function analyticsWhere(query) {
-  return { record_status: 'active', deleted_at: null, created_at: resolveDateRange(query), ...extraFilters(query) };
+// `rangeOverride` lets the trend breakdown endpoint reuse this against an
+// explicit bucket range instead of the query's own date-range preset.
+function analyticsWhere(query, rangeOverride) {
+  return { record_status: 'active', deleted_at: null, created_at: rangeOverride ?? resolveDateRange(query), ...extraFilters(query) };
 }
 
 // 1. Dashboard Summary Cards
@@ -84,27 +98,167 @@ async function summary(req, res) {
   });
 }
 
-// 2. Violation Trend — counts per month for the trailing N months (default 6),
-// independent of the date-range filter (trend is inherently multi-period);
-// course/year/academic_year/violation_type filters still apply.
-async function trend(req, res) {
-  const months = req.query.months ?? 6;
-  const base   = extraFilters(req.query);
-  const ist    = nowInIST();
+// The date range immediately preceding the current one, of the same kind, for
+// the trend's "vs previous equivalent period" comparison:
+//   this_week  → the prior Mon–Sun
+//   this_month → the prior calendar month
+//   last_month → the calendar month before that
+//   custom     → an equal-length window immediately before from_date
+// Mirrors resolveDateRange's structure/precedence so the two never diverge.
+function resolvePreviousRange({ range, from_date, to_date }, ist) {
+  if (range === 'custom' && from_date && to_date) {
+    const from = parseYMD(from_date), to = parseYMD(to_date);
+    const spanDays = dayDiff(from, to) + 1;
+    const prevTo   = addISTDays(from.year, from.month, from.day, -1);
+    const prevFrom = addISTDays(prevTo.year, prevTo.month, prevTo.day, -(spanDays - 1));
+    return instantRangeForISTDates(prevFrom, prevTo);
+  }
+  if (range === 'this_week') {
+    const monday     = mondayOfISTWeek(ist.year, ist.month, ist.day);
+    const prevMonday = addISTDays(monday.year, monday.month, monday.day, -7);
+    const prevSunday = addISTDays(prevMonday.year, prevMonday.month, prevMonday.day, 6);
+    return instantRangeForISTDates(prevMonday, prevSunday);
+  }
+  if (range === 'last_month') {
+    // Two months back from the current IST month.
+    const y = ist.month <= 2 ? ist.year - 1 : ist.year;
+    const m = ist.month <= 2 ? ist.month + 10 : ist.month - 2;
+    return instantMonthRange(y, m);
+  }
+  // this_month / default
+  const y = ist.month === 1 ? ist.year - 1 : ist.year;
+  const m = ist.month === 1 ? 12 : ist.month - 1;
+  return instantMonthRange(y, m);
+}
 
-  const data = [];
-  for (let i = months - 1; i >= 0; i--) {
-    // Step back i whole months from the current IST month; UTC month overflow
-    // normalises year rollover.
-    const d = new Date(Date.UTC(ist.year, ist.month - 1 - i, 1));
-    const year = d.getUTCFullYear(), month = d.getUTCMonth() + 1;
-    const count = await prisma.violation.count({
-      where: { ...base, record_status: 'active', deleted_at: null, created_at: instantMonthRange(year, month) },
-    });
-    data.push({ year, month, count });
+// Bucket granularity for the selected range — fixed for the two preset
+// windows, span-dependent (and self-capping in bucket count) for custom.
+function resolveGranularity(query, currentRange) {
+  if (query.range === 'this_week') return 'day';
+  if (query.range === 'custom') {
+    const spanDays = Math.round((currentRange.lte - currentRange.gte) / 86_400_000) + 1;
+    return pickGranularity(spanDays);
+  }
+  return 'week'; // this_month / last_month / default
+}
+
+// 2. Violation Trend — synchronized with every dashboard filter, including the
+// Time Period preset (previously hardcoded to a trailing 6 months regardless
+// of the filter). Bucket granularity adapts to the selected span; current and
+// previous-equivalent-period totals come from a single findMany covering both
+// (no per-bucket queries), matching the fetch-and-bucket pattern already used
+// by heatmap() below.
+async function trend(req, res) {
+  const base          = extraFilters(req.query);
+  const ist           = nowInIST();
+  const currentRange  = resolveDateRange(req.query);
+  const previousRange = resolvePreviousRange(req.query, ist);
+  const granularity   = resolveGranularity(req.query, currentRange);
+
+  // previousRange immediately precedes currentRange (no gap, no overlap by
+  // construction), so one query spanning both is equivalent to two.
+  const violations = await prisma.violation.findMany({
+    where: {
+      ...base, record_status: 'active', deleted_at: null,
+      created_at: { gte: previousRange.gte, lte: currentRange.lte },
+    },
+    select: { created_at: true },
+  });
+
+  const buckets    = enumerateBuckets(currentRange, granularity);
+  const countByKey = new Map(buckets.map((b) => [b.key, 0]));
+  let previousTotal = 0;
+
+  for (const v of violations) {
+    if (v.created_at >= previousRange.gte && v.created_at <= previousRange.lte) {
+      previousTotal++;
+      continue;
+    }
+    const key = bucketKeyFor(bucketStartFor(istDateOf(v.created_at), granularity), granularity);
+    if (countByKey.has(key)) countByKey.set(key, countByKey.get(key) + 1);
   }
 
-  res.json({ data });
+  const data = buckets.map((b) => ({
+    key: b.key, label: b.label, bucket_start: b.bucket_start, bucket_end: b.bucket_end,
+    count: countByKey.get(b.key) ?? 0,
+  }));
+
+  const currentTotal = data.reduce((sum, d) => sum + d.count, 0);
+  const average = data.length ? currentTotal / data.length : 0;
+  const peak = data.reduce((best, d) => (!best || d.count > best.count ? d : best), null);
+
+  // % change vs previous period — undefined (not "infinite") when the
+  // previous period had zero violations; status still resolves via the
+  // absolute current/previous comparison below.
+  const directionPct = previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : null;
+
+  const { trend_stable_band_pct: band } = await settingsService.getSettings();
+  let status;
+  if (currentTotal === 0 && previousTotal === 0)      status = 'stable';
+  else if (previousTotal === 0)                       status = 'worsening'; // currentTotal > 0 here
+  else if (directionPct > band)                       status = 'worsening';
+  else if (directionPct < -band)                      status = 'improving';
+  else                                                 status = 'stable';
+
+  res.json({
+    granularity,
+    data,
+    current_total:    currentTotal,
+    previous_total:   previousTotal,
+    direction_pct:    directionPct === null ? null : Math.round(directionPct * 10) / 10,
+    peak:             peak && peak.count > 0 ? peak : null,
+    average:          Math.round(average),
+    status,
+    stable_band_pct:  band,
+  });
+}
+
+// 2b. Trend breakdown — the detail shown when an admin clicks a point on the
+// Violation Trend chart, scoped to that single bucket's (already-clipped)
+// date range. Reuses the same where-clause builder, repeat-violation
+// threshold, and recorder-naming convention as the rest of this file instead
+// of recomputing them.
+async function trendBreakdown(req, res) {
+  const { bucket_start, bucket_end } = req.query;
+  const range = { gte: new Date(bucket_start), lte: new Date(bucket_end) };
+  const where = analyticsWhere(req.query, range);
+
+  const { repeat_violation_threshold: threshold } = await settingsService.getSettings();
+
+  const [total, byStudent, byType, byFaculty] = await Promise.all([
+    prisma.violation.count({ where }),
+    prisma.violation.groupBy({ by: ['student_id'], where, _count: { id: true } }),
+    prisma.violation.groupBy({ by: ['violation_type_id'], where, _count: { id: true } }),
+    prisma.violation.groupBy({ by: ['faculty_id'], where, _count: { id: true } }),
+  ]);
+
+  let mostFrequentViolation = null;
+  if (byType.length) {
+    const top = byType.reduce((a, b) => (b._count.id > a._count.id ? b : a));
+    const type = await prisma.violationType.findUnique({ where: { id: top.violation_type_id }, select: { name: true } });
+    mostFrequentViolation = { name: type?.name ?? 'Unknown', count: top._count.id };
+  }
+
+  const faculty = await prisma.user.findMany({
+    where: { id: { in: byFaculty.map((g) => g.faculty_id) } },
+    select: { id: true, name: true, role: true },
+  });
+  const fMap = new Map(faculty.map((f) => [f.id, f]));
+  const recordedByCounts = new Map();
+  for (const g of byFaculty) {
+    const name = recorderName(fMap.get(g.faculty_id));
+    recordedByCounts.set(name, (recordedByCounts.get(name) ?? 0) + g._count.id);
+  }
+
+  res.json({
+    bucket_start,
+    bucket_end,
+    total_violations:        total,
+    students_involved:       byStudent.length,
+    most_frequent_violation: mostFrequentViolation,
+    repeat_violators_count:  byStudent.filter((g) => g._count.id >= threshold).length,
+    recorded_by:             Array.from(recordedByCounts, ([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count),
+  });
 }
 
 // 3. Violation Type Analysis — bar chart data, dynamic types, respects all filters.
@@ -251,10 +405,6 @@ async function facultyAnalysis(req, res) {
   });
   const fMap = new Map(faculty.map((f) => [f.id, f]));
 
-  // A recorder may be an admin (unrestricted recording) or a faculty member.
-  // Admin recorders surface as "Admin" per the discipline-oversight model.
-  const recorderName = (u) => (u?.role === 'admin' || u?.role === 'super_admin' ? 'Admin' : u?.name ?? 'Unknown');
-
   const data = grouped
     .map((g) => ({
       faculty_id: g.faculty_id,
@@ -357,7 +507,7 @@ async function filterOptions(req, res) {
 }
 
 module.exports = {
-  summary, trend, violationTypeAnalysis, repeatViolators, filterOptions,
+  summary, trend, trendBreakdown, violationTypeAnalysis, repeatViolators, filterOptions,
   courseAnalysis, yearAnalysis, facultyAnalysis, heatmap, exportCounselling,
   exportCounsellingPdf,
 };
