@@ -290,13 +290,12 @@ export default function CalendarPage({ user }) {
               <p className="text-sm font-medium text-[var(--text-secondary)] mb-3">Unassigned faculty ({unassigned.total})</p>
               <Table>
                 <thead>
-                  <tr><Th>Name</Th><Th>Dept.</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr>
+                  <tr><Th>Name</Th><Th>Slots picked</Th><Th>Required</Th><Th /></tr>
                 </thead>
                 <tbody>
                   {unassigned.data.map((f) => (
                     <tr key={f.id}>
                       <Td className="font-medium">{f.name}</Td>
-                      <Td>{f.department ?? '—'}</Td>
                       <Td>{f.slots_picked}</Td>
                       <Td>{f.slots_required}</Td>
                       <Td>

@@ -14,6 +14,11 @@ function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 }
 
+// Weekday + day + month for the mobile agenda date headers, e.g. "Mon, 28 Jul".
+function fmtDayHeader(d) {
+  return new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
 function sessionLabel(s) {
   return s === 'morning' ? 'Morning' : s === 'afternoon' ? 'Afternoon' : (s ?? '—');
 }
@@ -24,6 +29,38 @@ function reassignment(slot) {
 }
 
 const EMPTY_SLOTS = [];
+
+// One session line (AM/PM) inside a mobile agenda day card. `slot` is null when
+// that session isn't booked; we only render the "Unbooked" placeholder when the
+// list isn't being filtered by a search (absence during a search means "no
+// match", not "unbooked", so showing it would mislead).
+function AgendaRow({ label, slot, showUnbooked }) {
+  if (!slot) {
+    if (!showUnbooked) return null;
+    return (
+      <div className="flex items-center gap-3 px-4 py-2.5">
+        <span className="shrink-0 w-9 text-center text-[length:var(--text-micro)] font-[var(--weight-semibold)] text-[var(--text-muted)] bg-[var(--surface-page)] rounded-[var(--radius-md)] py-0.5">{label}</span>
+        <span className="text-[length:var(--text-small)] text-[var(--text-muted)]">Unbooked</span>
+      </div>
+    );
+  }
+  const r = reassignment(slot);
+  return (
+    <div className="flex items-start gap-3 px-4 py-2.5">
+      <span className="shrink-0 w-9 text-center text-[length:var(--text-micro)] font-[var(--weight-semibold)] text-[var(--text-secondary)] bg-[var(--surface-page)] rounded-[var(--radius-md)] py-0.5 mt-0.5">{label}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis">{slot.faculty?.name}</p>
+          <Badge status={slot.status} />
+        </div>
+        <p className="text-[length:var(--text-micro)] text-[var(--text-muted)]">{slot.faculty?.department ?? '—'}</p>
+        {r && (
+          <p className="text-[length:var(--text-micro)] text-[var(--color-indigo-text)] mt-0.5 font-[var(--weight-semibold)]">↻ was: {r.fromFaculty?.name}</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AllFacultyDutiesPage({ user }) {
   const now = new Date();
@@ -61,6 +98,25 @@ export default function AllFacultyDutiesPage({ user }) {
       return true;
     });
   }, [slots, search, session]);
+
+  // Group the filtered slots by date for the mobile agenda. Each day holds at
+  // most a morning + an afternoon slot (enforced by the DB unique constraint on
+  // [duty_date, session_type]), so a whole month is a short, scannable list.
+  const agenda = useMemo(() => {
+    const byDate = new Map();
+    for (const s of filtered) {
+      const key = new Date(s.duty_date).toISOString().slice(0, 10);
+      if (!byDate.has(key)) byDate.set(key, { key, date: s.duty_date, morning: null, afternoon: null });
+      const g = byDate.get(key);
+      if (s.session_type === 'morning') g.morning = s;
+      else if (s.session_type === 'afternoon') g.afternoon = s;
+    }
+    return [...byDate.values()].sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [filtered]);
+
+  const showAM = session === '' || session === 'morning';
+  const showPM = session === '' || session === 'afternoon';
+  const showUnbooked = !search.trim();
 
   return (
     <Layout user={user}>
@@ -102,35 +158,27 @@ export default function AllFacultyDutiesPage({ user }) {
         </span>
       </div>
 
-      {/* Mobile card list */}
-      <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
-        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
-        {isError && <div className="p-6 text-center"><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
-        {!isLoading && !isError && !filtered.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No booked duties this month.</div>}
-        {filtered.map((s) => {
-          const r = reassignment(s);
-          return (
-            <div key={s.id} className="px-4 py-3.5 border-b border-[var(--border)]">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[length:var(--text-card-lg)] font-[var(--weight-semibold)] text-[var(--text-primary)] whitespace-nowrap overflow-hidden text-ellipsis">
-                    {s.faculty?.name}
-                  </p>
-                  <p className="text-[length:var(--text-small)] text-[var(--text-muted)]">{s.faculty?.department ?? '—'}</p>
+      {/* Mobile day agenda — one card per date, AM + PM stacked */}
+      <div className="md:hidden mb-4">
+        {isLoading && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isError && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-6 text-center"><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
+        {!isLoading && !isError && !agenda.length && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No booked duties this month.</div>}
+        <div className="flex flex-col gap-3">
+          {agenda.map((g) => {
+            const amVisible = showAM && (g.morning || showUnbooked);
+            const pmVisible = showPM && (g.afternoon || showUnbooked);
+            return (
+              <div key={g.key} className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+                <div className="px-4 py-2 bg-[var(--surface-page)] border-b border-[var(--border)]">
+                  <p className="text-[length:var(--text-small)] font-[var(--weight-semibold)] text-[var(--text-secondary)]">{fmtDayHeader(g.date)}</p>
                 </div>
-                <Badge status={s.status} />
+                {showAM && <AgendaRow label="AM" slot={g.morning} showUnbooked={showUnbooked} />}
+                {amVisible && pmVisible && <div className="mx-4 border-t border-[var(--border)]" />}
+                {showPM && <AgendaRow label="PM" slot={g.afternoon} showUnbooked={showUnbooked} />}
               </div>
-              <p className="text-[length:var(--text-micro)] text-[var(--text-muted)] mt-1">
-                {fmtDate(s.duty_date)} · {sessionLabel(s.session_type)}
-              </p>
-              {r && (
-                <p className="text-[length:var(--text-micro)] text-[var(--color-indigo-text)] mt-1 font-[var(--weight-semibold)]">
-                  Reassigned: {r.fromFaculty?.name} → {r.toFaculty?.name}
-                </p>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Desktop table */}

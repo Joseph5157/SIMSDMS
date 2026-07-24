@@ -237,13 +237,12 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
     case 'unassigned-faculty': return (
       <Table>
-        <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
+        <thead><tr><Th>Faculty</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
         <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={4} message="All faculty have picked their slots." />}
+          {!data.data?.length && <EmptyRow cols={3} message="All faculty have picked their slots." />}
           {data.data?.map((f) => (
             <tr key={f.id}>
               <Td className="font-medium">{f.name}</Td>
-              <Td>{f.department ?? '—'}</Td>
               <Td>{f.slots_picked}</Td>
               <Td>{f.required}</Td>
             </tr>
