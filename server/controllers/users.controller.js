@@ -35,6 +35,16 @@ async function listUsers(req, res) {
   } else if (status) {
     where.status = status;
   }
+
+  // A super_admin login must be invisible to everyone below it — only a
+  // super_admin viewer may see super_admin rows. For any other viewer we force
+  // the role filter to exclude them, even if they explicitly ask for the role.
+  if (req.user.role !== 'super_admin') {
+    if (role === 'super_admin') {
+      return res.json({ data: [], meta: { total: 0, page: pageNum, limit: pageSize, pages: 0 } });
+    }
+    where.role = role || { not: 'super_admin' };
+  }
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -74,7 +84,11 @@ async function listDirectory(req, res) {
   };
 
   if (req.user.role === 'faculty') {
-    where.role = { in: ['admin', 'super_admin'] };
+    // Faculty may message admins only — never expose the super_admin account.
+    where.role = { in: ['admin'] };
+  } else if (req.user.role !== 'super_admin') {
+    // Admins see all active recipients except the hidden super_admin.
+    where.role = { not: 'super_admin' };
   }
 
   const users = await prisma.user.findMany({
@@ -91,6 +105,11 @@ async function listDirectory(req, res) {
 async function getUser(req, res) {
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user || user.deleted_at) {
+    return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
+  }
+  // The super_admin account is hidden from everyone below it — a non-super_admin
+  // must not be able to fetch it by id either.
+  if (user.role === 'super_admin' && req.user.role !== 'super_admin') {
     return res.status(404).json({ error: true, code: 'NOT_FOUND', message: 'User not found.' });
   }
   res.json(safeUser(user));
