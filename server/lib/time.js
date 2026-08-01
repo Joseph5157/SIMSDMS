@@ -73,8 +73,8 @@ function formatDateIST(date) {
  */
 function monthRangeUTC(year, month) {
   return {
-    gte: new Date(year, month - 1, 1),
-    lte: new Date(year, month, 0, 23, 59, 59, 999),
+    gte: new Date(Date.UTC(year, month - 1, 1)),
+    lte: new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)),
   };
 }
 
