@@ -267,7 +267,11 @@ export default function SlotPickerPage({ user }) {
           const hasAftern    = avail.includes('afternoon');
           const pickedMorn   = !!picked.morning;
           const pickedAftern = !!picked.afternoon;
-          const d            = new Date(selected);
+          // Build the Date from local components (not new Date(selected), which parses
+          // "YYYY-MM-DD" as UTC midnight and would roll back a day on any browser whose
+          // local timezone sits west of UTC).
+          const [selYear, selMonth, selDay] = selected.split('-').map(Number);
+          const d = new Date(selYear, selMonth - 1, selDay);
 
           return (
             <div ref={panelRef} className="mt-3.5 p-3.5 bg-[var(--surface-page)] border border-[var(--border)] rounded-[var(--radius-lg)] scroll-mt-20 scroll-mb-20">
@@ -346,7 +350,11 @@ export default function SlotPickerPage({ user }) {
           <div className="flex flex-col gap-1.5">
             {mySlots.data.map((s) => {
               const key = String(s.duty_date).slice(0, 10);
-              const d = new Date(key);
+              // Read the day/month straight out of the "YYYY-MM-DD" string instead of
+              // new Date(key).getDate()/getMonth() — that round-trips through UTC
+              // midnight and rolls back a day on any browser west of UTC.
+              const day   = parseInt(key.slice(8, 10), 10);
+              const monIx = parseInt(key.slice(5, 7), 10) - 1;
               return (
                 <div key={s.id} className="flex items-center gap-2.5 bg-[var(--surface-card)] rounded-[var(--radius-lg)] border border-[var(--border)] px-3.5 py-2.5">
                   <span
@@ -354,7 +362,7 @@ export default function SlotPickerPage({ user }) {
                     style={{ background: s.session_type === 'morning' ? 'var(--color-blue-500)' : 'var(--color-orange-solid)' }}
                   />
                   <p className="flex-1 text-[13px] font-[var(--weight-semibold)] text-[var(--text-primary)] m-0 capitalize">
-                    {s.session_type} · {d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}
+                    {s.session_type} · {day} {MONTH_NAMES[monIx].slice(0,3)}
                   </p>
                   <Badge status={s.status} />
                 </div>
