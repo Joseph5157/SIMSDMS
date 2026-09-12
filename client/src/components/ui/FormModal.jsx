@@ -1,6 +1,7 @@
 import { Modal, Stack, Group, Button, Alert } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { IconAlertCircle } from '@tabler/icons-react';
+import useReturnFocus from '../../hooks/useReturnFocus';
 
 /**
  * FormModal — create/edit form dialog.
@@ -29,6 +30,7 @@ export default function FormModal({
 }) {
   const isMobile = useMediaQuery('(max-width: 640px)');
   const id = formId ?? 'form-modal-form';
+  useReturnFocus(opened);
 
   return (
     <Modal.Root

@@ -1,4 +1,5 @@
 import { Modal, Text, Group, Button } from '@mantine/core';
+import useReturnFocus from '../../hooks/useReturnFocus';
 
 /**
  * ConfirmModal — delete/action confirmation dialog.
@@ -19,6 +20,8 @@ export default function ConfirmDialog({
   // must appear on top of another already-open modal.
   zIndex,
 }) {
+  useReturnFocus(open);
+
   return (
     <Modal
       opened={open}
