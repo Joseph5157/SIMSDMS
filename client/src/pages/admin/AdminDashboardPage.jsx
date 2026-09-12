@@ -255,7 +255,10 @@ export default function AdminDashboardPage({ user }) {
       {hasFlagged && (
         <Card className="flex flex-col flex-1">
           <CardHeader>
-            <div className="flex items-center justify-between gap-2 flex-1">
+            {/* CardHeader renders children inside a Mantine <Text> (a <p>), which
+                cannot legally contain a block-level <div> — use a flex <span>
+                (phrasing content) instead of a <div> to keep this valid HTML. */}
+            <span className="flex items-center justify-between gap-2 flex-1">
               <span className="inline-flex items-center gap-1.5"><IconFlag size={15} stroke={1.75} className="shrink-0" />Flagged student violations — needs review</span>
               <select
                 value={flaggedShowCount}
@@ -265,7 +268,7 @@ export default function AdminDashboardPage({ user }) {
               >
                 {[3, 5, 10, 20].map((n) => <option key={n} value={n}>Show {n}</option>)}
               </select>
-            </div>
+            </span>
           </CardHeader>
           <div className="px-4 pt-1.5 pb-0.5 shrink-0 text-[length:var(--text-micro)] text-[var(--text-muted)]">
             Total: <strong className="text-[var(--text-secondary)]">{pendingFlaggedCount}</strong> · Showing: {pendingFlaggedViolations.length} latest
