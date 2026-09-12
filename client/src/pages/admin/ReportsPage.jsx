@@ -48,7 +48,8 @@ const REPORT_GROUPS = ['Attendance', 'Student Violations', 'Duty & Coverage', 'S
 function MonthFilter({ year, month, setYear, setMonth }) {
   const now = new Date();
   // text-[length:16px] keeps mobile Safari from zooming when a control is focused.
-  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px]';
+  // min-h enforces the 44px touch-target floor (030-D-04 / DS-14 measured this at 37-40px).
+  const cls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px] min-h-[var(--control-min)]';
   return (
     <div className="flex gap-2 mb-5">
       <select value={year} onChange={(e) => setYear(+e.target.value)} className={cls}>
@@ -373,7 +374,8 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
 
 // ── Student Monthly Violation Report — the primary report (Monthly / Yearly / Overall + Excel export) ──
 // text-[length:16px] keeps mobile Safari from zooming when a control is focused.
-const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px]';
+// min-h enforces the 44px touch-target floor (030-D-04 / DS-14 measured this at 37-40px).
+const selectCls = 'border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)] bg-[var(--surface-card)] text-[var(--text-secondary)] text-[length:16px] min-h-[var(--control-min)]';
 
 function StudentViolationReportCard() {
   const toast = useToast();
@@ -455,7 +457,7 @@ function StudentViolationReportCard() {
             type="button"
             onClick={() => handleDownload('xlsx')}
             disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
           >
             {downloading ? 'Preparing…' : '⬇ Excel'}
           </button>
@@ -463,7 +465,7 @@ function StudentViolationReportCard() {
             type="button"
             onClick={() => handleDownload('pdf')}
             disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {downloading ? 'Preparing…' : '⬇ PDF'}
           </button>
@@ -477,7 +479,7 @@ function StudentViolationReportCard() {
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+            className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
               mode === m
                 ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
                 : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
@@ -669,7 +671,7 @@ function IndividualStudentReportCard() {
             type="button"
             onClick={() => handleDownload('xlsx')}
             disabled={!student || downloading || busy || !hasRows}
-            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
+            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
           >
             {downloading ? 'Preparing…' : '⬇ Excel'}
           </button>
@@ -677,7 +679,7 @@ function IndividualStudentReportCard() {
             type="button"
             onClick={() => handleDownload('pdf')}
             disabled={!student || downloading || busy || !hasRows}
-            className="h-10 px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {downloading ? 'Preparing…' : '⬇ PDF'}
           </button>
@@ -737,7 +739,7 @@ function IndividualStudentReportCard() {
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                className={`px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+                className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
                   mode === m
                     ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
                     : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
