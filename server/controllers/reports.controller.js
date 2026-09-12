@@ -200,7 +200,18 @@ function dateSuffix({ year, month }) {
   return year && month ? `${year}-${String(month).padStart(2, '0')}` : year ? String(year) : 'all-time';
 }
 
-async function _getStudentViolations(where, { take } = {}) {
+// Downloadable student-violation reports (Excel/PDF) group every row by
+// student, then by date within that student, so a reader — e.g. Accounts
+// cross-checking fines — can scan one student's entries together instead of
+// hunting through recording-time order. The on-screen report keeps
+// created_at desc (most-recent-first) since Daily/Weekly modes already cover
+// the chronological view.
+const STUDENT_VIOLATION_EXPORT_ORDER = [
+  { student: { student_name: 'asc' } },
+  { created_at: 'asc' },
+];
+
+async function _getStudentViolations(where, { take, orderBy } = {}) {
   return prisma.violation.findMany({
     where,
     include: {
@@ -209,7 +220,7 @@ async function _getStudentViolations(where, { take } = {}) {
       violationType: { select: { name: true } },
       dutySlot:      { select: { duty_date: true } },
     },
-    orderBy: { created_at: 'desc' },
+    orderBy: orderBy ?? { created_at: 'desc' },
     ...(take && { take }),
   });
 }
@@ -260,7 +271,7 @@ function mapViolationExportRow(v, i) {
 // 6b. Student Violation History — Export (.xlsx, all matching rows, no cap, NO fine amounts)
 async function studentViolationHistoryExport(req, res) {
   const where = studentViolationWhere(req.query);
-  const violations = await _getStudentViolations(where);
+  const violations = await _getStudentViolations(where, { orderBy: STUDENT_VIOLATION_EXPORT_ORDER });
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
 
@@ -290,7 +301,7 @@ async function dailyViolationReportExport(req, res) {
   }
   const { year, month, day } = parseYMD(date);
   const where = { ...studentViolationWhere(req.query), ...violationInPeriod(dateDayRange(year, month, day), instantDayRange(year, month, day), req.query.session) };
-  const violations = await _getStudentViolations(where);
+  const violations = await _getStudentViolations(where, { orderBy: STUDENT_VIOLATION_EXPORT_ORDER });
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
   sendWorkbook(res, buffer, `student-violations-daily-${date}.xlsx`);
@@ -309,7 +320,7 @@ async function weeklyViolationReport(req, res) {
 async function weeklyViolationReportExport(req, res) {
   const { from_date, to_date, ...filters } = req.query;
   const where = { ...studentViolationWhere(filters), ...violationInSpan(from_date, to_date, filters.session) };
-  const violations = await _getStudentViolations(where);
+  const violations = await _getStudentViolations(where, { orderBy: STUDENT_VIOLATION_EXPORT_ORDER });
 
   const buffer = await buildWorkbook('Student Violations', STUDENT_VIOLATION_EXPORT_COLUMNS, violations.map(mapViolationExportRow));
   sendWorkbook(res, buffer, `student-violations-weekly-${from_date}-to-${to_date}.xlsx`);
@@ -367,7 +378,7 @@ function mapViolationPdfRow(v, i) {
 }
 
 async function _sendStudentViolationPdf(where, { title, subtitle, filenameSuffix }, res) {
-  const violations = await _getStudentViolations(where);
+  const violations = await _getStudentViolations(where, { orderBy: STUDENT_VIOLATION_EXPORT_ORDER });
   const buffer = await buildReportPdf({
     title,
     subtitle,
