@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { IconUser, IconBuilding, IconId, IconTag, IconMail, IconKey, IconChevronRight } from '@tabler/icons-react';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 import UserAvatar from './ui/UserAvatar';
 import { useUpdateProfile } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
@@ -93,16 +94,16 @@ export default function ProfileDrawer({ open, onClose, user }) {
       subtitle="Update your details and avatar"
       footer={
         <>
-          <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-          <button
+          <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
+          <AppButton
             disabled={updateProfile.isPending || !canSave}
+            loading={updateProfile.isPending}
             onClick={handleSubmit}
             data-primary=""
-            style={primaryBtnStyle(updateProfile.isPending || !canSave)}
+            style={{ flex: 2 }}
           >
-            {updateProfile.isPending && <DrawerSpinner />}
-            {updateProfile.isPending ? 'Saving…' : 'Save'}
-          </button>
+            Save
+          </AppButton>
         </>
       }
     >

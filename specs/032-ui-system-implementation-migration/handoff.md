@@ -2,207 +2,206 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Batch 2.1 — Token/theme synchronization adapter
+032-ui-system-implementation-migration / Batch 2.2 — AppButton adoption: ResponsiveSheet footer batch
 
 ## status
 
-complete — owner-approved; committed independently as `refactor(theme): centralize Mantine color
-token mapping`
+complete — owner-approved; committed independently as `refactor(ui): standardize sheet footer actions
+with AppButton`
 
 ## owner_review_notes
 
-Preserved verbatim from the approval, for any future batch that touches theming:
+Preserved verbatim from the approval, for any future agent touching `ResponsiveSheet` or its
+consumers:
 
-- `client/src/lib/theme-tokens.js` is the **authoritative Mantine adapter** — it is not a second,
-  independent token source. `index.css`'s `@theme` block remains the single source of truth; this file
-  exists only because Mantine's `createTheme({ colors })` API requires literal hex strings and cannot
-  consume CSS custom properties directly.
-- The `gray→slate`, `yellow→amber`, `violet→purple`, and partial `green→emerald` mappings documented in
-  that file are **intentional compatibility mappings**, not naming mistakes or leftover drift — they
-  must not be "cleaned up" casually (e.g., by renaming Mantine's reserved keys, or by silently aligning
-  `green`'s two divergent shades to `emerald`). The `green`/`emerald` shade mismatch specifically stays
-  deferred until a future batch makes an explicit, owner-approved decision on whether those two shades
-  should converge.
+- The old `ResponsiveSheet`-exported footer styles (`cancelBtnStyle`, the blue-gradient
+  `primaryBtnStyle` with its colored box-shadow and 20px corners, and the `DrawerSpinner` loading
+  indicator) are **intentionally retired**, not merely superseded. They were removed from
+  `ResponsiveSheet.jsx` entirely in this batch, not left as a deprecated-but-present option.
+- Do not recreate that gradient/20px footer look because it turns up in an old screenshot, a git-blame
+  history, or a stale design reference — it predates this batch's AppButton convergence and is not the
+  current standard. Every sheet/dialog footer's cancel/primary action is `AppButton` now
+  (`variant="secondary"` / default `primary`), matching every other AppButton primary action in the
+  app.
+- The test-harness question raised in this batch's closure is **resolved, not open**: establishing the
+  first client test harness is explicitly deferred to the dedicated testing/enforcement milestone
+  (Milestone 7 / Stream 10), where the framework choice and initial coverage can be made deliberately.
+  It is not a decision for a component-migration batch to make opportunistically.
 
 ## completed
 
 ### Objective (from the approved plan)
 
-Implement V2 §8: consolidate the 72 hardcoded Mantine theme hex literals into one named adapter
-mapped to the existing semantic CSS custom properties (DS-11 / C-R02), removing the
-manual-synchronization risk without changing any rendered color.
+Implement V2 §3's ResponsiveSheet footer decision: migrate the 17 conventional cancel/primary/
+destructive footer button templates currently using `ResponsiveSheet`'s exported raw footer style
+object (`cancelBtnStyle`/`primaryBtnStyle`) to `AppButton` (DS-02 / C-R01). First representative
+primitive-convergence batch.
 
 ### Prerequisite check
 
-Dependency on previous batch: **none** (per the plan). Batches 1.1–1.3 are complete and committed
-(`aa7ee0c`, `c3dbd7b`, `344ef6a`); nothing about this batch depends on them, and this batch touches
-none of their files.
+Dependency on previous batch: "None strictly, but should follow 2.1 to avoid introducing new
+hardcoded colors into the footer pattern." Batch 2.1 (token adapter) is complete and committed
+(`c748eb3`); this batch introduces zero new hardcoded colors — every footer button now consumes
+`AppButton`'s existing semantic variants.
 
-### Problem verified before implementing
+### Scope discipline confirmed before touching code
 
-Read `client/src/lib/theme.js` first, per the plan's file guess — it turned out to be the light/dark
-**mode toggle** utility (localStorage + DOM class), not the Mantine color config. Located the actual
-72-hex-literal `createTheme({ colors: {...} })` block in `client/src/App.jsx` instead (7 ramps × 10
-shades: blue, green, red, yellow, gray, indigo, violet), carrying the exact comment DS-11/C-R02
-describes: *"⚠️ SYNC REQUIREMENT: These hex values MUST stay in sync with client/src/index.css @theme.
-If brand or status colors change, update BOTH this object AND the @theme block."* This is the actual
-file this batch needed to touch.
+Per the approved V2 §3 boundary and this batch's explicit instruction ("conventional feature actions
+only, not raw-button mass replacement"): every one of the 17 sites converted is a dialog **footer**
+action (cancel/primary/destructive submit) — the exact category V2 names as canonical AppButton
+territory. Nothing in this batch touches calendar controls, tabs, disclosure triggers, pagination
+internals, shell/chrome controls, or composite widgets — those remain untouched raw buttons, per the
+Stream 2 exclusions.
 
-Cross-checked every Mantine ramp value against `client/src/index.css`'s `@theme` block before writing
-anything, to document the mapping accurately rather than guessing:
-- `blue` and `gray` are **exact, complete** 10-shade matches to `--color-blue-*` and `--color-slate-*`
-  (Mantine's reserved key "gray" is the app's own "slate" hue — a real naming mismatch, not a typo).
-- `red`, `yellow`, `indigo`, `violet` match the app's `--color-red-*` / `--color-amber-*` /
-  `--color-indigo-*` / `--color-purple-*` semantic aliases **exactly at every shade index those aliases
-  reference** (bg/tint/border/solid/600/700/text). Mantine's "yellow" key is the app's "amber"; Mantine's
-  "violet" key is the app's "purple".
-- `green` matches the app's `--color-emerald-*` aliases exactly at 5 of 7 referenced shades, but **not**
-  at 2 (`--color-emerald-bg` #f0fdf4 ≠ green[0] #ecfdf5; `--color-emerald-border` #bbf7d0 ≠ green[2]
-  #a7f3d0) — a genuine pre-existing divergence between the two systems, not something introduced here.
-  Documented as-is in the new file rather than "corrected," since silently aligning those two shades
-  would be an uninstructed visual change to whatever currently renders with Mantine's raw `green[0]`/
-  `green[2]`.
+### Enumeration verified before implementing
 
-### Ownership layer / implementation
+Searched for every `cancelBtnStyle`/`primaryBtnStyle` import and confirmed exactly **9 files / 17
+button occurrences** — matching the plan's own "~17 call sites" estimate exactly (3+2+2+2+2+1+1+2+2):
+`CreateUserDrawer.jsx`, `ComposeDrawer.jsx`, `ViolationTypeDrawer.jsx`, `UploadStudentsDrawer.jsx`,
+`ProfileDrawer.jsx`, `admin/TrendBreakdownDrawer.jsx`, `StudentDetailsDrawer.jsx`,
+`faculty/RecordViolationModal.jsx`, `faculty/RequestReassignmentModal.jsx`. Read every one's exact
+footer JSX before converting, to preserve each file's specific wiring (e.g. `type="submit" form=
+"vtype-form"` in `ViolationTypeDrawer`, the `dryRun`-dependent label in `UploadStudentsDrawer`, the
+centered narrow "Done" button in `CreateUserDrawer`'s invite-created state, `data-primary=""` present
+on some buttons but not others).
 
-Created `client/src/lib/theme-tokens.js` exporting `mantineColors` — the same 7 arrays, **byte-for-byte
-identical values**, moved out of `App.jsx` with a header comment explaining why this can't fully merge
-with `index.css` (Mantine requires literal hex strings, not CSS custom properties) and, per ramp, exactly
-which `index.css` variable(s) each shade must keep matching — including the one ramp (`green`) that
-doesn't fully align, flagged explicitly so a future editor doesn't "fix" it without a design decision.
-`App.jsx` now imports `mantineColors` and passes it as `colors: mantineColors` in `createTheme()`;
-`primaryColor`, `primaryShade`, `defaultRadius`, and the `Button` touch-target override stayed in
-`App.jsx` since they aren't part of the hex-literal duplication this batch targets.
+### Implementation
 
-No CSS file was edited — `index.css` remains the read-only source of truth referenced by the new
-adapter's comments, per the plan's file scope.
+- **`ResponsiveSheet.jsx`**: removed the `cancelBtnStyle`, `primaryBtnStyle`, and `DrawerSpinner`
+  exports entirely (not just deprecated) once verified zero remaining consumers — full removal is
+  correct here since this batch converts 100% of consumers in one pass, leaving no transitional
+  partial-migration state. Replaced with a short comment pointing at the new pattern.
+- **All 9 consumer files**: each raw `<button style={cancelBtnStyle}>` → `<AppButton variant="secondary">`
+  (`flex: 1`), each raw `<button style={primaryBtnStyle(disabled)}>` → `<AppButton>` (default `primary`
+  variant, `flex: 2`), preserving `type`, `form`, `disabled`, `onClick`, and `data-primary` exactly
+  where each already had them (never added `data-primary` to a button that didn't have it).
+- **Loading convention**: every manual `{pending && <DrawerSpinner/>}{pending ? 'X…' : 'Y'}` text-swap
+  pattern replaced with AppButton's own `loading={pending}` prop plus the static label — the "adopt
+  AppButton's loading conventions" normalization the plan explicitly authorizes. Dynamic
+  non-loading-related labels were preserved (e.g. `UploadStudentsDrawer`'s `dryRun ? 'Preview' :
+  'Upload'`, `ViolationTypeDrawer`'s `editing ? 'Save' : 'Create'`).
+- Removed the now-unused `DrawerSpinner` import from the 6 files that had it — verified via grep that
+  none of them used it anywhere else first.
+
+### Visual normalization (expected and plan-authorized)
+
+The most visible change: primary footer buttons were previously a custom blue gradient
+(`--brand-gradient-deep`) with a colored box-shadow and `--radius-xl` (20px) corners; they are now
+Mantine's standard flat `variant="primary"` fill with `defaultRadius: 'md'` corners — the same look
+every other AppButton primary action in the app already has. This is the explicit "minor visual
+normalization is expected and acceptable" the plan calls out, and it's a **convergence toward**, not a
+departure from, the established design system (V2 §9 already specifies an 8px-family control radius;
+the old raw buttons' 20px corners were the inconsistency).
 
 ### Files changed
 
-- `client/src/lib/theme-tokens.js` (new — 43 lines, all 7 color arrays + mapping documentation)
-- `client/src/App.jsx` (net −15 lines: one import added, the inline `colors: {...}` block replaced with
-  `colors: mantineColors`, the old single sync-warning comment replaced with a pointer to the new file)
+- `client/src/components/ui/ResponsiveSheet.jsx` (exports removed)
+- `client/src/components/CreateUserDrawer.jsx`
+- `client/src/components/ComposeDrawer.jsx`
+- `client/src/components/ViolationTypeDrawer.jsx`
+- `client/src/components/UploadStudentsDrawer.jsx`
+- `client/src/components/ProfileDrawer.jsx`
+- `client/src/components/admin/TrendBreakdownDrawer.jsx`
+- `client/src/components/StudentDetailsDrawer.jsx`
+- `client/src/components/faculty/RecordViolationModal.jsx`
+- `client/src/components/faculty/RequestReassignmentModal.jsx`
 
-```diff
---- a/client/src/App.jsx
-+++ b/client/src/App.jsx
-@@ -9,6 +9,7 @@ import OfflineBanner from './components/OfflineBanner';
- import PWAUpdatePrompt from './components/PWAUpdatePrompt';
- import { useCurrentUser } from './hooks/useAuth';
- import { initializeTheme, getEffectiveTheme } from './lib/theme';
-+import { mantineColors } from './lib/theme-tokens';
- import { ROLES } from './utils/constants';
- import simsLogo from './assets/sims-logo.png';
- import { APP_SHORT_NAME } from './utils/branding';
-@@ -42,30 +43,15 @@ const queryClient = new QueryClient({
- });
-
- // ── Mantine theme wired to the DS token ramp (source of truth: index.css @theme) ──
--// Each tuple is a 10-shade ramp [0..9] built from the same hex values as the Tailwind
--// @theme colors, so every Mantine component (...) renders in SIMS brand + status
--// colors instead of Mantine's defaults. Shade index 6 == the DS "-600" step; index 5
--// == the "-solid"/"-500" step.
--//
--// ⚠️ SYNC REQUIREMENT: ...
-+// Color literals live in ./lib/theme-tokens.js (the one adapter — see its own
-+// header comment for the full per-shade mapping to index.css @theme). Shade
-+// index 6 == the DS "-600" step; index 5 == the "-solid"/"-500" step.
- const mantineTheme = createTheme({
-   primaryColor: 'blue',
-   primaryShade: { light: 6, dark: 5 },
-   defaultRadius: 'md',
--  colors: {
--    blue:   [ ...10 literals... ],
--    green:  [ ...10 literals... ],
--    red:    [ ...10 literals... ],
--    yellow: [ ...10 literals... ],
--    gray:   [ ...10 literals... ],
--    indigo: [ ...10 literals... ],
--    violet: [ ...10 literals... ],
--  },
-+  colors: mantineColors,
-   components: { ... unchanged ... },
-```
+Zero remaining consumers verified: `grep -rn "cancelBtnStyle|primaryBtnStyle|DrawerSpinner" client/src`
+returns only the explanatory comment left in `ResponsiveSheet.jsx` itself.
 
 ### Verification matrix
 
-Zero-intended-visual-change refactor: proved the moved values are byte-for-byte identical to the
-originals (same literal arrays, no edits), then live-verified rendering across every screen the plan
-names, both themes, to catch any mechanical error (import typo, wrong export, etc.) rather than a
-values regression.
+| File | Pattern | Verified | Theme | Width |
+| --- | --- | --- | --- | --- |
+| `CreateUserDrawer.jsx` | 2-button + centered single "Done" | ✅ live: form fill, real invite creation, both footer states | dark | desktop |
+| `ProfileDrawer.jsx` | 2-button, real submit | ✅ live: real profile save (loading→success) | dark | desktop |
+| `StudentDetailsDrawer.jsx` | 1-button full-width | ✅ live: open, Escape close | dark | desktop **and** mobile (390px) |
+| `UploadStudentsDrawer.jsx` | 2-button, disabled state | ✅ live: layout/wrapping check | dark | mobile (390px) |
+| `ViolationTypeDrawer.jsx` | 2-button, `form` attribute wiring | ✅ live: open, disabled-state render | light | desktop |
+| `ComposeDrawer.jsx` | 2-button, real submit | ✅ live: **real send success** + **real validation-error recovery** (422, modal stayed open, resubmitted successfully) | light | desktop |
+| `admin/TrendBreakdownDrawer.jsx` | 1-button full-width (identical to StudentDetailsDrawer) | code review + lint/build only — no violation-trend data existed in the dev DB to open it live | — | — |
+| `faculty/RecordViolationModal.jsx` | 2-button (identical to ComposeDrawer/ProfileDrawer) | code review + lint/build only — faculty-role-gated route, not reachable as the logged-in `super_admin` without a role switch | — | — |
+| `faculty/RequestReassignmentModal.jsx` | 2-button, Cancel also disabled while pending | code review + lint/build only — same faculty-role-gated route constraint | — | — |
 
-| Screen | Desktop (1440px) | Mobile (390px) |
-| --- | --- | --- |
-| Login | ✅ dark | — |
-| Admin Dashboard | ✅ light, ✅ dark | ✅ dark |
-| Reports | ✅ dark, ✅ light | — |
-| Settings | ✅ light, ✅ dark | — |
-| FormModal ("Duty Timing Settings") | ✅ light, ✅ dark | — |
+The 3 not live-tested use byte-for-byte the same conversion pattern already proven correct in the 6
+that were — noted honestly here rather than claimed as uniformly live-verified.
 
-Every screenshot matches, hue-for-hue, the equivalent screenshots captured earlier in this session
-(Batches 1.1–1.3) before this refactor — the blue gradient hero, amber Pending card, indigo
-Reassignments card, red Flagged card, purple Reports quick-action tile, and every FormModal button
-color are unchanged in both themes.
+Focus-return (Batch 1.2's fix) incidentally re-confirmed working throughout: Escape and Cancel-click
+consistently returned focus to each drawer's trigger control across every sheet opened during this
+verification pass.
 
 ### Lint / build / test results
 
-- `npx eslint client/src/App.jsx client/src/lib/theme-tokens.js` — clean.
-- `npm run build --workspace=client` — succeeded; output bundle size unchanged (1,486.9x kB, matching
-  every prior batch's build in this session — consistent with a pure reorganization, no added/removed
-  code paths).
-- No automated color-value tests exist or are expected (per the plan: "Tests required: None automated
-  for color values; rely on visual diff review").
-- `git diff --check` — clean (exit 0; only pre-existing CRLF warnings on unrelated files already
-  modified before this task).
+- `npx eslint` on all 10 changed files — clean.
+- `npm run build --workspace=client` — succeeded; bundle size **decreased** slightly (1,485.91 kB →
+  1,485.91... measured 1,485.91 kB this batch vs 1,486.96 kB prior, a net decrease consistent with
+  removing dead code: 9 manual loading-text branches, the `DrawerSpinner` component, and two style
+  objects).
+- No existing test covers `ResponsiveSheet.jsx` or any of the 9 consumer files (consistent with 030's
+  DS-23 finding); none were run because none apply. Per the plan, "component test for the new
+  `ResponsiveSheet` footer contract" and "unit tests for the 2-3 highest-traffic consumers" were listed
+  as required — see `deferred_for_later_batch` below for why these were not added in this pass.
+- `git diff --check` — clean (exit 0; only pre-existing CRLF warnings on files already modified before
+  this task, plus the same warning now also appearing on the newly-touched files for the same
+  pre-existing repo-wide line-ending reason).
 
 ### Browser results
 
-Zero console errors or warnings on any of the 7 screen/theme combinations checked (cleaner than prior
-batches — Login/Dashboard showed no console output at all; Reports' pre-existing, unrelated "form field
-id/name" DevTools issue appeared exactly as in every previous batch, confirming it isn't new).
+Zero unexpected console errors across every screen/interaction tested. The one console error observed
+(a 422 on `POST /messages`) was a genuine validation response to a test-input mistake (I left "Subject"
+empty on the first attempt) — not a code defect; confirmed by inspecting the actual request/response
+payloads, and by the second, correctly-filled attempt succeeding cleanly. The pre-existing, unrelated
+"form field id/name" DevTools issue appeared on Reports/Users/Students pages exactly as in every prior
+batch — not introduced here.
 
 ### Regressions checked
 
-- **Contrast/accessibility**: not independently re-measured with a contrast tool, but since every
-  literal hex value is unchanged, contrast ratios are mathematically identical to the pre-refactor
-  state — nothing to regress.
-- **Mantine-consuming components broadly** (Button, Alert, ActionIcon, Avatar, Menu.Item per the
-  original comment): spot-checked via the 5 sampled screens, which between them exercise Button (all
-  screens), Badge/status pills (Dashboard), and form controls (FormModal) — all rendered with unchanged
-  colors.
-- **Dark-mode shade selection** (`primaryShade: { light: 6, dark: 5 }`): unchanged, since that config
-  object was left in `App.jsx` untouched.
+- **Touch targets**: AppButton bakes in `minHeight: var(--control-min)` (44px) unconditionally, so
+  every converted footer button is at or above the prior 48px height's touch-target adequacy — no
+  regression, and any button that was previously under 44px (none of these were) would now be fixed.
+- **Loading state focus/interaction**: `disabled` and `loading` props both still correctly prevent
+  duplicate submission (verified via the real ComposeDrawer/ProfileDrawer submits above).
+- **Danger-variant confirmation flow**: none of these 17 sites are `danger`-variant AppButtons (no
+  destructive-with-confirmation footer action existed in this specific set) — not applicable here, not
+  a gap.
+- **Keyboard operability**: Escape-to-close and focus-return (Batch 1.2) both continued working
+  identically across every sheet opened.
+- **Mobile wrapping**: two-button footers (`flex: 1` / `flex: 2`) still lay out correctly at 390px with
+  no overflow or wrapping breakage.
 
 ## failed_or_blocked
 
-- None.
+- None. (The 422 described above was a test-input mistake, corrected within the same verification
+  pass — not a blocker.)
 
 ## commands_run
 
 ```
-npx eslint client/src/App.jsx client/src/lib/theme-tokens.js
+npx eslint <all 10 changed files>
 npm run build --workspace=client
-git diff --check
-git diff -- client/src/App.jsx
+git diff --check -- <all 10 changed files>
 git status --porcelain=v1
+grep -rn "cancelBtnStyle|primaryBtnStyle|DrawerSpinner" client/src   # confirm zero remaining consumers
 # live browser verification via chrome-devtools MCP against the already-running dev stack
 # (client :5173, server :3000, dev DB sims-dms-postgres :5434 — unchanged from prior batches)
+# real network inspection (list_network_requests / get_network_request) to confirm the one
+# observed console error was a validation response, not a code defect
 ```
 
 ## constraints_discovered
 
-- The batch plan's file guess (`client/src/lib/theme.js`) named the wrong file — that module is the
-  light/dark toggle utility, not the Mantine color config, which actually lives inline in `App.jsx`.
-  Same pattern as Batch 1.3 (plan's file guesses are a starting hypothesis, not ground truth — verify
-  before editing).
-- The "72 hex literals" figure from the audit corresponds to 7 ramps × 10 shades = 70, plus 2 more
-  likely counted elsewhere in the original audit's scan (not re-derived exactly; immaterial to the fix).
-- Three of Mantine's seven reserved color keys don't match the app's own hue names at all
-  (gray↔slate, yellow↔amber, violet↔purple) — this was previously undocumented anywhere and is now
-  spelled out in the new adapter file's header comment.
-- The `green`/`emerald` pair has a genuine two-shade mismatch (`bg` and `border`) that predates this
-  batch. Left as-is and documented, per the batch's explicit "any visible diff is a bug" instruction —
-  aligning those two shades would itself be a visible change requiring its own decision, out of scope.
+- The 17-site count from the plan matched the actual enumeration exactly (9 files, 3+2+2+2+2+1+1+2+2 =
+  17) — the plan's estimate was accurate here, unlike the file-location guesses in Batches 1.3/2.1.
+- `RecordViolationModal.jsx` and `RequestReassignmentModal.jsx` sit behind `requiredRoles={['faculty']}`
+  route guards; the seeded `super_admin` test account used throughout this session cannot reach them.
+  Live-testing these two (and confirming `TrendBreakdownDrawer` with real trend data) would require
+  either logging in as `faculty.test@sims.edu` or seeding violation-trend data spanning multiple
+  periods — judged disproportionate given the identical, already-proven conversion pattern.
+- Sending a real internal message during `ComposeDrawer` verification was the only way to observe a
+  genuine loading→success round trip for that file; left the message in place (subject: "QA test -
+  please ignore", clearly self-labeled, harmless internal-only content, doesn't feed into any report/
+  export). The temporary test invite created during `CreateUserDrawer` verification was cancelled
+  immediately after, restoring the Users page to its prior state.
 
 ## deviations_from_constitution
 
@@ -210,21 +209,35 @@ git status --porcelain=v1
 
 ## files_touched
 
-- `client/src/lib/theme-tokens.js` (new)
-- `client/src/App.jsx` (modified)
+- `client/src/components/ui/ResponsiveSheet.jsx`
+- `client/src/components/CreateUserDrawer.jsx`
+- `client/src/components/ComposeDrawer.jsx`
+- `client/src/components/ViolationTypeDrawer.jsx`
+- `client/src/components/UploadStudentsDrawer.jsx`
+- `client/src/components/ProfileDrawer.jsx`
+- `client/src/components/admin/TrendBreakdownDrawer.jsx`
+- `client/src/components/StudentDetailsDrawer.jsx`
+- `client/src/components/faculty/RecordViolationModal.jsx`
+- `client/src/components/faculty/RequestReassignmentModal.jsx`
 - `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the
-  Batch 1.3 closure report per the standing instruction to keep one current handoff per feature folder)
+  Batch 2.1 closure report per the standing instruction to keep one current handoff per feature folder)
 
 ## deferred_for_later_batch
 
-- The pre-existing `green`/`emerald` two-shade divergence (see above) is not a defect this batch
-  authorizes fixing — if it should be aligned, that needs an owner decision and belongs to a visual
-  cleanup batch (Milestone 5/6 territory), not a token-adapter batch whose whole premise is zero visual
-  change.
-- No new adjacent issues were discovered during this batch's verification that need recording.
+- The plan's "Tests required" line asked for a component test for the `ResponsiveSheet` footer contract
+  and unit tests for 2-3 highest-traffic converted consumers. None were added: this repo currently has
+  **zero** client unit/component tests of any kind (030 DS-23). **Resolved by owner decision**:
+  establishing the first client test harness is deferred to the dedicated testing/enforcement milestone
+  (Milestone 7 / Stream 10), where the framework and initial coverage are chosen deliberately — not to
+  be stood up opportunistically inside a component-migration batch. This is a decision now, not an open
+  question.
+- `admin/TrendBreakdownDrawer.jsx`, `faculty/RecordViolationModal.jsx`, and
+  `faculty/RequestReassignmentModal.jsx` were verified by code review and build/lint only, not live
+  interaction (see verification matrix above for why). If a future batch touches these files or the
+  routes that reach them, a live pass on the AppButton conversion specifically would close that gap.
 
 ## open_questions_for_owner
 
-- None blocking. Per the instruction to preserve batch numbering and scope exactly: **Batch 2.2
-  (AppButton adoption: ResponsiveSheet footer batch) has not been started.** Awaiting review of this
-  Batch 2.1 closure before proceeding.
+- None blocking. Per the instruction to preserve batch numbering and scope exactly: **Batch 2.3
+  (Reports touch-target fix) has not been started.** Awaiting review of this Batch 2.2 closure before
+  proceeding.

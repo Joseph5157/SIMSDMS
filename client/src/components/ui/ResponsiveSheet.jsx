@@ -4,40 +4,11 @@ import { IconX } from '@tabler/icons-react';
 import { useMediaQuery } from '@mantine/hooks';
 import useKeyboardInset from '../../hooks/useKeyboardInset';
 
-// ── Spinner for primary action buttons ─────────────────────────────────────
-export function DrawerSpinner() {
-  return (
-    <span
-      className="w-3.5 h-3.5 shrink-0 rounded-full animate-spin"
-      style={{
-        border: '2px solid rgba(255,255,255,0.4)',
-        borderTopColor: '#fff',
-      }}
-    />
-  );
-}
-
-// ── Reusable footer button styles ──────────────────────────────────────────
-export const cancelBtnStyle = {
-  flex: 1, height: 48, borderRadius: 'var(--radius-xl)',
-  border: '1.5px solid var(--border)', backgroundColor: 'var(--surface-page)',
-  fontSize: 'var(--text-body)', fontWeight: 700,
-  color: 'var(--text-secondary)', cursor: 'pointer',
-  fontFamily: 'inherit',
-};
-
-export function primaryBtnStyle(disabled) {
-  return {
-    flex: 2, height: 48, borderRadius: 'var(--radius-xl)', border: 'none',
-    background: disabled ? 'var(--color-blue-300)' : 'var(--brand-gradient-deep)',
-    fontSize: 'var(--text-body)', fontWeight: 700, color: 'var(--text-on-dark)',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    boxShadow: disabled ? 'none' : '0 4px 14px rgba(37,99,235,0.3)',
-    transition: 'all 0.15s',
-    fontFamily: 'inherit',
-  };
-}
+// Footer actions use AppButton directly (variant="secondary"/"primary", the
+// `loading` prop for pending state) — see any consumer's `footer` prop for
+// the pattern. The raw `cancelBtnStyle`/`primaryBtnStyle`/`DrawerSpinner`
+// footer helpers this file used to export were fully migrated away (Spec 032
+// Batch 2.2 / DS-02 / C-R01) and removed once their last consumer converted.
 
 // ── Size → desktop max-width ─────────────────────────────────────────────
 // 'md' (520px) matches SheetModal/BottomDrawer's previous hardcoded width

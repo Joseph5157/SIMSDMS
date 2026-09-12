@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Textarea } from '@mantine/core';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/ResponsiveSheet';
+import ResponsiveSheet from '../ui/ResponsiveSheet';
+import AppButton from '../ui/AppButton';
 import { AppSelect } from '../ui/AppField';
 import Badge from '../ui/Badge';
 import { useToast } from '../ui/Toast';
@@ -42,13 +43,12 @@ export default function RequestReassignmentModal({ slot, onClose }) {
       title="Request Duty Reassignment"
       footer={
         <>
-          <button type="button" onClick={onClose} disabled={create.isPending} style={cancelBtnStyle}>
+          <AppButton variant="secondary" type="button" onClick={onClose} disabled={create.isPending} style={{ flex: 1 }}>
             Cancel
-          </button>
-          <button disabled={sendDisabled} onClick={handleSend} style={primaryBtnStyle(sendDisabled)}>
-            {create.isPending && <DrawerSpinner />}
-            {create.isPending ? 'Sending…' : 'Send Request'}
-          </button>
+          </AppButton>
+          <AppButton disabled={sendDisabled} loading={create.isPending} onClick={handleSend} style={{ flex: 2 }}>
+            Send Request
+          </AppButton>
         </>
       }
     >

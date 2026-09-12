@@ -1,4 +1,5 @@
-import ResponsiveSheet, { cancelBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 import Badge from './ui/Badge';
 import { useStudent } from '../hooks/useStudents';
 import { useViolations } from '../hooks/useViolations';
@@ -55,7 +56,7 @@ export default function StudentDetailsDrawer({ studentId, onClose }) {
       title={isLoading ? 'Loading…' : (student?.student_name ?? 'Student')}
       subtitle={student?.registration_number}
       footer={
-        <button onClick={onClose} style={{ ...cancelBtnStyle, flex: 1 }}>Close</button>
+        <AppButton variant="secondary" onClick={onClose} style={{ flex: 1 }}>Close</AppButton>
       }
     >
       <div className="px-5 py-4 pb-2">

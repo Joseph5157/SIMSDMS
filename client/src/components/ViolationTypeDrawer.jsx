@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TextInput, NumberInput } from '@mantine/core';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 import { useCreateViolationType, useUpdateViolationType } from '../hooks/useViolationTypes';
 import { useToast } from './ui/Toast';
 
@@ -53,17 +54,17 @@ export default function ViolationTypeDrawer({ open, editing, onClose }) {
       subtitle={editing ? 'Update name or fine amount' : 'Define a new disciplinary category'}
       footer={
         <>
-          <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-          <button
+          <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
+          <AppButton
             type="submit"
             form="vtype-form"
             disabled={isPending || !canSubmit}
+            loading={isPending}
             data-primary=""
-            style={primaryBtnStyle(isPending || !canSubmit)}
+            style={{ flex: 2 }}
           >
-            {isPending && <DrawerSpinner />}
-            {isPending ? 'Saving…' : editing ? 'Save' : 'Create'}
-          </button>
+            {editing ? 'Save' : 'Create'}
+          </AppButton>
         </>
       }
     >
