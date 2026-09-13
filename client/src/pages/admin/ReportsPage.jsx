@@ -95,21 +95,49 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
+    // Batch 3.2a (Spec 032): same record-scanning shape as Batch 3.1
+    // (student-violations) — one row per attendance event, no actions —
+    // reuses the same card pattern rather than the interim scroll table.
     case 'late-arrivals': case 'auto-clockout': return (
-      <Table>
-        <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Session</Th><Th>In time</Th></tr></thead>
-        <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={4} />}
-          {data.data?.map((r) => (
-            <tr key={r.id}>
-              <Td className="font-medium">{r.faculty?.name}</Td>
-              <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
-              <Td className="capitalize">{r.dutySlot?.session_type}</Td>
-              <Td>{r.in_time ? new Date(r.in_time).toLocaleTimeString() : '—'}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ResponsiveDataView
+        mobile={
+          !data.data?.length ? (
+            <EmptyState message="No records found." />
+          ) : (
+            <MobileList>
+              {data.data.map((r, i) => (
+                <MobileListItem key={r.id} isLast={i === data.data.length - 1}>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <MobileListItemHeader
+                      title={r.faculty?.name}
+                      subtitle={new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}
+                    />
+                    <MobileListItemMeta>
+                      <span className="capitalize">{r.dutySlot?.session_type}</span> · In: {r.in_time ? new Date(r.in_time).toLocaleTimeString() : '—'}
+                    </MobileListItemMeta>
+                  </div>
+                </MobileListItem>
+              ))}
+            </MobileList>
+          )
+        }
+        desktop={
+          <Table>
+            <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Session</Th><Th>In time</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.data?.length && <EmptyRow cols={4} />}
+              {data.data?.map((r) => (
+                <tr key={r.id}>
+                  <Td className="font-medium">{r.faculty?.name}</Td>
+                  <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
+                  <Td className="capitalize">{r.dutySlot?.session_type}</Td>
+                  <Td>{r.in_time ? new Date(r.in_time).toLocaleTimeString() : '—'}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        }
+      />
     );
 
     case 'absent-faculty': return (

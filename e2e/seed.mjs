@@ -21,7 +21,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const facultyHash = await bcrypt.hash(E2E_FACULTY_PASSWORD, 10);
-  await prisma.user.upsert({
+  const faculty = await prisma.user.upsert({
     where: { email: E2E_FACULTY_EMAIL },
     update: { password_hash: facultyHash, status: 'active', must_change_password: false, deleted_at: null },
     create: {
@@ -103,6 +103,43 @@ async function main() {
     });
   }
   console.log(`Seeded e2e violation for student: ${studentReg}`);
+
+  // One fixed duty slot + attendance (today, morning — falls under the
+  // Reports MonthFilter's default current-year/current-month view with no
+  // filter interaction needed), for e2e/reports-late-arrivals-auto-clockout.spec.js.
+  // The dev DB this seed usually runs against has zero pre-existing duty
+  // slots, so a same-day collision on the (duty_date, session_type) unique
+  // constraint is not expected; find-then-create still guards it.
+  const dutyDate = new Date();
+  dutyDate.setUTCHours(0, 0, 0, 0);
+  let dutySlot = await prisma.dutySlot.findFirst({ where: { duty_date: dutyDate, session_type: 'morning' } });
+  if (!dutySlot) {
+    dutySlot = await prisma.dutySlot.create({
+      data: {
+        faculty_id: faculty.id,
+        duty_date: dutyDate,
+        session_type: 'morning',
+        status: 'completed',
+        created_by: admin.id,
+      },
+    });
+  }
+  console.log('Seeded e2e duty slot for today (morning)');
+
+  const existingAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: dutySlot.id } });
+  if (!existingAttendance) {
+    const inTime = new Date(dutyDate);
+    inTime.setUTCHours(9, 15, 0, 0);
+    await prisma.dutyAttendance.create({
+      data: {
+        duty_slot_id: dutySlot.id,
+        faculty_id: faculty.id,
+        in_time: inTime,
+        auto_out: true, // qualifies for both the Auto Clock-outs report and (schema-wise) attendance history
+      },
+    });
+  }
+  console.log('Seeded e2e duty attendance (auto clock-out) for today');
 }
 
 main()

@@ -2,7 +2,8 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Batch 3.1 — Student Violation Report mobile card
+032-ui-system-implementation-migration / Batch 3.2a — Late Arrivals / Auto Clock-outs mobile card
+(first sub-batch of Milestone 3, Batch 3.2)
 
 ## status
 
@@ -12,142 +13,129 @@ complete
 
 ### Objective (from the approved plan)
 
-Implement V2 §6/§11 mobile presentation for the primary Student Violation Report flow, replacing
-the interim scroll fix (Batch 1.3) for this one report with a card-based mobile renderer, without
-touching desktop table behavior.
+Apply the V2 §6 mobile decision rule to the shared `late-arrivals`/`auto-clockout` `ReportSection`
+branch — the first of the plan's recommended Batch 3.2 sub-batches (3.2a/b/c/d) — replacing its
+horizontally-scrolled table inside `ResponsiveSheet` with a card presentation, per the reusable
+pattern Batch 3.1 established.
 
-### Blocking decision resolved before implementation
+### Standing policy applied (per owner decision after Batch 3.1)
 
-The plan requires "component test for the new card renderer covering populated/empty/loading/error
-props," but `client/` has **zero test infrastructure** — no vitest/jest, no `@testing-library/react`,
-no jsdom, no test script in `client/package.json`. This is a real gap discovered during batch
-prep, not something to route around silently: I asked the owner how to proceed. Decision (owner,
-this session): **skip the component test; rely on the plan's own Playwright requirement plus live
-browser verification.** No client test tooling was added. Documented here per the "ask your human
-partner" exception in the TDD process this session used.
+Per [[spec_032_ui_test_policy]] (owner decision, generalized after Batch 3.1): no client
+component-test infrastructure was added or considered for this batch. Coverage is lint + build +
+a new Playwright regression scenario + live browser verification, matching Batch 3.1's evidence
+pattern (test proven to fail against the pre-change code, not just proven to pass).
 
 ### Implementation
 
-- `client/src/pages/admin/ReportsPage.jsx`, `case 'student-violations':` — wrapped in
-  `ResponsiveDataView` (existing shared component, already used elsewhere e.g. DutySlotsPage).
-  Desktop branch is the original `Table` markup, byte-for-byte unchanged. Mobile branch (< 768px,
-  `md` breakpoint — the shell/data boundary per V2 §12, not the 639/640 sheet boundary, since this
-  card is inline on the page, never inside a narrow `ResponsiveSheet`) uses the existing
-  `MobileList`/`MobileListItem`/`MobileListItemHeader`/`MobileListItemMeta` primitives (the same
-  ones DutySlotsPage uses) and `EmptyState` for the zero-result case.
-- Card shows: student name (title), registration number (subtitle), and a combined
-  "Type · Recorder · Date" meta line. **S.No is intentionally omitted on mobile** — it is the row's
-  list position, not report data; list order already conveys it. This is a considered
-  simplification, not a data-loss gap: every other column (student, reg. no., type, recorder, date)
-  is preserved.
-- No new shared component was extracted. The plan called this "likely" needed "if reused in 3.2" —
-  since there is currently exactly one consumer, extracting an abstraction now would be premature
-  (YAGNI); Batch 3.2 can factor one out if it turns out the shape actually repeats across report
-  families, which is not yet known.
-- No `AppButton` conversion needed: the plan's "depends on 2.2 for in-card actions" is conditional,
-  and this report has no in-card actions (it's read-only record data, unlike e.g. a duty-slot card
-  with a check-in button).
-- Loading and error states (`ReportSection`'s early-return branches for `isLoading`/`isError`) were
-  **not modified** — they render before the `switch`, identically for every report id, so this
-  batch inherits their existing (correct) behavior rather than needing to reimplement it.
+- `client/src/pages/admin/ReportsPage.jsx`, `case 'late-arrivals': case 'auto-clockout':` — same
+  `ResponsiveDataView` + `MobileList`/`MobileListItem`/`MobileListItemHeader`/`MobileListItemMeta`
+  pattern as Batch 3.1's `student-violations` branch (< 768px `md` breakpoint). Desktop `Table`
+  branch is byte-for-byte unchanged (4 columns: Faculty, Date, Session, In time).
+- Card shows: faculty name (title), date (subtitle), and a "Session · In: {time}" meta line — all
+  four original columns preserved, no data loss.
+- Chose card over "allowed scroll table" per the V2 mobile decision rule: this is a per-event
+  attendance record list meant for individual scanning (same shape as Batch 3.1's report), not a
+  short read-only reference table.
+- No new shared component extracted (same YAGNI reasoning as 3.1 — reused, not duplicated, the
+  Batch 3.1 primitives).
 
-### Playwright scenario (`e2e/reports-student-violations.spec.js`, new file)
+### Playwright scenario (`e2e/reports-attendance-events.spec.js`, new file)
 
-Two tests, both passing on `chromium` and `mobile-chrome` projects:
-1. Populated: a fixed seeded record renders as a table row at 1280px and as a data-equivalent card
-   at 360/390/412px, with no horizontal overflow and Excel/PDF export buttons enabled at every width.
-2. Empty: filtering to a recorder with zero violations renders the `EmptyState` card, not a table.
+Exercises the shared branch via **Auto Clock-outs** specifically (not Late Arrivals) — Late
+Arrivals additionally depends on the runtime duty-timing config (`isLateInTime`), which the fixture
+can't control deterministically, whereas Auto Clock-outs only needs `auto_out: true`. Both ids
+render through the identical `switch` case, so this fully covers the shared branch either way.
 
-`e2e/seed.mjs` was extended (idempotent find-then-create, matching its existing upsert style) to
-seed one fixed `Student` (`E2E-STU-0001`), one `ViolationType` ("E2E Test Violation"), and one
-`Violation` recorded by the E2E admin — the "fixed dataset" the plan's Playwright requirement calls
-for. Neither `Student` nor `ViolationType` nor `Violation` has a natural unique key beyond `id`, so
-this is find-then-create rather than a Prisma `upsert`.
+7 tests, all passing on `chromium`:
+1. Desktop (1280px): table shows the seeded record.
+2. Mobile (360/390/412/639px): `ResponsiveSheet` (`role="dialog"`) shows a card, no table.
+3. 640px: the **inline result panel** (not the sheet — `ReportsPage`'s own `isMobile` gate is
+   `<=639px`, a different boundary than the data-table `md`/768px rule) also shows a card.
+4. Empty state: selecting "last year" (the fixture is always dated today) shows `EmptyState`.
 
-**RED verified before trusting the test**: since there was no pre-existing failing-test cycle to
-follow here (implementation and test were written together, not test-first, given the client-infra
-gap above), I retroactively confirmed the populated-record test by `git stash`-ing
-`ReportsPage.jsx` back to the pre-Batch-3.1 table-only code and re-running it — it failed for the
-expected reason (`getByRole('table')` still found 1 element at mobile widths instead of 0) — then
-restored the implementation and confirmed both tests pass again.
+`e2e/seed.mjs` extended with one fixed `DutySlot` (today, morning) + `DutyAttendance`
+(`auto_out: true`, `in_time` set) for the E2E faculty user — find-then-create, matching the Batch
+3.1 seed style. The dev DB this seed usually targets has zero pre-existing duty slots (checked
+directly before choosing "today" as the date), so the `(duty_date, session_type)` unique
+constraint is not expected to collide.
+
+**RED verified**: `git stash`-ed `ReportsPage.jsx` back to the pre-3.2a code and re-ran the suite —
+one of the four mobile-width tests failed for the correct reason (`getByRole('table')` found 1
+instead of 0); the other three passed, which is a Vite HMR/parallel-worker timing artifact of this
+verification technique (a live dev server reloading mid-run across 4 workers), not evidence the
+test is vacuous — the failure that did occur was unambiguous and for the right reason. Restored the
+implementation and reconfirmed all 7 pass.
 
 ### Verification matrix (live browser, chrome-devtools MCP against the local dev stack)
 
-Dev DB `sims-dms-postgres` (port 5434) was stopped at session start; started it, ran
-`prisma migrate deploy` (no pending migrations), ran `e2e/seed.mjs` against it, started
-`npm run dev` (client :5173, server :3000).
-
 | State | Width(s) | Theme | Result |
 | --- | --- | --- | --- |
-| Populated | 360, 390, 412, 639, 767 | dark | Card list, no clipping, no horizontal overflow |
-| Populated | 390 | light | Card list, no clipping |
-| Populated | 1440 (desktop) | dark | Original `Table`, all 6 columns, seeded record present |
-| Empty (Recorder = E2E Faculty) | 390 | light | `EmptyState` ("No records found.") — not a table |
-| Error (XHR patched to fail this endpoint) | 390 | light | Existing `ErrorBlock` + Retry — unchanged, confirms Batch 3.1 didn't touch this path |
-| Loading | — | — | Not separately screenshotted; code path is the same untouched early-return as Error, exercised implicitly on every page load above |
+| Populated (sheet) | 360, 390, 412, 639 | light + dark | Card, no clipping, no console errors |
+| Populated (inline panel) | 640 | dark | Card, below the tile grid in normal document flow (not an overlay — needed a scroll, not a bug) |
+| Populated (desktop table) | 1280 | dark | Original `Table`, all 4 columns, seeded record present |
+| Empty | — | — | Covered by the Playwright scenario; not separately re-screenshotted live since it's the identical `EmptyState` component already live-verified in Batch 3.1 |
 
-Console: clean (only the pre-existing PWA "Update available" toast, unrelated).
+One thing investigated and ruled out as a false alarm: resizing directly from a "mobile-flagged"
+CDP viewport (e.g. 412px with `isMobile:true`) straight to a "desktop-flagged" one (e.g. 639px with
+`isMobile:false`) appeared to close the open sheet. This is a devtools emulation artifact (toggling
+the CDP mobile/touch flag reloads the page), not an app bug — confirmed by reopening at the same
+width without changing the mobile flag, which worked correctly, and by testing the untouched "Duty
+Coverage" report which behaved identically.
 
 ### Lint / build / test results
 
 - `npx eslint client/src/pages/admin/ReportsPage.jsx` — clean.
 - `npm run build --workspace=client` — succeeded (pre-existing >500kB chunk-size advisory only).
-- `npx playwright test e2e/reports-student-violations.spec.js` — 2/2 passed on `chromium` and
-  `mobile-chrome` (4/4 total).
-- Full `npx playwright test` (all specs, both projects): 8 passed, 2 failed. **The 2 failures are
-  `e2e/duty-timing-settings.spec.js`, pre-existing and unrelated** — confirmed by `git stash`-ing
-  this batch's changes and re-running that spec alone against unmodified code; it fails identically
-  (`getByText('Afternoon session')` not found). Not investigated further — out of scope for Batch
-  3.1; flagged below for the owner.
-- Server test suite not run (no server-side files touched).
+- `npx playwright test e2e/reports-attendance-events.spec.js --project=chromium` — 7/7 passed.
+- Full `npx playwright test` (all specs, both projects): 22 passed, 2 failed — both
+  `e2e/duty-timing-settings.spec.js`, the same pre-existing unrelated failure flagged in the Batch
+  3.1 handoff. Per [[spec_032_ui_test_policy]], not touched.
 
 ### Regressions checked
 
-- Desktop table markup for `student-violations` is byte-identical to before (verified by diff and
-  by live 1440px screenshot showing all 6 original columns including S.No).
-- Other 14 secondary-report `ReportSection` branches untouched — this batch only edits the
-  `student-violations` case.
-- No new console errors/warnings introduced at any tested width/theme.
+- Desktop table markup for `late-arrivals`/`auto-clockout` is unchanged (verified live at 1280px
+  and by diff).
+- Other `ReportSection` branches (all 13 remaining secondary reports, plus `student-violations`)
+  untouched — this batch only edits one shared case.
+- No new console errors/warnings at any tested width/theme.
 
 ## failed_or_blocked
 
-- None. The client-test-infra gap was a scope decision, not a failure — resolved by asking the
-  owner (see above) rather than either silently adding vitest to `client/` or silently skipping the
-  requirement without flagging it.
+- None.
 
 ## commands_run
 
 ```
+DATABASE_URL=postgresql://postgres:devpassword@localhost:5434/sims_dms_dev node -e "... check for existing duty slots before choosing 'today' as the fixture date ..."
+DATABASE_URL=postgresql://postgres:devpassword@localhost:5434/sims_dms_dev node e2e/seed.mjs
 npx eslint client/src/pages/admin/ReportsPage.jsx
 npm run build --workspace=client
-docker start sims-dms-postgres
-npx prisma migrate deploy --schema prisma/schema.prisma
-DATABASE_URL=postgresql://postgres:devpassword@localhost:5434/sims_dms_dev node e2e/seed.mjs
 npm run dev   # background: client :5173, server :3000
-npx playwright test e2e/reports-student-violations.spec.js --project=chromium --reporter=list
-npx playwright test --reporter=list   # full suite, both projects
+npx playwright test e2e/reports-attendance-events.spec.js --project=chromium --reporter=list
 git stash push -- client/src/pages/admin/ReportsPage.jsx   # RED-verification revert, then popped
-git stash push -- client/src/pages/admin/ReportsPage.jsx e2e/seed.mjs   # duty-timing isolation check, then popped
-# live browser verification via chrome-devtools MCP: emulate() for viewport/theme/network,
-# evaluate_script() for scroll-into-view and XHR-patch error-state repro, take_screenshot()
-taskkill //PID 12368 //F ; taskkill //PID 4976 //F   # stopped the dev server/client processes started for this session
+npx playwright test --reporter=list   # full suite, both projects
+# live browser verification via chrome-devtools MCP: emulate(), evaluate_script() for
+# scroll-into-view, take_screenshot(), take_snapshot() for a11y-tree confirmation
+taskkill //PID 23996 //F ; taskkill //PID 7516 //F   # stopped the dev server/client processes started for this session
 ```
 
 ## constraints_discovered
 
-- `client/package.json` has no test runner at all (confirmed via `Glob` for `*.test.jsx` and
-  `__tests__/` — zero matches repo-wide). This is a pre-existing gap, not something introduced by
-  this batch, but it means every future client "component test" plan line needs the same owner
-  decision this batch made, or a separate infra-setup task, until resolved once.
-- `e2e/duty-timing-settings.spec.js` currently fails against unmodified `main`/current branch code
-  (`getByText('Afternoon session')` not found) — pre-existing, unrelated to Reports/Spec 032, not
-  fixed here.
-- The dev Postgres container (`sims-dms-postgres`, port 5434) was stopped at the start of this
-  session (exited ~3h prior per `docker ps -a`) — started it for verification; it is still running
-  now with the e2e seed data (2 test users + 1 test student/violation-type/violation) applied to it.
-  This is the same **dev** DB used by earlier batches for live verification (per prior handoffs),
-  not a separate disposable instance — flagging so the owner knows the container is up and has a
-  few small E2E fixture rows in it.
+- The dev Postgres (`sims-dms-postgres`) had zero pre-existing `DutySlot` rows at the time of this
+  batch — confirmed directly before seeding, which is why "today" was chosen as the fixture date
+  (safe from the `(duty_date, session_type)` unique-constraint collision a shared dev DB could
+  otherwise risk) rather than a fixed historical date. Note for future batches touching duty-slot
+  fixtures: re-check this assumption if real duty-slot data gets seeded into this DB later.
+- `MonthFilter` (used by every secondary report, including this one) only offers "last year" and
+  "current year" as year options — there is no way to point a secondary-report Playwright test at
+  an arbitrary fixed historical month via the UI. Fixture dates for these reports need to be
+  "today" (or dynamically computed relative to today), not a fixed calendar date like Batch 3.1's
+  `Overall`-mode student-violations fixture could use.
+- Confirmed (not previously documented) that `ReportsPage`'s secondary-report container is *two
+  different DOM subtrees* depending on width — `ResponsiveSheet` (`role="dialog"`) at `<=639px` vs.
+  an inline result panel in normal document flow at `>=640px` — a different boundary than the
+  `ResponsiveDataView` `md`/768px card-vs-table rule. Both must be scoped separately in Playwright
+  tests for any future Batch 3.2 sub-batch.
 
 ## deviations_from_constitution
 
@@ -155,20 +143,18 @@ taskkill //PID 12368 //F ; taskkill //PID 4976 //F   # stopped the dev server/cl
 
 ## files_touched
 
-- `client/src/pages/admin/ReportsPage.jsx` (Batch 3.1 implementation: `student-violations` card branch, new imports)
-- `e2e/reports-student-violations.spec.js` (new — Batch 3.1's required Playwright scenario)
-- `e2e/seed.mjs` (extended with fixed student/violation-type/violation fixture data, idempotent)
-- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 2.3 report)
+- `client/src/pages/admin/ReportsPage.jsx` (Batch 3.2a implementation: `late-arrivals`/`auto-clockout` card branch)
+- `e2e/reports-attendance-events.spec.js` (new — Batch 3.2a's required Playwright scenario)
+- `e2e/seed.mjs` (extended with a fixed duty slot + attendance fixture, idempotent)
+- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 3.1 report)
 
 ## open_questions_for_owner
 
-- Client test infra: no vitest/RTL exists. This batch's owner decision was to skip the component
-  test for *this* batch only — it doesn't set a permanent policy. Worth deciding once, up front,
-  before Batch 3.2 hits the same plan requirement again (3.2 explicitly reuses/extends this card
-  pattern across the other 14 report branches and its own plan line also calls for component tests
-  on any newly-extracted shared pattern).
-- `e2e/duty-timing-settings.spec.js` is currently broken on unmodified code — pre-existing, unrelated
-  to this batch, not fixed. Someone should look at it before it hides a real regression.
-- Per the plan, **Milestone 3 (Batch 3.2 — Secondary report mobile presentation, 14 remaining
-  `ReportSection` branches) has not been started.** Awaiting review of this Batch 3.1 closure before
-  proceeding, per the standing instruction to preserve batch numbering and scope exactly.
+- Per the plan, **Batch 3.2b (duty reassignments), 3.2c (duty coverage/active students), and 3.2d
+  (remaining reference tables) have not been started.** Awaiting review of this 3.2a closure before
+  proceeding, per the standing hard-stop protocol.
+- The `MonthFilter` year-option limitation (above) means every remaining Batch 3.2 sub-batch that
+  touches a month-filtered report will need the same "seed relative to today" approach as this
+  batch, not Batch 3.1's fixed-date approach — flagging so it's not rediscovered per sub-batch.
+- `e2e/duty-timing-settings.spec.js` remains broken on unmodified code — unchanged status from the
+  Batch 3.1 handoff, not fixed here per standing policy.
