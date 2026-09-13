@@ -1,16 +1,15 @@
-# React + Vite
+# SIMS DMS Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This directory contains the React/Vite client for SIMS DMS.
 
-Currently, two official plugins are available:
+For current frontend guidance, read the repository-level `CONSTITUTION.md`, `CLAUDE.md`, `docs/UI_ARCHITECTURE.md`, and `docs/MOBILE_PATTERNS.md` before changing UI code. They describe the audited September 2026 implementation: Public Sans/DM Mono typography, Tabler icon ownership, Mantine/Tailwind responsibilities, current shared overlay patterns, and responsive boundaries.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Useful commands from the repository root:
 
-## React Compiler
+```text
+npm run dev --workspace=client
+npm run lint --workspace=client
+npm run build --workspace=client
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Do not use this file as a design-system decision document. Component/library consolidation remains a future architecture decision.

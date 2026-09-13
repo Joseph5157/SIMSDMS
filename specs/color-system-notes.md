@@ -1,6 +1,6 @@
 # Color System — Deferred Notes & Backlog
 
-> **Status: NOT scheduled work.** This is a backlog reference for a future session or a
+> **Status: NOT scheduled work. Historical deferred backlog — not current architecture guidance.** This is a backlog reference for a future session or a
 > future project. The color system currently **works correctly** as verified in production
 > (light + dark, desktop + mobile). Nothing here is a live bug — the concrete live bugs
 > (indigo-tint tree-shaking, hardcoded-hex duplicates) were already fixed. See the commit
@@ -9,6 +9,9 @@
 > Do **not** start any of this without an explicit decision from the project owner. In
 > particular, the single-source-of-truth Mantine refactor (item C) was **intentionally
 > declined** as too big a structural change for this project's current stage.
+>
+> The factual implementation notes below are historical context. Revalidate them against the
+> current product and Spec 030 audit evidence before using them for any future work.
 
 ## Background: three parallel color systems
 

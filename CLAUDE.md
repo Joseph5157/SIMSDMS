@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/003-admin-duty-timing-settings/plan.md`
+`specs/032-ui-system-implementation-migration/032-migration-batch-plan.md`
 <!-- SPECKIT END -->
 
 ## Project Constitution
@@ -18,10 +18,12 @@ frontend component. Summary of the enforced rules (full detail + rationale in th
   equivalent exists.
 - Mantine owns interactive/accessibility behavior. Tailwind owns responsive layout and spacing.
 - Do not add a new UI or icon library without an explicit `CONSTITUTION.md` §2 amendment.
-  `@tabler/icons-react` is the only icon library for new code — `lucide-react` is deprecated.
-- Do not import `@radix-ui/react-dialog`, `framer-motion`, or `vaul` directly in
-  `client/src/pages/**` or `client/src/components/**` (outside the internal implementation of
-  `ResponsiveSheet` once it exists) — see `CONSTITUTION.md` §2.
+  `@tabler/icons-react` is the established library for new third-party icon use; do not add
+  `lucide-react` (the 030 baseline found no direct production Lucide imports).
+- Do not import `@radix-ui/react-dialog`, `framer-motion`, or `vaul` directly in feature pages.
+  Radix/Framer are internal shared-overlay infrastructure: `ResponsiveSheet` and the current
+  nested `StudentSearchOverlay` exception. Do not copy or broaden that exception — see
+  `CONSTITUTION.md` §2 and `docs/UI_ARCHITECTURE.md`.
 - Do not add static inline `style={{ ... }}` objects for fixed values — inline `style` is for
   runtime-computed values only (e.g. a progress-bar width).
 - Every new list/data screen must implement an explicit mobile rendering strategy (card, compact
@@ -29,7 +31,8 @@ frontend component. Summary of the enforced rules (full detail + rationale in th
   horizontal scroll.
 - Preserve accessibility, focus management, keyboard handling, and safe-area behavior already
   established in the codebase (`useKeyboardInset`, `repositionInputs={false}`, etc.) when
-  touching overlay/drawer code.
+  touching overlay/drawer code. The 030-D audit found focus-return gaps in tested FormModal and
+  ConfirmDialog cases; verify behavior rather than assuming it is already uniform.
 
 ## Handoff Reports
 
