@@ -11,6 +11,7 @@ import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
+import AppButton from '../../components/ui/AppButton';
 import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
 import StudentDetailsDrawer from '../../components/StudentDetailsDrawer';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -288,9 +289,9 @@ export default function StudentsPage({ user }) {
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={resetFilters} className="text-[12px] text-[var(--text-secondary)] bg-transparent border-0 cursor-pointer px-1.5 py-1 font-[var(--weight-semibold)]">
+          <AppButton variant="ghost" size="xs" onClick={resetFilters}>
             Clear
-          </button>
+          </AppButton>
         )}
       </div>
 

@@ -3,6 +3,7 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow } from '../../components/ui/Table';
 import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
 import EmptyState from '../../components/ui/EmptyState';
+import AppButton from '../../components/ui/AppButton';
 import { TextInput, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useAllFacultyDuties } from '../../hooks/useDutySlots';
@@ -167,7 +168,7 @@ export default function AllFacultyDutiesPage({ user }) {
             {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
           </div>
         )}
-        {isError && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-6 text-center"><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
+        {isError && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-6 text-center"><AppButton variant="ghost" size="xs" onClick={refetch}>Retry</AppButton></div>}
         {!isLoading && !isError && !agenda.length && (
           <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
             <EmptyState message="No booked duties this month." />

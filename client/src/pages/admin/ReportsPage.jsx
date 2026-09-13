@@ -6,6 +6,7 @@ import ResponsiveSheet from '../../components/ui/ResponsiveSheet';
 import ResponsiveDataView from '../../components/ui/ResponsiveDataView';
 import { MobileList, MobileListItem, MobileListItemHeader, MobileListItemMeta } from '../../components/ui/MobileList';
 import EmptyState from '../../components/ui/EmptyState';
+import AppButton from '../../components/ui/AppButton';
 import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
@@ -702,22 +703,20 @@ function StudentViolationReportCard() {
           <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — daily, weekly, monthly, yearly, or overall</p>
         </div>
         <div className="shrink-0 flex gap-2">
-          <button
-            type="button"
+          <AppButton
+            variant="primary"
             onClick={() => handleDownload('xlsx')}
             disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
           >
             {downloading ? 'Preparing…' : '⬇ Excel'}
-          </button>
-          <button
-            type="button"
+          </AppButton>
+          <AppButton
+            variant="secondary"
             onClick={() => handleDownload('pdf')}
             disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {downloading ? 'Preparing…' : '⬇ PDF'}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -916,22 +915,20 @@ function IndividualStudentReportCard() {
           <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">Complete violation history for one student — for counselling, parent meetings, and reviews</p>
         </div>
         <div className="shrink-0 flex gap-2">
-          <button
-            type="button"
+          <AppButton
+            variant="primary"
             onClick={() => handleDownload('xlsx')}
             disabled={!student || downloading || busy || !hasRows}
-            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-white bg-[var(--brand)] hover:bg-[var(--brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border-none"
           >
             {downloading ? 'Preparing…' : '⬇ Excel'}
-          </button>
-          <button
-            type="button"
+          </AppButton>
+          <AppButton
+            variant="secondary"
             onClick={() => handleDownload('pdf')}
             disabled={!student || downloading || busy || !hasRows}
-            className="min-h-[var(--control-min)] px-4 rounded-lg font-semibold text-[length:13px] text-[var(--text-secondary)] bg-[var(--surface-page)] border border-[var(--border)] hover:border-[var(--color-blue-300)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {downloading ? 'Preparing…' : '⬇ PDF'}
-          </button>
+          </AppButton>
         </div>
       </div>
 

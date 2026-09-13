@@ -193,7 +193,11 @@ export default function LoginPage() {
             {/* Error message */}
             {error && <Alert tone="danger">{error}</Alert>}
 
-            {/* Sign in CTA */}
+            {/* Sign in CTA — kept as a raw button, not AppButton: an
+                intentionally distinct branded 56px/44px gradient CTA (030-E),
+                the login gradient exception V2 §9 explicitly allows. AppButton
+                has no gradient/press-scale variant to represent this without
+                degrading the auth UX (Batch 4.3, Spec 032). */}
             <button
               type="submit"
               disabled={isDisabled}

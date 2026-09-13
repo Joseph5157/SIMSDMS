@@ -133,22 +133,15 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         </div>
 
         {/* Download template */}
-        <button
+        <AppButton
+          variant="secondary"
           onClick={handleDownloadTemplate}
           disabled={downloading}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 7, padding: '10px 16px', marginBottom: 16,
-            border: '1.5px dashed var(--color-blue-200)', borderRadius: 'var(--radius-lg)',
-            backgroundColor: 'var(--color-blue-50)', cursor: downloading ? 'not-allowed' : 'pointer',
-            fontSize: 'var(--text-card)', fontWeight: 700,
-            color: downloading ? 'var(--color-blue-300)' : 'var(--brand)',
-            transition: 'all 0.15s', fontFamily: 'inherit',
-          }}
+          style={{ width: '100%', marginBottom: 16 }}
         >
-          <IconDownload size={15} strokeWidth={2} />
+          <IconDownload size={15} strokeWidth={2} style={{ marginRight: 7 }} />
           {downloading ? 'Downloading…' : 'Download sample template (.xlsx)'}
-        </button>
+        </AppButton>
 
         {/* File picker */}
         <p style={{

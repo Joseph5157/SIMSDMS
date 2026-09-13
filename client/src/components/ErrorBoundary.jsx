@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import AppButton from './ui/AppButton';
 
 export default class ErrorBoundary extends Component {
   state = { error: null };
@@ -10,9 +11,9 @@ export default class ErrorBoundary extends Component {
           <div className="text-center max-w-md px-4">
             <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">Something went wrong</h2>
             <p className="text-[var(--text-muted)] text-sm mb-4">{this.state.error.message}</p>
-            <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[var(--brand)] text-[var(--text-on-brand)] rounded-lg text-sm">
+            <AppButton variant="primary" onClick={() => window.location.reload()}>
               Reload page
-            </button>
+            </AppButton>
           </div>
         </div>
       );
