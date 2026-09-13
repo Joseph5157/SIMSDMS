@@ -283,9 +283,17 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
+    // Batch 3.2b (Spec 032): the two tables here get different mobile
+    // treatments per the V2 per-schema rule, not one mechanical conversion.
+    // Duty counts is a short read-only comparison table (5 columns, one row
+    // per active faculty, no actions) — it keeps the existing Table's
+    // allowed-scroll-table presentation (Batch 1.3's visible-scrollbar fix)
+    // unchanged. Reassignment history is per-event operational data (date,
+    // people, a free-text reason, an outcome) meant to be scanned
+    // individually — same card treatment as Batches 3.1/3.2a.
     case 'duty-reassignments': return (
       <div className="flex flex-col gap-6">
-        {/* Per-faculty duty counts */}
+        {/* Per-faculty duty counts — intentionally left as the scrollable Table (short comparison table exception) */}
         <div>
           <h4 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2">Duty counts</h4>
           <Table>
@@ -308,23 +316,50 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
         {/* Reassignment history */}
         <div>
           <h4 className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-2">Reassignment history</h4>
-          <Table>
-            <thead><tr><Th>Date</Th><Th>Session</Th><Th>From</Th><Th>To</Th><Th>Reason</Th><Th>By</Th><Th>Attendance</Th></tr></thead>
-            <tbody className="divide-y divide-[var(--divider)]">
-              {!data.history?.length && <EmptyRow cols={7} message="No reassignments this month." />}
-              {data.history?.map((r) => (
-                <tr key={r.id}>
-                  <Td className="font-medium">{new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Td>
-                  <Td className="capitalize">{r.session_type}</Td>
-                  <Td>{r.from_faculty?.name}</Td>
-                  <Td>{r.to_faculty?.name}</Td>
-                  <Td className="text-[length:12px] text-[var(--text-muted)]">{r.reason ?? '—'}</Td>
-                  <Td>{r.reassigned_by?.name}</Td>
-                  <Td className="capitalize">{r.final_attendance?.replace('_', ' ')}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <ResponsiveDataView
+            mobile={
+              !data.history?.length ? (
+                <EmptyState message="No reassignments this month." />
+              ) : (
+                <MobileList>
+                  {data.history.map((r, i) => (
+                    <MobileListItem key={r.id} isLast={i === data.history.length - 1}>
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
+                        <MobileListItemHeader
+                          title={new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          subtitle={<span className="capitalize">{r.session_type}</span>}
+                        />
+                        <MobileListItemMeta>{r.from_faculty?.name} → {r.to_faculty?.name}</MobileListItemMeta>
+                        <MobileListItemMeta>
+                          By {r.reassigned_by?.name} · <span className="capitalize">{r.final_attendance?.replace('_', ' ')}</span>
+                          {r.reason ? <> · {r.reason}</> : null}
+                        </MobileListItemMeta>
+                      </div>
+                    </MobileListItem>
+                  ))}
+                </MobileList>
+              )
+            }
+            desktop={
+              <Table>
+                <thead><tr><Th>Date</Th><Th>Session</Th><Th>From</Th><Th>To</Th><Th>Reason</Th><Th>By</Th><Th>Attendance</Th></tr></thead>
+                <tbody className="divide-y divide-[var(--divider)]">
+                  {!data.history?.length && <EmptyRow cols={7} message="No reassignments this month." />}
+                  {data.history?.map((r) => (
+                    <tr key={r.id}>
+                      <Td className="font-medium">{new Date(r.duty_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</Td>
+                      <Td className="capitalize">{r.session_type}</Td>
+                      <Td>{r.from_faculty?.name}</Td>
+                      <Td>{r.to_faculty?.name}</Td>
+                      <Td className="text-[length:12px] text-[var(--text-muted)]">{r.reason ?? '—'}</Td>
+                      <Td>{r.reassigned_by?.name}</Td>
+                      <Td className="capitalize">{r.final_attendance?.replace('_', ' ')}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            }
+          />
         </div>
       </div>
     );

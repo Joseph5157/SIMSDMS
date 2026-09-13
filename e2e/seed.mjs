@@ -39,6 +39,27 @@ async function main() {
   });
   console.log(`Seeded e2e faculty user: ${E2E_FACULTY_EMAIL}`);
 
+  // Second faculty — never logs in, only referenced as the "to" side of a
+  // reassignment fixture (Batch 3.2b), so it needs no password fixture entry.
+  const faculty2Email = 'e2e.faculty2@sims.test';
+  const faculty2 = await prisma.user.upsert({
+    where: { email: faculty2Email },
+    update: { status: 'active', deleted_at: null },
+    create: {
+      name: 'E2E Faculty Two',
+      email: faculty2Email,
+      role: 'faculty',
+      department: 'Computer Science',
+      designation: 'Assistant Professor',
+      status: 'active',
+      password_hash: facultyHash,
+      must_change_password: false,
+      session_version: 1,
+      approved_at: new Date(),
+    },
+  });
+  console.log(`Seeded e2e second faculty user: ${faculty2Email}`);
+
   const adminHash = await bcrypt.hash(E2E_ADMIN_PASSWORD, 10);
   const admin = await prisma.user.upsert({
     where: { email: E2E_ADMIN_EMAIL },
@@ -140,6 +161,41 @@ async function main() {
     });
   }
   console.log('Seeded e2e duty attendance (auto clock-out) for today');
+
+  // One fixed duty reassignment (today, afternoon — a separate session from
+  // the morning slot above, so no unique-constraint collision), for
+  // e2e/reports-duty-reassignments.spec.js. The slot's current faculty_id is
+  // the "to" side (faculty2), matching how the report's per-faculty counts
+  // are derived (DutySlot.faculty_id = who currently holds it).
+  let reassignSlot = await prisma.dutySlot.findFirst({ where: { duty_date: dutyDate, session_type: 'afternoon' } });
+  if (!reassignSlot) {
+    reassignSlot = await prisma.dutySlot.create({
+      data: {
+        faculty_id: faculty2.id,
+        duty_date: dutyDate,
+        session_type: 'afternoon',
+        status: 'scheduled',
+        created_by: admin.id,
+      },
+    });
+  }
+  console.log('Seeded e2e duty slot for today (afternoon, reassigned)');
+
+  const existingReassignment = await prisma.dutyReassignment.findFirst({ where: { duty_slot_id: reassignSlot.id } });
+  if (!existingReassignment) {
+    await prisma.dutyReassignment.create({
+      data: {
+        duty_slot_id: reassignSlot.id,
+        from_faculty_id: faculty.id,
+        to_faculty_id: faculty2.id,
+        duty_date: dutyDate,
+        session_type: 'afternoon',
+        reason: 'E2E test reassignment',
+        reassigned_by: admin.id,
+      },
+    });
+  }
+  console.log('Seeded e2e duty reassignment for today (afternoon)');
 }
 
 main()
