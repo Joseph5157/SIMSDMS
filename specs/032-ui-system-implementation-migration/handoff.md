@@ -2,191 +2,118 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Batch 3.2d — Remaining reference tables
-(final sub-batch of Milestone 3, Batch 3.2)
+032-ui-system-implementation-migration / Milestone 4 — State & Form Consistency
+(Batches 4.1 and 4.2 complete; Batch 4.3 not started)
 
 ## status
 
-complete
+partial
 
 ## completed
 
-### Objective (from the approved plan)
+### Batch 4.1 — OfflineBanner rebuild (commit `bac498b`)
 
-Apply the V2 §6 mobile decision rule to the last 10 unconverted `ReportSection` table branches,
-completing Batch 3.2 and closing 030-D-03 (clipped desktop-width tables in narrow sheets) for every
-report on the page, not just the primary one. Per owner instruction: "convert only tables that are
-genuinely poor on mobile; preserve compact scrollable/reference tables when they remain usable."
+Rebuilt `client/src/components/OfflineBanner.jsx` fresh against current HEAD/V2, using the frozen
+candidate `fa996f2` only as directional reference (not cherry-picked), per its ACCEPT WITH REVISION
+conditions in `031-frozen-candidate-evaluation.md`.
 
-### Per-table classification (investigated before writing any code)
+- Swapped the hand-rolled static `style={{...}}` block for `Alert` (tone="warning") + `AppButton`
+  (variant="icon", dismiss control).
+- `client/src/components/ui/Alert.jsx` gained a `...rest` spread so `role`/`aria-live`/`aria-label`
+  reach the root div (needed for the banner's screen-reader announcement; doesn't affect its other
+  callers, which don't pass those props).
+- **Revision beyond the frozen candidate**: replaced the 📡 emoji with Tabler `IconWifiOff`/`IconWifi`
+  (swaps by connectivity state) — V2 §9 restricts emoji from "status system" roles, and the frozen
+  candidate (pre-V2) had kept the emoji.
+- Connectivity/dismissal lifecycle, position (`fixed inset-x-0 top-0 z-[70]`), and `md:hidden`
+  breakpoint are byte-identical to before — only the presentation layer changed.
+- New `e2e/offline-banner.spec.js` (4 tests): show/dismiss/stays-dismissed-while-offline,
+  back-online auto-hide after ~2s, desktop never shows (md:hidden), dark-theme render with zero
+  uncaught JS exceptions. All pass, both Playwright projects.
+- Live-verified via a throwaway Playwright screenshot script (not committed) at 390px, light and
+  dark — banner renders correctly, readable, no clipping, dismiss button is a proper 44px target.
 
-**Kept as the allowed scrollable Table (aggregate/comparison, no per-event action or status) —
-zero changes to these five, only an explanatory comment each:**
+### Batch 4.2 — Loading/empty state consolidation (commit `901d100`)
 
-| Report | Shape |
-| --- | --- |
-| `monthly-attendance` | 7 cols, one row per faculty's whole-month totals |
-| `faculty-activity` | 4 cols, one row per recorder's aggregate violation count + fines |
-| `violation-types` | 3 cols, one row per violation type's aggregate count + fines |
-| `unassigned-faculty` | 3 cols, one row per faculty's picked-vs-required slot count |
-| `completion-rate` | 4 cols, ~6 rows, one per month, a trend-over-time comparison |
+Fixed the DS-13 finding: table "loading" rows were rendered via `EmptyRow`'s "no records" 📭 icon
+reused with `message="Loading…"` — visually **identical to the empty-result state**, which is a
+real, visible inconsistency (not just a literal-text nitpick). Fixed on 9 files:
 
-All five are the same category as Batch 3.2b's "Duty counts" (already accepted as the scroll-table
-exception) — aggregate metrics compared across entities, not individual events to scan.
-
-**Converted to the card pattern (per-event/per-record, several with a status badge or narrative
-field):**
-
-| Report | Why | Precedent |
-| --- | --- | --- |
-| `absent-faculty` | Per-day attendance event with a status badge (3 cols, but status alone qualifies per V2's own wording) | Same category as 3.2a's late-arrivals/auto-clockout — literally a third member of that family |
-| `attendance-overrides` | Per-event audit log entry with a free-text reason | Same category as 3.2b's reassignment history |
-| `pending-fines` | Per-student-record list | Same shape as Batch 3.1's Student Violation Report |
-| `flagged-violations` | Per-violation record with a resolution status badge | Same category as 3.2b's reassignment history |
-| `upload-history` | Per-upload event log | Same category as 3.2b's reassignment history (also 7 columns) |
-
-### Implementation
-
-- `client/src/pages/admin/ReportsPage.jsx` — five `ResponsiveDataView` conversions following the
-  established pattern exactly (mobile `MobileList`/`MobileListItem` branch, desktop `Table` branch
-  byte-preserved). `absent-faculty` uses `MobileListItem`'s flat `title`/`subtitle`/`status` props
-  (its 3-field shape fits that API directly, unlike every other converted report so far, which
-  needed the `children` composition form for 4+ fields). `pending-fines` and `flagged-violations`
-  move their trailing value (fine amount / resolution badge) into a second child `div` alongside the
-  `MobileListItemHeader`+`MobileListItemMeta` block, matching a natural "row with a trailing value"
-  layout.
-- **Directly-relevant fix, not scope creep**: `pending-fines` and `flagged-violations` had **no**
-  `EmptyRow`/empty-state guard at all before this batch — a pre-existing gap in the exact desktop
-  `<tbody>` block being rewritten for the `ResponsiveDataView` conversion. Added `EmptyRow`
-  (desktop) and `EmptyState` (mobile) to both, matching every other converted report's pattern, since
-  leaving the exact code being touched without an empty state would be an incomplete conversion, not
-  a preserved behavior.
-
-### Discovered, NOT fixed (out of scope): `attendance-overrides` data-contract bug
-
-`client/src/pages/admin/ReportsPage.jsx`'s `'attendance-overrides'` case reads `r.faculty` /
-`r.dutySlot` / `r.overriddenBy`, but `attendanceOverrideLog`
-(`server/controllers/reports.controller.js`) returns nested `attendance.faculty` /
-`attendance.dutySlot` / `changedBy` instead — a genuine pre-existing field-name mismatch. Every row
-in this report has always rendered a blank faculty name and "Invalid Date" (confirmed live: the seed
-fixture's `override_reason` displays correctly since that field IS top-level, but name/date do not).
-This is **not introduced or fixed by this batch** — the card/table conversion faithfully preserves
-the same (broken) field paths the original code used. Flagged prominently below since it makes this
-one report currently non-functional for its stated purpose, more severe than 3.2c's cosmetic "null"
-finding.
-
-### Playwright scenarios (5 new files, one per report family)
-
-`e2e/reports-absent-faculty.spec.js`, `e2e/reports-attendance-overrides.spec.js`,
-`e2e/reports-pending-fines.spec.js`, `e2e/reports-flagged-violations.spec.js`,
-`e2e/reports-upload-history.spec.js` — 21 tests total, covering desktop table / mobile sheet /
-640px inline panel for each, plus an empty-state test for the two MonthFilter-driven reports
-(`absent-faculty`, `attendance-overrides`; the other three have no MonthFilter — see each spec's
-own comment for why no empty-state test was attempted there). `attendance-overrides`' spec
-deliberately asserts only on `override_reason` and structural/responsive behavior, not on
-faculty/date values, given the bug above.
-
-**RED verified**: `git stash`-ed `ReportsPage.jsx` back to the pre-3.2d code and re-ran all 17
-non-empty-state/non-desktop tests across the 5 new specs — **10 of 10 "mobile shows a card, not a
-table" assertions failed for the correct reason** (`getByRole('table')` found 1 instead of 0) across
-every one of the 5 reports. Restored the implementation and reconfirmed all 21 pass.
-
-### Cross-fixture interactions discovered and fixed (this is the significant finding of this batch)
-
-Adding new `e2e/seed.mjs` fixtures **broke two already-committed tests** (Batch 3.1's and 3.2a's),
-not because their features regressed, but because of real, live interactions in the shared dev
-database:
-
-1. The `attendance-overrides` fixture created a `DutyAttendance` with `in_time` set but no
-   `out_time`. The **dev server's own background cron** (`server/lib/cron.js`,
-   `safeAutoClockOut`, every 10 minutes — matches any attendance with `in_time` set and
-   `out_time: null`) auto-completed it with `auto_out: true` about 35 minutes after seeding,
-   turning it into a second "E2E Faculty" row in the current month's Auto Clock-outs report and
-   breaking 3.2a's `toHaveCount(1)` assertion.
-   - **Fix**: give the override fixture an `out_time` immediately at creation (never leave it
-     "open"), plus a one-time healing branch (`else if (!out_time || auto_out)`) that corrects any
-     already-seeded copy the cron had already touched.
-2. The `flagged-violations` fixture recorded its second violation for `E2E-STU-0001` as `admin` —
-   the same recorder Batch 3.1's Student Violation Report test filters to and expects exactly one
-   match for. Two admin-recorded violations for the same student broke that count.
-   - **Fix**: record the flagged-violation fixture as `faculty2` (E2E Faculty Two) instead, with a
-     healing branch for any already-seeded copy recorded as admin.
-
-**Neither already-committed test file was edited.** Both fixes were made at the fixture source in
-`e2e/seed.mjs`, which is the correct place to fix a fixture-design gap — editing the assertions
-instead would have papered over the real lesson (every new attendance/violation fixture in this
-shared seed file must be checked against every *other* report that scans the same data, not just
-the one it was written for).
-
-### Verification matrix (live browser, chrome-devtools MCP against the local dev stack)
-
-| Report | Width(s) checked live | Theme | Result |
-| --- | --- | --- | --- |
-| Absent Faculty | 390 (sheet) | dark | Status badge card, no clipping |
-| Attendance Override Log | 390 (sheet) | dark | Card renders with blank name/"Invalid Date" as predicted (pre-existing bug), reason text correct, no crash, no clipping |
-| Pending Fines | 390 (sheet) | dark | Cards with trailing fine amounts, real dev data + fixture mixed cleanly, no clipping |
-| Flagged Student Violations | 390, 360 (sheet) | dark, light | Card with Pending badge, no clipping |
-| Upload History | 390 (sheet) | dark | Card with all counts, no clipping |
-| Faculty Activity (kept table, spot check) | 390 (sheet) | dark | Unchanged, still visibly scrollable |
-
-Console: clean at every check.
-
-### Lint / build / test results
-
-- `npx eslint client/src/pages/admin/ReportsPage.jsx` — clean.
-- `npm run build --workspace=client` — succeeded (pre-existing >500kB chunk-size advisory only).
-- `npx playwright test e2e/reports-*.spec.js --project=chromium` — 47/47 passed (all Reports specs
-  together: 3.1 + 3.2a + 3.2b + 3.2c + 3.2d).
-- Full `npx playwright test` (all specs, both projects): 98 passed, 2 failed — both
-  `e2e/duty-timing-settings.spec.js`, the same pre-existing unrelated failure flagged in every prior
-  Batch 3.x handoff. Per the standing Spec 032 test policy, not touched.
-
-### Regressions checked
-
-- All 5 kept tables' desktop markup is unchanged (comment-only edits, verified by diff).
-- All 5 converted tables' desktop markup is byte-preserved from before (verified by diff; only the
-  two missing-`EmptyRow` fixes are additive, not structural changes).
-- Every other `ReportSection` branch (student-violations, late-arrivals/auto-clockout,
-  duty-reassignments, duty-coverage, active-students) re-verified together in the same Playwright
-  run — all still pass.
-- No new console errors/warnings at any tested width/theme.
+- `AuditLogsPage.jsx`, `AllFacultyDutiesPage.jsx`, `ViolationsPage.jsx`, `FlaggedViolationsPage.jsx`,
+  `UsersPage.jsx` (main table + Pending Invites table), `MyViolationsTable.jsx`, `SettingsPage.jsx`
+  (Violation Types tab), `DutySlotsPage.jsx` — desktop `EmptyRow(message="Loading…")` →
+  `TableRowSkeleton`; mobile ad hoc `<div>Loading…</div>` → stacked `CardSkeleton`. Both primitives
+  already existed and were already used this way at `StudentsPage.jsx` — this batch extends that
+  existing convention, it doesn't invent a new one.
+- `DutySlotsPage.jsx` mobile branch had **no loading indicator at all** (a real gap: it would flash
+  "No {filter} slots" during load) — added one, matching the pattern used everywhere else.
+- Mobile ad hoc `<div>No X found.</div>` / dashed-border boxes → `EmptyState`, matching what each
+  page's own desktop `EmptyRow` already did correctly for the same condition (same pages as above,
+  plus `StudentsPage.jsx`'s mobile empty text, which had the identical defect).
+- **Left ~11 other "Loading…" instances untouched** (App.jsx splash screen, `TrendBreakdownDrawer`,
+  `StudentDetailsDrawer` ×2, `MessagesPage` ×2, `AttendanceLivePage`, `CalendarPage`,
+  `SettingsPage`'s Duty-Timing/Violations tabs ×2, generic `ReportsPage.jsx` `ReportSection` loader) —
+  these are legitimate local indeterminate loaders for small/variable-shape regions with no table
+  sibling exhibiting the empty-vs-loading confusion. `ReportsPage.jsx` specifically was left alone
+  because its `ReportSection` loader is shared across ~15 report branches with different column
+  counts; giving it a correct per-branch skeleton shape is Reports-specific work, arguably Milestone
+  5 territory, and disproportionate to this batch's scope — **recorded as deferred, not done**.
+- New `e2e/state-consistency.spec.js` (5 tests): Users page desktop/mobile skeleton-while-loading,
+  Users page empty→EmptyState, Flagged Violations desktop+mobile skeleton, Student Violations
+  desktop skeleton. All pass, both Playwright projects.
+- Full existing Playwright suite re-run: 113/116 passed; the 3 failures are the pre-existing
+  unrelated `e2e/duty-timing-settings.spec.js` (×2 projects, untouched per standing policy) plus one
+  self-inflicted flake in my own new spec that was found and fixed before the final commit (see
+  Constraints below) — final state is clean.
+- Live-verified via a throwaway Playwright screenshot script (not committed): Users page
+  loading/empty states, light and dark, 390px.
 
 ## failed_or_blocked
 
-- None. The cross-fixture interactions were caught and fixed within this batch, not left broken.
+- None outstanding. One transient issue during Batch 4.2 development (not a blocker, already fixed
+  and reflected in the committed code): my first cut of `e2e/state-consistency.spec.js` reused one
+  `page` across a desktop assertion then a viewport-resize-and-reload to check mobile — `useUsers`
+  caches its response into `localStorage` and feeds it back as TanStack Query `initialData`, so the
+  reload skipped the loading state entirely on the second check. Fixed by splitting into two
+  independent tests (fresh page/context each). See `constraints_discovered` below — this is a real
+  hook behavior worth knowing about for any future test/instrumentation of pages using `useUsers`.
 
 ## commands_run
 
 ```
-grep -n "^    case " client/src/pages/admin/ReportsPage.jsx   # enumerate all branches before classifying
-DATABASE_URL=... node -e "... check activeStudentRoster/attendanceOverrideLog field shapes ..."
-DATABASE_URL=... node e2e/seed.mjs   # run repeatedly while diagnosing cross-fixture interactions
-DATABASE_URL=... node -e "... inspect dutyAttendance/dutySlot rows to find the cron side effect ..."
-npx eslint client/src/pages/admin/ReportsPage.jsx
-npm run build --workspace=client
-npm run dev   # background: client :5173, server :3000
-npx playwright test e2e/reports-absent-faculty.spec.js e2e/reports-attendance-overrides.spec.js e2e/reports-pending-fines.spec.js e2e/reports-flagged-violations.spec.js e2e/reports-upload-history.spec.js --project=chromium --reporter=list
-git stash push -- client/src/pages/admin/ReportsPage.jsx   # RED-verification revert, then popped
-npx playwright test e2e/reports-*.spec.js --project=chromium --reporter=list   # all Reports specs together
-npx playwright test --reporter=list   # full suite, both projects
-# live browser verification via chrome-devtools MCP: emulate(), evaluate_script(), take_screenshot()
-taskkill //PID 24800 //F ; taskkill //PID 23748 //F   # stopped the dev server/client processes started for this session
+npx eslint <changed files>            # from client/, per-file, after every edit — all clean
+npm run build --workspace=client      # after each batch — succeeds, only pre-existing >500kB chunk advisory
+node e2e/seed.mjs                     # against sims-dms-postgres :5434 (dev container, already running)
+npm run dev                            # background: client :5173, server :3000
+npx playwright test e2e/offline-banner.spec.js --project=chromium --reporter=list
+npx playwright test e2e/state-consistency.spec.js --reporter=list          # both projects
+npx playwright test --reporter=list   # full suite, both projects, after each batch
+# throwaway Playwright screenshot scripts (light/dark, loading/empty) — written to and run from
+# the session scratchpad / a gitignored temp file in repo root, deleted immediately after; not committed
 ```
 
 ## constraints_discovered
 
-- **The dev server's `safeAutoClockOut` cron (every 10 minutes) will auto-complete any
-  `DutyAttendance` fixture left with `in_time` set and `out_time: null`**, changing its `auto_out`
-  flag and potentially making it appear in the Auto Clock-outs report for whatever month it falls
-  in. Every future attendance fixture added to `e2e/seed.mjs` must be created already-closed
-  (`out_time` set) unless it is deliberately testing auto-clockout behavior itself.
-- **Every new violation/attendance fixture must be checked against every report that could
-  aggregate it**, not just the report it was written to test — `e2e/seed.mjs` is a shared fixture
-  pool feeding many report queries at once (by student, by recorder, by month, by faculty), and a
-  new row can silently change another report's expected count.
-- `MobileListItem`'s flat `title`/`subtitle`/`status`/`action` props are usable directly (no
-  `children` override needed) when a card has 3 pieces of content or fewer that map cleanly onto
-  that shape — `absent-faculty` is the first converted report simple enough to use it.
+- **The app's PWA service worker intercepts some GET API calls (e.g. `GET /users`) at the SW
+  fetch-handler level in dev**, which Playwright's `page.route()` cannot see or mock — confirmed by
+  a throwaway debug spec where a catch-all `page.route('**/*', ...)` saw `/users/me` but never saw
+  the `/users` list call, even though `page.on('request'/'response')` logged it normally. Any future
+  Playwright test that needs to intercept/mock an API call **must** pass
+  `test.use({ serviceWorkers: 'block' })` (or set it per-test via `browser.newContext`), or the mock
+  will silently no-op and the real network response renders instead. This is now documented inline in
+  `e2e/state-consistency.spec.js` and should be treated as standing guidance for Milestone 4.3 and
+  beyond, not re-discovered each time.
+- **`useUsers` (`client/src/hooks/useUsers.js`) persists its response to `localStorage`
+  (`getCacheKey`/`setCacheKey`) and passes it back as TanStack Query `initialData`.** Any test or
+  future instrumentation that reloads/revisits `/admin/users` in the *same* browsing context after an
+  initial load will see `isLoading: false` immediately — the loading branch will not fire a second
+  time without a fresh context/localStorage. No other hook touched in this milestone does this
+  (`useReport`, `useViolations`, `useFlaggedViolations` are plain `useQuery` with no persistence).
+- Route-matching precision matters more than usual in this app: a bare substring glob like
+  `**/users**` also matches the SPA's own `/admin/users` document navigation (client-routed pages
+  still trigger a real document request on `page.goto`), and a looser regex like `/\/users(\?|$)/`
+  without anchoring to the API origin does the same. Anchor route patterns to
+  `^http://localhost:3000/<exact-path>(\?|$)` when precision matters.
 
 ## deviations_from_constitution
 
@@ -194,25 +121,58 @@ taskkill //PID 24800 //F ; taskkill //PID 23748 //F   # stopped the dev server/c
 
 ## files_touched
 
-- `client/src/pages/admin/ReportsPage.jsx` (Batch 3.2d: 5 card conversions + explanatory comments on the 5 kept tables)
-- `e2e/reports-absent-faculty.spec.js` (new)
-- `e2e/reports-attendance-overrides.spec.js` (new)
-- `e2e/reports-pending-fines.spec.js` (new)
-- `e2e/reports-flagged-violations.spec.js` (new)
-- `e2e/reports-upload-history.spec.js` (new)
-- `e2e/seed.mjs` (extended with 4 new fixture groups; two of them include a one-time healing branch for a previously-seeded copy affected by the cross-fixture interactions above)
-- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 3.2c report)
+**Batch 4.1** (commit `bac498b`):
+- `client/src/components/OfflineBanner.jsx`
+- `client/src/components/ui/Alert.jsx`
+- `e2e/offline-banner.spec.js` (new)
+
+**Batch 4.2** (commit `901d100`):
+- `client/src/pages/super-admin/AuditLogsPage.jsx`
+- `client/src/pages/faculty/AllFacultyDutiesPage.jsx`
+- `client/src/pages/admin/ViolationsPage.jsx`
+- `client/src/pages/admin/FlaggedViolationsPage.jsx`
+- `client/src/pages/admin/UsersPage.jsx`
+- `client/src/components/faculty/MyViolationsTable.jsx`
+- `client/src/pages/admin/SettingsPage.jsx`
+- `client/src/pages/admin/DutySlotsPage.jsx`
+- `client/src/pages/admin/StudentsPage.jsx`
+- `e2e/state-consistency.spec.js` (new)
+
+Not touched: `.tmp/`, `LEARNING_GUIDE.md` (both explicitly out of scope per instructions).
 
 ## open_questions_for_owner
 
-- **This closes Batch 3.2 (all four sub-batches: 3.2a/b/c/d) and, with it, all of Milestone 3's
-  Reports responsive work per the plan.** Next per `032-migration-batch-plan.md` would be
-  Milestone 4 (State & form consistency, starting with Batch 4.1 — OfflineBanner rebuild). Awaiting
-  owner review and go-ahead before starting anything in Milestone 4.
-- The `attendance-overrides` data-contract bug (blank names, "Invalid Date" on every row) needs a
-  decision: it makes that one report currently non-functional for admins trying to actually use it.
-  Recommend a small, separate backend bug-fix task (flatten the controller's response, or update the
-  frontend's field access to match the nested shape) rather than folding it into Spec 032, since it's
-  a data-correctness bug, not a responsive-design one.
-- `e2e/duty-timing-settings.spec.js` remains broken on unmodified code — unchanged status from
-  prior handoffs, not fixed here per standing policy.
+- None blocking. One deferred item to flag: `ReportsPage.jsx`'s generic `ReportSection` loading text
+  (`if (isLoading) return <p>Loading…</p>`) was deliberately left as plain text rather than given a
+  per-report skeleton shape — its ~15 branches have different column counts/layouts (tables, cards,
+  non-table summaries), so a correct fix means wiring a shape per report id, which felt like Reports
+  work (arguably Milestone 5 scope) rather than a Milestone 4 batch item. Flagging for whoever plans
+  Milestone 5, or a future Milestone 4 sub-batch if the owner wants it pulled forward.
+
+## exact_next_step
+
+Start **Batch 4.3 — Form-control consistency** (the remaining Milestone 4 sub-batch per
+`032-migration-batch-plan.md` and the user's stated Milestone 4 scope: "AppButton adoption batch 2 /
+form-control consistency"). Before writing code:
+
+1. Re-read `specs/031-ui-architecture-design-system-decision/031-design-system-v2.md` §3 (Action
+   system) and §4 (Forms), and `031-canonical-component-matrix.md`'s Forms rows — both already read
+   this session, decisions are current.
+2. Source-search for the ~15 non-sheet-footer conventional raw-button actions from the 030-C
+   classification (auth submit/cancel, report downloads, upload template, retry/reset) per
+   `032-migration-batch-plan.md` Batch 4.3 — not yet enumerated this session.
+3. Standing constraint from the plan: the login/auth submit control is an intentionally distinct 56px
+   design (030-E) — confirm `AppButton` can represent that variant, or document it as a kept
+   exception, rather than degrading the auth UX.
+4. Do NOT convert native/semantic controls, composite/chrome/calendar/pagination raw buttons, or
+   direct-Mantine-appropriate contexts — per the standing architecture rules in this milestone's
+   instructions and V2 §4's explicit "approved direct-use path, not a bypass" language for ordinary
+   Mantine fields.
+5. Apply the same verification discipline as 4.1/4.2: lint, build, targeted Playwright (the plan
+   calls for exercising login submit + one report download + one retry control post-conversion),
+   remember `test.use({ serviceWorkers: 'block' })` if any new spec needs to mock a network call.
+6. After 4.3, run the full regression suite once more and produce the Milestone 4 Closure Report the
+   user's instructions require (internal commits/SHAs, state/form patterns changed, OfflineBanner
+   outcome, coverage summary, lint/build/test results, known pre-existing failures, deferred items —
+   including the `ReportsPage.jsx` item above — and confirmation Milestone 5 has not begun), then
+   STOP for owner review.
