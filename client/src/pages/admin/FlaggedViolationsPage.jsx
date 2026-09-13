@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import Breadcrumb from '../../components/Breadcrumb';
 import { Table, Th, Td, EmptyRow, ErrorRow } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { Button, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -114,9 +116,9 @@ export default function FlaggedViolationsPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
-        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <div className="p-6"><Button variant="subtle" size="xs" onClick={refetch}>Retry</Button></div>}
-        {!isLoading && !isError && !filtered.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No flagged violations.</div>}
+        {!isLoading && !isError && !filtered.length && <EmptyState message="No flagged violations." />}
         {filtered.map((v, i) => (
           <div key={v.id} className={`px-4 py-3.5 border-b border-[var(--border)] ${v.is_flagged ? 'bg-[var(--color-amber-bg)]' : 'bg-[var(--surface-card)]'}`}>
             <div className="flex items-start justify-between gap-2">
@@ -155,7 +157,7 @@ export default function FlaggedViolationsPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={11} message="Loading…" />}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={11} />)}
             {isError && <ErrorRow cols={11} onRetry={refetch} />}
             {!isLoading && !isError && !filtered.length && <EmptyRow cols={11} message="No flagged violations." />}
             {filtered.map((v, i) => (

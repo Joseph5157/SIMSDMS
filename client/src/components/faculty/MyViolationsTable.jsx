@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Table, Th, Td, EmptyRow } from '../ui/Table';
+import { TableRowSkeleton } from '../ui/Skeleton';
 import { Button, TextInput, Select } from '@mantine/core';
 import Badge from '../ui/Badge';
 import FormModal from '../ui/FormModal';
@@ -136,7 +137,7 @@ export default function MyViolationsTable() {
           </tr>
         </thead>
         <tbody>
-          {isLoading && <EmptyRow cols={8} message="Loading…" />}
+          {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)}
           {!isLoading && !data?.data?.length && <EmptyRow cols={8} message="No student violations recorded." />}
           {data?.data?.map((v, i) => (
             <tr key={v.id}>

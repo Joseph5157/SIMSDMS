@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import Pagination from '../../components/ui/Pagination';
 import { TextInput, Button } from '@mantine/core';
 import { useToast } from '../../components/ui/Toast';
@@ -84,9 +86,9 @@ export default function AuditLogsPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
-        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No logs found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <EmptyState message="No logs found." />}
         {data?.data?.map((log) => (
           <div key={log.id} className="px-4 py-3.5 border-b border-[var(--border)] bg-[var(--surface-card)]">
             <div className="flex justify-between items-start mb-1.5">
@@ -124,7 +126,7 @@ export default function AuditLogsPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={4} message="Loading…" />}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={4} />)}
             {isError && <ErrorRow cols={4} onRetry={refetch} />}
             {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={4} />}
             {data?.data?.map((log) => (

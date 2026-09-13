@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { Select, Modal, Textarea, Button } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import AppButton from '../../components/ui/AppButton';
@@ -163,12 +165,12 @@ export default function DutySlotsPage({ user }) {
             <div key={session} className="mb-5">
               <MobileSectionHeader count={group.length}>{session} slots</MobileSectionHeader>
               <MobileList>
-                {isError ? (
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)
+                ) : isError ? (
                   <ErrorBlock onRetry={refetch} />
                 ) : !group.length ? (
-                  <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">
-                    No {statusFilterLabel} {session} slots
-                  </div>
+                  <EmptyState message={`No ${statusFilterLabel} ${session} slots.`} />
                 ) : (
                   group.map((s) => (
                     <MobileListItem
@@ -203,7 +205,7 @@ export default function DutySlotsPage({ user }) {
               <Table>
                 <thead><tr><Th>Date</Th><Th>Faculty</Th><Th>Department</Th><Th>Status</Th><Th>Action</Th></tr></thead>
                 <tbody className="divide-y divide-[var(--divider)]">
-                  {isLoading && <EmptyRow cols={5} message="Loading…" />}
+                  {isLoading && Array.from({ length: 3 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)}
                   {isError && <ErrorRow cols={5} onRetry={refetch} />}
                   {!isLoading && !isError && !group.length && <EmptyRow cols={5} message={`No ${statusFilterLabel} ${session} slots.`} />}
                   {group.map((s) => (

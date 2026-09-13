@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { TextInput, Select } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import { useAllFacultyDuties } from '../../hooks/useDutySlots';
@@ -160,9 +162,17 @@ export default function AllFacultyDutiesPage({ user }) {
 
       {/* Mobile day agenda — one card per date, AM + PM stacked */}
       <div className="md:hidden mb-4">
-        {isLoading && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isLoading && (
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            {Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
+          </div>
+        )}
         {isError && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-6 text-center"><button onClick={refetch} className="text-[var(--brand)] text-[length:13px] font-semibold">Retry</button></div>}
-        {!isLoading && !isError && !agenda.length && <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No booked duties this month.</div>}
+        {!isLoading && !isError && !agenda.length && (
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            <EmptyState message="No booked duties this month." />
+          </div>
+        )}
         <div className="flex flex-col gap-3">
           {agenda.map((g) => {
             const amVisible = showAM && (g.morning || showUnbooked);
@@ -190,7 +200,7 @@ export default function AllFacultyDutiesPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
             {isError && <ErrorRow cols={6} onRetry={refetch} />}
             {!isLoading && !isError && !filtered.length && <EmptyRow cols={6} message="No booked duties this month." />}
             {filtered.map((s) => {
