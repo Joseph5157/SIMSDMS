@@ -40,7 +40,7 @@ async function main() {
   console.log(`Seeded e2e faculty user: ${E2E_FACULTY_EMAIL}`);
 
   const adminHash = await bcrypt.hash(E2E_ADMIN_PASSWORD, 10);
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: E2E_ADMIN_EMAIL },
     update: { password_hash: adminHash, status: 'active', must_change_password: false, deleted_at: null },
     create: {
@@ -55,6 +55,54 @@ async function main() {
     },
   });
   console.log(`Seeded e2e admin user: ${E2E_ADMIN_EMAIL}`);
+
+  // One fixed student + violation type + violation, for Reports tests (e.g.
+  // e2e/reports-student-violations.spec.js) that need a known, non-empty
+  // Student Violation Report result. Neither Student nor ViolationType nor
+  // Violation has a natural unique key beyond id, so idempotency here is a
+  // find-then-create rather than an upsert.
+  const studentReg = 'E2E-STU-0001';
+  let student = await prisma.student.findUnique({ where: { registration_number: studentReg } });
+  if (!student) {
+    const year = new Date().getFullYear();
+    student = await prisma.student.create({
+      data: {
+        registration_number: studentReg,
+        student_name: 'E2E Test Student',
+        course: 'b_pharm',
+        year: 1,
+        semester: 1,
+        batch_year: year,
+        academic_year: `${year}-${String(year + 1).slice(2)}`,
+        status: 'active',
+      },
+    });
+  }
+  console.log(`Seeded e2e student: ${studentReg}`);
+
+  const violationTypeName = 'E2E Test Violation';
+  let violationType = await prisma.violationType.findFirst({ where: { name: violationTypeName } });
+  if (!violationType) {
+    violationType = await prisma.violationType.create({
+      data: { name: violationTypeName, default_fine: 100, is_active: true, created_by: admin.id },
+    });
+  }
+  console.log(`Seeded e2e violation type: ${violationTypeName}`);
+
+  const existingViolation = await prisma.violation.findFirst({
+    where: { student_id: student.id, violation_type_id: violationType.id },
+  });
+  if (!existingViolation) {
+    await prisma.violation.create({
+      data: {
+        student_id: student.id,
+        faculty_id: admin.id, // admin ad-hoc record — duty_slot_id stays null
+        violation_type_id: violationType.id,
+        fine_amount: 100,
+      },
+    });
+  }
+  console.log(`Seeded e2e violation for student: ${studentReg}`);
 }
 
 main()

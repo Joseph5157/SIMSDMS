@@ -3,6 +3,9 @@ import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorBlock } from '../../components/ui/Table';
 import Badge from '../../components/ui/Badge';
 import ResponsiveSheet from '../../components/ui/ResponsiveSheet';
+import ResponsiveDataView from '../../components/ui/ResponsiveDataView';
+import { MobileList, MobileListItem, MobileListItemHeader, MobileListItemMeta } from '../../components/ui/MobileList';
+import EmptyState from '../../components/ui/EmptyState';
 import { useMediaQuery } from '@mantine/hooks';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
@@ -349,23 +352,54 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </>
     );
 
+    // Batch 3.1 (Spec 032, V2 §6/§11): below md (768px) this report is a
+    // card list, not a horizontally-scrolled table — the record-scanning
+    // shape ("must be scanned/acted on individually") the V2 table rule
+    // calls out, not the short-reference-table exception. Desktop table is
+    // unchanged. S.No is intentionally omitted on mobile: it is the row's
+    // position, not report data, and list order already conveys it.
     case 'student-violations': return (
-      <Table>
-        <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Recorded By</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={6} />}
-          {data.data?.map((v, i) => (
-            <tr key={v.id}>
-              <Td>{i + 1}</Td>
-              <Td className="font-medium">{v.student?.student_name}</Td>
-              <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
-              <Td>{v.violationType?.name}</Td>
-              <Td>{recorderName(v.faculty)}</Td>
-              <Td className="text-[length:12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ResponsiveDataView
+        mobile={
+          !data.data?.length ? (
+            <EmptyState message="No records found." />
+          ) : (
+            <MobileList>
+              {data.data.map((v, i) => (
+                <MobileListItem key={v.id} isLast={i === data.data.length - 1}>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <MobileListItemHeader
+                      title={v.student?.student_name}
+                      subtitle={v.student?.registration_number}
+                    />
+                    <MobileListItemMeta>
+                      {v.violationType?.name} · {recorderName(v.faculty)} · {new Date(v.created_at).toLocaleDateString('en-IN')}
+                    </MobileListItemMeta>
+                  </div>
+                </MobileListItem>
+              ))}
+            </MobileList>
+          )
+        }
+        desktop={
+          <Table>
+            <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Type</Th><Th>Recorded By</Th><Th>Date</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.data?.length && <EmptyRow cols={6} />}
+              {data.data?.map((v, i) => (
+                <tr key={v.id}>
+                  <Td>{i + 1}</Td>
+                  <Td className="font-medium">{v.student?.student_name}</Td>
+                  <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
+                  <Td>{v.violationType?.name}</Td>
+                  <Td>{recorderName(v.faculty)}</Td>
+                  <Td className="text-[length:12px]">{new Date(v.created_at).toLocaleDateString('en-IN')}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        }
+      />
     );
 
     default: return <pre className="text-[length:12px] text-[var(--text-muted)] overflow-auto">{JSON.stringify(data, null, 2)}</pre>;

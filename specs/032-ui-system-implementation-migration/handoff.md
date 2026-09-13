@@ -2,7 +2,7 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Batch 2.3 — Reports touch-target fix
+032-ui-system-implementation-migration / Batch 3.1 — Student Violation Report mobile card
 
 ## status
 
@@ -12,145 +12,142 @@ complete
 
 ### Objective (from the approved plan)
 
-Raise the sub-44px controls identified in DS-14 / 030-D-04 (Reports mode/filter controls at 37–40px;
-breadcrumb link 36×16; logout at 42×37) to the 44px-class minimum, or document an accepted
-desktop-only exception.
+Implement V2 §6/§11 mobile presentation for the primary Student Violation Report flow, replacing
+the interim scroll fix (Batch 1.3) for this one report with a card-based mobile renderer, without
+touching desktop table behavior.
 
-### Prerequisite check
+### Blocking decision resolved before implementation
 
-Dependency on previous batch: "Benefits from, but does not require, 2.2." Batch 2.2 (AppButton footer
-adoption) is complete and committed (`709ef0c`); this batch does not depend on it and does not touch
-any of its files.
-
-### Scope discipline confirmed before touching code
-
-Per this batch's explicit instruction — "do not expand the AppButton conversion into unrelated raw
-controls" — every fix in this batch is a **pure sizing change** (`min-height`/`min-width` via
-`var(--control-min)`) applied to the existing raw `<button>`/`<select>`/`<input>`/`<Link>` elements.
-Nothing was migrated to `AppButton` or any other component; the elements remain exactly what they were
-before, just correctly sized.
-
-### Problem verified before implementing
-
-Located every control the 030-D-04/DS-14 finding names, rather than assuming file locations:
-
-- **Reports mode/filter controls**: the shared `selectCls` constant (used by every Course/Year/
-  Violation-Type/Recorder/Session `<select>` and every date `<input>` on both report cards), a second,
-  separately-defined but visually identical `cls` constant local to `MonthFilter` (secondary-report year/
-  month selects), the mode-switcher `<button>` template (Monthly/Yearly/Daily/Weekly/Overall — defined
-  twice, once per report card), and the Excel/PDF export `<button>` pair (`h-10` = 40px, fixed height —
-  defined twice, once per report card). All measured in the 37–40px range before this fix, exactly
-  matching the finding.
-- **Breadcrumb link**: found in `client/src/components/Breadcrumb.jsx`, not in the Layout component as
-  the plan's file guess suggested (the same "plan's file location is a starting hypothesis, verify
-  before editing" pattern seen in Batches 1.3/2.1) — a plain `<Link>` with no padding or min-height,
-  confirming the reported 36×16px.
-- **Logout button**: `client/src/components/Layout.jsx`'s `.logoutBtn` (CSS Module class in
-  `Layout.module.css`), `padding: 8px 12px` around a 16px icon with no min-width/min-height, confirming
-  the reported ~42×37px.
+The plan requires "component test for the new card renderer covering populated/empty/loading/error
+props," but `client/` has **zero test infrastructure** — no vitest/jest, no `@testing-library/react`,
+no jsdom, no test script in `client/package.json`. This is a real gap discovered during batch
+prep, not something to route around silently: I asked the owner how to proceed. Decision (owner,
+this session): **skip the component test; rely on the plan's own Playwright requirement plus live
+browser verification.** No client test tooling was added. Documented here per the "ask your human
+partner" exception in the TDD process this session used.
 
 ### Implementation
 
-- Added `min-h-[var(--control-min)]` (44px) to: the module-level `selectCls` constant, `MonthFilter`'s
-  local `cls` constant, both mode-switcher button templates, and all four Excel/PDF export buttons
-  (replacing their fixed `h-10`, so height can only grow, never clip, at any font scale).
-- Added `inline-flex items-center min-h-[var(--control-min)]` to the breadcrumb `<Link>` only — the
-  non-link "current page" `<span>` and the `/` separator were left untouched, since only the
-  interactive element needs a tap target. The parent `<ol>` already had `items-center`, so shorter
-  siblings automatically stay vertically centered against the now-taller link with no other markup
-  change needed. Visible text size is unchanged; only the invisible tap padding grew — this keeps the
-  breadcrumb reading as a compact secondary-navigation aid rather than inflating it into a
-  button-sized element.
-- Added `min-width: var(--control-min); min-height: var(--control-min);` to `.logoutBtn` in
-  `Layout.module.css`.
-- No exception was needed for any of the three named categories — every one reached 44px cleanly
-  without a documented desktop-only carve-out.
+- `client/src/pages/admin/ReportsPage.jsx`, `case 'student-violations':` — wrapped in
+  `ResponsiveDataView` (existing shared component, already used elsewhere e.g. DutySlotsPage).
+  Desktop branch is the original `Table` markup, byte-for-byte unchanged. Mobile branch (< 768px,
+  `md` breakpoint — the shell/data boundary per V2 §12, not the 639/640 sheet boundary, since this
+  card is inline on the page, never inside a narrow `ResponsiveSheet`) uses the existing
+  `MobileList`/`MobileListItem`/`MobileListItemHeader`/`MobileListItemMeta` primitives (the same
+  ones DutySlotsPage uses) and `EmptyState` for the zero-result case.
+- Card shows: student name (title), registration number (subtitle), and a combined
+  "Type · Recorder · Date" meta line. **S.No is intentionally omitted on mobile** — it is the row's
+  list position, not report data; list order already conveys it. This is a considered
+  simplification, not a data-loss gap: every other column (student, reg. no., type, recorder, date)
+  is preserved.
+- No new shared component was extracted. The plan called this "likely" needed "if reused in 3.2" —
+  since there is currently exactly one consumer, extracting an abstraction now would be premature
+  (YAGNI); Batch 3.2 can factor one out if it turns out the shape actually repeats across report
+  families, which is not yet known.
+- No `AppButton` conversion needed: the plan's "depends on 2.2 for in-card actions" is conditional,
+  and this report has no in-card actions (it's read-only record data, unlike e.g. a duty-slot card
+  with a check-in button).
+- Loading and error states (`ReportSection`'s early-return branches for `isLoading`/`isError`) were
+  **not modified** — they render before the `switch`, identically for every report id, so this
+  batch inherits their existing (correct) behavior rather than needing to reimplement it.
 
-### Files changed
+### Playwright scenario (`e2e/reports-student-violations.spec.js`, new file)
 
-- `client/src/pages/admin/ReportsPage.jsx` (8 sites: 2 shared select classes, 2 mode-switcher
-  templates, 4 export buttons)
-- `client/src/components/Breadcrumb.jsx` (1 site: the interactive breadcrumb link)
-- `client/src/components/Layout.module.css` (1 site: `.logoutBtn`)
+Two tests, both passing on `chromium` and `mobile-chrome` projects:
+1. Populated: a fixed seeded record renders as a table row at 1280px and as a data-equivalent card
+   at 360/390/412px, with no horizontal overflow and Excel/PDF export buttons enabled at every width.
+2. Empty: filtering to a recorder with zero violations renders the `EmptyState` card, not a table.
 
-### Verification matrix
+`e2e/seed.mjs` was extended (idempotent find-then-create, matching its existing upsert style) to
+seed one fixed `Student` (`E2E-STU-0001`), one `ViolationType` ("E2E Test Violation"), and one
+`Violation` recorded by the E2E admin — the "fixed dataset" the plan's Playwright requirement calls
+for. Neither `Student` nor `ViolationType` nor `Violation` has a natural unique key beyond `id`, so
+this is find-then-create rather than a Prisma `upsert`.
 
-Measured every named control directly via `getBoundingClientRect()` in a live browser (more precise
-than eyeballing a screenshot for a sizing-only batch), then visually confirmed no crowding via
-screenshots, per the plan's "360, 390, 412 for Reports and shell chrome" + "spot check dark mode."
+**RED verified before trusting the test**: since there was no pre-existing failing-test cycle to
+follow here (implementation and test were written together, not test-first, given the client-infra
+gap above), I retroactively confirmed the populated-record test by `git stash`-ing
+`ReportsPage.jsx` back to the pre-Batch-3.1 table-only code and re-running it — it failed for the
+expected reason (`getByRole('table')` still found 1 element at mobile widths instead of 0) — then
+restored the implementation and confirmed both tests pass again.
 
-| Control | Before (per 030-D-04) | After (measured live) | Width | Theme |
-| --- | --- | --- | --- | --- |
-| Mode-switcher buttons (Monthly/Yearly/Daily/Weekly/Overall) | ~28–36px (unmeasured exactly, visually undersized) | **44px** height, all 5 | 360px | dark |
-| Year/Month/Course/Violation-Type/Recorder/Session selects | 37–40px | **44px** height, all 3 sampled | 360px | dark |
-| Excel export button | 40px (`h-10`) | **44px** | 360px | dark |
-| PDF export button | 40px (`h-10`) | **44px** | 360px | dark |
-| Breadcrumb "Admin" link | 36×16px | **36×44px** — width intentionally unchanged (text-driven), height fixed | 360px | dark |
-| Logout button | ~42×37px | **44×44px** | 360px (mobile nav drawer) | dark |
+### Verification matrix (live browser, chrome-devtools MCP against the local dev stack)
 
-Additional checks:
-- **Mobile nav drawer** (360px): opened via hamburger menu, screenshot confirms the logout button
-  renders visibly larger next to the theme toggle with no crowding or overlap.
-- **Desktop (1440px), both themes**: screenshots confirm the mode-switcher row, filter-select row, and
-  Excel/PDF buttons all still fit on their original rows with no layout breakage — the ~4–7px height
-  increase per control is not visually disruptive at this width.
-- **Mobile (360px) full page**: mode-switcher buttons wrap onto two rows (Weekly/Overall drop to a
-  second line) — the "marginal reflow" the plan explicitly anticipated. No text clipping, no overlap.
-- Console: clean at every check (only the pre-existing, unrelated "form field id/name" DevTools issue,
-  present identically before this batch).
+Dev DB `sims-dms-postgres` (port 5434) was stopped at session start; started it, ran
+`prisma migrate deploy` (no pending migrations), ran `e2e/seed.mjs` against it, started
+`npm run dev` (client :5173, server :3000).
+
+| State | Width(s) | Theme | Result |
+| --- | --- | --- | --- |
+| Populated | 360, 390, 412, 639, 767 | dark | Card list, no clipping, no horizontal overflow |
+| Populated | 390 | light | Card list, no clipping |
+| Populated | 1440 (desktop) | dark | Original `Table`, all 6 columns, seeded record present |
+| Empty (Recorder = E2E Faculty) | 390 | light | `EmptyState` ("No records found.") — not a table |
+| Error (XHR patched to fail this endpoint) | 390 | light | Existing `ErrorBlock` + Retry — unchanged, confirms Batch 3.1 didn't touch this path |
+| Loading | — | — | Not separately screenshotted; code path is the same untouched early-return as Error, exercised implicitly on every page load above |
+
+Console: clean (only the pre-existing PWA "Update available" toast, unrelated).
 
 ### Lint / build / test results
 
-- `npx eslint` on `ReportsPage.jsx` and `Breadcrumb.jsx` — clean. (`Layout.module.css` is a stylesheet;
-  no linter is configured for CSS in this repo, confirmed by ESLint's own "file ignored" notice rather
-  than a silent skip.)
+- `npx eslint client/src/pages/admin/ReportsPage.jsx` — clean.
 - `npm run build --workspace=client` — succeeded (pre-existing >500kB chunk-size advisory only).
-- No test covers touch-target sizing in this repo; none required per the plan ("Tests required: None
-  new").
-- `git diff --check` — clean (exit 0; only pre-existing CRLF warnings on files already modified before
-  this task).
+- `npx playwright test e2e/reports-student-violations.spec.js` — 2/2 passed on `chromium` and
+  `mobile-chrome` (4/4 total).
+- Full `npx playwright test` (all specs, both projects): 8 passed, 2 failed. **The 2 failures are
+  `e2e/duty-timing-settings.spec.js`, pre-existing and unrelated** — confirmed by `git stash`-ing
+  this batch's changes and re-running that spec alone against unmodified code; it fails identically
+  (`getByText('Afternoon session')` not found). Not investigated further — out of scope for Batch
+  3.1; flagged below for the owner.
+- Server test suite not run (no server-side files touched).
 
 ### Regressions checked
 
-- **Crowding at 360px**: explicitly checked — the only layout change was mode-switcher buttons wrapping
-  to a second row, which the plan anticipated and is not a defect.
-- **Desktop density**: confirmed unaffected — every row that fit on one line before still does.
-- **Disabled-state styling**: Excel/PDF buttons' `disabled:opacity-50` and cursor styling are untouched
-  (only the height utility changed); confirmed visually (both still render in their expected greyed-out
-  disabled state with 0 report rows).
-- **Focus/hover states**: not modified — only sizing changed, no CSS related to `:hover`/`:focus` was
-  touched on any of the 10 fixed elements.
+- Desktop table markup for `student-violations` is byte-identical to before (verified by diff and
+  by live 1440px screenshot showing all 6 original columns including S.No).
+- Other 14 secondary-report `ReportSection` branches untouched — this batch only edits the
+  `student-violations` case.
+- No new console errors/warnings introduced at any tested width/theme.
 
 ## failed_or_blocked
 
-- None.
+- None. The client-test-infra gap was a scope decision, not a failure — resolved by asking the
+  owner (see above) rather than either silently adding vitest to `client/` or silently skipping the
+  requirement without flagging it.
 
 ## commands_run
 
 ```
-npx eslint client/src/pages/admin/ReportsPage.jsx client/src/components/Breadcrumb.jsx client/src/components/Layout.module.css
+npx eslint client/src/pages/admin/ReportsPage.jsx
 npm run build --workspace=client
-git diff --check -- <all 3 changed files>
-git status --porcelain=v1
-# live browser verification via chrome-devtools MCP against the already-running dev stack
-# (client :5173, server :3000, dev DB sims-dms-postgres :5434 — unchanged from prior batches)
-# getBoundingClientRect() measurements via evaluate_script for precise 44px confirmation
+docker start sims-dms-postgres
+npx prisma migrate deploy --schema prisma/schema.prisma
+DATABASE_URL=postgresql://postgres:devpassword@localhost:5434/sims_dms_dev node e2e/seed.mjs
+npm run dev   # background: client :5173, server :3000
+npx playwright test e2e/reports-student-violations.spec.js --project=chromium --reporter=list
+npx playwright test --reporter=list   # full suite, both projects
+git stash push -- client/src/pages/admin/ReportsPage.jsx   # RED-verification revert, then popped
+git stash push -- client/src/pages/admin/ReportsPage.jsx e2e/seed.mjs   # duty-timing isolation check, then popped
+# live browser verification via chrome-devtools MCP: emulate() for viewport/theme/network,
+# evaluate_script() for scroll-into-view and XHR-patch error-state repro, take_screenshot()
+taskkill //PID 12368 //F ; taskkill //PID 4976 //F   # stopped the dev server/client processes started for this session
 ```
 
 ## constraints_discovered
 
-- The plan's file guess ("shared breadcrumb/logout control in the Layout component") was imprecise for
-  the breadcrumb specifically — it lives in its own `Breadcrumb.jsx`, not `Layout.jsx`. Same recurring
-  pattern as Batches 1.3 and 2.1: verify the plan's file guess against the actual source before editing.
-  The logout guess was correct (`Layout.jsx` / `Layout.module.css`).
-- The Excel/PDF export buttons (`h-10` = 40px) were not explicitly named in the 030-D-04 finding text,
-  but fall squarely within the "37-40px" range the finding describes as a category — included them
-  since leaving a control inside the very range the audit flagged would be an incomplete fix, not an
-  unrelated addition.
-- `chrome-devtools` MCP's `take_screenshot` intermittently timed out during this session (auto-recovered
-  as a background task both times); `evaluate_script` with `getBoundingClientRect()` proved more
-  reliable for this batch's core verification need (precise pixel measurement) and was used as the
-  primary evidence, with screenshots as a secondary visual-regression check once they completed.
+- `client/package.json` has no test runner at all (confirmed via `Glob` for `*.test.jsx` and
+  `__tests__/` — zero matches repo-wide). This is a pre-existing gap, not something introduced by
+  this batch, but it means every future client "component test" plan line needs the same owner
+  decision this batch made, or a separate infra-setup task, until resolved once.
+- `e2e/duty-timing-settings.spec.js` currently fails against unmodified `main`/current branch code
+  (`getByText('Afternoon session')` not found) — pre-existing, unrelated to Reports/Spec 032, not
+  fixed here.
+- The dev Postgres container (`sims-dms-postgres`, port 5434) was stopped at the start of this
+  session (exited ~3h prior per `docker ps -a`) — started it for verification; it is still running
+  now with the e2e seed data (2 test users + 1 test student/violation-type/violation) applied to it.
+  This is the same **dev** DB used by earlier batches for live verification (per prior handoffs),
+  not a separate disposable instance — flagging so the owner knows the container is up and has a
+  few small E2E fixture rows in it.
 
 ## deviations_from_constitution
 
@@ -158,21 +155,20 @@ git status --porcelain=v1
 
 ## files_touched
 
-- `client/src/pages/admin/ReportsPage.jsx`
-- `client/src/components/Breadcrumb.jsx`
-- `client/src/components/Layout.module.css`
-- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the
-  Batch 2.2 closure report per the standing instruction to keep one current handoff per feature folder)
-
-## deferred_for_later_batch
-
-- No new adjacent issues were discovered during this batch's verification that need recording. The
-  other DS-14-adjacent finding (hidden sidebar duplicate nodes inflating the original global scan's
-  count) was already reconciled as a false-positive in 030-D itself and needs no action.
+- `client/src/pages/admin/ReportsPage.jsx` (Batch 3.1 implementation: `student-violations` card branch, new imports)
+- `e2e/reports-student-violations.spec.js` (new — Batch 3.1's required Playwright scenario)
+- `e2e/seed.mjs` (extended with fixed student/violation-type/violation fixture data, idempotent)
+- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 2.3 report)
 
 ## open_questions_for_owner
 
-- None blocking. This closes out Milestone 2 (Batches 2.1, 2.2, 2.3) as defined in the approved plan.
-  Per the instruction to preserve batch numbering and scope exactly: **Milestone 3 (Batch 3.1 — Student
-  Violation Report mobile card) has not been started.** Awaiting review of this Batch 2.3 closure
-  before proceeding.
+- Client test infra: no vitest/RTL exists. This batch's owner decision was to skip the component
+  test for *this* batch only — it doesn't set a permanent policy. Worth deciding once, up front,
+  before Batch 3.2 hits the same plan requirement again (3.2 explicitly reuses/extends this card
+  pattern across the other 14 report branches and its own plan line also calls for component tests
+  on any newly-extracted shared pattern).
+- `e2e/duty-timing-settings.spec.js` is currently broken on unmodified code — pre-existing, unrelated
+  to this batch, not fixed. Someone should look at it before it hides a real regression.
+- Per the plan, **Milestone 3 (Batch 3.2 — Secondary report mobile presentation, 14 remaining
+  `ReportSection` branches) has not been started.** Awaiting review of this Batch 3.1 closure before
+  proceeding, per the standing instruction to preserve batch numbering and scope exactly.
