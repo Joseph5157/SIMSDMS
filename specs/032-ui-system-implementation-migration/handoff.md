@@ -2,8 +2,8 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Batch 3.2b — Duty Reassignments mobile card
-(second sub-batch of Milestone 3, Batch 3.2)
+032-ui-system-implementation-migration / Batch 3.2c — Duty Coverage / Active Students
+(third sub-batch of Milestone 3, Batch 3.2)
 
 ## status
 
@@ -13,91 +13,61 @@ complete
 
 ### Objective (from the approved plan)
 
-Apply the V2 §6 mobile decision rule to the `duty-reassignments` `ReportSection` branch — per
-owner instruction, **3.2b only**, not rolled together with 3.2c/3.2d, kept on its own commit so
-each sub-batch of this HIGH-risk Reports work stays independently revertible.
+Apply the V2 §6 mobile decision rule to the `duty-coverage` and `active-students` `ReportSection`
+branches — per owner instruction, **3.2c only**, kept on its own commit-eligible scope, continuing
+the per-table/per-report judgment pattern the owner praised in Batch 3.2b (assess before converting;
+don't mechanically apply the card pattern everywhere).
 
-### Per-table judgment (not one mechanical conversion)
+### Finding: no code change needed (investigated before writing any code)
 
-This branch has two tables, and the plan explicitly calls for schema-based judgment rather than
-converting both the same way:
+Both branches were already **not tables** before this batch — the plan's own text calls them "the
+duty-coverage/active-students non-table summaries," distinguishing them from the tables converted
+in 3.1/3.2a/3.2b:
 
-- **Duty counts** (Faculty, Regular, Received, Reassigned away, Final duties — 5 columns, one row
-  per active faculty, no actions): a short read-only comparison table. **Left unchanged** — it
-  keeps the existing `Table`'s allowed-scroll-table presentation (Batch 1.3's visible-scrollbar
-  fix), matching the plan's explicit allowance that "some short reference tables may legitimately
-  keep the allowed scroll-table exception."
-- **Reassignment history** (Date, Session, From, To, Reason, By, Attendance — 7 columns, one row
-  per reassignment event with a free-text reason and an outcome): per-event operational data meant
-  to be scanned individually, same shape as Batches 3.1/3.2a. **Converted to the card pattern.**
+- **`duty-coverage`**: a `grid grid-cols-3` of 7 stat tiles (Total slots, Completed, Absent,
+  Scheduled, Morning, Afternoon, Completion rate). Not a `Table`.
+- **`active-students`**: a `flex flex-wrap` of pill badges (course/year breakdown) plus a total-count
+  line. Not a `Table`.
 
-### Implementation
+Live-verified both at every required width (360, 390, 412, 639, 640, 768, 1280) in the real browser
+before touching any code: **both already reflow correctly with zero horizontal overflow at every
+width, in both themes.** Neither has a clipping defect to fix. Per the same judgment principle the
+owner endorsed for 3.2b (per-schema assessment, not mechanical conversion), converting either to
+`ResponsiveDataView`/`MobileList` would add a shared-component wrapper around content that already
+has no responsive problem — not justified by V2's rules or by any live-verified defect.
 
-- `client/src/pages/admin/ReportsPage.jsx`, `case 'duty-reassignments':` — the "Duty counts" `Table`
-  is byte-for-byte unchanged. The "Reassignment history" `Table` is now wrapped in
-  `ResponsiveDataView` with the same `MobileList`/`MobileListItem`/`MobileListItemHeader`/
-  `MobileListItemMeta` primitives as before; desktop branch is the original 7-column `Table`,
-  unchanged.
-- Card shows: date (title), session (subtitle), "{From} → {To}" (meta line 1), and
-  "By {recorder} · {attendance} · {reason}" (meta line 2, reason omitted when null) — all 7 original
-  fields preserved, no data loss.
-- No new shared component extracted (same reasoning as 3.1/3.2a).
+**Result: zero production code changes in this batch.** `git status` for `client/` is empty. This
+is a legitimate sub-batch outcome — not a skipped step — matching the plan's own framing of these
+two reports as already-compliant non-table summaries.
 
-### Playwright scenario (`e2e/reports-duty-reassignments.spec.js`, new file)
+### Playwright scenario (`e2e/reports-duty-coverage-active-students.spec.js`, new file)
 
-7 tests, all passing on `chromium`, covering only the history table's responsive behavior (the
-counts table is unchanged and already covered by Batch 1.3):
-1. Desktop (1280px): both tables show the seeded data; history unchanged.
-2. Mobile (360/390/412/639px): `ResponsiveSheet` shows a card, not a table, for reassignment
-   history specifically (assertions scoped to that table's own heading, since the counts table
-   legitimately still renders a `<table>` at every width).
-3. 640px: the inline result panel also shows the history card.
-4. Empty state: selecting "last year" shows the "No reassignments this month." `EmptyState`.
-
-`e2e/seed.mjs` extended with a second faculty user (`E2E Faculty Two`, never logs in — only
-referenced as the reassignment's "to" side) and one fixed `DutySlot` (today, **afternoon** — a
-different session than 3.2a's morning slot, so no unique-constraint collision) + `DutyReassignment`
-(from E2E Faculty to E2E Faculty Two, reason "E2E test reassignment"). Find-then-create, matching
-prior seed style.
-
-**RED verified**: `git stash`-ed `ReportsPage.jsx` back to the pre-3.2b code and re-ran the
-suite — 3 of the 4 mobile/640px tests failed for the correct reason (`getByRole('table')` found 1
-instead of 0 within the history section); this is a stronger, more consistent RED signal than
-Batch 3.2a's single-failure result (same Vite-HMR-timing caveat noted there still applies to the
-one test that didn't fail). Restored the implementation and reconfirmed all 7 pass, plus the full
-16-test Reports suite (3.1 + 3.2a + 3.2b) together.
+Since no code changed, there is no RED-then-GREEN cycle to run — the standing TDD process's
+exception for "nothing to fix" applies here rather than the fix-driving pattern used in
+3.1/3.2a/3.2b. This spec is instead a **regression guard** for the currently-verified-compliant
+state: 14 tests (2 reports × 7 required widths), all passing, each asserting no horizontal overflow
+and the report's own content visible, scoped per-report (not page-wide) since the always-present
+primary Student Violation Report (Batch 3.1) also renders a real `<table>` elsewhere on the same
+page at `>=768px`, which an unscoped query would incorrectly match.
 
 ### Verification matrix (live browser, chrome-devtools MCP against the local dev stack)
 
-| State | Width(s) | Theme | Result |
+| Report | Widths checked | Themes | Result |
 | --- | --- | --- | --- |
-| Populated (sheet) | 360, 390 | light + dark | History card renders correctly; counts table still visibly scrollable (scrollbar present) alongside it; no clipping |
-| Populated (inline panel / desktop table) | 1280 | light | Both tables render correctly: counts unchanged, history unchanged, seeded data present |
-| Empty | — | — | Covered by the Playwright scenario; identical `EmptyState` component already live-verified in Batches 3.1/3.2a |
+| Duty Coverage | 360, 639, 1280 (representative sample; full 7-width set covered by Playwright) | light + dark | No clipping, no overflow, grid reflows to fewer effective columns per row as needed |
+| Active Students | 360, 639, 1280 | light + dark | No clipping, no overflow, pills wrap correctly |
 
-One incidental finding, not a defect: toggling the theme button via a programmatic click while the
-`ResponsiveSheet` was open closed the sheet. This is expected Radix Dialog "outside interaction"
-dismissal behavior (its dismissable layer treats a document-level pointer event outside the dialog
-content as a close trigger, including one dispatched via `element.click()` on a hidden element) —
-not related to this batch's change, and not the same thing as the devtools-viewport-resize artifact
-noted in the Batch 3.2a handoff (confirmed separately, see 3.2a's handoff for that one).
+Console: clean at every check (no errors/warnings).
 
 ### Lint / build / test results
 
-- `npx eslint client/src/pages/admin/ReportsPage.jsx` — clean.
-- `npm run build --workspace=client` — succeeded (pre-existing >500kB chunk-size advisory only).
-- `npx playwright test e2e/reports-duty-reassignments.spec.js --project=chromium` — 7/7 passed.
-- Full `npx playwright test` (all specs, both projects): 36 passed, 2 failed — both
-  `e2e/duty-timing-settings.spec.js`, the same pre-existing unrelated failure flagged in the Batch
-  3.1/3.2a handoffs. Per the standing Spec 032 test policy, not touched.
-
-### Regressions checked
-
-- Duty counts table markup unchanged (verified live and by diff).
-- Desktop reassignment-history table markup unchanged (verified live at 1280px, all 7 columns).
-- Other `ReportSection` branches (14 remaining, including `student-violations` and
-  `late-arrivals`/`auto-clockout`) untouched — this batch only edits one branch's second table.
-- No new console errors/warnings at any tested width/theme.
+- No client files changed — lint/build not re-run for this batch (nothing to lint/build beyond the
+  new test file, which isn't part of the client lint config's scope).
+- `npx playwright test e2e/reports-duty-coverage-active-students.spec.js --project=chromium` —
+  14/14 passed.
+- Full `npx playwright test` (all specs, both projects): 64 passed, 2 failed — both
+  `e2e/duty-timing-settings.spec.js`, the same pre-existing unrelated failure flagged in every prior
+  Batch 3.x handoff. Per the standing Spec 032 test policy, not touched.
 
 ## failed_or_blocked
 
@@ -106,29 +76,28 @@ noted in the Batch 3.2a handoff (confirmed separately, see 3.2a's handoff for th
 ## commands_run
 
 ```
-DATABASE_URL=postgresql://postgres:devpassword@localhost:5434/sims_dms_dev node e2e/seed.mjs
-npx eslint client/src/pages/admin/ReportsPage.jsx
-npm run build --workspace=client
-npm run dev   # background: client :5173, server :3000
-npx playwright test e2e/reports-duty-reassignments.spec.js --project=chromium --reporter=list
-git stash push -- client/src/pages/admin/ReportsPage.jsx   # RED-verification revert, then popped
-npx playwright test e2e/reports-duty-reassignments.spec.js e2e/reports-attendance-events.spec.js e2e/reports-student-violations.spec.js --project=chromium --reporter=list
+npx playwright test e2e/reports-duty-coverage-active-students.spec.js --project=chromium --reporter=list
 npx playwright test --reporter=list   # full suite, both projects
-# live browser verification via chrome-devtools MCP: emulate(), evaluate_script() for
-# scroll-into-view and tile clicks, take_screenshot(), take_snapshot()
-taskkill //PID 15420 //F ; taskkill //PID 11464 //F   # stopped the dev server/client processes started for this session
+git status --porcelain=v1 -- client/   # confirmed zero client changes
+# live browser verification via chrome-devtools MCP: emulate(), click(), take_screenshot(),
+# take_snapshot(), evaluate_script() for scroll-width overflow checks
+npm run dev   # background: client :5173, server :3000
+taskkill //PID 11864 //F ; taskkill //PID 11716 //F   # stopped the dev server/client processes started for this session
 ```
 
 ## constraints_discovered
 
-- Per-table judgment within a single `ReportSection` branch works fine with `ResponsiveDataView` —
-  it's applied to only one of the two tables in this branch, and the untouched `Table` sits
-  alongside it with no interference.
-- Confirmed (new): a `ResponsiveSheet` closes on any outside pointer interaction, including a
-  programmatically dispatched click on an element that isn't visually part of the sheet (e.g. a
-  hidden desktop-only theme toggle) — this is standard Radix Dialog dismissable-layer behavior, not
-  an app defect, but worth knowing when live-verifying secondary reports: reopen the tile after any
-  such interaction rather than assuming the sheet stayed open.
+- **Incidental, out-of-scope finding**: `activeStudentRoster` (`server/controllers/
+  reports.controller.js`) builds its breakdown key as `` `${s.course} · ${s.semester_or_year}` ``,
+  where `semester_or_year` is a legacy nullable field (per its own schema comment: "Legacy fields —
+  kept nullable for backward compat"). Students seeded via the newer `year`/`semester` fields (like
+  `e2e/seed.mjs`'s `E2E-STU-0001`) show as `"b_pharm · null"` in the UI. This is a **pre-existing
+  backend data-formatting bug**, unrelated to Spec 032's responsive/mobile scope — not fixed here,
+  flagged for the owner to route to an appropriate backend fix rather than folding into this UI
+  migration.
+- Confirms the per-report-family judgment approach scales down as well as up: a sub-batch can
+  legitimately conclude "no change needed" when the plan's own text and live verification agree
+  there's no defect, rather than manufacturing a conversion to have something to ship.
 
 ## deviations_from_constitution
 
@@ -136,15 +105,15 @@ taskkill //PID 15420 //F ; taskkill //PID 11464 //F   # stopped the dev server/c
 
 ## files_touched
 
-- `client/src/pages/admin/ReportsPage.jsx` (Batch 3.2b implementation: `duty-reassignments` history-table card branch)
-- `e2e/reports-duty-reassignments.spec.js` (new — Batch 3.2b's required Playwright scenario)
-- `e2e/seed.mjs` (extended with a second faculty user + a duty slot/reassignment fixture, idempotent)
-- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 3.2a report)
+- `e2e/reports-duty-coverage-active-students.spec.js` (new — Batch 3.2c's regression-guard Playwright scenario; no production code touched)
+- `specs/032-ui-system-implementation-migration/handoff.md` (this closure report, overwriting the Batch 3.2b report)
 
 ## open_questions_for_owner
 
-- Per the plan and owner instruction, **Batch 3.2c (duty coverage/active students) and 3.2d
-  (remaining reference tables) have not been started.** Awaiting review of this 3.2b closure before
-  proceeding, one sub-batch at a time, each on its own commit.
+- Per the plan and owner instruction, **Batch 3.2d (remaining reference tables) has not been
+  started.** Awaiting review of this 3.2c closure before proceeding.
+- The `activeStudentRoster` `semester_or_year`/null breakdown-key bug (above) needs a decision:
+  route to a backend bug-fix task, or fold into a future Students-area batch — not Spec 032's
+  responsive-migration scope as currently framed.
 - `e2e/duty-timing-settings.spec.js` remains broken on unmodified code — unchanged status from
   prior handoffs, not fixed here per standing policy.
