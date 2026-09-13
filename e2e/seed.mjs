@@ -196,6 +196,130 @@ async function main() {
     });
   }
   console.log('Seeded e2e duty reassignment for today (afternoon)');
+
+  // Absent-faculty fixture — a different day from the morning/afternoon
+  // slots above (today already has both sessions taken), still within the
+  // current month so it shows under the Reports MonthFilter's default view.
+  const absentDate = new Date(dutyDate);
+  absentDate.setUTCDate(absentDate.getUTCDate() - 3);
+  let absentSlot = await prisma.dutySlot.findFirst({ where: { duty_date: absentDate, session_type: 'morning' } });
+  if (!absentSlot) {
+    absentSlot = await prisma.dutySlot.create({
+      data: {
+        faculty_id: faculty2.id,
+        duty_date: absentDate,
+        session_type: 'morning',
+        status: 'absent',
+        created_by: admin.id,
+      },
+    });
+  }
+  console.log('Seeded e2e absent duty slot (3 days ago, morning)');
+
+  // Attendance-override fixture — another different day, its own attendance
+  // + audit log entry. NOTE: client/src/pages/admin/ReportsPage.jsx's
+  // 'attendance-overrides' case reads r.faculty/r.dutySlot/r.overriddenBy,
+  // but attendanceOverrideLog (server/controllers/reports.controller.js)
+  // returns nested attendance.faculty/attendance.dutySlot/changedBy instead
+  // — a pre-existing field-name mismatch, not introduced or fixed by this
+  // batch. This fixture still seeds correctly; the report will display
+  // blank name/"Invalid Date" for every row (already true before this
+  // batch) until that mismatch is fixed separately.
+  const overrideDate = new Date(dutyDate);
+  overrideDate.setUTCDate(overrideDate.getUTCDate() - 2);
+  let overrideSlot = await prisma.dutySlot.findFirst({ where: { duty_date: overrideDate, session_type: 'morning' } });
+  if (!overrideSlot) {
+    overrideSlot = await prisma.dutySlot.create({
+      data: {
+        faculty_id: faculty.id,
+        duty_date: overrideDate,
+        session_type: 'morning',
+        status: 'completed',
+        created_by: admin.id,
+      },
+    });
+  }
+  // out_time is set immediately (not left open) so the server's own
+  // auto-clockout cron (server/lib/cron.js, every 10 minutes — matches any
+  // attendance with in_time set and out_time still null) never touches this
+  // fixture. It did exactly that to an earlier version of this fixture that
+  // omitted out_time, silently turning it into a second Auto Clock-outs
+  // report row for "E2E Faculty" and breaking Batch 3.1/3.2a's already-
+  // committed count assertions — a real cross-fixture interaction, not a
+  // one-off fluke, so every attendance fixture in this file must be created
+  // already-closed unless it is deliberately testing auto-clockout itself.
+  const overrideOutTime = new Date(overrideDate);
+  overrideOutTime.setUTCHours(11, 0, 0, 0);
+  let overrideAttendance = await prisma.dutyAttendance.findUnique({ where: { duty_slot_id: overrideSlot.id } });
+  if (!overrideAttendance) {
+    overrideAttendance = await prisma.dutyAttendance.create({
+      data: { duty_slot_id: overrideSlot.id, faculty_id: faculty.id, in_time: overrideDate, out_time: overrideOutTime },
+    });
+  } else if (!overrideAttendance.out_time || overrideAttendance.auto_out) {
+    // Heals a previously-seeded open record (from before this fix) that the
+    // cron already auto-completed with auto_out:true in the meantime.
+    overrideAttendance = await prisma.dutyAttendance.update({
+      where: { id: overrideAttendance.id },
+      data: { out_time: overrideOutTime, auto_out: false },
+    });
+  }
+  const existingAuditLog = await prisma.attendanceAuditLog.findFirst({ where: { duty_attendance_id: overrideAttendance.id } });
+  if (!existingAuditLog) {
+    await prisma.attendanceAuditLog.create({
+      data: {
+        duty_attendance_id: overrideAttendance.id,
+        changed_by: admin.id,
+        override_reason: 'E2E test override reason',
+      },
+    });
+  }
+  console.log('Seeded e2e attendance override audit log (2 days ago)');
+
+  // Flagged-violation fixture — a second Violation on the same student,
+  // flagged for review (the existing E2E-STU-0001 violation is unflagged,
+  // used only for the Student Violation Report / Pending Fines fixtures).
+  // Recorded by faculty2, not admin: e2e/reports-student-violations.spec.js
+  // (Batch 3.1) filters the Student Violation Report to Recorder=Admin and
+  // expects exactly one matching row — recording this one as admin too
+  // would silently break that already-committed test's count assertion, a
+  // real cross-fixture interaction discovered while adding this fixture.
+  const flagNote = 'E2E test flag note';
+  const existingFlagged = await prisma.violation.findFirst({ where: { student_id: student.id, flag_note: flagNote } });
+  if (!existingFlagged) {
+    await prisma.violation.create({
+      data: {
+        student_id: student.id,
+        faculty_id: faculty2.id,
+        violation_type_id: violationType.id,
+        fine_amount: 50,
+        is_flagged: true,
+        flag_note: flagNote,
+      },
+    });
+  } else if (existingFlagged.faculty_id !== faculty2.id) {
+    // Heals a previously-seeded copy of this fixture (from before this fix)
+    // that was recorded as admin.
+    await prisma.violation.update({ where: { id: existingFlagged.id }, data: { faculty_id: faculty2.id } });
+  }
+  console.log('Seeded e2e flagged violation for student: ' + studentReg);
+
+  // Upload-history fixture — studentUploadHistory has no year/month filter
+  // (always the most recent 50), so this needs no date coordination at all.
+  const uploadFilename = 'e2e-test-upload.xlsx';
+  const existingUpload = await prisma.studentUploadLog.findFirst({ where: { filename: uploadFilename } });
+  if (!existingUpload) {
+    await prisma.studentUploadLog.create({
+      data: {
+        uploaded_by: admin.id,
+        filename: uploadFilename,
+        added_count: 1,
+        updated_count: 0,
+        deactivated_count: 0,
+        errors: [],
+      },
+    });
+  }
+  console.log(`Seeded e2e upload history log: ${uploadFilename}`);
 }
 
 main()

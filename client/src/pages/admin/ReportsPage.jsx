@@ -79,6 +79,9 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
   if (!data)     return null;
 
   switch (id) {
+    // Batch 3.2d: aggregate per-faculty comparison table (same category as
+    // duty-reassignments' "Duty counts", kept as the allowed scroll table) —
+    // no per-event action, no status; left unchanged.
     case 'monthly-attendance': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Dept</Th><Th>Total</Th><Th>Completed</Th><Th>Absent</Th><Th>Late</Th><Th>Auto-out</Th></tr></thead>
@@ -140,39 +143,93 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       />
     );
 
+    // Batch 3.2d (Spec 032): per-event attendance record with a status badge —
+    // same category as Batch 3.2a's late-arrivals/auto-clockout (which this
+    // report is the third member of), so it gets the same card treatment.
     case 'absent-faculty': return (
-      <Table>
-        <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Status</Th></tr></thead>
-        <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={3} />}
-          {data.data?.map((s) => (
-            <tr key={s.id}>
-              <Td className="font-medium">{s.faculty?.name}</Td>
-              <Td>{new Date(s.duty_date).toLocaleDateString('en-IN')}</Td>
-              <Td><Badge status={s.status} /></Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ResponsiveDataView
+        mobile={
+          !data.data?.length ? (
+            <EmptyState message="No records found." />
+          ) : (
+            <MobileList>
+              {data.data.map((s, i) => (
+                <MobileListItem
+                  key={s.id}
+                  title={s.faculty?.name}
+                  subtitle={new Date(s.duty_date).toLocaleDateString('en-IN')}
+                  status={<Badge status={s.status} />}
+                  isLast={i === data.data.length - 1}
+                />
+              ))}
+            </MobileList>
+          )
+        }
+        desktop={
+          <Table>
+            <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Status</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.data?.length && <EmptyRow cols={3} />}
+              {data.data?.map((s) => (
+                <tr key={s.id}>
+                  <Td className="font-medium">{s.faculty?.name}</Td>
+                  <Td>{new Date(s.duty_date).toLocaleDateString('en-IN')}</Td>
+                  <Td><Badge status={s.status} /></Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        }
+      />
     );
 
+    // Batch 3.2d: per-event audit log with a free-text reason — same category
+    // as Batch 3.2b's reassignment history — card treatment; reason shows in
+    // full on mobile (no truncation needed once it can wrap in a card).
     case 'attendance-overrides': return (
-      <Table>
-        <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Overridden by</Th><Th>Reason</Th></tr></thead>
-        <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={4} />}
-          {data.data?.map((r) => (
-            <tr key={r.id}>
-              <Td>{r.faculty?.name}</Td>
-              <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
-              <Td>{r.overriddenBy?.name}</Td>
-              <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ResponsiveDataView
+        mobile={
+          !data.data?.length ? (
+            <EmptyState message="No records found." />
+          ) : (
+            <MobileList>
+              {data.data.map((r, i) => (
+                <MobileListItem key={r.id} isLast={i === data.data.length - 1}>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <MobileListItemHeader
+                      title={r.faculty?.name}
+                      subtitle={new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}
+                    />
+                    <MobileListItemMeta>
+                      By {r.overriddenBy?.name}{r.override_reason ? ` · ${r.override_reason}` : ''}
+                    </MobileListItemMeta>
+                  </div>
+                </MobileListItem>
+              ))}
+            </MobileList>
+          )
+        }
+        desktop={
+          <Table>
+            <thead><tr><Th>Faculty</Th><Th>Date</Th><Th>Overridden by</Th><Th>Reason</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.data?.length && <EmptyRow cols={4} />}
+              {data.data?.map((r) => (
+                <tr key={r.id}>
+                  <Td>{r.faculty?.name}</Td>
+                  <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
+                  <Td>{r.overriddenBy?.name}</Td>
+                  <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        }
+      />
     );
 
+    // Batch 3.2d: aggregate per-recorder comparison table — allowed scroll
+    // table exception, same reasoning as monthly-attendance above.
     case 'faculty-activity': return (
       <Table>
         <thead><tr><Th>Recorded By</Th><Th>Dept</Th><Th>Student Violations</Th><Th>Total Fines (₹)</Th></tr></thead>
@@ -190,6 +247,8 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
+    // Batch 3.2d: aggregate per-type comparison table — allowed scroll table
+    // exception, same reasoning as monthly-attendance above.
     case 'violation-types': return (
       <Table>
         <thead><tr><Th>Type</Th><Th>Count</Th><Th>Total Fines (₹)</Th></tr></thead>
@@ -206,50 +265,109 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
+    // Batch 3.2d: per-student record list, same shape as Batch 3.1's
+    // student-violations — card treatment. S.No omitted on mobile for the
+    // same reason as 3.1 (list position, not report data); fine amount moves
+    // to a trailing value instead of a table column. Neither this branch nor
+    // flagged-violations below had an EmptyRow/EmptyState guard before this
+    // batch (a pre-existing gap in the exact code being touched, not a
+    // separate fix) — both got one, matching every other converted report.
     case 'pending-fines': return (
       <>
         <p className="text-[length:13px] font-semibold text-[var(--text-secondary)] mb-3">
           Total outstanding: ₹{data.total_fine_amount} across {data.total} violations
         </p>
-        <Table>
-          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
-          <tbody className="divide-y divide-[var(--divider)]">
-            {data.data?.map((v, i) => (
-              <tr key={v.id}>
-                <Td>{i + 1}</Td>
-                <Td className="font-medium">{v.student?.student_name}</Td>
-                <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
-                <Td>{v.student?.course}</Td>
-                <Td>{v.violationType?.name}</Td>
-                <Td className="font-semibold">₹{v.fine_amount}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <ResponsiveDataView
+          mobile={
+            !data.data?.length ? (
+              <EmptyState message="No pending fines." />
+            ) : (
+              <MobileList>
+                {data.data.map((v, i) => (
+                  <MobileListItem key={v.id} isLast={i === data.data.length - 1}>
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <MobileListItemHeader title={v.student?.student_name} subtitle={v.student?.registration_number} />
+                      <MobileListItemMeta>{v.student?.course} · {v.violationType?.name}</MobileListItemMeta>
+                    </div>
+                    <div className="shrink-0">
+                      <p className="text-[length:13px] font-semibold text-[var(--text-primary)]">₹{v.fine_amount}</p>
+                    </div>
+                  </MobileListItem>
+                ))}
+              </MobileList>
+            )
+          }
+          desktop={
+            <Table>
+              <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Reg. No.</Th><Th>Course</Th><Th>Type</Th><Th>Fine (₹)</Th></tr></thead>
+              <tbody className="divide-y divide-[var(--divider)]">
+                {!data.data?.length && <EmptyRow cols={6} message="No pending fines." />}
+                {data.data?.map((v, i) => (
+                  <tr key={v.id}>
+                    <Td>{i + 1}</Td>
+                    <Td className="font-medium">{v.student?.student_name}</Td>
+                    <Td className="font-mono text-[length:12px]">{v.student?.registration_number}</Td>
+                    <Td>{v.student?.course}</Td>
+                    <Td>{v.violationType?.name}</Td>
+                    <Td className="font-semibold">₹{v.fine_amount}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          }
+        />
       </>
     );
 
+    // Batch 3.2d: per-violation record with a resolution status badge — same
+    // category as duty-reassignments' history table — card treatment.
     case 'flagged-violations': return (
       <>
         <div className="flex gap-4 mb-3 text-[length:13px]">
           <span className="text-[var(--color-amber-solid)] font-medium">Pending: {data.pending_count}</span>
           <span className="text-[var(--color-emerald-solid)] font-medium">Resolved: {data.resolved_count}</span>
         </div>
-        <Table>
-          <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Recorded By</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
-          <tbody className="divide-y divide-[var(--divider)]">
-            {data.data?.map((v, i) => (
-              <tr key={v.id}>
-                <Td>{i + 1}</Td>
-                <Td>{v.student?.student_name}</Td>
-                <Td>{recorderName(v.faculty)}</Td>
-                <Td>{v.violationType?.name}</Td>
-                <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
-                <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <ResponsiveDataView
+          mobile={
+            !data.data?.length ? (
+              <EmptyState message="No flagged violations." />
+            ) : (
+              <MobileList>
+                {data.data.map((v, i) => (
+                  <MobileListItem key={v.id} isLast={i === data.data.length - 1}>
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <MobileListItemHeader title={v.student?.student_name} subtitle={v.violationType?.name} />
+                      <MobileListItemMeta>
+                        By {recorderName(v.faculty)}{v.flag_note ? ` · ${v.flag_note}` : ''}
+                      </MobileListItemMeta>
+                    </div>
+                    <div className="shrink-0">
+                      {v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}
+                    </div>
+                  </MobileListItem>
+                ))}
+              </MobileList>
+            )
+          }
+          desktop={
+            <Table>
+              <thead><tr><Th>S.No</Th><Th>Student</Th><Th>Recorded By</Th><Th>Type</Th><Th>Flag note</Th><Th>Resolved</Th></tr></thead>
+              <tbody className="divide-y divide-[var(--divider)]">
+                {!data.data?.length && <EmptyRow cols={6} message="No flagged violations." />}
+                {data.data?.map((v, i) => (
+                  <tr key={v.id}>
+                    <Td>{i + 1}</Td>
+                    <Td>{v.student?.student_name}</Td>
+                    <Td>{recorderName(v.faculty)}</Td>
+                    <Td>{v.violationType?.name}</Td>
+                    <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{v.flag_note}</Td>
+                    <Td>{v.flag_resolved_at ? <Badge status="active" label="Resolved" /> : <Badge status="pending" label="Pending" />}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          }
+        />
       </>
     );
 
@@ -267,6 +385,8 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </div>
     );
 
+    // Batch 3.2d: aggregate per-faculty comparison table — allowed scroll
+    // table exception, same reasoning as monthly-attendance above.
     case 'unassigned-faculty': return (
       <Table>
         <thead><tr><Th>Faculty</Th><Th>Picked</Th><Th>Required</Th></tr></thead>
@@ -364,6 +484,9 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </div>
     );
 
+    // Batch 3.2d: trend-over-time comparison table (~6 rows, one per month)
+    // — allowed scroll table exception, same reasoning as monthly-attendance
+    // above.
     case 'completion-rate': return (
       <Table>
         <thead><tr><Th>Month</Th><Th>Total slots</Th><Th>Completed</Th><Th>Rate</Th></tr></thead>
@@ -384,22 +507,51 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
       </Table>
     );
 
+    // Batch 3.2d: per-upload event log — same category as duty-reassignments'
+    // history and upload-history's own 7-column shape mirrors it — card
+    // treatment.
     case 'upload-history': return (
-      <Table>
-        <thead><tr><Th>Filename</Th><Th>Uploaded by</Th><Th>Added</Th><Th>Updated</Th><Th>Deactivated</Th><Th>Errors</Th><Th>Date</Th></tr></thead>
-        <tbody className="divide-y divide-[var(--divider)]">
-          {!data.data?.length && <EmptyRow cols={7} />}
-          {data.data?.map((log) => (
-            <tr key={log.id}>
-              <Td className="font-mono text-[length:12px]">{log.filename}</Td>
-              <Td>{log.uploader?.name}</Td>
-              <Td>{log.added_count}</Td><Td>{log.updated_count}</Td><Td>{log.deactivated_count}</Td>
-              <Td>{Array.isArray(log.errors) ? log.errors.length : 0}</Td>
-              <Td className="text-[length:12px]">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <ResponsiveDataView
+        mobile={
+          !data.data?.length ? (
+            <EmptyState message="No records found." />
+          ) : (
+            <MobileList>
+              {data.data.map((log, i) => (
+                <MobileListItem key={log.id} isLast={i === data.data.length - 1}>
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <MobileListItemHeader
+                      title={log.filename}
+                      subtitle={new Date(log.uploaded_at).toLocaleDateString('en-IN')}
+                    />
+                    <MobileListItemMeta>By {log.uploader?.name}</MobileListItemMeta>
+                    <MobileListItemMeta>
+                      Added {log.added_count} · Updated {log.updated_count} · Deactivated {log.deactivated_count} · Errors {Array.isArray(log.errors) ? log.errors.length : 0}
+                    </MobileListItemMeta>
+                  </div>
+                </MobileListItem>
+              ))}
+            </MobileList>
+          )
+        }
+        desktop={
+          <Table>
+            <thead><tr><Th>Filename</Th><Th>Uploaded by</Th><Th>Added</Th><Th>Updated</Th><Th>Deactivated</Th><Th>Errors</Th><Th>Date</Th></tr></thead>
+            <tbody className="divide-y divide-[var(--divider)]">
+              {!data.data?.length && <EmptyRow cols={7} />}
+              {data.data?.map((log) => (
+                <tr key={log.id}>
+                  <Td className="font-mono text-[length:12px]">{log.filename}</Td>
+                  <Td>{log.uploader?.name}</Td>
+                  <Td>{log.added_count}</Td><Td>{log.updated_count}</Td><Td>{log.deactivated_count}</Td>
+                  <Td>{Array.isArray(log.errors) ? log.errors.length : 0}</Td>
+                  <Td className="text-[length:12px]">{new Date(log.uploaded_at).toLocaleDateString('en-IN')}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        }
+      />
     );
 
     case 'active-students': return (
