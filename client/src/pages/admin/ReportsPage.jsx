@@ -712,28 +712,10 @@ function StudentViolationReportCard() {
 
   return (
     <div className="bg-[var(--surface-card)] border-2 border-[var(--brand)] rounded-2xl p-5 mb-8">
-      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
-        <div>
-          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--brand)] mb-1">Main report</p>
-          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Student Violation Report</h2>
-          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — daily, weekly, monthly, yearly, or overall</p>
-        </div>
-        <div className="shrink-0 flex gap-2">
-          <AppButton
-            variant="primary"
-            onClick={() => handleDownload('xlsx')}
-            disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-          >
-            {downloading ? 'Preparing…' : '⬇ Excel'}
-          </AppButton>
-          <AppButton
-            variant="secondary"
-            onClick={() => handleDownload('pdf')}
-            disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
-          >
-            {downloading ? 'Preparing…' : '⬇ PDF'}
-          </AppButton>
-        </div>
+      <div className="mb-4">
+        <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--brand)] mb-1">Main report</p>
+        <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Student Violation Report</h2>
+        <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — daily, weekly, monthly, yearly, or overall</p>
       </div>
 
       {/* Batch 5.2 (Spec 032, Milestone 5): "Period" and "Filters" are now two
@@ -841,6 +823,26 @@ function StudentViolationReportCard() {
         </div>
       </div>
 
+      {/* Downloads moved below Period/Filters (2026-09-14) — placing them above the
+          filters let people download before setting any filter, most often
+          producing an unfiltered file by mistake. */}
+      <div className="flex gap-2 mb-5">
+        <AppButton
+          variant="primary"
+          onClick={() => handleDownload('xlsx')}
+          disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
+        >
+          {downloading ? 'Preparing…' : '⬇ Excel'}
+        </AppButton>
+        <AppButton
+          variant="secondary"
+          onClick={() => handleDownload('pdf')}
+          disabled={downloading || ((mode === 'monthly' || mode === 'yearly' || mode === 'overall') && isLoading) || (mode === 'daily' && !dailyData?.data?.length) || (mode === 'weekly' && !weeklyData?.data?.length) || (mode !== 'daily' && mode !== 'weekly' && !data?.data?.length)}
+        >
+          {downloading ? 'Preparing…' : '⬇ PDF'}
+        </AppButton>
+      </div>
+
       {!isLoading && data && mode !== 'daily' && mode !== 'weekly' && (
         <p className="text-[length:12px] text-[var(--text-muted)] mb-3">
           Showing {data.shown ?? data.data?.length ?? 0} of {data.total ?? 0} student violation{(data.total ?? 0) === 1 ? '' : 's'}
@@ -941,28 +943,10 @@ function IndividualStudentReportCard() {
 
   return (
     <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-2xl p-5 mb-8">
-      <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
-        <div>
-          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--text-muted)] mb-1">By student</p>
-          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Individual Student Violation Report</h2>
-          <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">Complete violation history for one student — for counselling, parent meetings, and reviews</p>
-        </div>
-        <div className="shrink-0 flex gap-2">
-          <AppButton
-            variant="primary"
-            onClick={() => handleDownload('xlsx')}
-            disabled={!student || downloading || busy || !hasRows}
-          >
-            {downloading ? 'Preparing…' : '⬇ Excel'}
-          </AppButton>
-          <AppButton
-            variant="secondary"
-            onClick={() => handleDownload('pdf')}
-            disabled={!student || downloading || busy || !hasRows}
-          >
-            {downloading ? 'Preparing…' : '⬇ PDF'}
-          </AppButton>
-        </div>
+      <div className="mb-4">
+        <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--text-muted)] mb-1">By student</p>
+        <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Individual Student Violation Report</h2>
+        <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">Complete violation history for one student — for counselling, parent meetings, and reviews</p>
       </div>
 
       {/* Student search-and-pick */}
@@ -1059,6 +1043,26 @@ function IndividualStudentReportCard() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Downloads moved below the student pick + Period filter (2026-09-14) —
+              same reasoning as the main report card above: keep them after the
+              controls that scope the file, not before. */}
+          <div className="flex gap-2 mb-5">
+            <AppButton
+              variant="primary"
+              onClick={() => handleDownload('xlsx')}
+              disabled={!student || downloading || busy || !hasRows}
+            >
+              {downloading ? 'Preparing…' : '⬇ Excel'}
+            </AppButton>
+            <AppButton
+              variant="secondary"
+              onClick={() => handleDownload('pdf')}
+              disabled={!student || downloading || busy || !hasRows}
+            >
+              {downloading ? 'Preparing…' : '⬇ PDF'}
+            </AppButton>
           </div>
 
           {mode === 'daily'  && <ReportSection id="student-violations" data={dailyData}  isLoading={dailyLoading}  isError={dailyError}  refetch={refetchDaily} />}
