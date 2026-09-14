@@ -1,10 +1,12 @@
 # Handoff Report
 
 ## task_id
-033-C / 033-D — Faculty Dashboard "Recent activity" presentation refinement (Spec 033 pilot)
+033-C / 033-D — Faculty Dashboard "Recent activity" presentation refinement, and Spec 033 closure
 
 ## status
-complete (for this step — see open_questions_for_owner for the spec-wide 033-D verdict, which is still outstanding)
+complete — Spec 033 is CLOSED. Owner recorded the 033-D verdict as **ADOPT WITH CHANGES** in
+`plan.md` (21st.dev approved as a bounded pattern/inspiration source; direct component adoption
+is not the default and must clear `031-21st-dev-policy.md` first).
 
 ## completed
 - Produced 3 design proposals for the Recent Activity row (icon-chip two-line, single-line/dot, grouped-by-day rail), grounded in existing SIMS DMS primitives (`MobileList`, `Badge`, Tabler icons, `index.css` tokens) — not 21st.dev code, since the free quota was exhausted before candidates "Incident Status Timeline"/"Chrono Board" could be inspected.
@@ -37,5 +39,5 @@ npx eslint src/pages/faculty/DashboardPage.jsx   # clean
 - `specs/033-21st-dev-pilot-pattern-adoption/handoff.md` (this file, new)
 
 ## open_questions_for_owner
-- Spec 033's own completion criteria (§7) still need an explicit 033-D verdict (ADOPT PATTERN / ADOPT WITH CHANGES / DO NOT ADOPT) recorded in `plan.md` for this pattern before the spec is considered closed, and a decision on whether to spend further 21st.dev quota inspecting the two unconfirmed candidates ("Incident Status Timeline", "Chrono Board") or stop here since this pilot area was resolved without needing them.
-- Whether to seed a violation/message fixture for this faculty account to get a live visual check of the two unverified icon/no-badge branches before final sign-off.
+- None blocking closure. Optional: whether to seed a violation/message fixture for this faculty account to get a live visual check of the two unverified icon/no-badge branches (`IconAlertTriangle`, `IconMail`) — currently confirmed by code inspection only, not a live render.
+- The two unconfirmed 21st.dev candidates ("Incident Status Timeline", "Chrono Board") were never inspected (quota exhausted) and are not needed for this spec's closure; if either idea (e.g. a violation-status history timeline) is wanted later, that would be a new, separate bounded pilot under the now-ADOPTed 21st.dev workflow — not a reopening of Spec 033.
