@@ -1,6 +1,9 @@
 # Spec 032 — UI System Implementation & Migration Roadmap
 
-Status: **planning only — no implementation authorised by this document**.
+Status: **CLOSED — all 7 milestones implemented, verified, and owner-approved (2026-09-14).** See
+`specs/032-ui-system-implementation-migration/handoff.md` for the Milestone 7 closure report and
+full verification evidence (lint clean; server tests 241/241; client Vitest 18/18; Playwright
+144/144, both projects). This document is retained as the historical sequencing record.
 Baseline: `21a7ca5f56dfd67118e6530e3f925e5607688656` (audited), current branch `audit/design-system-030`.
 Architecture authority: `specs/031-ui-architecture-design-system-decision/031-design-system-v2.md`,
 `031-canonical-component-matrix.md`, `031-21st-dev-policy.md`, `031-frozen-candidate-evaluation.md`.

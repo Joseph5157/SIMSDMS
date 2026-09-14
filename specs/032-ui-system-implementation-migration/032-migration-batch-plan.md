@@ -1,8 +1,13 @@
 # Spec 032 — Migration Batch Plan
 
-Status: planning only. No batch below has been executed. Each batch is written to be independently
+Status: **CLOSED — every batch below (1.1 through 7.2, plus Milestone 7's expanded final-stabilization
+scope) has been executed, verified, and owner-approved (2026-09-14).** See
+`specs/032-ui-system-implementation-migration/handoff.md` for the closure report. Retained as the
+historical execution record; each batch's "Objective" text below still accurately describes what
+was shipped except where a batch's own execution surfaced a correction (e.g. Batch 6.2's "Super
+Admin" → "Faculty" attribution, noted inline). Each batch was written to be independently
 reviewable, independently shippable, and independently rollback-able. "Exact files/areas expected"
-names the known area; where the precise element/line is not yet diagnosed, execution begins with
+names the known area; where the precise element/line was not yet diagnosed, execution began with
 locating it (e.g., via console stack trace or source search) before changing anything.
 
 ---

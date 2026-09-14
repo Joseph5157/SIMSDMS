@@ -351,3 +351,59 @@ defects; Primitive foundations; Reports responsive implementation; State & form 
 Reports visual cleanup; Dashboard visual cleanup; Tokens/dependencies/enforcement + this session's
 expanded final-stabilization scope) are done, verified, and committed. The full regression suite is
 green with zero known failures for the first time in the spec's history.
+
+---
+
+## Owner Sign-Off — Spec 032
+
+**Status:** CLOSED
+**Date:** 2026-09-14
+
+Spec 032 — UI System Implementation & Migration has completed all seven implementation milestones
+and is approved for closure.
+
+The implementation successfully applied the Design System V2 decisions established in Spec 031
+while preserving the existing Mantine + Tailwind architecture and core SIMS DMS workflows.
+
+### Completed outcomes
+
+- Browser-confirmed invalid HTML nesting fixed.
+- Overlay focus-return behavior corrected.
+- Mantine theme-token mapping centralized.
+- Conventional ResponsiveSheet footer actions migrated to AppButton.
+- Minimum touch-target requirements enforced.
+- Reports mobile data presentation corrected across affected report types.
+- Loading, empty, feedback, and conventional action patterns consolidated.
+- Reports visual density and selector/filter hierarchy simplified.
+- Admin and Faculty dashboard visual density reduced while preserving operational behavior.
+- E2E database lifecycle made deterministic and safe for local testing.
+- Stale duty-timing Playwright coverage repaired.
+- Reports native-field accessibility gaps corrected.
+- Confirmed-unused frontend dependencies and scaffold artifacts removed.
+- Radix import enforcement strengthened.
+- Minimal Vitest client test layer established.
+- Attendance Overrides and Active Students data-display defects corrected.
+- Active UI architecture/mobile documentation reconciled.
+
+### Final verification
+
+- Lint: clean
+- Client build: passing
+- Server build: passing
+- Server tests: **241/241 passing**
+- Client Vitest tests: **18/18 passing**
+- Playwright: **144/144 passing**
+- `git diff --check`: clean
+
+This is the first fully green Playwright baseline reached during Spec 032.
+
+### Remaining non-blocking items
+
+The green/emerald color-vocabulary divergence remains intentionally deferred because it is a
+structural design/token decision rather than a correctness defect.
+
+Generic loading-text treatment in Reports remains documented and is not considered blocking.
+
+No further UI architecture redesign is required as part of Spec 032.
+
+**Owner decision:** APPROVED — Spec 032 may be closed.
