@@ -16,9 +16,13 @@ import {
   IconClipboardCheck, IconAlertTriangle, IconChartBar, IconBrandTelegram,
 } from '@tabler/icons-react';
 
+// Batch 6.1: no per-item tint/ink/primary colour anymore — arbitrary
+// per-action card-identity colour was the DS-17 signal (V2 §10: "not a
+// marketplace-like coloured tile grid"), not a semantic status distinction,
+// so every quick action now renders with the same neutral treatment.
 const QUICK_ACTIONS = [
-  { label: 'Student Violations', Icon: IconAlertTriangle, path: ROUTES.ADMIN_VIOLATIONS,   tint: 'var(--color-red-bg)',     ink: 'var(--color-red-text)', primary: true },
-  { label: 'Reports',            Icon: IconChartBar,      path: ROUTES.ADMIN_REPORTS,       tint: 'var(--color-purple-bg)',  ink: 'var(--color-purple-text)' },
+  { label: 'Student Violations', Icon: IconAlertTriangle, path: ROUTES.ADMIN_VIOLATIONS },
+  { label: 'Reports',            Icon: IconChartBar,      path: ROUTES.ADMIN_REPORTS },
 ];
 
 export default function AdminDashboardPage({ user }) {
@@ -65,22 +69,34 @@ export default function AdminDashboardPage({ user }) {
   return (
     <Layout user={user}>
       <div className="max-w-[1200px] mx-auto">
-      {/* ── Gradient brand header — greeting + live at-a-glance ── */}
-      <div className="mb-5 rounded-[var(--radius-2xl)] px-5 py-4 flex items-center justify-between gap-3"
-        style={{ background: 'var(--brand-gradient-deep)', boxShadow: '0 8px 24px -8px rgba(37,99,235,0.45)' }}>
+      {/* Batch 6.1 (Spec 032, Milestone 6): the decorative greeting gradient
+          (V2 §10 / DS-17) is replaced with the same restrained plain-canvas
+          header treatment the Faculty dashboard already uses — text-first
+          greeting + muted date subtitle, border-bottom. This also resolves
+          the "greeting gradient plus unrelated hero treatment" conflict V2
+          §10 names: the KPI row below still has its own single hero-gradient
+          tile (Active Faculty), so the page now carries exactly one gradient
+          metaphor instead of two. The live count uses the existing Badge
+          semantic-colour system (checked_in → blue, same as everywhere else
+          checked-in state is shown) instead of a bespoke pill colour. */}
+      <div className="mb-5 pb-4 border-b border-[var(--border)] flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[length:var(--text-h2)] font-extrabold leading-tight text-white truncate">
+          <p className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-primary)] leading-[1.2] truncate">
             Good {getGreeting()}, {user?.title ? `${user.title} ` : ''}{user?.name}
           </p>
-          <p className="text-[length:var(--text-small)] mt-0.5 text-[rgba(255,255,255,0.8)]">
+          <p className="text-[length:var(--text-small)] text-[var(--text-muted)] mt-0.5">
             {dateStr} · {APP_SHORT_NAME} Admin
           </p>
         </div>
+        {/* Wrapper (not a className on Badge itself) controls the breakpoint
+            visibility — Badge's own base classes already include
+            `inline-flex`, and stacking `hidden` alongside it on the same
+            element raced against Tailwind's generated rule order instead
+            of reliably winning below `sm`. */}
         {liveSlots.length > 0 && (
-          <div className="hidden sm:inline-flex items-center gap-2 shrink-0 rounded-full px-3.5 py-2 text-[length:var(--text-small)] font-bold text-white bg-[rgba(255,255,255,0.15)] border border-[rgba(255,255,255,0.25)]">
-            <span className="w-[7px] h-[7px] rounded-full bg-[#4ade80] shadow-[0_0_0_3px_rgba(74,222,128,0.3)]" />
-            {checkedIn} checked in
-          </div>
+          <span className="hidden sm:inline-flex shrink-0">
+            <Badge status="checked_in" label={`${checkedIn} checked in`} />
+          </span>
         )}
       </div>
 
@@ -318,16 +334,12 @@ export default function AdminDashboardPage({ user }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex items-center gap-3 rounded-[var(--radius-2xl)] px-[14px] py-[14px] min-h-[var(--control-min)] cursor-pointer text-left transition-all hover:-translate-y-px ${
-                item.primary ? 'text-white' : 'bg-[var(--surface-card)] border border-[var(--border)] hover:border-[var(--brand)]'
-              }`}
-              style={item.primary ? { background: 'var(--brand-gradient-deep)', boxShadow: '0 6px 16px -6px rgba(37,99,235,0.5)' } : undefined}
+              className="flex items-center gap-3 rounded-[var(--radius-2xl)] px-[14px] py-[14px] min-h-[var(--control-min)] cursor-pointer text-left transition-all hover:-translate-y-px bg-[var(--surface-card)] border border-[var(--border)] hover:border-[var(--brand)]"
             >
-              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center"
-                style={{ background: item.primary ? 'rgba(255,255,255,0.18)' : item.tint }}>
-                <item.Icon size={20} stroke={1.9} color={item.primary ? '#fff' : item.ink} />
+              <span className="w-10 h-10 rounded-[var(--radius-lg)] shrink-0 flex items-center justify-center bg-[var(--surface-page)]">
+                <item.Icon size={20} stroke={1.9} className="text-[var(--brand)]" />
               </span>
-              <span className="text-[length:var(--text-card)] font-[var(--weight-bold)]" style={{ color: item.primary ? '#fff' : 'var(--text-primary)' }}>{item.label}</span>
+              <span className="text-[length:var(--text-card)] font-[var(--weight-bold)] text-[var(--text-primary)]">{item.label}</span>
             </button>
           ))}
         </div>
