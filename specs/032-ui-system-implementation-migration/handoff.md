@@ -2,9 +2,10 @@
 
 ## task_id
 
-032-ui-system-implementation-migration / Milestone 4 — State & Form Consistency
-(Batches 4.1, 4.2, 4.3 all complete, verified, and committed. This session closed out the one
-remaining gap — Batch 4.3's own targeted Playwright coverage — and closes Milestone 4.)
+032-ui-system-implementation-migration / Milestone 5 — Reports Visual Cleanup
+(Batches 5.1 and 5.2, both complete, verified, and committed in this session, run in accelerated
+milestone mode per owner instruction. Milestone 4 — State & Form Consistency — closed in the prior
+session; see git history for its closure report content.)
 
 ## status
 
@@ -12,110 +13,112 @@ complete
 
 ## completed
 
-### Batch 4.1 — OfflineBanner rebuild (commit `bac498b`)
+### Batch 5.1 — Report selector cleanup (commit `324e630`)
 
-Rebuilt on `Alert` (tone="warning") + `AppButton` (icon variant, dismiss control), Tabler
-`IconWifiOff`/`IconWifi` in place of the frozen candidate's emoji. Connectivity/dismissal
-lifecycle, position, and `md:hidden` breakpoint unchanged. 4 new Playwright tests
-(`e2e/offline-banner.spec.js`), live-verified light/dark at 390px. See prior handoff revisions for
-full detail — unchanged this session.
+Implemented V2 §11 and closed DS-18/DS-19 (030-H consolidated findings): the 15 secondary report
+cards previously used a unique emoji + arbitrary Tailwind background-colour tile per report (a
+"GENERIC SAAS PATTERN" / "PROBABLE GENERIC-SAAS SIGNAL (Level 3)" per 030-E/030-H) — a feature
+marketplace, not an operational report index.
 
-### Batch 4.2 — Loading/empty state consolidation (commit `901d100`)
+- `REPORTS` array (`client/src/pages/admin/ReportsPage.jsx`) lost its `emoji`/`color` fields
+  entirely — identity is now `label` + one-line `desc` only.
+- The 2×4 icon-tile grid became one bordered container per family (Attendance / Student
+  Violations / Duty & Coverage / Students), each holding its reports as full-width text rows
+  separated by dividers — the same "list with row separators" language 030-E favorably cited for
+  Students' mobile list, reused here rather than inventing a new visual system.
+- Selection state (previously a full border + background + shadow per selected tile) is now a
+  3px left-accent bar + background tint — the exact same visual language the app's own sidebar
+  already uses for its active nav item (`Layout.module.css` `.navItemActive`), so this isn't a new
+  selection idiom, it's reuse of an established one.
+- The desktop inline result panel's `<h2>` dropped its emoji prefix; its raw "✕" text-glyph close
+  button was replaced with a proper Tabler `IconX` button (`aria-label="Close report"`, 36×36px),
+  matching `ResponsiveSheet`'s own close-button convention (`IconX` size 16, stroke 2) instead of
+  a third icon vocabulary.
+- Preserved exactly: all 15 report IDs, their hook wiring (`ReportView`'s `hookMap`), the
+  mobile/desktop split (`ResponsiveSheet` below 640px, inline panel at/above), and — critically —
+  the DOM nesting depth the existing `e2e/reports-*.spec.js` suite depends on (each of those files
+  locates its report panel via `getByRole('heading', ...).locator('..').locator('..')`, i.e.
+  exactly two ancestor levels above the heading). Documented inline in the file where an added
+  wrapper div would have silently broken that.
 
-`EmptyRow`-as-"Loading…" misuse and ad hoc empty text replaced with the `Skeleton` family /
-`EmptyState` across 9 files. 5 new Playwright tests (`e2e/state-consistency.spec.js`). One
-`ReportsPage.jsx` generic loader deliberately deferred (documented below). Unchanged this session.
+### Batch 5.2 — Reports filters/header/export hierarchy cleanup (commit `324e630`, same commit as 5.1)
 
-### Batch 4.3 — AppButton adoption batch 2 (commit `c07ea2a`) — now fully closed out
+Implemented the remaining V2 §11 rules and addressed the DS-18 "control wall" finding (030-E §8:
+"a dense cluster of native selects, mode buttons, export buttons, and a table... reads as a control
+wall").
 
-Code (7 files / ~11 controls converted, 2 documented kept exceptions for the branded 56px auth
-submit buttons) was committed and regression-checked in the prior session. This session's work:
-
-- **Wrote the 4 targeted Playwright scenarios** the prior handoff identified as the remaining gap,
-  in new `e2e/form-actions.spec.js`:
-  1. Report download — Student Violation Report "⬇ Excel" `AppButton`, asserted via
-     `page.waitForEvent('download')` against the fixed seeded record (Overall mode, Recorder=Admin,
-     same isolation technique as `e2e/reports-student-violations.spec.js`).
-  2. Retry control — `AllFacultyDutiesPage.jsx` mobile Retry `AppButton`: forced a 500 on the first
-     `/duty-slots/all/:year/:month` request via `page.route` (with `serviceWorkers: 'block'` per the
-     documented SW-interception constraint), clicked Retry, confirmed the error state cleared and a
-     second, successful request actually fired (`requestCount >= 2`).
-  3. Clear filters — `StudentsPage.jsx` "Clear" `AppButton`: typed into the search box, asserted the
-     button appears, clicked it, asserted the search box empties and the button disappears again.
-  4. ChangePasswordPage Cancel — faculty login → `/change-password` → asserted the "← Cancel"
-     `AppButton` is visible (no special fixture needed; e2e faculty has `must_change_password:
-     false`) → click → asserted navigation to `/faculty/dashboard`.
-  All 8 (4 scenarios × 2 Playwright projects) pass.
-- **Discovered and resolved an unrelated pre-existing environmental issue** while running the full
-  suite (see `constraints_discovered`): the long-lived dev Postgres container had accumulated
-  duplicate "today"-relative duty-slot/attendance/reassignment rows from being reused across 5 real
-  calendar days, causing 8 failures in `reports-*.spec.js` files untouched by any Milestone 4 batch.
-  Traced to root cause, confirmed via direct Prisma queries (not just re-running tests), then — per
-  owner's explicit choice among three options offered — recreated the dev container from scratch,
-  reran migrations + `prisma generate` + both seed scripts once. Full suite is now clean.
-- No product/client code was touched this session — only the new test file and this handoff.
+- Both primary cards (`StudentViolationReportCard`, `IndividualStudentReportCard`) had their
+  controls regrouped from three anonymous stacked rows (mode-switcher row, date-picker row,
+  filter-select row) into two labeled groups: **Period** (mode switcher + date pickers) and
+  **Filters** (Course/Year/Violation Type/Recorder/Session — main card only; the individual card
+  has no filter selects beyond its own student-scoping step, so it only gets a Period group).
+  New shared `FilterGroupLabel` component reuses the page's own pre-existing micro-label
+  convention (same classes as the "Secondary reports" heading) — not a new typographic system.
+  Group label copy is descriptive, not decorative.
+- Removed the two remaining decorative heading emoji: "⚠️ Student Violation Report" →
+  "Student Violation Report", "🎓 Individual Student Violation Report" → "Individual Student
+  Violation Report".
+- **No filter logic, hook, endpoint, param-building, or export-mechanism change** — every
+  `useState`, `onChange` handler, `params` object, and `handleDownload` function is byte-identical;
+  only the JSX grouping/labels around them changed.
+- The existing "Showing X of Y" / daily / weekly result-count line was deliberately left in its
+  original position (immediately before the data), not moved above the new control groups —
+  moving it would have implied a value-judgment about whether count-before-controls reads better
+  than count-before-data, which is out of this batch's scope (visual grouping only, not information
+  redesign).
 
 ## failed_or_blocked
 
-- None. Milestone 4 is complete with no open code-level defects.
+- None. Both batches complete with no open code-level defects. No architecture contradiction,
+  regression, or scope-expansion decision was hit that required stopping for owner input.
 
 ## commands_run
 
 ```
-docker start sims-dms-postgres              # found already-running-but-stopped from a prior session
-npx prisma migrate status                   # confirmed schema up to date on that container
-node e2e/seed.mjs                           # first pass, before the stale-data issue was found
-npm run dev                                  # background: client :5173, server :3000
-npx playwright test e2e/form-actions.spec.js --reporter=list   # new spec, both projects — 8/8 pass
-npx playwright test --reporter=list         # full suite — found 8 unrelated pre-existing failures
-                                              # (stale multi-day seed data) + the known
-                                              # duty-timing-settings.spec.js failure
-# Investigation (read-only Prisma queries via server/node_modules/@prisma/client) confirmed the
-# root cause: duplicate dutySlot/dutyAttendance/dutyReassignment/attendanceAuditLog rows dated
-# across 2026-09-10 through 2026-09-14 for the same e2e fixture users.
-# Owner chose "recreate the container from scratch" over manual cleanup:
-docker stop sims-dms-postgres && docker rm sims-dms-postgres
-docker run -d --name sims-dms-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=devpassword -e POSTGRES_DB=sims_dms_dev -p 5434:5432 postgres:16
-npx prisma migrate deploy
-npx prisma generate                          # server dev process stopped first (Windows EPERM on the query engine DLL otherwise)
-node prisma/seed.js                          # bootstraps super_admin from .env BOOTSTRAP_SUPER_ADMIN_*
-node e2e/seed.mjs                            # e2e fixture users/data, single pass on the fresh container
-npm run dev                                  # restarted client :5173, server :3000
-npx playwright test --reporter=list         # full suite, both projects — 124 passed, 2 failed
-                                              # (both are duty-timing-settings.spec.js, the known
-                                              # pre-existing unrelated failure — one per project)
-npx eslint e2e/form-actions.spec.js         # confirms (again) e2e isn't covered by any eslint.config.js
-npm run build --workspace=client             # succeeds, only the pre-existing >500kB chunk advisory
-git diff --check                             # clean
-git status                                   # confirms .tmp/ and LEARNING_GUIDE.md still untouched
+# Dev environment was already up from the prior (Milestone 4) session — verified, not restarted:
+curl http://localhost:5173   # client, 200
+curl http://localhost:3000/health   # server, 200
+
+cd client && npx eslint src/pages/admin/ReportsPage.jsx      # clean, after 5.1 edits
+cd client && npx eslint src/pages/admin/ReportsPage.jsx      # clean, after 5.2 edits
+npm run build --workspace=client   # succeeds, only the pre-existing >500kB chunk advisory
+
+# Live browser verification (chrome-devtools MCP, real dev DB via sims-dms-postgres:5434):
+#   - Reports selector: light + dark, desktop (1440-class) and mobile (390px emulated)
+#   - Desktop inline result panel open/close (Absent Faculty) — new IconX button, no emoji
+#   - Mobile ResponsiveSheet open (Absent Faculty) — title/subtitle from `desc`, selected-row state
+#     visible behind the sheet
+#   - Individual Student Violation Report: searched/selected a student, confirmed Period group
+#     renders and Excel/PDF buttons enable with real data
+#   - Console check (list_console_messages): zero error/warn messages; one pre-existing a11y
+#     "issue" (unlabeled native <select>/<input> — 8 instances) confirmed pre-existing, not
+#     introduced by this milestone (see constraints_discovered)
+#   - Horizontal-overflow check at 390px: 0px
+
+npx playwright test e2e/reports-selector-and-filters.spec.js --reporter=list   # new spec, both projects — 6/6 pass
+npx playwright test --reporter=list   # full suite, both projects — 130 passed, 2 failed (known pre-existing)
+
+git diff --check      # clean
+git status             # confirms .tmp/ and LEARNING_GUIDE.md untouched throughout
 ```
 
 ## constraints_discovered
 
-- **The shared dev Postgres container (`sims-dms-postgres`) is not safe to reuse indefinitely across
-  real calendar days for this e2e suite.** `e2e/seed.mjs`'s own idempotency guards
-  (`findFirst`-before-`create`) are scoped to "today" for its duty-slot/attendance/reassignment
-  fixtures — its own code comment states it assumes "zero pre-existing duty slots" on the target DB.
-  Every time the container is reused on a new real day, a fresh set of today-relative rows is
-  created alongside every prior day's rows, and several `reports-*.spec.js` files that filter by a
-  fixed text fragment (e.g. `'E2E test reassignment'`, `'E2E Faculty'` + auto-clock-out) start
-  matching 2+ rows instead of the expected 1. This is a test-fixture/environment limitation, not a
-  product defect — confirmed by direct Prisma queries showing rows dated 2026-09-10 through
-  2026-09-14 before the container was recreated. **Recommendation for future sessions**: either
-  recreate the container each session (cheap — migrate + both seeds take well under a minute), or
-  extend `e2e/seed.mjs`'s guards to be day-independent (e.g. delete-then-recreate its own fixture
-  rows unconditionally) if the container is meant to persist long-term. Not fixed as part of this
-  session since it's a test-infra concern, not a Milestone 4 code deliverable, and the owner chose
-  the container-recreation path over a scripted cleanup.
-- `npx prisma generate` still requires the dev server to be stopped first on Windows (EPERM on the
-  query engine DLL) — consistent with prior-session notes; stopping the specific PIDs bound to ports
-  3000/5173 (not just the parent shell task) was required, since Windows doesn't cascade-kill
-  nodemon's child when only the launching process is stopped.
-- No new constraints surfaced from the Batch 4.3 test-writing itself — the prior handoff's
-  documented constraints (SW interception needing `serviceWorkers: 'block'`, `useUsers`'
-  localStorage-backed `initialData`, route-anchoring precision, `downloadReportFile`'s blob+`<a
-  download>` mechanics, ChangePasswordPage Cancel's `must_change_password` gating) all held exactly
-  as described and needed no revision.
+- **Chrome DevTools' own accessibility "issue" panel flags 8 form fields without an `id`/`name`
+  attribute on `/admin/reports`.** Confirmed this is pre-existing, not introduced by this
+  milestone: every native `<select>`/`<input>` involved (the Period/Filters controls) is the exact
+  same element from before Batch 5.2 — only its surrounding wrapper divs and labels changed, no
+  attributes were removed. Not fixed here since it's outside this batch's scope (visual grouping,
+  not markup/accessibility-attribute remediation) and V2 doesn't name it as a Milestone 5 target —
+  worth a note for whichever future milestone/spec does a forms/labels accessibility pass.
+- Reconfirmed the exact DOM-nesting fragility already implicit in the `e2e/reports-*.spec.js`
+  suite's `.locator('..').locator('..')` pattern: it is brittle to any future change that adds a
+  wrapper `<div>` around a report heading. Not changed (out of scope to refactor the test suite's
+  own locator strategy), but now documented with an inline code comment at the exact spot in
+  `ReportsPage.jsx` future edits would most likely trip it.
+- The dev environment (Postgres container, client/server dev processes) was already running and
+  correctly seeded from the prior Milestone 4 session — no environment reset was needed this
+  session, unlike the multi-day stale-seed-data issue documented in that session's handoff.
 
 ## deviations_from_constitution
 
@@ -123,92 +126,100 @@ git status                                   # confirms .tmp/ and LEARNING_GUIDE
 
 ## files_touched
 
-- `e2e/form-actions.spec.js` (new) — the 4 targeted Batch 4.3 Playwright scenarios.
+- `client/src/pages/admin/ReportsPage.jsx` — Batches 5.1 and 5.2 (commit `324e630`).
+- `e2e/reports-selector-and-filters.spec.js` (new) — targeted Playwright coverage for both
+  batches (commit `1d56ab2`).
 - `specs/032-ui-system-implementation-migration/handoff.md` (this file).
 
-No product/client source files were touched this session. `.tmp/` and `LEARNING_GUIDE.md` remain
+No other product/client/server source files were touched. `.tmp/` and `LEARNING_GUIDE.md` remain
 untouched, per standing instructions.
 
 ## open_questions_for_owner
 
-- None blocking. Carried forward from the Batch 4.2/4.3 handoffs, still unresolved and still not
-  Milestone 4 scope:
-  1. `ReportsPage.jsx`'s generic `ReportSection` loading text (`if (isLoading) return <p>Loading…</p>`)
-     was deliberately left as plain text rather than given a per-report skeleton shape — its ~15
-     branches have different column counts/layouts; a correct fix means wiring a shape per report id,
-     which is Reports-specific work (arguably Milestone 5 territory).
-  2. The two kept-exception auth buttons (`LoginPage` "Sign in", `ChangePasswordPage` "Update
-     Password →") remain a deliberate, documented design decision, not an open question.
-- New from this session: whether to harden `e2e/seed.mjs` against multi-day container reuse (see
-  `constraints_discovered`) is worth a decision before Milestone 7's broader test/enforcement work,
-  but is not blocking anything now that the container has been recreated clean.
+- None blocking.
+- Carried forward from Milestone 4 (still not this milestone's scope): `ReportsPage.jsx`'s generic
+  `ReportSection` loading text (`<p>Loading…</p>`) still lacks a per-report skeleton shape —
+  Reports-specific work, arguably Milestone 5-or-later territory by shape, but not named in this
+  milestone's V2 §11 scope (which is selector/filter/header hierarchy, not loading states) and so
+  deliberately left alone again this session.
+- New from this session: the unlabeled-form-field accessibility finding above is worth flagging for
+  a future forms/accessibility-focused pass (Milestone 7's enforcement work, or a dedicated a11y
+  spec) — not urgent, not blocking, not part of V2 §11's stated scope for this milestone.
+
+## exact_next_step
+
+Milestone 5 is complete. **Milestone 6 (Dashboard visual cleanup) has NOT begun** — per instruction,
+stopping here rather than starting it. Next session should read this handoff, then
+`032-migration-batch-plan.md`'s Milestone 6 section (Batch 6.1 Admin Dashboard, Batch 6.2
+Faculty/Super Admin dashboards) before starting any Milestone 6 work.
 
 ---
 
-## Milestone 4 Closure Report
+## Milestone 5 Closure Report
 
 **Batches and commits:**
-- `bac498b` — Batch 4.1, OfflineBanner rebuild on Alert + AppButton.
-- `901d100` — Batch 4.2, loading/empty state consolidation (9 files).
-- `c07ea2a` — Batch 4.3, AppButton adoption batch 2 (7 files / ~11 controls, 2 documented
-  exceptions).
-- This session — Batch 4.3's targeted Playwright coverage (`e2e/form-actions.spec.js`, new) and this
-  closure report. No new product-code commit was needed (no defect was found in the committed 4.3
-  code).
+- `324e630` — Batches 5.1 + 5.2, Reports selector redesign and filter/header/export grouping
+  (single commit; both batches touch the same file in one coherent, dependency-ordered pass — 5.2
+  depends on 5.1 per the migration plan).
+- `1d56ab2` — targeted Playwright coverage for both batches.
+- This handoff — Milestone 5 closure report.
 
 **Work completed:**
-- OfflineBanner restyled onto Alert + AppButton with Tabler connectivity icons; lifecycle,
-  positioning, and dark-mode behavior preserved byte-for-byte apart from presentation.
-- Table "loading" rows (previously `EmptyRow` reused with `message="Loading…"`, visually identical
-  to the empty-result state) converted to `TableRowSkeleton`/`CardSkeleton` across 9 files; ad hoc
-  empty text converted to `EmptyState` on the same pages; one real gap fixed (`DutySlotsPage.jsx`
-  mobile had no loading indicator at all).
-- ~11 remaining conventional raw-button actions (report downloads, upload-template, Clear filters,
-  ErrorBoundary reload, AllFacultyDutiesPage retry, ChangePasswordPage cancel) converted to
-  `AppButton` across 7 files. Two branded 56px auth submit buttons (Login, ChangePassword) kept as
-  documented exceptions per V2 §9's gradient allowance — `AppButton` has no gradient/press-scale
-  variant to represent them without degrading the auth UX.
+- Replaced the 15 emoji + arbitrary-colour-tile secondary report cards with a text-first list
+  grouped by family (4 bordered containers, row-separator rows, sidebar-matching selection state).
+- Removed all 3 decorative report-identity/heading emoji from `ReportsPage.jsx` (the 15 secondary
+  report tiles' emoji, "⚠️" on the main card, "🎓" on the individual-student card).
+- Replaced the desktop result panel's raw "✕" text-glyph close control with a proper Tabler
+  `IconX` icon button matching `ResponsiveSheet`'s own convention.
+- Regrouped both primary report cards' controls into labeled "Period" and "Filters" sections,
+  closing the DS-18 "control wall" finding, with zero filter-logic/data changes.
 
-**Batch 4.3 targeted Playwright coverage (this session, `e2e/form-actions.spec.js`):**
-- Report download (Student Violation Report Excel button) — real download event asserted.
-- Retry control (AllFacultyDutiesPage mobile Retry) — forced failure → retry → confirmed recovery
-  via a genuine second successful request, not just UI state.
-- Clear filters (StudentsPage) — appear-while-filtering / reset / disappear-again round trip.
-- ChangePasswordPage Cancel (faculty) — visibility + navigation to `/faculty/dashboard`.
-- All 8 (4 scenarios × chromium/mobile-chrome) pass. Combined with `e2e/login.spec.js` (unchanged,
-  already exercises both kept-exception auth submit buttons end-to-end), this satisfies the batch
-  plan's stated bar: "exercise login submit, one report download, one retry control post-conversion."
+**DS findings addressed:** DS-18 (Reports emoji/colour-tile catalogue + control-wall density,
+Level 3) and DS-19 (icon-grammar drift from mixing Tabler/emoji/text-glyph vocabularies) — both
+scoped specifically to Reports, per the finding register. DS-17 (dashboard accent-colour overload)
+is Milestone 6 scope and was not touched.
 
-**Full regression result:** 124 passed, 2 failed, both projects. The 2 failures are both
-`duty-timing-settings.spec.js` (`shows times in 12-hour language and edits via the modal`, one per
-project) — the same pre-existing, unrelated failure documented in every prior Batch 4.x handoff, not
-touched or investigated further per standing policy. No other failures, on either project, against a
-freshly seeded dev DB.
+**Targeted Playwright coverage (this session, `e2e/reports-selector-and-filters.spec.js`):**
+- 5 reports spanning every family opened correctly from the redesigned desktop list, with
+  `aria-pressed` confirming selected-row state.
+- 1 report opened correctly in the mobile (390px) `ResponsiveSheet` from the redesigned list.
+- The regrouped "Period" and "Filters" controls used together (Overall mode + Recorder=Admin
+  filter) still produce a working Excel export (`page.waitForEvent('download')`).
+- All 6 (3 scenarios × chromium/mobile-chrome) pass.
+
+**Full regression result:** 130 passed, 2 failed, both projects — the 2 failures are both
+`duty-timing-settings.spec.js`'s pre-existing unrelated case (one per project), documented in every
+prior Batch 4.x/5.x handoff. No regression in any of the 9 `reports-*.spec.js` files that assert on
+secondary report headings — confirming the emoji removal and DOM changes didn't break their
+`.locator('..').locator('..')` panel-scoping pattern.
 
 **Lint/build result:**
-- `npx eslint` on all Batch 4.3-changed production files (prior session) — clean.
-- `npx eslint e2e/form-actions.spec.js` — not applicable; confirmed (again) no `eslint.config.js`
-  covers `e2e/` in this repo.
+- `npx eslint src/pages/admin/ReportsPage.jsx` — clean, checked after both batches.
 - `npm run build --workspace=client` — succeeds; only the pre-existing >500kB chunk-size advisory.
 - `git diff --check` — clean.
 
-**Browser verification status:** All four new Batch 4.3 scenarios ran against a real Chromium
-browser (both Playwright projects: desktop chromium and Pixel-7-shaped mobile-chrome) with a real
-dev server (client :5173 via Vite, server :3000) and a real seeded Postgres dev database — not
-mocked end-to-end. The retry-control scenario mocks only the single forced-failure response (the
-same technique `e2e/state-consistency.spec.js` already established for this codebase); the report
-download hits the real export endpoint and asserts a real browser download event.
+**Browser verification status:** Live-verified via chrome-devtools MCP against the real dev
+server/DB (not just Playwright): selector list and both primary cards at desktop width in both
+light and dark theme; mobile (390px, emulated) selector list, `ResponsiveSheet`, and inline
+Period/Filters grouping; a full student-search-and-select flow on the Individual Student Violation
+Report card; zero console errors/warnings; zero horizontal overflow at 390px. One pre-existing,
+unrelated accessibility "issue" (unlabeled native form fields) was found and confirmed not
+introduced by this milestone (see `constraints_discovered`).
 
 **Known pre-existing failures:** `e2e/duty-timing-settings.spec.js`'s "shows times in 12-hour
-language and edits via the modal" test, both projects — pre-existing and unrelated to Milestone 4,
-per every prior Batch 4.x handoff; left untouched per standing policy.
+language and edits via the modal" test, both projects — unrelated to Reports/Milestone 5, documented
+since Milestone 4.
 
-**Deferred items (not Milestone 4 scope):**
-- `ReportsPage.jsx`'s generic `ReportSection` loading text, deferred from Batch 4.2 (see `open_questions_for_owner`).
-- Whether to harden `e2e/seed.mjs` against multi-day dev-container reuse (new finding from this
-  session; a test-infra concern, not a product defect).
+**Deferred / out of scope for this milestone:**
+- `ReportsPage.jsx`'s generic `ReportSection` loading-state text (carried forward from Milestone 4;
+  not named in V2 §11's Milestone 5 scope).
+- The unlabeled-form-field accessibility finding discovered this session (new; flagged for a future
+  forms/accessibility pass, not blocking).
+- No 21st.dev research was needed — every pattern used (grouped list with row separators,
+  left-accent-bar selection state, labeled control groups) already existed elsewhere in this same
+  codebase (Students' mobile list, the sidebar's active-nav-item treatment, and the page's own
+  micro-label convention), so no external pattern source was consulted.
 
-**Milestone 5 status: NOT STARTED.** No Reports visual-cleanup work, Dashboard visual-cleanup work,
-Milestone 7 enforcement work, or 21st.dev integration has begun. This session's only product-adjacent
-action was recreating the local dev database container and its seed data — no application source
-file was modified. Stopping here for owner review per standing instructions.
+**Milestone 6 status: NOT STARTED.** No Admin/Faculty/Super Admin dashboard visual work has begun.
+Stopping here per instruction for this accelerated-mode run to complete exactly Milestone 5 and no
+further.
