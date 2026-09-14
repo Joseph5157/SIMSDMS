@@ -50,11 +50,25 @@ export default function MyViolationsSummary() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Batch 6.2 (Spec 032, Milestone 6): resolves 030-D-05's "Most Common"
+          truncation — its value is a category-name string, not a short
+          number like its 3 siblings, so it needs the same fix already
+          applied to the equivalent card on the admin Student Violations
+          analytics dashboard (ViolationsPage.jsx v3.24/3.25): unconditional
+          `compact` + `mobileCenter` + its own full-width row on mobile. */}
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
         <StatCard label="Total Recorded" value={totalCount} accent="blue" />
         <StatCard label="Students Reported" value={studentsCount} accent="indigo" />
-        <StatCard label="Most Common" value={mostCommon.name} sub={mostCommon.count ? `${mostCommon.count} case${mostCommon.count === 1 ? '' : 's'}` : undefined} accent="yellow" />
         <StatCard label="This Month" value={thisMonth} accent="green" />
+        <StatCard
+          compact
+          mobileCenter
+          className="col-span-3 md:col-span-1"
+          label="Most Common"
+          value={mostCommon.name}
+          sub={mostCommon.count ? `${mostCommon.count} case${mostCommon.count === 1 ? '' : 's'}` : undefined}
+          accent="yellow"
+        />
       </div>
     </div>
   );

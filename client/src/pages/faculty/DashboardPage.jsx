@@ -423,14 +423,20 @@ export default function DashboardPage({ user }) {
           <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Upcoming duties
           </p>
-          <div className="flex flex-col gap-2">
-            {upcoming.map((s) => {
+          {/* Batch 6.2 (Spec 032, Milestone 6): was one bordered card per
+              duty with its own left-accent bar — every bar was the same
+              colour, so it decorated rather than distinguished. Now one
+              shared container with row dividers, same pattern as this page's
+              own "Recent activity" list and Admin Dashboard's reassignments
+              list — trims the "repeated card treatment below the [duty]
+              hero" V2 §10 finding without touching any handler/action. */}
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            {upcoming.map((s, i) => {
               const d = new Date(s.duty_date);
               const sentReq = sentRequestFor(s.id);
               const hasPendingRequest = sentReq?.status === 'pending';
               return (
-                <div key={s.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--brand)]" />
+                <div key={s.id} className={`px-[14px] py-3 ${i < upcoming.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
                       <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-blue-800)] leading-none">{d.getDate()}</span>
@@ -494,12 +500,11 @@ export default function DashboardPage({ user }) {
           <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Reassigned away
           </p>
-          <div className="flex flex-col gap-2">
-            {reassignedAway.map((r) => {
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            {reassignedAway.map((r, i) => {
               const d = new Date(r.duty_date);
               return (
-                <div key={r.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-indigo-solid)]" />
+                <div key={r.id} className={`flex items-center gap-3 px-[14px] py-3 ${i < reassignedAway.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                   <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-indigo-bg)] flex flex-col items-center justify-center">
                     <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-indigo-text)] leading-none">{d.getDate()}</span>
                     <span className="text-[length:var(--text-nano)] font-[var(--weight-bold)] text-[var(--color-indigo-text)] uppercase">

@@ -15,7 +15,7 @@ export default function PendingReassignmentRequests() {
     return (
       <div className="mb-4">
         <Skeleton height="11px" width="180px" className="mb-3" />
-        <div className="bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
+        <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] px-[14px] py-3">
           <Skeleton height="14px" width="70%" className="mb-2" />
           <Skeleton height="11px" width="40%" />
         </div>
@@ -39,12 +39,16 @@ export default function PendingReassignmentRequests() {
       <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
         Reassignment requests for you
       </p>
-      <div className="flex flex-col gap-2">
-        {requests.map((r) => {
+      {/* Batch 6.2 (Spec 032, Milestone 6): same shared-container/row-divider
+          treatment as DashboardPage.jsx's "Upcoming duties"/"Reassigned
+          away" sections directly below this component on the Faculty
+          dashboard — was one bordered card per request with a uniform
+          (non-distinguishing) left-accent bar. */}
+      <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+        {requests.map((r, i) => {
           const d = new Date(r.dutySlot.duty_date);
           return (
-            <div key={r.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-amber-600)]" />
+            <div key={r.id} className={`px-[14px] py-3 ${i < requests.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
               <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-primary)]">
                 {r.fromFaculty?.name} wants you to take over their {r.dutySlot.session_type} duty
               </p>
