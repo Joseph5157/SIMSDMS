@@ -61,10 +61,19 @@ export default defineConfig([
     },
   },
   {
-    files: ['vite.config.js'],
+    files: ['vite.config.js', 'vitest.config.js'],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    // Milestone 7 (Spec 032): the new Vitest layer uses `globals: true`
+    // (matching server/vitest.config.mjs), so test files reference
+    // describe/it/expect/vi without importing them.
+    files: ['src/**/*.test.js'],
+    languageOptions: {
+      globals: globals.vitest,
     },
   },
 ])
