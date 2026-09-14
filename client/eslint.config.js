@@ -45,10 +45,17 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         paths: [
-          { name: '@radix-ui/react-dialog', message: 'Use ResponsiveSheet (client/src/components/ui/ResponsiveSheet.jsx) instead of importing Radix Dialog directly.' },
           { name: 'framer-motion', message: 'Use ResponsiveSheet (client/src/components/ui/ResponsiveSheet.jsx) instead of importing Framer Motion directly.' },
           { name: 'vaul', message: 'Vaul was replaced by ResponsiveSheet (client/src/components/ui/ResponsiveSheet.jsx) — do not reintroduce it.' },
           { name: 'lucide-react', message: 'Tabler (@tabler/icons-react) is the only icon library for new code — see CONSTITUTION.md §2.' },
+        ],
+        patterns: [
+          // Milestone 7 (Spec 032): the prior rule only named the one Radix
+          // package already installed (@radix-ui/react-dialog), so importing
+          // any other Radix subpackage directly (e.g. @radix-ui/react-popover)
+          // went unflagged — CONSTITUTION.md §2 restricts Radix generally, not
+          // just that one entry point. A glob closes that gap.
+          { group: ['@radix-ui/*'], message: 'Radix is internal shared-overlay infrastructure (ResponsiveSheet / the documented StudentSearchOverlay exception only) — see CONSTITUTION.md §2 and docs/UI_ARCHITECTURE.md. Do not import any @radix-ui/* package directly in feature code.' },
         ],
       }],
     },
