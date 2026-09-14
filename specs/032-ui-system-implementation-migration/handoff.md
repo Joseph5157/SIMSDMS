@@ -3,195 +3,119 @@
 ## task_id
 
 032-ui-system-implementation-migration / Milestone 4 — State & Form Consistency
-(Batches 4.1 and 4.2 complete; Batch 4.3 code changes done, targeted Playwright coverage for it
-still outstanding — session paused on a usage-limit warning before finishing that verification)
+(Batches 4.1, 4.2, 4.3 all complete, verified, and committed. This session closed out the one
+remaining gap — Batch 4.3's own targeted Playwright coverage — and closes Milestone 4.)
 
 ## status
 
-partial
+complete
 
 ## completed
 
 ### Batch 4.1 — OfflineBanner rebuild (commit `bac498b`)
 
-Rebuilt `client/src/components/OfflineBanner.jsx` fresh against current HEAD/V2, using the frozen
-candidate `fa996f2` only as directional reference (not cherry-picked), per its ACCEPT WITH REVISION
-conditions in `031-frozen-candidate-evaluation.md`.
-
-- Swapped the hand-rolled static `style={{...}}` block for `Alert` (tone="warning") + `AppButton`
-  (variant="icon", dismiss control).
-- `client/src/components/ui/Alert.jsx` gained a `...rest` spread so `role`/`aria-live`/`aria-label`
-  reach the root div (needed for the banner's screen-reader announcement; doesn't affect its other
-  callers, which don't pass those props).
-- **Revision beyond the frozen candidate**: replaced the 📡 emoji with Tabler `IconWifiOff`/`IconWifi`
-  (swaps by connectivity state) — V2 §9 restricts emoji from "status system" roles, and the frozen
-  candidate (pre-V2) had kept the emoji.
-- Connectivity/dismissal lifecycle, position (`fixed inset-x-0 top-0 z-[70]`), and `md:hidden`
-  breakpoint are byte-identical to before — only the presentation layer changed.
-- New `e2e/offline-banner.spec.js` (4 tests): show/dismiss/stays-dismissed-while-offline,
-  back-online auto-hide after ~2s, desktop never shows (md:hidden), dark-theme render with zero
-  uncaught JS exceptions. All pass, both Playwright projects.
-- Live-verified via a throwaway Playwright screenshot script (not committed) at 390px, light and
-  dark — banner renders correctly, readable, no clipping, dismiss button is a proper 44px target.
+Rebuilt on `Alert` (tone="warning") + `AppButton` (icon variant, dismiss control), Tabler
+`IconWifiOff`/`IconWifi` in place of the frozen candidate's emoji. Connectivity/dismissal
+lifecycle, position, and `md:hidden` breakpoint unchanged. 4 new Playwright tests
+(`e2e/offline-banner.spec.js`), live-verified light/dark at 390px. See prior handoff revisions for
+full detail — unchanged this session.
 
 ### Batch 4.2 — Loading/empty state consolidation (commit `901d100`)
 
-Fixed the DS-13 finding: table "loading" rows were rendered via `EmptyRow`'s "no records" 📭 icon
-reused with `message="Loading…"` — visually **identical to the empty-result state**, which is a
-real, visible inconsistency (not just a literal-text nitpick). Fixed on 9 files:
+`EmptyRow`-as-"Loading…" misuse and ad hoc empty text replaced with the `Skeleton` family /
+`EmptyState` across 9 files. 5 new Playwright tests (`e2e/state-consistency.spec.js`). One
+`ReportsPage.jsx` generic loader deliberately deferred (documented below). Unchanged this session.
 
-- `AuditLogsPage.jsx`, `AllFacultyDutiesPage.jsx`, `ViolationsPage.jsx`, `FlaggedViolationsPage.jsx`,
-  `UsersPage.jsx` (main table + Pending Invites table), `MyViolationsTable.jsx`, `SettingsPage.jsx`
-  (Violation Types tab), `DutySlotsPage.jsx` — desktop `EmptyRow(message="Loading…")` →
-  `TableRowSkeleton`; mobile ad hoc `<div>Loading…</div>` → stacked `CardSkeleton`. Both primitives
-  already existed and were already used this way at `StudentsPage.jsx` — this batch extends that
-  existing convention, it doesn't invent a new one.
-- `DutySlotsPage.jsx` mobile branch had **no loading indicator at all** (a real gap: it would flash
-  "No {filter} slots" during load) — added one, matching the pattern used everywhere else.
-- Mobile ad hoc `<div>No X found.</div>` / dashed-border boxes → `EmptyState`, matching what each
-  page's own desktop `EmptyRow` already did correctly for the same condition (same pages as above,
-  plus `StudentsPage.jsx`'s mobile empty text, which had the identical defect).
-- **Left ~11 other "Loading…" instances untouched** (App.jsx splash screen, `TrendBreakdownDrawer`,
-  `StudentDetailsDrawer` ×2, `MessagesPage` ×2, `AttendanceLivePage`, `CalendarPage`,
-  `SettingsPage`'s Duty-Timing/Violations tabs ×2, generic `ReportsPage.jsx` `ReportSection` loader) —
-  these are legitimate local indeterminate loaders for small/variable-shape regions with no table
-  sibling exhibiting the empty-vs-loading confusion. `ReportsPage.jsx` specifically was left alone
-  because its `ReportSection` loader is shared across ~15 report branches with different column
-  counts; giving it a correct per-branch skeleton shape is Reports-specific work, arguably Milestone
-  5 territory, and disproportionate to this batch's scope — **recorded as deferred, not done**.
-- New `e2e/state-consistency.spec.js` (5 tests): Users page desktop/mobile skeleton-while-loading,
-  Users page empty→EmptyState, Flagged Violations desktop+mobile skeleton, Student Violations
-  desktop skeleton. All pass, both Playwright projects.
-- Live-verified via a throwaway Playwright screenshot script (not committed): Users page
-  loading/empty states, light and dark, 390px.
+### Batch 4.3 — AppButton adoption batch 2 (commit `c07ea2a`) — now fully closed out
 
-### Batch 4.3 — AppButton adoption batch 2 / form-control consistency (commit `c07ea2a`, PARTIAL)
+Code (7 files / ~11 controls converted, 2 documented kept exceptions for the branded 56px auth
+submit buttons) was committed and regression-checked in the prior session. This session's work:
 
-Source-searched `client/src/**` for raw `<button>` elements (26 files matched) and classified each
-against 030-C's "raw action/button semantic classification" table, keeping only the "conventional
-action" category (submit/cancel/save/close/download/retry/clear) minus the 17 sheet-footer buttons
-already migrated in Batch 2.2. Excluded, per the standing rules: calendar/date-grid controls
-(CalendarPage, AttendancePage, SlotPickerPage prev/next + day cells), shell chrome (Layout hamburger/
-theme-toggle/logout), disclosure/menu triggers (NotificationBell, SettingsPage show/hide-deactivated,
-UploadStudentsDrawer show-errors, RecordViolationModal search/remarks triggers), navigation-as-button
-(AdminDashboardPage/SuperAdminDashboardPage "View all", MyViolationsSummary "View all",
-ProfileDrawer "Change password", MessagesPage back/tab buttons), selection/toggle composites
-(CreateUserDrawer role choice, ReportsPage mode switcher, NotificationsPage filter chips, ProfileDrawer
-avatar choice), the ReportsPage student-search-and-pick composite (search result buttons + "Change
-student"), and Pagination's internal buttons (intentionally encapsulated).
-
-Found and converted 7 files / ~11 controls:
-
-- `ReportsPage.jsx` — 4 raw Excel/PDF download buttons (main Student Violation Report card +
-  individual-by-student card) → `AppButton` `primary`/`secondary`. Disabled-condition expressions and
-  button text (including the `downloading ? 'Preparing…' : …` swap) preserved verbatim — only the
-  wrapping element and its styling changed.
-- `UploadStudentsDrawer.jsx` — "Download sample template (.xlsx)" → `AppButton secondary`. This one
-  accepts real visual normalization: the original had a bespoke dashed-border/light-blue "upload
-  affordance" box treatment that AppButton doesn't represent; the plan's own batch description
-  ("Minor visual normalization of these buttons to AppButton variants") explicitly names "upload
-  template" as an expected case of this.
-- `StudentsPage.jsx` — "Clear" filters text button → `AppButton ghost size="xs"`.
-- `ErrorBoundary.jsx` — "Reload page" → `AppButton primary`. Verified `MantineProvider` wraps
-  `ErrorBoundary` in `App.jsx` (`<MantineProvider><ToastProvider><ErrorBoundary>…`), so the
-  Mantine-backed button renders correctly even in the crash-fallback path.
-- `AllFacultyDutiesPage.jsx` — ad hoc mobile-branch "Retry" text button (a hand-rolled duplicate of
-  what `ErrorBlock`'s own Mantine `Button` already does elsewhere) → `AppButton ghost size="xs"`,
-  `onClick={refetch}` unchanged.
-- `ChangePasswordPage.jsx` — "← Cancel" → `AppButton ghost`, full-width, `disabled={isLoading}`
-  preserved. `handleCancel` navigation logic untouched.
-
-**Kept as documented exceptions** (NOT converted — each now has an inline code comment explaining
-why, per the plan's explicit instruction to "confirm AppButton can represent that [56px auth] variant,
-or document a kept exception rather than degrade the auth UX"):
-
-- `LoginPage.jsx` "Sign in" submit button.
-- `ChangePasswordPage.jsx` "Update Password →" submit button.
-
-Both are the same branded family: `h-14 sm:h-11` (56px mobile / 44px desktop, 030-E's documented
-distinct auth sizing), `background: var(--brand-gradient-deep)` + `boxShadow: var(--shadow-brand)`,
-and (Login only) an `active:scale-[0.97]` press animation. V2 §9 explicitly allows gradients "for
-clear brand or task-state emphasis (login, …)" as a kept exception, and `AppButton` has no
-gradient/press-scale variant — converting would degrade the auth UX rather than normalize it, which
-the plan's own risk note for this exact control anticipated.
-
-**Verification performed so far:**
-- `npx eslint` on all 7 changed files (from `client/`) — clean.
-- `npm run build --workspace=client` — succeeds, only the pre-existing >500kB chunk-size advisory.
-- `npx playwright test e2e/login.spec.js` (both projects) — both scenarios pass; this exercises the
-  kept-exception Sign-in submit button end-to-end (fill → click → navigate), satisfying the plan's
-  "exercise login submit" requirement.
-- Full existing Playwright suite, both projects: **116 passed, 2 failed** — the 2 failures are the
-  pre-existing unrelated `e2e/duty-timing-settings.spec.js` (both projects, untouched per standing
-  policy, same failure as every prior Batch 4.x handoff). No new failures — confirms the AppButton
-  swaps didn't regress `ReportsPage.jsx`, `StudentsPage.jsx`, or `AllFacultyDutiesPage.jsx`, all of
-  which have existing Playwright coverage exercising other parts of those same pages.
-
-**NOT yet done (this is the reason status is "partial", not "complete"):** targeted new Playwright
-coverage specifically for the *converted* controls — one report download, the Clear-filters button,
-the Retry button, and the ChangePasswordPage Cancel button. The plan's stated bar is "exercise login
-submit [covered above by the existing spec], one report download, one retry control post-conversion"
-— the download/retry/clear/cancel-specific assertions were not written before the session paused.
+- **Wrote the 4 targeted Playwright scenarios** the prior handoff identified as the remaining gap,
+  in new `e2e/form-actions.spec.js`:
+  1. Report download — Student Violation Report "⬇ Excel" `AppButton`, asserted via
+     `page.waitForEvent('download')` against the fixed seeded record (Overall mode, Recorder=Admin,
+     same isolation technique as `e2e/reports-student-violations.spec.js`).
+  2. Retry control — `AllFacultyDutiesPage.jsx` mobile Retry `AppButton`: forced a 500 on the first
+     `/duty-slots/all/:year/:month` request via `page.route` (with `serviceWorkers: 'block'` per the
+     documented SW-interception constraint), clicked Retry, confirmed the error state cleared and a
+     second, successful request actually fired (`requestCount >= 2`).
+  3. Clear filters — `StudentsPage.jsx` "Clear" `AppButton`: typed into the search box, asserted the
+     button appears, clicked it, asserted the search box empties and the button disappears again.
+  4. ChangePasswordPage Cancel — faculty login → `/change-password` → asserted the "← Cancel"
+     `AppButton` is visible (no special fixture needed; e2e faculty has `must_change_password:
+     false`) → click → asserted navigation to `/faculty/dashboard`.
+  All 8 (4 scenarios × 2 Playwright projects) pass.
+- **Discovered and resolved an unrelated pre-existing environmental issue** while running the full
+  suite (see `constraints_discovered`): the long-lived dev Postgres container had accumulated
+  duplicate "today"-relative duty-slot/attendance/reassignment rows from being reused across 5 real
+  calendar days, causing 8 failures in `reports-*.spec.js` files untouched by any Milestone 4 batch.
+  Traced to root cause, confirmed via direct Prisma queries (not just re-running tests), then — per
+  owner's explicit choice among three options offered — recreated the dev container from scratch,
+  reran migrations + `prisma generate` + both seed scripts once. Full suite is now clean.
+- No product/client code was touched this session — only the new test file and this handoff.
 
 ## failed_or_blocked
 
-- None outstanding for 4.1/4.2 (both fully verified and committed). Batch 4.3 is code-complete and
-  regression-checked via the full suite, but its own dedicated Playwright scenarios (see above) are
-  not yet written — this is a genuine gap to close before Batch 4.3 (and Milestone 4) can be called
-  done, not a blocker on anything else.
-- One transient issue during Batch 4.2 development (already fixed, reflected in the committed code):
-  my first cut of `e2e/state-consistency.spec.js` reused one `page` across a desktop assertion then a
-  viewport-resize-and-reload to check mobile — `useUsers` caches its response into `localStorage` and
-  feeds it back as TanStack Query `initialData`, so the reload skipped the loading state entirely on
-  the second check. Fixed by splitting into two independent tests (fresh page/context each). See
-  `constraints_discovered` below.
+- None. Milestone 4 is complete with no open code-level defects.
 
 ## commands_run
 
 ```
-npx eslint <changed files>            # from client/, per-file, after every edit — all clean
-npm run build --workspace=client      # after each batch — succeeds, only pre-existing >500kB chunk advisory
-node e2e/seed.mjs                     # against sims-dms-postgres :5434 (dev container, already running)
-npm run dev                            # background: client :5173, server :3000
-npx playwright test e2e/offline-banner.spec.js --project=chromium --reporter=list
-npx playwright test e2e/state-consistency.spec.js --reporter=list          # both projects
-npx playwright test e2e/login.spec.js --reporter=list                     # both projects, after Batch 4.3
-npx playwright test --reporter=list   # full suite, both projects, after each batch (3 runs total)
-# throwaway Playwright screenshot scripts (light/dark, loading/empty) — written to and run from
-# the session scratchpad / a gitignored temp file in repo root, deleted immediately after; not committed
+docker start sims-dms-postgres              # found already-running-but-stopped from a prior session
+npx prisma migrate status                   # confirmed schema up to date on that container
+node e2e/seed.mjs                           # first pass, before the stale-data issue was found
+npm run dev                                  # background: client :5173, server :3000
+npx playwright test e2e/form-actions.spec.js --reporter=list   # new spec, both projects — 8/8 pass
+npx playwright test --reporter=list         # full suite — found 8 unrelated pre-existing failures
+                                              # (stale multi-day seed data) + the known
+                                              # duty-timing-settings.spec.js failure
+# Investigation (read-only Prisma queries via server/node_modules/@prisma/client) confirmed the
+# root cause: duplicate dutySlot/dutyAttendance/dutyReassignment/attendanceAuditLog rows dated
+# across 2026-09-10 through 2026-09-14 for the same e2e fixture users.
+# Owner chose "recreate the container from scratch" over manual cleanup:
+docker stop sims-dms-postgres && docker rm sims-dms-postgres
+docker run -d --name sims-dms-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=devpassword -e POSTGRES_DB=sims_dms_dev -p 5434:5432 postgres:16
+npx prisma migrate deploy
+npx prisma generate                          # server dev process stopped first (Windows EPERM on the query engine DLL otherwise)
+node prisma/seed.js                          # bootstraps super_admin from .env BOOTSTRAP_SUPER_ADMIN_*
+node e2e/seed.mjs                            # e2e fixture users/data, single pass on the fresh container
+npm run dev                                  # restarted client :5173, server :3000
+npx playwright test --reporter=list         # full suite, both projects — 124 passed, 2 failed
+                                              # (both are duty-timing-settings.spec.js, the known
+                                              # pre-existing unrelated failure — one per project)
+npx eslint e2e/form-actions.spec.js         # confirms (again) e2e isn't covered by any eslint.config.js
+npm run build --workspace=client             # succeeds, only the pre-existing >500kB chunk advisory
+git diff --check                             # clean
+git status                                   # confirms .tmp/ and LEARNING_GUIDE.md still untouched
 ```
 
 ## constraints_discovered
 
-- **The app's PWA service worker intercepts some GET API calls (e.g. `GET /users`) at the SW
-  fetch-handler level in dev**, which Playwright's `page.route()` cannot see or mock — confirmed by
-  a throwaway debug spec where a catch-all `page.route('**/*', ...)` saw `/users/me` but never saw
-  the `/users` list call, even though `page.on('request'/'response')` logged it normally. Any future
-  Playwright test that needs to intercept/mock an API call **must** pass
-  `test.use({ serviceWorkers: 'block' })` (or set it per-test via `browser.newContext`), or the mock
-  will silently no-op and the real network response renders instead. This is documented inline in
-  `e2e/state-consistency.spec.js` — apply the same pattern to the still-to-be-written Batch 4.3 spec
-  if it needs to mock/force an error state (e.g. for the Retry-control test).
-- **`useUsers` (`client/src/hooks/useUsers.js`) persists its response to `localStorage`
-  (`getCacheKey`/`setCacheKey`) and passes it back as TanStack Query `initialData`.** Any test or
-  future instrumentation that reloads/revisits `/admin/users` in the *same* browsing context after an
-  initial load will see `isLoading: false` immediately — the loading branch will not fire a second
-  time without a fresh context/localStorage. No other hook touched in this milestone does this
-  (`useReport`, `useViolations`, `useFlaggedViolations` are plain `useQuery` with no persistence).
-- Route-matching precision matters more than usual in this app: a bare substring glob like
-  `**/users**` also matches the SPA's own `/admin/users` document navigation (client-routed pages
-  still trigger a real document request on `page.goto`), and a looser regex like `/\/users(\?|$)/`
-  without anchoring to the API origin does the same. Anchor route patterns to
-  `^http://localhost:3000/<exact-path>(\?|$)` when precision matters.
-- `downloadReportFile` (`client/src/utils/downloadFile.js`) fetches the export as a blob via `api.get`
-  then synthesizes an `<a download>` click + `URL.createObjectURL` — it does NOT navigate or open a
-  new tab. A Playwright test asserting "download happened" should use
-  `page.waitForEvent('download')` around the click, not a URL/navigation assertion. Not yet used
-  anywhere in this repo's e2e suite — will be new ground for the Batch 4.3 report-download test.
-- `ChangePasswordPage.jsx`'s Cancel button only renders when `!isMandatory`
-  (`currentUser?.must_change_password`), which is `false` for both e2e fixture users
-  (`e2e.faculty@sims.test`, `e2e.admin@sims.test`) — so testing it just means navigating directly to
-  `/change-password` after a normal login, no special fixture setup needed.
+- **The shared dev Postgres container (`sims-dms-postgres`) is not safe to reuse indefinitely across
+  real calendar days for this e2e suite.** `e2e/seed.mjs`'s own idempotency guards
+  (`findFirst`-before-`create`) are scoped to "today" for its duty-slot/attendance/reassignment
+  fixtures — its own code comment states it assumes "zero pre-existing duty slots" on the target DB.
+  Every time the container is reused on a new real day, a fresh set of today-relative rows is
+  created alongside every prior day's rows, and several `reports-*.spec.js` files that filter by a
+  fixed text fragment (e.g. `'E2E test reassignment'`, `'E2E Faculty'` + auto-clock-out) start
+  matching 2+ rows instead of the expected 1. This is a test-fixture/environment limitation, not a
+  product defect — confirmed by direct Prisma queries showing rows dated 2026-09-10 through
+  2026-09-14 before the container was recreated. **Recommendation for future sessions**: either
+  recreate the container each session (cheap — migrate + both seeds take well under a minute), or
+  extend `e2e/seed.mjs`'s guards to be day-independent (e.g. delete-then-recreate its own fixture
+  rows unconditionally) if the container is meant to persist long-term. Not fixed as part of this
+  session since it's a test-infra concern, not a Milestone 4 code deliverable, and the owner chose
+  the container-recreation path over a scripted cleanup.
+- `npx prisma generate` still requires the dev server to be stopped first on Windows (EPERM on the
+  query engine DLL) — consistent with prior-session notes; stopping the specific PIDs bound to ports
+  3000/5173 (not just the parent shell task) was required, since Windows doesn't cascade-kill
+  nodemon's child when only the launching process is stopped.
+- No new constraints surfaced from the Batch 4.3 test-writing itself — the prior handoff's
+  documented constraints (SW interception needing `serviceWorkers: 'block'`, `useUsers`'
+  localStorage-backed `initialData`, route-anchoring precision, `downloadReportFile`'s blob+`<a
+  download>` mechanics, ChangePasswordPage Cancel's `must_change_password` gating) all held exactly
+  as described and needed no revision.
 
 ## deviations_from_constitution
 
@@ -199,81 +123,92 @@ npx playwright test --reporter=list   # full suite, both projects, after each ba
 
 ## files_touched
 
-**Batch 4.1** (commit `bac498b`):
-- `client/src/components/OfflineBanner.jsx`
-- `client/src/components/ui/Alert.jsx`
-- `e2e/offline-banner.spec.js` (new)
+- `e2e/form-actions.spec.js` (new) — the 4 targeted Batch 4.3 Playwright scenarios.
+- `specs/032-ui-system-implementation-migration/handoff.md` (this file).
 
-**Batch 4.2** (commit `901d100`):
-- `client/src/pages/super-admin/AuditLogsPage.jsx`
-- `client/src/pages/faculty/AllFacultyDutiesPage.jsx`
-- `client/src/pages/admin/ViolationsPage.jsx`
-- `client/src/pages/admin/FlaggedViolationsPage.jsx`
-- `client/src/pages/admin/UsersPage.jsx`
-- `client/src/components/faculty/MyViolationsTable.jsx`
-- `client/src/pages/admin/SettingsPage.jsx`
-- `client/src/pages/admin/DutySlotsPage.jsx`
-- `client/src/pages/admin/StudentsPage.jsx`
-- `e2e/state-consistency.spec.js` (new)
-
-**Batch 4.3** (commit `c07ea2a`, partial — code done, tests pending):
-- `client/src/pages/admin/ReportsPage.jsx`
-- `client/src/components/UploadStudentsDrawer.jsx`
-- `client/src/pages/admin/StudentsPage.jsx`
-- `client/src/components/ErrorBoundary.jsx`
-- `client/src/pages/faculty/AllFacultyDutiesPage.jsx`
-- `client/src/pages/auth/ChangePasswordPage.jsx`
-- `client/src/pages/auth/LoginPage.jsx` (comment only — documents the kept exception, no behavior
-  change)
-
-Not touched: `.tmp/`, `LEARNING_GUIDE.md` (both explicitly out of scope per instructions).
+No product/client source files were touched this session. `.tmp/` and `LEARNING_GUIDE.md` remain
+untouched, per standing instructions.
 
 ## open_questions_for_owner
 
-- None blocking. Two deferred items to flag for future milestones:
+- None blocking. Carried forward from the Batch 4.2/4.3 handoffs, still unresolved and still not
+  Milestone 4 scope:
   1. `ReportsPage.jsx`'s generic `ReportSection` loading text (`if (isLoading) return <p>Loading…</p>`)
-     was deliberately left as plain text rather than given a per-report skeleton shape (Batch 4.2) —
-     its ~15 branches have different column counts/layouts, so a correct fix means wiring a shape per
-     report id, which felt like Reports-specific work (arguably Milestone 5) rather than a Milestone 4
-     batch item.
-  2. None new from Batch 4.3 — the two kept-exception auth buttons are a deliberate, documented
-     design decision (see above), not an open question.
+     was deliberately left as plain text rather than given a per-report skeleton shape — its ~15
+     branches have different column counts/layouts; a correct fix means wiring a shape per report id,
+     which is Reports-specific work (arguably Milestone 5 territory).
+  2. The two kept-exception auth buttons (`LoginPage` "Sign in", `ChangePasswordPage` "Update
+     Password →") remain a deliberate, documented design decision, not an open question.
+- New from this session: whether to harden `e2e/seed.mjs` against multi-day container reuse (see
+  `constraints_discovered`) is worth a decision before Milestone 7's broader test/enforcement work,
+  but is not blocking anything now that the container has been recreated clean.
 
-## exact_next_step
+---
 
-**Finish Batch 4.3's verification, then close out Milestone 4.** The code changes are committed
-(`c07ea2a`) and regression-checked (full suite green apart from the pre-existing unrelated failure),
-but the batch isn't done until it has its own targeted Playwright coverage per the plan's stated bar.
-Concretely, in one new file `e2e/form-actions.spec.js` (or similar):
+## Milestone 4 Closure Report
 
-1. **Report download** (satisfies "one report download"): log in as admin, go to `/admin/reports`,
-   select the Student Violation Report (default/main card), click the "⬇ Excel" `AppButton`, assert
-   via `page.waitForEvent('download')` that a download fires (see the `downloadReportFile` note under
-   `constraints_discovered` — it's a blob+synthetic-`<a>` click, not a navigation).
-2. **Retry control** (satisfies "one retry control"): the newly-converted `AllFacultyDutiesPage.jsx`
-   mobile Retry button is the most direct target — force `isError` (e.g. `page.route` the
-   `/duty-slots`-family endpoint it calls to `route.abort()` or fulfill a 500 once, remembering
-   `test.use({ serviceWorkers: 'block' })` first per the constraint above), click Retry, assert the
-   error state clears and real content (or a second forced state) appears.
-3. **Clear filters**: `/admin/students`, type into the search box, assert the `AppButton ghost`
-   "Clear" appears, click it, assert the search box empties and the filter row's conditional
-   rendering (`hasFilters`) hides the button again.
-4. **ChangePasswordPage Cancel**: log in as faculty, `page.goto('/change-password')`, assert the
-   `AppButton ghost` "← Cancel" is visible (per the `constraints_discovered` note, no special fixture
-   needed — the e2e faculty user has `must_change_password: false`), click it, assert navigation to
-   `/faculty/dashboard`.
-5. Run `npx eslint` on the new spec's directory context is not applicable (e2e isn't linted by the
-   client config — confirmed this session, root has no `eslint.config.js` either); just run the new
-   spec directly plus the full suite once more afterward.
-6. **Then produce the Milestone 4 Closure Report** the user's original instructions require:
-   internal commits/SHAs (`bac498b`, `901d100`, `c07ea2a`, plus whatever finishes 4.3), state patterns
-   changed (4.2), form/action patterns changed (4.3), OfflineBanner outcome (4.1), files/areas
-   affected, Playwright/browser coverage summary, lint/build/test results, the pre-existing
-   `duty-timing-settings.spec.js` failure, deferred items (the `ReportsPage.jsx` generic-loader item),
-   and explicit confirmation that Milestone 5 has not begun. **Then STOP for owner review** — do not
-   start Milestone 5 (Reports visual cleanup), Milestone 6 (Dashboard visual cleanup), Milestone 7, or
-   21st.dev integration.
+**Batches and commits:**
+- `bac498b` — Batch 4.1, OfflineBanner rebuild on Alert + AppButton.
+- `901d100` — Batch 4.2, loading/empty state consolidation (9 files).
+- `c07ea2a` — Batch 4.3, AppButton adoption batch 2 (7 files / ~11 controls, 2 documented
+  exceptions).
+- This session — Batch 4.3's targeted Playwright coverage (`e2e/form-actions.spec.js`, new) and this
+  closure report. No new product-code commit was needed (no defect was found in the committed 4.3
+  code).
 
-No completed work needs to be redone — Batches 4.1, 4.2, and 4.3's code are all done and verified at
-the lint/build/regression-suite level; only the four targeted Batch 4.3 test scenarios above and the
-closure report remain.
+**Work completed:**
+- OfflineBanner restyled onto Alert + AppButton with Tabler connectivity icons; lifecycle,
+  positioning, and dark-mode behavior preserved byte-for-byte apart from presentation.
+- Table "loading" rows (previously `EmptyRow` reused with `message="Loading…"`, visually identical
+  to the empty-result state) converted to `TableRowSkeleton`/`CardSkeleton` across 9 files; ad hoc
+  empty text converted to `EmptyState` on the same pages; one real gap fixed (`DutySlotsPage.jsx`
+  mobile had no loading indicator at all).
+- ~11 remaining conventional raw-button actions (report downloads, upload-template, Clear filters,
+  ErrorBoundary reload, AllFacultyDutiesPage retry, ChangePasswordPage cancel) converted to
+  `AppButton` across 7 files. Two branded 56px auth submit buttons (Login, ChangePassword) kept as
+  documented exceptions per V2 §9's gradient allowance — `AppButton` has no gradient/press-scale
+  variant to represent them without degrading the auth UX.
+
+**Batch 4.3 targeted Playwright coverage (this session, `e2e/form-actions.spec.js`):**
+- Report download (Student Violation Report Excel button) — real download event asserted.
+- Retry control (AllFacultyDutiesPage mobile Retry) — forced failure → retry → confirmed recovery
+  via a genuine second successful request, not just UI state.
+- Clear filters (StudentsPage) — appear-while-filtering / reset / disappear-again round trip.
+- ChangePasswordPage Cancel (faculty) — visibility + navigation to `/faculty/dashboard`.
+- All 8 (4 scenarios × chromium/mobile-chrome) pass. Combined with `e2e/login.spec.js` (unchanged,
+  already exercises both kept-exception auth submit buttons end-to-end), this satisfies the batch
+  plan's stated bar: "exercise login submit, one report download, one retry control post-conversion."
+
+**Full regression result:** 124 passed, 2 failed, both projects. The 2 failures are both
+`duty-timing-settings.spec.js` (`shows times in 12-hour language and edits via the modal`, one per
+project) — the same pre-existing, unrelated failure documented in every prior Batch 4.x handoff, not
+touched or investigated further per standing policy. No other failures, on either project, against a
+freshly seeded dev DB.
+
+**Lint/build result:**
+- `npx eslint` on all Batch 4.3-changed production files (prior session) — clean.
+- `npx eslint e2e/form-actions.spec.js` — not applicable; confirmed (again) no `eslint.config.js`
+  covers `e2e/` in this repo.
+- `npm run build --workspace=client` — succeeds; only the pre-existing >500kB chunk-size advisory.
+- `git diff --check` — clean.
+
+**Browser verification status:** All four new Batch 4.3 scenarios ran against a real Chromium
+browser (both Playwright projects: desktop chromium and Pixel-7-shaped mobile-chrome) with a real
+dev server (client :5173 via Vite, server :3000) and a real seeded Postgres dev database — not
+mocked end-to-end. The retry-control scenario mocks only the single forced-failure response (the
+same technique `e2e/state-consistency.spec.js` already established for this codebase); the report
+download hits the real export endpoint and asserts a real browser download event.
+
+**Known pre-existing failures:** `e2e/duty-timing-settings.spec.js`'s "shows times in 12-hour
+language and edits via the modal" test, both projects — pre-existing and unrelated to Milestone 4,
+per every prior Batch 4.x handoff; left untouched per standing policy.
+
+**Deferred items (not Milestone 4 scope):**
+- `ReportsPage.jsx`'s generic `ReportSection` loading text, deferred from Batch 4.2 (see `open_questions_for_owner`).
+- Whether to harden `e2e/seed.mjs` against multi-day dev-container reuse (new finding from this
+  session; a test-infra concern, not a product defect).
+
+**Milestone 5 status: NOT STARTED.** No Reports visual-cleanup work, Dashboard visual-cleanup work,
+Milestone 7 enforcement work, or 21st.dev integration has begun. This session's only product-adjacent
+action was recreating the local dev database container and its seed data — no application source
+file was modified. Stopping here for owner review per standing instructions.
