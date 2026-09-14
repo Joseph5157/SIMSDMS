@@ -52,45 +52,67 @@ function buildReportPdf({ title, subtitle, summary = [], columns, rows }) {
     const remaining      = Math.max(0, pageWidth - explicitWidth);
     const fallbackWidth  = unsizedCount > 0 ? remaining / unsizedCount : 0;
     const colWidths = columns.map((c) => c.width ?? fallbackWidth);
+    const cellTextWidths = colWidths.map((w) => Math.max(0, w - 8));
 
-    const left    = doc.page.margins.left;
-    const rowH    = 20;
-    let   y       = doc.y;
+    const left     = doc.page.margins.left;
+    const minRowH  = 20;
+    const cellVPad = 6; // top padding; mirrored below the text when sizing the row
+    let   y        = doc.y;
 
-    function drawHeaderRow() {
-      doc.rect(left, y, pageWidth, rowH).fill(BRAND_BLUE);
-      let x = left;
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#FFFFFF');
-      columns.forEach((c, i) => {
-        doc.text(c.header, x + 4, y + 6, { width: colWidths[i] - 8, ellipsis: true });
-        x += colWidths[i];
-      });
-      y += rowH;
+    // Wrapped-text height for one cell at the column's actual text width, under
+    // whichever font/size is active on `doc` right now (header vs. body).
+    function cellTextHeight(value, colIndex) {
+      return doc.heightOfString(String(value ?? ''), { width: cellTextWidths[colIndex] });
     }
 
-    function ensureSpace() {
-      if (y + rowH > doc.page.height - doc.page.margins.bottom) {
-        doc.addPage();
-        y = doc.page.margins.top;
-        drawHeaderRow();
-      }
+    // Tallest wrapped cell in the row, so the whole row reserves one shared
+    // height — no cell may be taller than what the row was paginated for.
+    function rowHeightFor(values) {
+      return Math.max(minRowH, ...values.map((v, i) => cellTextHeight(v, i) + cellVPad * 2));
+    }
+
+    function drawRow(values, { rowHeight, bg, color, font }) {
+      if (bg) doc.rect(left, y, pageWidth, rowHeight).fill(bg);
+      let x = left;
+      doc.font(font).fontSize(8.5).fillColor(color);
+      values.forEach((value, i) => {
+        // `height` bounds each cell to the row's own box: PDFKit clips/ellipsizes
+        // inside it instead of auto-paginating mid-cell on tall wrapped text.
+        doc.text(String(value ?? ''), x + 4, y + cellVPad, {
+          width: cellTextWidths[i],
+          height: rowHeight - cellVPad * 2,
+          ellipsis: true,
+        });
+        x += colWidths[i];
+      });
+      y += rowHeight;
+    }
+
+    function drawHeaderRow() {
+      doc.font('Helvetica-Bold').fontSize(8.5);
+      const headers = columns.map((c) => c.header);
+      const rowHeight = rowHeightFor(headers);
+      drawRow(headers, { rowHeight, bg: BRAND_BLUE, color: '#FFFFFF', font: 'Helvetica-Bold' });
     }
 
     drawHeaderRow();
 
     rows.forEach((row, idx) => {
-      ensureSpace();
-      if (idx % 2 === 1) {
-        doc.rect(left, y, pageWidth, rowH).fill(ROW_ALT);
+      doc.font('Helvetica').fontSize(8.5);
+      const values = columns.map((c) => row[c.key] ?? '');
+      const rowHeight = rowHeightFor(values);
+
+      // Whole-row pagination check: if the tallest wrapped cell wouldn't fit,
+      // start a fresh page (with a redrawn header) before drawing any cell —
+      // never let an individual cell decide this on its own mid-row.
+      if (y + rowHeight > doc.page.height - doc.page.margins.bottom) {
+        doc.addPage();
+        y = doc.page.margins.top;
+        drawHeaderRow();
+        doc.font('Helvetica').fontSize(8.5);
       }
-      let x = left;
-      doc.font('Helvetica').fontSize(8.5).fillColor(TEXT_DARK);
-      columns.forEach((c) => {
-        const value = row[c.key] ?? '';
-        doc.text(String(value), x + 4, y + 6, { width: colWidths[columns.indexOf(c)] - 8, ellipsis: true });
-        x += colWidths[columns.indexOf(c)];
-      });
-      y += rowH;
+
+      drawRow(values, { rowHeight, bg: idx % 2 === 1 ? ROW_ALT : null, color: TEXT_DARK, font: 'Helvetica' });
     });
 
     doc.end();
