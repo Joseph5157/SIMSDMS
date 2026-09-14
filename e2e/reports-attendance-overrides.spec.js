@@ -4,18 +4,16 @@ import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD } from './fixtures.mjs';
 // Batch 3.2d (Spec 032): "Override Log" is an audit-log-with-reason report,
 // same category as Batch 3.2b's reassignment history — same card treatment.
 //
-// KNOWN PRE-EXISTING BUG (not introduced or fixed by this batch): the
-// 'attendance-overrides' ReportSection case in
-// client/src/pages/admin/ReportsPage.jsx reads r.faculty / r.dutySlot /
-// r.overriddenBy, but attendanceOverrideLog
+// Milestone 7 (Spec 032) fixed the field-name mismatch this spec previously
+// documented as a known pre-existing bug: the 'attendance-overrides'
+// ReportSection case in client/src/pages/admin/ReportsPage.jsx read
+// r.faculty / r.dutySlot / r.overriddenBy, but attendanceOverrideLog
 // (server/controllers/reports.controller.js) returns nested
-// attendance.faculty / attendance.dutySlot / changedBy instead. Every row's
-// faculty name renders blank and its date renders "Invalid Date" — true
-// before this batch (same bug, same broken table) and unchanged by it. This
-// spec therefore only asserts on override_reason (the one field that IS
-// wired correctly) and on structural/responsive behavior (no table on
-// mobile, no overflow) — it does NOT assert faculty/date values, since doing
-// so would require fixing the unrelated data-contract bug first.
+// attendance.faculty / attendance.dutySlot / changedBy instead — every row's
+// faculty name rendered blank and its date rendered "Invalid Date". Now that
+// the frontend reads the actual response shape, this spec asserts the
+// faculty name and a real (non-"Invalid Date") date render correctly, in
+// addition to override_reason and structural/responsive behavior.
 
 async function loginAsAdmin(page) {
   await page.goto('/login');
@@ -53,6 +51,8 @@ test.describe('Attendance Override Log mobile card (Batch 3.2d)', () => {
     // this text, so an unscoped query needs .first()/.last() disambiguation
     // — scoping to the visible table sidesteps that entirely.
     await expect(table.getByText('E2E test override reason')).toBeVisible();
+    await expect(table.getByText('E2E Faculty')).toBeVisible();
+    await expect(table.getByText('Invalid Date')).toHaveCount(0);
     await assertNoHorizontalOverflow(page);
   });
 
@@ -64,6 +64,8 @@ test.describe('Attendance Override Log mobile card (Batch 3.2d)', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('table')).toHaveCount(0);
     await expect(dialog.getByText('E2E test override reason').first()).toBeVisible();
+    await expect(dialog.getByText('E2E Faculty').first()).toBeVisible();
+    await expect(dialog.getByText('Invalid Date')).toHaveCount(0);
     await assertNoHorizontalOverflow(page);
   });
 

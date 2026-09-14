@@ -66,4 +66,22 @@ test.describe('Duty Coverage / Active Students non-table summaries (Batch 3.2c)'
       await assertNoHorizontalOverflow(page);
     });
   }
+
+  // Milestone 7 (Spec 032): regression guard for the "legacy null label" fix
+  // — activeStudentRoster's breakdown key (server/controllers/reports.controller.js)
+  // used to concatenate the legacy nullable `semester_or_year` column, which
+  // rendered the literal string "null" for any student without it backfilled.
+  // Now derived from the always-populated `year`/`semester` columns instead.
+  // The seeded e2e student (course b_pharm, year 1, semester 1) exercises
+  // this directly.
+  test('Active Students breakdown pills never show the literal "null" label', async ({ page }) => {
+    await loginAsAdmin(page);
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('/admin/reports');
+    await page.getByRole('button', { name: /Active Students/ }).click();
+
+    const container = reportContainer(page, 1280, /Active Students/);
+    await expect(container.getByText('b_pharm · Year 1 Sem 1', { exact: false })).toBeVisible();
+    await expect(container.getByText(/·\s*null\b/i)).toHaveCount(0);
+  });
 });

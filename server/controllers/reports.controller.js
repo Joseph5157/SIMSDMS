@@ -689,10 +689,16 @@ async function activeStudentRoster(req, res) {
     orderBy: [{ course: 'asc' }, { semester_or_year: 'asc' }, { student_name: 'asc' }],
   });
 
-  // Breakdown by course
+  // Breakdown by course. `semester_or_year` is a legacy nullable display
+  // field (see schema comment) — null for students seeded/migrated before
+  // it existed, which rendered as the literal string "null" here. `year`
+  // and `semester` are always populated (non-nullable columns) and are the
+  // same source `students.controller.js` itself formats this string from,
+  // so derive the label from them directly instead of trusting the legacy
+  // column.
   const breakdown = {};
   for (const s of students) {
-    const key = `${s.course} · ${s.semester_or_year}`;
+    const key = `${s.course} · Year ${s.year} Sem ${s.semester}`;
     breakdown[key] = (breakdown[key] ?? 0) + 1;
   }
 

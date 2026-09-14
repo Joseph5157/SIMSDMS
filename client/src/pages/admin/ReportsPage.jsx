@@ -214,11 +214,11 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
                 <MobileListItem key={r.id} isLast={i === data.data.length - 1}>
                   <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <MobileListItemHeader
-                      title={r.faculty?.name}
-                      subtitle={new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}
+                      title={r.attendance?.faculty?.name}
+                      subtitle={r.attendance?.dutySlot?.duty_date ? new Date(r.attendance.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}
                     />
                     <MobileListItemMeta>
-                      By {r.overriddenBy?.name}{r.override_reason ? ` · ${r.override_reason}` : ''}
+                      By {r.changedBy?.name}{r.override_reason ? ` · ${r.override_reason}` : ''}
                     </MobileListItemMeta>
                   </div>
                 </MobileListItem>
@@ -233,9 +233,9 @@ function ReportSection({ id, data, isLoading, isError, refetch }) {
               {!data.data?.length && <EmptyRow cols={4} />}
               {data.data?.map((r) => (
                 <tr key={r.id}>
-                  <Td>{r.faculty?.name}</Td>
-                  <Td>{new Date(r.dutySlot?.duty_date).toLocaleDateString('en-IN')}</Td>
-                  <Td>{r.overriddenBy?.name}</Td>
+                  <Td>{r.attendance?.faculty?.name}</Td>
+                  <Td>{r.attendance?.dutySlot?.duty_date ? new Date(r.attendance.dutySlot.duty_date).toLocaleDateString('en-IN') : '—'}</Td>
+                  <Td>{r.changedBy?.name}</Td>
                   <Td className="text-[length:12px] text-[var(--text-muted)] max-w-xs truncate">{r.override_reason}</Td>
                 </tr>
               ))}
@@ -764,11 +764,11 @@ function StudentViolationReportCard() {
           <div className="flex gap-2 flex-wrap">
             {(mode === 'monthly' || mode === 'yearly') && (
               <>
-                <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
+                <select id="svr-year" name="year" aria-label="Year" value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
                   {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
                 </select>
                 {mode === 'monthly' && (
-                  <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
+                  <select id="svr-month" name="month" aria-label="Month" value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
                     {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                   </select>
                 )}
@@ -776,6 +776,9 @@ function StudentViolationReportCard() {
             )}
             {mode === 'daily' && (
               <input
+                id="svr-daily-date"
+                name="dailyDate"
+                aria-label="Date"
                 type="date"
                 value={dailyDate}
                 onChange={(e) => setDailyDate(e.target.value)}
@@ -785,6 +788,9 @@ function StudentViolationReportCard() {
             {mode === 'weekly' && (
               <>
                 <input
+                  id="svr-weekly-from"
+                  name="weeklyFrom"
+                  aria-label="From date"
                   type="date"
                   value={weeklyFromDate}
                   onChange={(e) => setWeeklyFromDate(e.target.value)}
@@ -792,6 +798,9 @@ function StudentViolationReportCard() {
                   placeholder="From"
                 />
                 <input
+                  id="svr-weekly-to"
+                  name="weeklyTo"
+                  aria-label="To date"
                   type="date"
                   value={weeklyToDate}
                   onChange={(e) => setWeeklyToDate(e.target.value)}
@@ -807,24 +816,24 @@ function StudentViolationReportCard() {
       <div className="mb-5">
         <FilterGroupLabel>Filters</FilterGroupLabel>
         <div className="flex gap-2 flex-wrap">
-        <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
+        <select id="svr-course" name="course" aria-label="Course" value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
           <option value="">All Courses</option>
           {(filterOptions?.courses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={studentYear} onChange={(e) => setStudentYear(e.target.value)} className={selectCls}>
+        <select id="svr-student-year" name="studentYear" aria-label="Student year" value={studentYear} onChange={(e) => setStudentYear(e.target.value)} className={selectCls}>
           <option value="">All Years</option>
           {(filterOptions?.years ?? []).map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
-        <select value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls}>
+        <select id="svr-violation-type" name="violationType" aria-label="Violation type" value={violationTypeId} onChange={(e) => setViolationTypeId(e.target.value)} className={selectCls}>
           <option value="">All Violation Types</option>
           {(filterOptions?.violation_types ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls}>
+        <select id="svr-recorder" name="recorder" aria-label="Recorder" value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className={selectCls}>
           <option value="">All Recorders</option>
           <option value="admin">Admin</option>
           {(facultyData?.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
-        <select value={session} onChange={(e) => setSession(e.target.value)} className={selectCls}>
+        <select id="svr-session" name="session" aria-label="Session" value={session} onChange={(e) => setSession(e.target.value)} className={selectCls}>
           <option value="">Full Day</option>
           <option value="morning">Morning Session</option>
           <option value="afternoon">Afternoon Session</option>
@@ -960,6 +969,9 @@ function IndividualStudentReportCard() {
       {!student ? (
         <div className="relative mb-5 max-w-md">
           <input
+            id="isvr-student-search"
+            name="studentSearch"
+            aria-label="Search student by name or registration number"
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -1026,23 +1038,23 @@ function IndividualStudentReportCard() {
               <div className="flex gap-2 flex-wrap">
                 {(mode === 'monthly' || mode === 'yearly') && (
                   <>
-                    <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
+                    <select id="isvr-year" name="year" aria-label="Year" value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
                       {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
                     </select>
                     {mode === 'monthly' && (
-                      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
+                      <select id="isvr-month" name="month" aria-label="Month" value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
                         {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                       </select>
                     )}
                   </>
                 )}
                 {mode === 'daily' && (
-                  <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} />
+                  <input id="isvr-daily-date" name="dailyDate" aria-label="Date" type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} />
                 )}
                 {mode === 'weekly' && (
                   <>
-                    <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} />
-                    <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} />
+                    <input id="isvr-weekly-from" name="weeklyFrom" aria-label="From date" type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} />
+                    <input id="isvr-weekly-to" name="weeklyTo" aria-label="To date" type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} />
                   </>
                 )}
               </div>
