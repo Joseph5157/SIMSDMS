@@ -8,6 +8,7 @@ import { MobileList, MobileListItem, MobileListItemHeader, MobileListItemMeta } 
 import EmptyState from '../../components/ui/EmptyState';
 import AppButton from '../../components/ui/AppButton';
 import { useMediaQuery } from '@mantine/hooks';
+import { IconX } from '@tabler/icons-react';
 import {
   useMonthlyAttendance, useLateArrivals, useAbsentFaculty, useAutoClockOut,
   useAttendanceOverrides, useStudentViolations, useFacultyActivity, useViolationTypeBreakdown, usePendingFines,
@@ -23,27 +24,31 @@ import Breadcrumb from '../../components/Breadcrumb';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── Report card definitions ────────────────────────────────────────────────────
+// ── Report list definitions ─────────────────────────────────────────────────────
+// Batch 5.1 (Spec 032, Milestone 5): identity is text-first (label + one-line
+// desc), grouped by family — no per-report emoji/colour tile. See V2 §11 and
+// DS-18/DS-19 (030-H): a 15-way emoji + arbitrary-colour-tile catalogue reads
+// as a generic feature marketplace, not an operational report index.
 const REPORTS = [
   // Attendance group
-  { id: 'monthly-attendance',   group: 'Attendance',      emoji: '📊', color: 'bg-[var(--color-blue-100)]',   label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
-  { id: 'late-arrivals',        group: 'Attendance',      emoji: '⏰', color: 'bg-[var(--color-amber-bg)]',  label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
-  { id: 'absent-faculty',       group: 'Attendance',      emoji: '❌', color: 'bg-[var(--color-red-bg)]',    label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
-  { id: 'auto-clockout',        group: 'Attendance',      emoji: '🕓', color: 'bg-[var(--color-orange-bg)]', label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
+  { id: 'monthly-attendance',   group: 'Attendance',         label: 'Monthly Attendance',   desc: 'Full attendance summary per faculty' },
+  { id: 'late-arrivals',        group: 'Attendance',         label: 'Late Arrivals',         desc: 'Faculty who checked in late' },
+  { id: 'absent-faculty',       group: 'Attendance',         label: 'Absent Faculty',        desc: 'Slots with no check-in recorded' },
+  { id: 'auto-clockout',        group: 'Attendance',         label: 'Auto Clock-outs',       desc: 'System-clocked-out records' },
   // Student Violations group
-  { id: 'faculty-activity',     group: 'Student Violations', emoji: '👤', color: 'bg-[var(--color-purple-bg)]', label: 'Faculty Activity',      desc: 'Student violations recorded per faculty' },
-  { id: 'violation-types',      group: 'Student Violations', emoji: '🏷', color: 'bg-[var(--color-indigo-100)]', label: 'Type Breakdown',        desc: 'Student violations grouped by type' },
-  { id: 'pending-fines',        group: 'Student Violations', emoji: '💰', color: 'bg-[var(--color-amber-bg)]', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
-  { id: 'flagged-violations',   group: 'Student Violations', emoji: '⚑',  color: 'bg-[var(--color-amber-bg)]',  label: 'Flagged Student Violations', desc: 'Records flagged for Admin review' },
+  { id: 'faculty-activity',     group: 'Student Violations', label: 'Faculty Activity',      desc: 'Student violations recorded per faculty' },
+  { id: 'violation-types',      group: 'Student Violations', label: 'Type Breakdown',        desc: 'Student violations grouped by type' },
+  { id: 'pending-fines',        group: 'Student Violations', label: 'Pending Fines',         desc: 'Outstanding fine amounts' },
+  { id: 'flagged-violations',   group: 'Student Violations', label: 'Flagged Student Violations', desc: 'Records flagged for Admin review' },
   // Duty & Coverage group
-  { id: 'duty-coverage',        group: 'Duty & Coverage', emoji: '📅', color: 'bg-[var(--color-emerald-bg)]',  label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
-  { id: 'unassigned-faculty',   group: 'Duty & Coverage', emoji: '👥', color: 'bg-[var(--color-amber-bg)]',  label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
-  { id: 'duty-reassignments',   group: 'Duty & Coverage', emoji: '🔄', color: 'bg-[var(--color-indigo-bg)]', label: 'Duty Reassignments',    desc: 'Reassignment history and per-faculty duty counts' },
-  { id: 'completion-rate',      group: 'Duty & Coverage', emoji: '📈', color: 'bg-[var(--color-emerald-bg)]',   label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
+  { id: 'duty-coverage',        group: 'Duty & Coverage',    label: 'Duty Coverage',         desc: 'Monthly slot completion stats' },
+  { id: 'unassigned-faculty',   group: 'Duty & Coverage',    label: 'Unassigned Faculty',    desc: 'Faculty without full slot allocation' },
+  { id: 'duty-reassignments',   group: 'Duty & Coverage',    label: 'Duty Reassignments',    desc: 'Reassignment history and per-faculty duty counts' },
+  { id: 'completion-rate',      group: 'Duty & Coverage',    label: 'Completion Rate',       desc: 'Month-by-month session completion %' },
   // Students group
-  { id: 'attendance-overrides', group: 'Students',        emoji: '✏️', color: 'bg-[var(--color-red-bg)]',   label: 'Override Log',          desc: 'Admin-overridden attendance records' },
-  { id: 'upload-history',       group: 'Students',        emoji: '📤', color: 'bg-[var(--color-blue-100)]',   label: 'Upload History',        desc: 'Excel upload log with error counts' },
-  { id: 'active-students',      group: 'Students',        emoji: '🎓', color: 'bg-[var(--color-emerald-bg)]',  label: 'Active Students',       desc: 'Student roster breakdown by course' },
+  { id: 'attendance-overrides', group: 'Students',           label: 'Override Log',          desc: 'Admin-overridden attendance records' },
+  { id: 'upload-history',       group: 'Students',           label: 'Upload History',        desc: 'Excel upload log with error counts' },
+  { id: 'active-students',      group: 'Students',           label: 'Active Students',       desc: 'Student roster breakdown by course' },
 ];
 
 const REPORT_GROUPS = ['Attendance', 'Student Violations', 'Duty & Coverage', 'Students'];
@@ -63,6 +68,17 @@ function MonthFilter({ year, month, setYear, setMonth }) {
         {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
       </select>
     </div>
+  );
+}
+
+// Batch 5.2 (Spec 032, Milestone 5): shared micro-label for grouping a report
+// card's own controls ("Period", "Filters") — same convention already used
+// for the "Secondary reports" / group headings below, not a new visual system.
+function FilterGroupLabel({ children }) {
+  return (
+    <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] mb-2">
+      {children}
+    </p>
   );
 }
 
@@ -699,7 +715,7 @@ function StudentViolationReportCard() {
       <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
         <div>
           <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--brand)] mb-1">Main report</p>
-          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">⚠️ Student Violation Report</h2>
+          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Student Violation Report</h2>
           <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">All recorded student violations — daily, weekly, monthly, yearly, or overall</p>
         </div>
         <div className="shrink-0 flex gap-2">
@@ -720,70 +736,77 @@ function StudentViolationReportCard() {
         </div>
       </div>
 
-      {/* Mode switcher */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall']].map(([m, label]) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
-              mode === m
-                ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
-                : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Batch 5.2 (Spec 032, Milestone 5): "Period" and "Filters" are now two
+          labeled groups instead of three anonymous stacked control rows — the
+          DS-18 "control wall" finding. Same micro-label convention as the
+          "Secondary reports"/group headings below; no new visual system,
+          no filter logic change. */}
+      <div className="mb-5">
+        <FilterGroupLabel>Period</FilterGroupLabel>
+        <div className="flex gap-2 mb-3 flex-wrap">
+          {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall']].map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+                mode === m
+                  ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
+                  : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {mode !== 'overall' && (
+          <div className="flex gap-2 flex-wrap">
+            {(mode === 'monthly' || mode === 'yearly') && (
+              <>
+                <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
+                  {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
+                </select>
+                {mode === 'monthly' && (
+                  <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
+                    {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                  </select>
+                )}
+              </>
+            )}
+            {mode === 'daily' && (
+              <input
+                type="date"
+                value={dailyDate}
+                onChange={(e) => setDailyDate(e.target.value)}
+                className={selectCls}
+              />
+            )}
+            {mode === 'weekly' && (
+              <>
+                <input
+                  type="date"
+                  value={weeklyFromDate}
+                  onChange={(e) => setWeeklyFromDate(e.target.value)}
+                  className={selectCls}
+                  placeholder="From"
+                />
+                <input
+                  type="date"
+                  value={weeklyToDate}
+                  onChange={(e) => setWeeklyToDate(e.target.value)}
+                  className={selectCls}
+                  placeholder="To"
+                />
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Date pickers depending on mode */}
-      {mode !== 'overall' && (
-        <div className="flex gap-2 mb-5 flex-wrap">
-          {(mode === 'monthly' || mode === 'yearly') && (
-            <>
-              <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
-                {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
-              </select>
-              {mode === 'monthly' && (
-                <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
-                  {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                </select>
-              )}
-            </>
-          )}
-          {mode === 'daily' && (
-            <input
-              type="date"
-              value={dailyDate}
-              onChange={(e) => setDailyDate(e.target.value)}
-              className={selectCls}
-            />
-          )}
-          {mode === 'weekly' && (
-            <>
-              <input
-                type="date"
-                value={weeklyFromDate}
-                onChange={(e) => setWeeklyFromDate(e.target.value)}
-                className={selectCls}
-                placeholder="From"
-              />
-              <input
-                type="date"
-                value={weeklyToDate}
-                onChange={(e) => setWeeklyToDate(e.target.value)}
-                className={selectCls}
-                placeholder="To"
-              />
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="mb-5">
+        <FilterGroupLabel>Filters</FilterGroupLabel>
+        <div className="flex gap-2 flex-wrap">
         <select value={course} onChange={(e) => setCourse(e.target.value)} className={selectCls}>
           <option value="">All Courses</option>
           {(filterOptions?.courses ?? []).map((c) => <option key={c} value={c}>{c}</option>)}
@@ -806,6 +829,7 @@ function StudentViolationReportCard() {
           <option value="morning">Morning Session</option>
           <option value="afternoon">Afternoon Session</option>
         </select>
+        </div>
       </div>
 
       {!isLoading && data && mode !== 'daily' && mode !== 'weekly' && (
@@ -911,7 +935,7 @@ function IndividualStudentReportCard() {
       <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
         <div>
           <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[var(--text-muted)] mb-1">By student</p>
-          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">🎓 Individual Student Violation Report</h2>
+          <h2 className="text-[length:16px] font-bold text-[var(--text-primary)]">Individual Student Violation Report</h2>
           <p className="text-[length:13px] text-[var(--text-muted)] mt-0.5">Complete violation history for one student — for counselling, parent meetings, and reviews</p>
         </div>
         <div className="shrink-0 flex gap-2">
@@ -978,50 +1002,52 @@ function IndividualStudentReportCard() {
 
       {student && (
         <>
-          {/* Mode switcher */}
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall History']].map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMode(m)}
-                className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
-                  mode === m
-                    ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
-                    : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* Date pickers depending on mode */}
-          {mode !== 'overall' && (
-            <div className="flex gap-2 mb-5 flex-wrap">
-              {(mode === 'monthly' || mode === 'yearly') && (
-                <>
-                  <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
-                    {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
-                  </select>
-                  {mode === 'monthly' && (
-                    <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
-                      {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                    </select>
-                  )}
-                </>
-              )}
-              {mode === 'daily' && (
-                <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} />
-              )}
-              {mode === 'weekly' && (
-                <>
-                  <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} />
-                  <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} />
-                </>
-              )}
+          {/* Batch 5.2: same "Period" grouping as the main report card above. */}
+          <div className="mb-5">
+            <FilterGroupLabel>Period</FilterGroupLabel>
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {[['monthly', 'Monthly'], ['yearly', 'Yearly'], ['daily', 'Daily'], ['weekly', 'Weekly'], ['overall', 'Overall History']].map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={`min-h-[var(--control-min)] px-3.5 py-1.5 rounded-lg text-[length:13px] font-semibold transition-colors cursor-pointer border ${
+                    mode === m
+                      ? 'bg-[var(--brand)] text-white border-[var(--brand)]'
+                      : 'bg-[var(--surface-page)] text-[var(--text-secondary)] border-[var(--border)]'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          )}
+
+            {mode !== 'overall' && (
+              <div className="flex gap-2 flex-wrap">
+                {(mode === 'monthly' || mode === 'yearly') && (
+                  <>
+                    <select value={year} onChange={(e) => setYear(+e.target.value)} className={selectCls}>
+                      {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => <option key={y}>{y}</option>)}
+                    </select>
+                    {mode === 'monthly' && (
+                      <select value={month} onChange={(e) => setMonth(+e.target.value)} className={selectCls}>
+                        {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                      </select>
+                    )}
+                  </>
+                )}
+                {mode === 'daily' && (
+                  <input type="date" value={dailyDate} onChange={(e) => setDailyDate(e.target.value)} className={selectCls} />
+                )}
+                {mode === 'weekly' && (
+                  <>
+                    <input type="date" value={weeklyFromDate} onChange={(e) => setWeeklyFromDate(e.target.value)} className={selectCls} />
+                    <input type="date" value={weeklyToDate} onChange={(e) => setWeeklyToDate(e.target.value)} className={selectCls} />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           {mode === 'daily'  && <ReportSection id="student-violations" data={dailyData}  isLoading={dailyLoading}  isError={dailyError}  refetch={refetchDaily} />}
           {mode === 'weekly' && <ReportSection id="student-violations" data={weeklyData} isLoading={weeklyLoading} isError={weeklyError} refetch={refetchWeekly} />}
@@ -1095,33 +1121,44 @@ export default function ReportsPage({ user }) {
         Secondary reports
       </p>
 
-      {/* Grouped report cards */}
-      {REPORT_GROUPS.map((group) => (
-        <div key={group} className="mb-6">
-          <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] mb-2">
-            {group}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {REPORTS.filter((r) => r.group === group).map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setActive(active === r.id ? null : r.id)}
-                className={`text-left rounded-xl border p-4 transition-all ${
-                  active === r.id
-                    ? 'border-[var(--brand)] bg-[var(--color-blue-50)] shadow-sm'
-                    : 'border-[var(--border)] bg-[var(--surface-card)] hover:border-[var(--color-blue-300)] hover:bg-[var(--surface-page)]'
-                }`}
-              >
-                <div className={`w-9 h-9 rounded-lg ${r.color} flex items-center justify-center text-[length:18px] mb-3`}>
-                  {r.emoji}
-                </div>
-                <p className="text-[length:13px] font-semibold text-[var(--text-primary)] leading-snug">{r.label}</p>
-                <p className="text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-0.5 leading-snug">{r.desc}</p>
-              </button>
-            ))}
+      {/* Batch 5.1 (Spec 032, Milestone 5): grouped operational index, not an
+          icon-card catalogue — one bordered list per family, text-first rows
+          with a divider between entries (same list-with-row-separators
+          language as e.g. Students' mobile list), selection shown via the
+          same left-accent-bar + tint treatment as the sidebar's active nav
+          item (Layout.module.css .navItemActive), not a per-report colour. */}
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
+        {REPORT_GROUPS.map((group) => (
+          <div key={group} className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl overflow-hidden self-start">
+            <p className="text-[length:var(--text-micro)] font-bold uppercase tracking-[var(--tracking-wide)] text-[color:var(--text-muted)] px-4 pt-3 pb-2">
+              {group}
+            </p>
+            <div className="divide-y divide-[var(--divider)]">
+              {REPORTS.filter((r) => r.group === group).map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setActive(active === r.id ? null : r.id)}
+                  aria-pressed={active === r.id}
+                  className={`w-full text-left flex items-center justify-between gap-3 px-4 py-3 border-l-[3px] transition-colors ${
+                    active === r.id
+                      ? 'border-l-[var(--brand)] bg-[var(--color-blue-50)]'
+                      : 'border-l-transparent hover:bg-[var(--surface-page)]'
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className={`block text-[length:13px] font-semibold leading-snug ${active === r.id ? 'text-[var(--brand)]' : 'text-[var(--text-primary)]'}`}>
+                      {r.label}
+                    </span>
+                    <span className="block text-[length:var(--text-micro)] text-[color:var(--text-muted)] mt-0.5 leading-snug">
+                      {r.desc}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* Mobile: ResponsiveSheet for report results */}
       {isMobile && (
@@ -1138,15 +1175,21 @@ export default function ReportsPage({ user }) {
       {/* Desktop: inline result panel */}
       {!isMobile && active && (
         <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-xl p-5">
+          {/* h2 stays a direct child of this flex row (not wrapped further) —
+              e2e/reports-*.spec.js locate this panel via
+              `getByRole('heading', ...).locator('..').locator('..')`, i.e.
+              exactly two levels up from the heading; an added wrapper here
+              would retarget "panel" to this row instead of the card below. */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[length:14px] font-semibold text-[var(--text-primary)]">
-              {activeReport?.emoji} {activeReport?.label}
+              {activeReport?.label}
             </h2>
             <button
               onClick={() => setActive(null)}
-              className="text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[length:18px] leading-none cursor-pointer bg-transparent border-none"
+              aria-label="Close report"
+              className="w-9 h-9 shrink-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-page)] flex items-center justify-center cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             >
-              ✕
+              <IconX size={16} stroke={2} />
             </button>
           </div>
           <ReportView key={active} id={active} />
