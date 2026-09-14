@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { Button, Menu, ActionIcon, Modal, Text, Group } from '@mantine/core';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
@@ -203,9 +205,9 @@ export default function UsersPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
-        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No users found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <EmptyState message="No users found." />}
         {data?.data?.map((u) => (
           <div key={u.id} className="flex items-center justify-between px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)] gap-3">
             <div className="flex-1 min-w-0">
@@ -247,7 +249,7 @@ export default function UsersPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
             {isError && <ErrorRow cols={6} onRetry={refetch} />}
             {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={6} />}
             {data?.data?.map((u) => (
@@ -314,7 +316,7 @@ export default function UsersPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {invitesLoading && <EmptyRow cols={5} message="Loading…" />}
+            {invitesLoading && Array.from({ length: 3 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)}
             {invitesError && <ErrorRow cols={5} onRetry={refetchInvites} />}
             {!invitesLoading && !invitesError && !invitesData?.data?.length && <EmptyRow cols={5} message="No pending invites." />}
             {invitesData?.data?.map((inv) => (

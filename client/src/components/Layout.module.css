@@ -185,6 +185,8 @@
   align-items: center;
   justify-content: center;
   padding: 8px 12px;
+  min-width: var(--control-min);
+  min-height: var(--control-min);
   border-radius: 8px;
   border: 1px solid rgba(239, 68, 68, 0.25);
   background-color: rgba(239, 68, 68, 0.1);

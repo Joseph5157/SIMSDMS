@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
 import Alert from '../../components/ui/Alert';
+import AppButton from '../../components/ui/AppButton';
 import { INSTITUTION_NAME, APP_SHORT_NAME } from '../../utils/branding';
 
 /* Shared Tailwind class string for password/text inputs */
@@ -223,6 +224,11 @@ export default function ChangePasswordPage() {
 
           {/* Buttons */}
           <div className="flex flex-col gap-3">
+            {/* Kept as a raw button, not AppButton: same branded 56px-family
+                gradient CTA as LoginPage's submit (030-E), an intentionally
+                distinct auth-flow design per V2 §9's login gradient exception —
+                AppButton has no gradient/press-scale variant to represent it
+                without degrading the auth UX. */}
             <button
               type="submit"
               disabled={isSubmitDisabled}
@@ -248,18 +254,9 @@ export default function ChangePasswordPage() {
             </button>
 
             {!isMandatory && (
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={isLoading}
-                className={[
-                  'text-[length:var(--text-card)] text-[var(--text-muted)]',
-                  'bg-transparent border-none text-center font-[var(--font-sans)]',
-                  isLoading ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
-                ].join(' ')}
-              >
+              <AppButton variant="ghost" onClick={handleCancel} disabled={isLoading} style={{ width: '100%' }}>
                 ← Cancel
-              </button>
+              </AppButton>
             )}
           </div>
         </form>

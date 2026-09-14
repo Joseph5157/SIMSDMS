@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TextInput } from '@mantine/core';
-import ResponsiveSheet, { cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 
 const sectionTitle = "text-[length:var(--text-micro)] font-[800] text-[color:var(--text-muted)] uppercase tracking-[0.12em]";
 
@@ -81,25 +82,26 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
       subtitle={inviteLink ? `Share with ${invitedName}` : 'An invite link will be sent to their Telegram'}
       footer={
         inviteLink ? (
-          <button
+          <AppButton
             onClick={resetAndClose}
             data-primary=""
-            style={{ ...primaryBtnStyle(false), flex: 1, maxWidth: 200, margin: '0 auto' }}
+            style={{ flex: 1, maxWidth: 200, margin: '0 auto' }}
           >
             Done
-          </button>
+          </AppButton>
         ) : (
           <>
-            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-            <button
+            <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
+            <AppButton
               type="submit"
               disabled={loading || !form.name.trim() || !form.email.trim()}
+              loading={loading}
               onClick={handleSubmit}
               data-primary=""
-              style={primaryBtnStyle(loading || !form.name.trim() || !form.email.trim())}
+              style={{ flex: 2 }}
             >
-              {loading ? '🔄 Sending...' : 'Send Invite'}
-            </button>
+              Send Invite
+            </AppButton>
           </>
         )
       }

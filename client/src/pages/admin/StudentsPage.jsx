@@ -10,6 +10,8 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
+import AppButton from '../../components/ui/AppButton';
 import UploadStudentsDrawer from '../../components/UploadStudentsDrawer';
 import StudentDetailsDrawer from '../../components/StudentDetailsDrawer';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -287,9 +289,9 @@ export default function StudentsPage({ user }) {
           {[1,2,3,4,5,6].map((y) => <option key={y} value={y}>Year {y}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={resetFilters} className="text-[12px] text-[var(--text-secondary)] bg-transparent border-0 cursor-pointer px-1.5 py-1 font-[var(--weight-semibold)]">
+          <AppButton variant="ghost" size="xs" onClick={resetFilters}>
             Clear
-          </button>
+          </AppButton>
         )}
       </div>
 
@@ -309,9 +311,7 @@ export default function StudentsPage({ user }) {
         )}
         {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && (
-          <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No students found.</div>
-        )}
+        {!isLoading && !isError && !data?.data?.length && <EmptyState message="No students found." />}
         {data?.data?.map((s) => (
           <div key={s.id} className="px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)]">
             <div

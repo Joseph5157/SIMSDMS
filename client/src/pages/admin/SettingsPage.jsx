@@ -5,6 +5,8 @@ import { Tabs, Button, Select, TextInput, Tooltip } from '@mantine/core';
 import { IconClock, IconClockEdit, IconAlertTriangle, IconDeviceFloppy, IconTag } from '@tabler/icons-react';
 import Breadcrumb from '../../components/Breadcrumb';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import Badge from '../../components/ui/Badge';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import ViolationTypeDrawer from '../../components/ViolationTypeDrawer';
@@ -372,13 +374,9 @@ function ViolationTypesTab() {
 
       {/* Mobile card list */}
       <div className="md:hidden flex flex-col gap-2">
-        {isLoading && <p className="text-[length:var(--text-card)] text-[var(--text-muted)] text-center p-6">Loading…</p>}
+        {isLoading && Array.from({ length: 3 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !activeRows.length && (
-          <div className="px-4 py-6 text-center border border-dashed border-[var(--border)] rounded-[var(--radius-xl)]">
-            <p className="text-[length:var(--text-card)] text-[var(--text-muted)]">No student violation types yet.</p>
-          </div>
-        )}
+        {!isLoading && !isError && !activeRows.length && <EmptyState message="No student violation types yet." />}
         {activeRows.map((t, i) => renderMobileCard(t, i))}
 
         {inactiveRows.length > 0 && (
@@ -401,7 +399,7 @@ function ViolationTypesTab() {
             <tr><Th>S.No</Th><Th>Name</Th><Th>Default Fine (₹)</Th><Th>Status</Th><Th>System</Th><Th /></tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={6} message="Loading…" />}
+            {isLoading && Array.from({ length: 3 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
             {isError && <ErrorRow cols={6} onRetry={refetch} />}
             {!isLoading && !isError && !activeRows.length && <EmptyRow cols={6} message="No student violation types yet." />}
             {activeRows.map((t, i) => renderTableRow(t, i))}

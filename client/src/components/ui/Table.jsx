@@ -11,11 +11,19 @@
  */
 import { Table as MTable, Paper, Text, Center, Stack, Button } from '@mantine/core';
 
-/** Outer card shell + horizontal scroll container. */
+/** Outer card shell + horizontal scroll container.
+ *
+ * `scrollAreaProps={{ type: 'always' }}` overrides Mantine's ScrollArea
+ * default of `type: 'hover'` — a horizontally-overflowing table was fully
+ * scrollable but showed its scrollbar only on pointer hover, which never
+ * fires on touch, so mobile users had no visible indication there was more
+ * to scroll to (030-D-03). This only changes the scrollbar's visibility
+ * rule, not the scroll mechanism/width/behavior — Mantine still hides the
+ * scrollbar entirely when a table's content doesn't overflow. */
 export function Table({ children, minWidth = 500 }) {
   return (
     <Paper withBorder radius="md" className="overflow-hidden">
-      <MTable.ScrollContainer minWidth={minWidth}>
+      <MTable.ScrollContainer minWidth={minWidth} scrollAreaProps={{ type: 'always' }}>
         <MTable striped={false} highlightOnHover={false} withRowBorders={false}>
           {children}
         </MTable>

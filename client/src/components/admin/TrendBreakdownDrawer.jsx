@@ -1,4 +1,5 @@
-import ResponsiveSheet, { cancelBtnStyle } from '../ui/ResponsiveSheet';
+import ResponsiveSheet from '../ui/ResponsiveSheet';
+import AppButton from '../ui/AppButton';
 import { useTrendBreakdown } from '../../hooks/useAnalytics';
 
 const sectionTitle = "text-[length:var(--text-micro)] font-[800] text-[color:var(--text-muted)] uppercase tracking-[0.12em]";
@@ -25,7 +26,7 @@ export default function TrendBreakdownDrawer({ bucket, params, onClose }) {
       title={bucket?.label ?? 'Period detail'}
       subtitle="Violation breakdown for this period"
       footer={
-        <button onClick={onClose} style={{ ...cancelBtnStyle, flex: 1 }}>Close</button>
+        <AppButton variant="secondary" onClick={onClose} style={{ flex: 1 }}>Close</AppButton>
       }
     >
       <div className="px-5 py-4 pb-2">

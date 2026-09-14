@@ -19,7 +19,8 @@ import MyViolationsSummary from '../../components/faculty/MyViolationsSummary';
 import RequestReassignmentModal from '../../components/faculty/RequestReassignmentModal';
 import PendingReassignmentRequests from '../../components/faculty/PendingReassignmentRequests';
 import { ROUTES } from '../../utils/constants';
-import { IconRefresh } from '@tabler/icons-react';
+import { IconRefresh, IconAlertTriangle, IconMail } from '@tabler/icons-react';
+import { MobileList, MobileListItem } from '../../components/ui/MobileList';
 
 function todayIST() {
   return new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -29,12 +30,11 @@ function isoDate(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-// Tonal icon-tile tints per activity category (M3 category-color language).
-const ACTIVITY_TINT = {
-  red:    'var(--color-red-bg)',
-  blue:   'var(--color-blue-50)',
-  indigo: 'var(--color-indigo-bg)',
-};
+// Spec 033 pilot: one neutral/brand tonal chip for every activity type — same
+// token pair this page's own "Upcoming duties" date tile already uses. Event
+// type is conveyed by icon shape only; status color lives solely on Badge.
+const ACTIVITY_CHIP_BG   = 'var(--color-blue-50)';
+const ACTIVITY_CHIP_ICON = 'var(--color-blue-800)';
 
 function timeAgo(dateStr) {
   const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -261,19 +261,23 @@ export default function DashboardPage({ user }) {
   });
 
   // ── Unified recent-activity feed (violations logged, messages, duty reassignments) ──
+  // Spec 033 pilot: `title` is the event label, `detail` is the specific
+  // instance (name/subject) — kept separate so the row can show a compact
+  // single line when a future source has no detail, instead of one baked
+  // string. Same 3 sources as before; no new sections merged in here.
   const activityLoading = violationsLoading || inboxLoading || reassignLoading;
   const activityItems = [
     ...(violationsData?.data ?? []).map((v) => ({
-      id: `v-${v.id}`, icon: '⚠️', accent: 'red', timestamp: v.created_at,
-      text: `Student violation recorded — ${v.student?.student_name ?? 'Student'}`,
+      id: `v-${v.id}`, Icon: IconAlertTriangle, timestamp: v.created_at,
+      title: 'Student violation recorded', detail: v.student?.student_name ?? 'Student',
     })),
     ...(inboxData?.data ?? []).map((m) => ({
-      id: `m-${m.id}`, icon: '✉️', accent: 'blue', timestamp: m.created_at, unread: !m.is_read,
-      text: `Message: ${m.subject}`,
+      id: `m-${m.id}`, Icon: IconMail, timestamp: m.created_at, unread: !m.is_read,
+      title: 'New message', detail: m.subject,
     })),
     ...reassignedAway.map((r) => ({
-      id: `ra-${r.id}`, icon: '🔄', accent: 'indigo', timestamp: r.created_at,
-      text: `Duty reassigned to ${r.toFaculty?.name ?? 'another faculty'}`,
+      id: `ra-${r.id}`, Icon: IconRefresh, timestamp: r.created_at,
+      title: 'Duty reassigned', detail: `to ${r.toFaculty?.name ?? 'another faculty'}`,
       status: 'reassigned',
     })),
   ]
@@ -423,14 +427,20 @@ export default function DashboardPage({ user }) {
           <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Upcoming duties
           </p>
-          <div className="flex flex-col gap-2">
-            {upcoming.map((s) => {
+          {/* Batch 6.2 (Spec 032, Milestone 6): was one bordered card per
+              duty with its own left-accent bar — every bar was the same
+              colour, so it decorated rather than distinguished. Now one
+              shared container with row dividers, same pattern as this page's
+              own "Recent activity" list and Admin Dashboard's reassignments
+              list — trims the "repeated card treatment below the [duty]
+              hero" V2 §10 finding without touching any handler/action. */}
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            {upcoming.map((s, i) => {
               const d = new Date(s.duty_date);
               const sentReq = sentRequestFor(s.id);
               const hasPendingRequest = sentReq?.status === 'pending';
               return (
-                <div key={s.id} className="relative overflow-hidden bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--brand)]" />
+                <div key={s.id} className={`px-[14px] py-3 ${i < upcoming.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-blue-50)] flex flex-col items-center justify-center">
                       <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-blue-800)] leading-none">{d.getDate()}</span>
@@ -494,12 +504,11 @@ export default function DashboardPage({ user }) {
           <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[var(--text-secondary)] uppercase tracking-[var(--tracking-wide)] mb-3">
             Reassigned away
           </p>
-          <div className="flex flex-col gap-2">
-            {reassignedAway.map((r) => {
+          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+            {reassignedAway.map((r, i) => {
               const d = new Date(r.duty_date);
               return (
-                <div key={r.id} className="relative overflow-hidden flex items-center gap-3 bg-[var(--surface-card)] rounded-[var(--radius-xl)] border border-[var(--border)] px-[14px] py-3">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--color-indigo-solid)]" />
+                <div key={r.id} className={`flex items-center gap-3 px-[14px] py-3 ${i < reassignedAway.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
                   <div className="w-[42px] h-[42px] rounded-[var(--radius-lg)] shrink-0 bg-[var(--color-indigo-bg)] flex flex-col items-center justify-center">
                     <span className="text-[16px] font-[var(--weight-extra)] text-[var(--color-indigo-text)] leading-none">{d.getDate()}</span>
                     <span className="text-[length:var(--text-nano)] font-[var(--weight-bold)] text-[var(--color-indigo-text)] uppercase">
@@ -539,24 +548,36 @@ export default function DashboardPage({ user }) {
             <p className="text-[length:var(--text-card)] text-[var(--text-muted)]">No recent activity yet.</p>
           </div>
         ) : (
-          <div className="bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden">
+          <MobileList>
             {activityItems.map((item, i) => (
-              <div key={item.id}
-                className={`flex items-center gap-[10px] px-[14px] py-3 ${i < activityItems.length - 1 ? 'border-b border-[var(--divider)]' : ''}`}>
-                <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[15px]"
-                  style={{ background: ACTIVITY_TINT[item.accent] ?? 'var(--surface-page)' }}>{item.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className={`overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-card)] text-[var(--text-primary)] ${item.unread ? 'font-[var(--weight-semibold)]' : 'font-[var(--weight-medium)]'}`}>
-                    {item.text}
-                  </p>
-                  <p className="text-[length:var(--text-nano)] text-[var(--text-muted)] mt-[1px]">
-                    {timeAgo(item.timestamp)}
-                  </p>
+              <MobileListItem key={item.id} isLast={i === activityItems.length - 1}>
+                <div className="flex items-center gap-[10px] flex-1 min-w-0">
+                  <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: ACTIVITY_CHIP_BG }}>
+                    <item.Icon size={15} stroke={1.75} style={{ color: ACTIVITY_CHIP_ICON }} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className={`overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-card)] text-[var(--text-primary)] ${item.unread ? 'font-[var(--weight-semibold)]' : 'font-[var(--weight-medium)]'}`}>
+                        {item.title}
+                      </p>
+                      <span className="shrink-0 text-[length:var(--text-nano)] text-[var(--text-muted)]">
+                        {timeAgo(item.timestamp)}
+                      </span>
+                    </div>
+                    {item.detail && (
+                      <div className="flex items-center justify-between gap-2 mt-[1px]">
+                        <p className="overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--text-micro)] text-[var(--text-muted)]">
+                          {item.detail}
+                        </p>
+                        {item.status && <Badge status={item.status} className="shrink-0" />}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                {item.status && <Badge status={item.status} />}
-              </div>
+              </MobileListItem>
             ))}
-          </div>
+          </MobileList>
         )}
       </div>
 

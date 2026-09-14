@@ -1,142 +1,61 @@
 # UI Architecture
 
-> Governs `client/src`. Required reading before adding or changing any UI component.
-> Backed by `CONSTITUTION.md` §2 (Non-Negotiable Tech Stack) — this document is the detailed
-> policy; the Constitution is the enforced summary. If they conflict, `CONSTITUTION.md` wins.
-> Full migration plan: `specs/025-ui-architecture-consolidation/plan.md`.
+> Current-state guidance for `client/src`, reconciled against the 030 design-system audit in September 2026 and updated after Spec 032 (UI System Implementation & Migration, Milestones 1-7) closed. Read `CONSTITUTION.md` first; it remains the higher-level governance document. This file describes the current implementation, not a future migration plan. Historical delivery intent is retained in `specs/025-ui-architecture-consolidation/`; Spec 032's own batch-by-batch record is in `specs/032-ui-system-implementation-migration/`.
 
-## Why this exists
+## Current responsibility map
 
-The frontend uses Mantine, Tailwind, CSS Modules, inline styles, Radix, Framer Motion, Vaul, and
-two icon libraries. That's not the problem by itself — the problem is that several of these
-solve the *same* job in different ways on different screens: five overlay systems (Mantine
-Modal, Radix Dialog, Vaul Drawer, custom `BottomDrawer`, custom `SheetModal`), two icon sets
-(`@tabler/icons-react` in 7 files, `lucide-react` in 9), and a color ramp defined twice
-(`client/src/index.css` `@theme` block and `:root` block). Confirmed against the codebase
-2026-07-19, not theoretical.
+| Area | Current implementation | Current boundary |
+| --- | --- | --- |
+| Application shell and layout | Mantine AppShell/Drawer, `Layout.module.css`, Tailwind utilities, and limited inline dynamic values | Mantine supplies shell/drawer behavior; CSS Module owns the complex shell; Tailwind is broadly used for presentation and responsive layout. |
+| Controls and forms | Mantine controls are used directly across feature pages; AppButton is now the established primitive for conventional feature actions (Spec 032 Batches 2.2/4.3 converted ResponsiveSheet footers and remaining conventional raw-button actions). Native controls and raw buttons remain for composite/chrome/calendar/pagination controls and legitimate direct Mantine usage — that is an intentional boundary, not a migration gap. | Mantine provides accessible behavior. AppButton adoption is broad for conventional actions but not universal by design; do not add a mechanical "no raw button" rule (see the ESLint enforcement note below) or assume every control must convert without checking whether it's a conventional action. |
+| Overlays | ResponsiveSheet, FormModal, ConfirmDialog, direct Mantine Modal cases, Layout's navigation Drawer, Mantine Menu, and StudentSearchOverlay | Focus does return to the invoking control on close for FormModal and ConfirmDialog (Spec 032 Batch 1.2 fixed the four scenarios the 030 audit found broken, with regression coverage). ResponsiveSheet's footer actions are AppButton-based (Batch 2.2 retired the old raw `cancelBtnStyle`/`primaryBtnStyle`/`DrawerSpinner` exports entirely — do not recreate that pattern from history). ResponsiveSheet is established for its responsive task family; it does not replace every form modal or confirmation automatically. |
+| Feedback | Custom `Toast` provider/hook is the active transient-feedback path; custom Alert is used for inline app feedback. | `@mantine/notifications` was removed (Spec 032 Milestone 7): zero direct imports, not a peer dependency of any installed Mantine package. Do not reinstall it merely to use Mantine's own toast API — Toast/Alert are the established primitives. |
+| Tables and mobile lists | Shared Table is broadly used. Reports (`ReportsPage.jsx`) now gives every one of its report/table branches an explicit mobile rendering — card, compact-row, or a documented allowed-scroll-table exception for aggregate/comparison tables — per Spec 032 Milestone 3. ResponsiveDataView and MobileList have more consumers than the 030 baseline but are not the sole pattern; some other pages still implement local card/table pairs. | No universal current mobile data-view abstraction exists outside Reports' own resolved rule set. Retain a page's established behavior unless separately authorized; see `docs/MOBILE_PATTERNS.md`'s decision table for new list/data screens. |
+| Charts | `@mantine/charts` is used directly by one analytics page; Recharts is its installed peer/runtime — kept even though app source has no direct Recharts import, because Mantine Charts requires it. | No chart wrapper exists. |
+| Icons | Tabler is the current third-party icon library. App-specific SVGs, text symbols, images, and screen-specific emoji also exist. | Use the established Tabler library for new third-party icons. Do not introduce Lucide (ESLint blocks `lucide-react` imports in `client/src/pages/**` and `client/src/components/**`). Emoji are observed screen-specific content, not a general mobile-icon policy — Spec 032 Milestone 5 also removed the Reports catalogue's emoji-as-report-identity pattern specifically. |
+| Typography and theme | Public Sans is the primary UI font; DM Mono is the loaded mono face. `index.css` owns light/dark semantic tokens, font `@import`s, and (as of Spec 032 Milestone 7) the design system's raw color-ramp aliases exclusively — the previously-installed but zero-import Geist font package was removed, as was a duplicate font-import entry point in `main.jsx` and ~27 unused raw `:root` ramp tokens. `App.jsx` contains the Mantine theme mapping. | CSS and Mantine palettes are manually kept aligned; no token-architecture change is implied. The Mantine `green`/Tailwind `emerald` (and `yellow`/`amber`) naming divergence documented in `specs/color-system-notes.md` is a known, deliberately deferred structural item — colors render correctly today; renaming the vocabulary is a separate owner decision, not a bug. |
 
-This document assigns one job to each tool and names the canonical component for each
-overlapping behavior, so new code has one obvious way to be written instead of five plausible
-ones to copy from.
+## Testing strategy
 
-## 1. Library responsibilities
+Playwright (`e2e/`) is the primary UI-behavior verification path — real browser, real dev server, real seeded database. As of Spec 032 Milestone 7, a minimal Vitest layer (`client/vitest.config.js`, mirroring `server/vitest.config.mjs`'s settings) also covers pure-logic shared utilities that Playwright can only exercise slowly/indirectly or, for timezone/clock edge cases, not at all without mocking the system clock across a real browser navigation (see `client/src/utils/timeFormat.test.js` and `time.test.js`). There is no jsdom or React Testing Library yet — add that layer later only when a specific component's behavior genuinely can't be verified another way, not proactively.
 
-| Layer | Owner | Notes |
-|---|---|---|
-| Interactive controls, accessibility, focus/keyboard behavior | **Mantine** | `TextInput`, `Select`, `Checkbox`, `Switch`, `NumberInput`, `Modal`, `Menu`, `Tooltip`, notifications |
-| Responsive layout, spacing, breakpoints | **Tailwind** | Grid/flex, `md:`/`sm:` switches, visibility, one-off visual adjustments |
-| Complex application shell | **CSS Modules** | Sidebar, header, main shell only — not per-feature-component modules |
-| Mobile/desktop overlay behavior | **`ResponsiveSheet`** (Phase 2, not yet built) | Wraps Radix + Framer Motion internally. Feature code never imports Radix/Framer/Vaul directly — see `CONSTITUTION.md` §2. |
-| Icons | **Tabler Icons** (`@tabler/icons-react`) | Sole default. `lucide-react` is deprecated — do not add new imports; migrate existing ones as their screen is touched. |
-| Dynamic-only styling | **Inline `style={}`** | Only for values computed at runtime (`style={{ width: \`${progress}%\` }}`). Static visual styles (padding, radius, fixed colors) must not live in inline style objects — use a component, Tailwind class, or token. |
+## Overlay architecture and exception
 
-## 2. Overlay consolidation (Phase 2 target)
+`ResponsiveSheet` is built in `components/ui/ResponsiveSheet.jsx` and is used for responsive task flows. It encapsulates Radix Dialog, Framer Motion, keyboard-inset handling, responsive presentation, and its sheet footer styling contract. Its current footer controls are intentionally raw/context-specific; this is not evidence that all buttons should be raw.
 
-| Requirement | Canonical component | Replaces |
-|---|---|---|
-| Desktop dialog | Mantine `Modal` | ad hoc dialogs |
-| Mobile bottom sheet / full-screen task | `ResponsiveSheet` | `BottomDrawer`, `SheetModal`, direct Radix/Vaul usage |
-| Confirmation (especially destructive actions) | `ConfirmDialog` (already exists — see §3 note below) | mixed inline confirm patterns |
-| Dropdown menu | Mantine `Menu` | — |
-| Tooltip | Mantine `Tooltip` | — |
-| Toast/feedback | Mantine notifications | custom toast/banner variants |
+Radix Dialog and Framer Motion remain internal to shared overlay infrastructure. The confirmed exception is `components/ui/StudentSearchOverlay.jsx`: it directly uses both so a nested student-search dialog can manage its own focus and coexist inside a ResponsiveSheet. Do not copy this exception into feature code or “clean it up” without a separately authorized overlay decision.
 
-Feature pages call `<ResponsiveSheet />` and never know or care whether it's Radix, Vaul, or
-something else underneath. `BottomDrawer.jsx` and `SheetModal.jsx` are deleted only once a
-repo-wide usage search returns zero, per the migration procedure in
-`specs/025-ui-architecture-consolidation/plan.md`.
+FormModal and ConfirmDialog are established Mantine-Modal specializations for forms and confirmations. Direct Mantine Modal use, the shell Drawer, and Menus have current feature/shell roles. The 030 audit found focus return did not occur in its tested FormModal/ConfirmDialog cases; Spec 032 Batch 1.2 fixed all four scenarios and added Playwright regression coverage. Continue to preserve and test overlay behavior when changing it rather than assuming documented behavior stays verified without re-checking.
 
-## 3. Component inventory (Phase 1 audit — Phase 2 builds these)
+## Current shared-component adoption
 
-| Category | Current state (confirmed 2026-07-19) | Canonical target |
-|---|---|---|
-| Buttons | Mantine `Button` + raw `<button className="...">` mixed | `AppButton` (primary/secondary/danger/ghost/icon variants, Mantine-backed) |
-| Forms | Mantine inputs, inconsistent validation/label patterns | `AppField` family |
-| Overlays | `Modal`, `Drawer`, `BottomDrawer`, `SheetModal`, direct Radix/Vaul | `ResponsiveSheet` (see §2) |
-| Cards | Mantine `Paper`, raw `div`, inline-styled cards (heaviest in `DutySlotsPage.jsx` mobile cards) | `AppCard`, `MobileListItem` + primitives (`MobileList`, `MobileListItemHeader`, `MobileListItemMeta`, `MobileListItemStatus`, `MobileListItemActions`, `MobileSectionHeader`) |
-| Tables/lists | `Table.jsx` (`MTable.ScrollContainer` + `whitespace-nowrap`) used inconsistently alongside dedicated mobile-card pages and column-hiding — 3 different strategies across the app today | `ResponsiveDataView` — see `docs/MOBILE_PATTERNS.md` for which pattern each data type gets |
-| Page headers | `Layout.jsx` `PageHeader` — hardcoded `<Stack align="center" ... text-center>`, no variant prop exists | `PageHeader` with `operational` / `centered` / `compact` variants — see `docs/MOBILE_PATTERNS.md` |
-| Icons | `@tabler/icons-react` (7 files) and `lucide-react` (9 files) both live | Tabler only |
-| Confirmation | Already consolidated — `ConfirmDialog.jsx`, 11 consumers | `ConfirmDialog` (keep as-is, do not rebuild) |
-| Toast/banner feedback | Already consolidated — `Toast.jsx` (single `ToastProvider`/`useToast`) and `Alert.jsx` (single tone-based banner: info/success/warning/danger/telegram) both exist as single canonical implementations | Use `Alert` instead of hand-rolled inline-styled banner `div`s — e.g. `RecordViolationModal.jsx` had 3 duplicating `Alert`'s exact styling before its Phase 2 migration |
-| Buttons | Mixed: Mantine `Button` with inline `styles={{root:{minHeight:'var(--control-min)'}}}` boilerplate repeated per-call, plus raw `<button>` in places (e.g. `ResponsiveSheet`'s `cancelBtnStyle`/`primaryBtnStyle` sheet-footer buttons — deliberately kept raw/non-Mantine for that context, not migrated to `AppButton`) | `AppButton` — bakes in the 44px touch-target fix once instead of per-call, for Mantine-backed usage sites |
-| Form fields | Mantine inputs used correctly but repeat gotcha-prone props per call (e.g. `comboboxProps={{ withinPortal: false }}` on every `Select` inside an overlay — see `[[mantine_select_in_drawer_gotcha]]`) | `AppSelect`/`AppTextInput`/`AppNumberInput` thin wrappers bake the gotcha fix in once |
+| Pattern | Current state | Important limitation |
+| --- | --- | --- |
+| AppButton | Canonical for conventional feature actions (submit/cancel/primary/destructive/retry) as of Spec 032 Batches 2.2/4.3 — all 17 ResponsiveSheet footer sites and ~11 remaining conventional raw-button actions converted, with two documented exceptions (Login/ChangePassword's branded 56px auth submit buttons — `AppButton` has no gradient/press-scale variant for them). | It is canonical only for *conventional* actions, not composite/chrome/calendar/pagination controls — do not add a mechanical "no raw button" lint rule; that boundary is deliberate, not a migration gap. |
+| AppSelect / AppTextInput / AppNumberInput | Exist. AppSelect has useful non-portal behavior for Radix-hosted overlays; text wrapper is thin; number wrapper had no audited consumer. | Direct Mantine and native fields remain common. |
+| ResponsiveSheet | Established for its intended responsive task family. | It is not the sole overlay pattern. |
+| FormModal / ConfirmDialog | Established, specialized shared patterns. | They do not cover every feature modal or sheet. |
+| ResponsiveDataView / MobileList | Implemented; Reports' Spec 032 Milestone 3 mobile work is now the largest consumer (card/compact-row per report family). | Local page-level mobile/card/table implementations remain common outside Reports. |
+| Table | Broadly established across data tables. | It intentionally does not prescribe every mobile representation. |
+| Toast / Alert | Custom Toast is broadly established; Alert is established but not exclusive. | Loading, empty, and error presentation is uneven across the product. |
+| PageHeader | `Layout.jsx` exports `centered` (default), `operational`, and `compact`. | Existing pages also retain a small number of specialized headings/heroes. |
 
-New shared components land in `client/src/components/ui/` (where `BottomDrawer.jsx`,
-`SheetModal.jsx`, `FormModal.jsx` already live) — this repo does not use a separate
-`components/mobile/` tree, so Phase 2 does not introduce one.
+## Responsive behavior observed in 030-D
 
-## 4. Design tokens
+- The shell and dominant list card/table switch use the 768px boundary: mobile chrome below 768px, desktop sidebar at 768px and above. `Layout.jsx` uses Mantine `sm` for this boundary, which maps to 768px in this stack. Browser evidence confirmed the 767px card to 768px table transition on representative routes.
+- This is not the only responsive boundary. ResponsiveSheet, StudentSearchOverlay, and Reports use a 639/640-style boundary; FormModal changes around 640/641px. Do not generalize the shell breakpoint to every overlay.
+- Mobile bottom navigation is fixed below 768px and current page layout supplies bottom/safe-area space. Treat it as current shell behavior, not an instruction to recreate it in unrelated UI.
+- Mobile table behavior is mixed outside Reports. Some operational pages use cards, shared tables can scroll; Reports' own secondary sheets no longer clip (030-D's finding was closed by Spec 032 Milestone 3 — every report branch has an explicit card/compact-row/allowed-scroll-table decision). This is not evidence that every other table in the app has an equivalent explicit mobile decision — verify a specific page before assuming.
 
-`client/src/index.css` currently has **two token layers that both already exist for real
-reasons** — don't collapse them into one without understanding why both are there:
+## Current-state guardrails
 
-- **`@theme` block** (`--color-*` names, e.g. `--color-text-primary`, `--color-surface`,
-  `--color-border`) — Tailwind v4 reads only this block to generate utility classes
-  (`text-text-primary`, `bg-surface`, `border-border`). This is already semantic, not raw
-  palette values in most places.
-- **`:root` block** (bare names, e.g. `--text-primary`, `--surface-page`, `--border`, plus the
-  full `--blue-*`/`--slate-*`/`--emerald-*` etc. raw ramps) — needed for anything that isn't a
-  Tailwind class: inline dynamic styles, CSS Modules, and Mantine's `mantineTheme` object in
-  `client/src/App.jsx`, none of which can read Tailwind's `@theme` block directly.
+- Use the existing component or library pattern that matches the surrounding current feature; do not represent partial wrapper adoption as a mandatory migration rule for controls outside AppButton's conventional-action scope.
+- New third-party icon usage follows Tabler. Do not add Lucide or another UI/icon library without the governance process in `CONSTITUTION.md`. ESLint enforces this for `lucide-react`, `vaul`, `framer-motion`, and any `@radix-ui/*` import in `client/src/pages/**`/`client/src/components/**` (`client/eslint.config.js`), each scoped to the two documented exceptions (ResponsiveSheet.jsx, StudentSearchOverlay.jsx).
+- Keep Radix/Framer imports inside shared overlay infrastructure. The nested StudentSearchOverlay implementation is the only documented current exception.
+- Inline style values are currently used for dynamic values and some established component/shell details. Do not launch a broad static-style cleanup from this document.
+- Application transient feedback uses custom Toast/Alert. `@mantine/notifications` is not installed — do not reinstall it merely for convenience; if a real gap appears, that is a separate architecture decision.
+- Do not reintroduce `client/components.json`, `client/src/lib/utils.ts`, `clsx`, or `tailwind-merge` (removed in Spec 032 Milestone 7 as dead shadcn/ui scaffolding from an abandoned experiment) to support 21st.dev — `specs/031-.../031-21st-dev-policy.md` explicitly treats "components requiring shadcn" as a poor candidate category; adapt any 21st.dev pattern to existing V2 tokens/primitives directly instead.
 
-**The actual problem isn't that both exist — it's that their names don't match**
-(`--color-text-primary` vs `--text-primary`), so a component author has to guess which one a
-given context needs, and the raw ramps (`--blue-500`, `--slate-400`, ...) are fully duplicated
-between the two blocks with no naming difference at all.
+## Current limitations and deferred decisions
 
-**Rule going forward:**
-
-| Context | Use |
-|---|---|
-| JSX `className` | Tailwind utility from `@theme` semantic tokens (`text-text-primary`, `bg-surface`, `border-border`) — never raw color utilities (`text-slate-500`) in feature code |
-| Inline dynamic style, CSS Module, `mantineTheme` | `var(--text-primary)` etc. from the `:root` block |
-| New raw palette value | Don't add one. Extend the semantic set (`--status-*`, `--action-*` etc.) instead — see the semantic groups below. |
-
-Semantic token groups (target — some already exist under different names, see mapping above):
-
-| Group | Examples |
-|---|---|
-| Surface | `--surface-page`, `--surface-card`, `--surface-sunken` |
-| Text | `--text-primary`, `--text-secondary`, `--text-muted` |
-| Border | `--border`, `--border-strong`, `--divider` |
-| Action | `--brand`, `--brand-hover`, `--brand-active` |
-| Status | `--color-success` / `--success-*`, `--color-warning` / `--warning-*`, `--color-danger` / `--danger-*` |
-| Shape | `--radius-sm` through `--radius-sheet` |
-| Elevation | `--shadow-card`, `--shadow-modal`, `--shadow-sheet` |
-
-Phase 2+ work: as each shared component is built, use only the token names above (never a raw
-hex or `blue-600`/`slate-500` Tailwind utility) so a future brand-color change is a single edit.
-
-## 5. Prohibited patterns (effective immediately, Phase 1)
-
-- No new direct `import` of `@radix-ui/react-dialog`, `vaul`, or `framer-motion` in
-  `client/src/pages/**` or `client/src/components/**` outside `ui/ResponsiveSheet.jsx` (built
-  Phase 2, 2026-07-19). Existing `BottomDrawer`/`SheetModal`/`StudentSearchOverlay` usages are
-  grandfathered until their migration.
-- No new `import` from `lucide-react`. Use `@tabler/icons-react`.
-- No new static inline `style={{ padding: '16px', borderRadius: '12px', ... }}` objects. Inline
-  `style` is for runtime-computed values only.
-- **No Tailwind class built from a JS template literal or string concatenation**, e.g.
-  `` `sm:max-w-[${size}px]` ``. Tailwind generates CSS by statically scanning source files for
-  complete class-name strings — it does not execute your JS, so it can't see what an
-  interpolated value resolves to and silently never generates the rule. The class name still
-  shows up in the rendered DOM (harmless-looking on inspection), but no CSS backs it, so the
-  style silently does nothing. Caught this exact bug while building `ResponsiveSheet`'s `size`
-  prop (2026-07-19) before it shipped. **Fix:** compute the value in JS and apply it via inline
-  `style`, gated on whatever breakpoint/condition you already have in JS (e.g. a
-  `useMediaQuery` result) — never try to hand Tailwind a dynamic arbitrary-value class.
-- No new raw `<button>`/`<input>` reimplementing what Mantine already provides.
-- No new UI or icon library added without an explicit `CONSTITUTION.md` amendment.
-
-## 6. Governance
-
-- Feature code imports shared controls from `client/src/components/ui/`.
-- Every new operational list screen must state its mobile rendering strategy explicitly (card,
-  compact row, or scroll table) — see `docs/MOBILE_PATTERNS.md` for the decision rule.
-- Destructive actions use the shared confirmation pattern — `ConfirmDialog`
-  (`client/src/components/ui/ConfirmDialog.jsx`), already built, already the canonical pattern
-  with 11 consumers as of 2026-07-19.
-- This file and `CONSTITUTION.md` §2 must be updated together if a responsibility changes —
-  `CONSTITUTION.md` is the version-numbered, enforced source of truth; this file is the detail
-  behind it.
+The 030 audit found mixed control, table/mobile-list, loading/empty/error, and overlay adoption, plus visual and mobile-report limitations. Spec 032 (Milestones 1-7) resolved the confirmed defects (Admin Dashboard nesting, overlay focus-return, Reports clipping), converged conventional actions onto AppButton, gave every Reports branch an explicit mobile decision, cleaned up dashboard visual density, removed verified-unused dependencies, and added the import-boundary/client-testing enforcement referenced above. It intentionally did not: standardize every remaining control onto a wrapper, replace Mantine, rename the green/emerald color vocabulary, or restyle screens beyond its own named batches. Treat anything not explicitly named in a Spec 032 batch (see `specs/032-ui-system-implementation-migration/`) as still an open current-state fact, not a resolved one — verify before assuming.

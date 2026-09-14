@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { TextInput, Checkbox, Switch } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from '../ui/ResponsiveSheet';
+import ResponsiveSheet from '../ui/ResponsiveSheet';
+import AppButton from '../ui/AppButton';
 import { AppSelect } from '../ui/AppField';
 import Alert from '../ui/Alert';
 import StudentSearchOverlay from '../ui/StudentSearchOverlay';
@@ -342,15 +343,15 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         size="xl"
         footer={
           <>
-            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-            <button
+            <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
+            <AppButton
               disabled={create.isPending || !canSubmit}
+              loading={create.isPending}
               onClick={submitViolation}
-              style={primaryBtnStyle(create.isPending || !canSubmit)}
+              style={{ flex: 2 }}
             >
-              {create.isPending && <DrawerSpinner />}
-              {create.isPending ? 'Recording…' : 'Record Student Violation'}
-            </button>
+              Record Student Violation
+            </AppButton>
           </>
         }
       >

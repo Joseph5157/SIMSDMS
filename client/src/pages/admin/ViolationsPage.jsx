@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Table, Th, Td, EmptyRow, ErrorRow, ErrorBlock } from '../../components/ui/Table';
+import { CardSkeleton, TableRowSkeleton } from '../../components/ui/Skeleton';
+import EmptyState from '../../components/ui/EmptyState';
 import { Button, Select } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { LineChart, BarChart } from '@mantine/charts';
@@ -599,9 +601,9 @@ export default function ViolationsPage({ user }) {
 
       {/* Mobile card list */}
       <div className="md:hidden bg-[var(--surface-card)] rounded-[var(--radius-2xl)] border border-[var(--border)] overflow-hidden mb-4">
-        {isLoading && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">Loading…</div>}
+        {isLoading && Array.from({ length: 5 }).map((_, i) => <CardSkeleton key={i} />)}
         {isError && <ErrorBlock onRetry={refetch} />}
-        {!isLoading && !isError && !data?.data?.length && <div className="p-10 text-center text-[var(--text-muted)] text-[length:var(--text-card)]">No student violations found.</div>}
+        {!isLoading && !isError && !data?.data?.length && <EmptyState message="No student violations found." />}
         {data?.data?.map((v, i) => (
           <div key={v.id} className={`flex items-center justify-between px-4 py-3.5 bg-[var(--surface-card)] border-b border-[var(--border)] gap-3 ${v.record_status === 'hidden' ? 'opacity-60' : ''}`}>
             <span className="text-[length:var(--text-small)] text-[var(--text-muted)] font-[var(--weight-semibold)] shrink-0">
@@ -642,7 +644,7 @@ export default function ViolationsPage({ user }) {
             </tr>
           </thead>
           <tbody>
-            {isLoading && <EmptyRow cols={8} message="Loading…" />}
+            {isLoading && Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)}
             {isError && <ErrorRow cols={8} onRetry={refetch} />}
             {!isLoading && !isError && !data?.data?.length && <EmptyRow cols={8} />}
             {data?.data?.map((v, i) => (

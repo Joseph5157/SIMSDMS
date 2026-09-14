@@ -1,116 +1,58 @@
-# Mobile Design Patterns
+# Mobile Patterns
 
-> Companion to `docs/UI_ARCHITECTURE.md`. Defines the mobile-specific rules for a PWA used on
-> phones with variable network quality. Backed by `CONSTITUTION.md` §2.
+> Current-state guidance for the SIMS DMS PWA, reconciled against the 030 audit in September 2026 and updated after Spec 032 (Milestones 1-7) closed. It records implemented behavior and known limitations; it does not select a future responsive architecture. Read `CONSTITUTION.md` and `docs/UI_ARCHITECTURE.md` first.
 
-## Breakpoints
+## Breakpoints and shell
 
-**The single cutoff is 768px.** Below 768px the app is in mobile chrome (hamburger + bottom
-tab bar, sidebar collapsed); at 768px and above it shows the desktop sidebar. The dominant
-page-level mobile-card-vs-desktop-table switch uses Tailwind `md:` (`md:hidden` / `hidden
-md:block`), which is also 768px, so shell and content agree.
+| Boundary | Current behavior | Evidence / qualifier |
+| --- | --- | --- |
+| Below 768px | Mobile shell: hamburger, fixed bottom navigation, collapsed sidebar. | `Layout.jsx` uses Mantine `sm`; 030-D rendered checks confirmed representative 767px mobile layouts. |
+| 768px and above | Desktop sidebar and dominant page table layout. | 030-D confirmed card-to-table changes on representative routes at 767/768px without root horizontal overflow. |
+| 639/640px | ResponsiveSheet, StudentSearchOverlay, and Reports have a distinct overlay/report boundary. | This is separate from the shell boundary. |
+| 640/641px | FormModal changes from full-height mobile presentation to centered desktop modal. | Do not assume FormModal follows the 768px shell cutover. |
 
-> **Token note (important — Mantine ≠ Tailwind naming):** in this stack **768px = Mantine
-> `sm` (48em) = Tailwind `md`**. `Layout.jsx` intentionally uses `navbar={{ breakpoint: 'sm'
-> }}` and the Drawer uses `hiddenFrom="sm"` — both resolve to 768px. Do **not** "fix" this to
-> Mantine `'md'`; that is 62em/992px and would re-introduce a dead-zone.
+Mantine `sm` is 48em/768px in this stack; the AppShell navbar and mobile Drawer intentionally use that boundary. Do not change it to Mantine `md` based on Tailwind naming alone.
 
-**Resolved (2026-07-20, Phase 3):** previously the Mantine navbar + Drawer cut over at 768px
-(`sm`) while the `Layout.module.css` chrome (mobile header / desktop header / bottom bar /
-page padding) was hardcoded at 640px — so between **640–767px** the CSS flipped to the desktop
-layout while the navbar was still collapsed, leaving the screen with **no navigation at all**.
-Fix: moved every `Layout.module.css` breakpoint from 640px → 768px to match the
-already-correct navbar. (Earlier drafts of this doc had the token→pixel mapping swapped and
-recommended changing the navbar prop to `'md'`; that was wrong — see the token note above.)
+## Navigation, safe area, and overlays
 
-- Mobile bottom navigation: below 768px
-- Desktop sidebar: 768px and above
-- Tablet-specific layout adjustments: 768–1024px, only where content genuinely benefits from a
-  two-column treatment — don't force it
+- The current mobile bottom bar is fixed below 768px. Current layout provides bottom/safe-area space so final content is not covered in the 030-D routes tested.
+- ResponsiveSheet is implemented. It provides a responsive task surface with keyboard-inset and safe-area-aware behavior; it is not the only overlay implementation. Its footer actions are AppButton-based (Spec 032 Batch 2.2); do not recreate the old raw footer-style pattern from history.
+- FormModal and ConfirmDialog remain current specialized Mantine-modal patterns. StudentSearchOverlay is a documented nested shared-overlay exception, not a feature-page pattern to copy.
+- The 030 audit found focus did not return to the trigger in its tested FormModal and ConfirmDialog cases. Spec 032 Batch 1.2 fixed all four scenarios and added Playwright regression coverage for focus-return specifically. Still verify focus/keyboard behavior whenever you touch overlay code — this is a fixed defect, not a guarantee against future regressions.
 
-## Design-from-mobile-up
+## Headers and page hierarchy
 
-Design and test from 360px width upward, not down from desktop. Test viewports: **360px, 390px,
-412px, 768px, 1024px**.
+`Layout.jsx` PageHeader has current `centered` (default), `operational`, and `compact` variants. Existing dashboards and special flows also use specialized headings/heroes. The variants describe current reusable options; they do not require a migration of every heading.
 
-## Touch targets
+## Tables, cards, and reports
 
-Primary touch targets are at least 44×44px. (Already enforced globally via `--control-min` on
-Mantine `Button` — see the 2026-07-11 touch-target hardening pass. New components must not
-regress this.)
+SIMS DMS does not have one universal mobile data representation.
 
-## Overlay pattern: sheet vs. full-screen
+| Current pattern | Where observed | Status |
+| --- | --- | --- |
+| Mobile cards paired with desktop tables | Several operational list pages | Common, with 030-D confirmation at the 767/768 switch on representative pages. |
+| Shared Table / scroll containment | Broad shared-table usage | Established for tables; not every page uses a card alternative. |
+| ResponsiveDataView / MobileList | Duty Slots representative use | Implemented, limited adoption. |
+| Report tables in secondary sheets | Reports | Resolved (Spec 032 Milestone 3): every report branch now has an explicit card, compact-row, or documented allowed-scroll-table decision — 030-D's clipping finding at 360/390/412px no longer reproduces. |
 
-- Short contextual task (confirm, quick filter, single-field edit) → `ResponsiveSheet` in sheet
-  mode.
-- Long workflow (multi-step form, search-and-select) → `ResponsiveSheet` in full-screen mobile
-  mode, centered dialog on desktop.
-- Sticky footers (form actions, confirm/cancel) include safe-area padding
-  (`env(safe-area-inset-bottom)`) and stay keyboard-safe — don't let the soft keyboard cover the
-  active field or the action row. See the existing `useKeyboardInset` hook pattern
-  (`docs/UI_ARCHITECTURE.md` links the components once `ResponsiveSheet` exists).
+Do not claim that every table becomes a card below 768px outside Reports' own resolved rule set — Reports followed the decision table above per report family (see `specs/032-ui-system-implementation-migration/032-migration-batch-plan.md`, Milestone 3), it is not a universal automatic conversion. Preserve other pages' current behavior unless separately authorized, and verify any mobile data-view change in the browser.
 
-## PageHeader variants (Phase 3 — not built yet)
+## Controls and touch targets
 
-`Layout.jsx`'s `PageHeader` currently has exactly one look: centered title/subtitle with the
-action stacked underneath (`<Stack align="center" ... className="text-center">`, no `variant`
-prop). Target: three variants.
+Mantine's themed Button floor is intended to support 44px controls, but controls are not universally Mantine-backed. The 030 audit measured visible Reports controls around 37–40px and a 36×16 breadcrumb; Spec 032 Batch 2.3 raised the named controls to the 44px-class minimum. Treat 44px as an accessibility expectation to verify in the actual rendered control on any *other* page — this fix was scoped to the controls 030-D named, not a claim that every control everywhere is now compliant.
 
-| Variant | Use | Layout |
-|---|---|---|
-| `operational` (default for management screens) | Duty Slots, Users, Students, Violations, etc. | Left-aligned title + subtitle, compact action on the right, no forced centering |
-| `centered` | Onboarding, empty states, major summary screens | Current behavior, kept as an explicit opt-in |
-| `compact` | Nested/detail screens with limited vertical space | Minimal header, no subtitle row |
+Do not rely on hover-only access for touch-critical actions. Preserve labels, keyboard behavior, focus handling, and safe-area behavior when touching existing controls or overlays.
 
-## Table-to-card mobile strategy
+## Loading, empty, error, offline, and status states
 
-The app currently has **three different mobile table strategies** in use at once (dedicated
-mobile card list, e.g. `DutySlotsPage.jsx`; column-hiding; and full horizontal scroll via
-`Table.jsx`'s `MTable.ScrollContainer` + `whitespace-nowrap`, used inconsistently on 6 files
-including `DutySlotsPage.jsx`, `DashboardPage.jsx`, `SuperAdminDashboardPage.jsx`). Pick by data
-type, not by page:
+Shared state pieces exist (Skeleton family, EmptyState, EmptyRow/ErrorRow/ErrorBlock, Toast, Alert, OfflineBanner), and adoption grew substantially in Spec 032 Batch 4.2 (26 literal "Loading…" occurrences reduced, EmptyState extended beyond its single 030 consumer) and Batch 4.1 (OfflineBanner rebuilt on Alert + AppButton, connectivity/dismissal lifecycle preserved) — but adoption is still not universal. `ReportsPage.jsx`'s generic `ReportSection` loading branch remains plain text by design (its ~15 report shapes would each need a distinct skeleton), deferred past every Spec 032 milestone as out of each one's named scope.
 
-| Data type | Mobile pattern | Desktop pattern |
-|---|---|---|
-| Operational task list (Duty Slots, Users) | Compact cards or tappable list rows | Table or split view |
-| Approval queue (Reassignment Requests) | Card with visible primary actions | Table with row actions |
-| Simple 2–3 column reference list | Keep as list/table | Table |
-| Comparison/report table | Summary cards + optional scrollable table | Full table |
-| Large analytical report | Mobile summary + drill-down | Charts + detailed table |
-| Record detail | Stacked sections | Two-column detail layout |
+Document and preserve the state behavior a page already has. Do not state that every screen already uses a standardized skeleton/empty/error/retry system, and do not use this document to mandate one.
 
-`ResponsiveDataView` (Phase 2) encodes this: `<ResponsiveDataView mobileRender={...}
-desktopRender={...} />` per screen, chosen from the table above at migration time — not
-reinvented per page.
+## Test viewports
 
-## Typography scale
+The audit used 360, 390, 412, 768, 1024 and desktop viewports, with light/dark evidence where available. For responsive changes, test the applicable boundary and the task's actual content; shell, overlays, and reports do not all switch at the same width.
 
-Confirmed 2026-07-19: arbitrary `text-[Npx]` values (10px, 11px, 12px, 13px, 13.5px) are spread
-across 6 files (`LoginPage.jsx`, `DutyTimingSettingsPage.jsx`, `DutyTimingSettingsModal.jsx`,
-`Layout.jsx`, `StatCard.jsx`, `Table.jsx`). Target scale — use these, not arbitrary values, when
-touching a screen in Phase 3:
+## E2E test database
 
-| Role | Size |
-|---|---|
-| Page title | 20px |
-| Section title | 15–16px |
-| Card title | 14px |
-| Body | 14px |
-| Supporting text | 12px |
-| Navigation label | 11px |
-| Table label | 11px |
-
-Never go below 12px for body content.
-
-## Required states per screen
-
-Every list/data screen must handle: loading (skeleton), empty, error + retry, offline, and
-(where applicable) sync status. These already exist as components in the app — reuse them, don't
-rebuild per-screen.
-
-## What NOT to do
-
-- Don't rely on `:hover` for anything a touch user needs (no hover-only reveal of actions).
-- Don't let the soft keyboard hide the active field or the primary action — see the existing
-  `useKeyboardInset` / `repositionInputs={false}` fixes already shipped for this exact bug class.
-- Don't silently discard in-progress form data on accidental back-navigation or a network error.
+Playwright specs (`e2e/`) need a disposable, local, test-owned Postgres — never a shared/staging/production one. See `e2e/README.md` for the safety requirement, the deterministic automatic reset (`e2e/global-setup.mjs` + `e2e/seed.mjs`, added Spec 032 Milestone 7), and the container-recreation fallback for schema drift.

@@ -10,9 +10,11 @@ export default function Breadcrumb({ items = [] }) {
           <li key={i} className="flex items-center gap-2">
             {i > 0 && <span className="text-[var(--text-muted)]">/</span>}
             {item.href ? (
+              // inline-flex + min-h keeps the visible text compact while giving the
+              // tap target the 44px floor (030-D-04 / DS-14 measured this link at 36x16).
               <Link
                 to={item.href}
-                className="text-[var(--brand)] hover:text-[var(--brand)] hover:underline transition-colors"
+                className="inline-flex items-center min-h-[var(--control-min)] text-[var(--brand)] hover:text-[var(--brand)] hover:underline transition-colors"
               >
                 {item.label}
               </Link>

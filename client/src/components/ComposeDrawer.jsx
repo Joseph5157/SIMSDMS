@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IconUsers, IconAlignLeft, IconMessage } from '@tabler/icons-react';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 import { useSendMessage } from '../hooks/useMessages';
 import { useMessageRecipients } from '../hooks/useUsers';
 import { useToast } from './ui/Toast';
@@ -76,16 +77,16 @@ export default function ComposeDrawer({ open, onClose, prefill = null }) {
       subtitle="Send an internal message"
       footer={
         <>
-          <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-          <button
+          <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
+          <AppButton
             disabled={send.isPending || !canSend}
+            loading={send.isPending}
             onClick={handleSubmit}
             data-primary=""
-            style={primaryBtnStyle(send.isPending || !canSend)}
+            style={{ flex: 2 }}
           >
-            {send.isPending && <DrawerSpinner />}
-            {send.isPending ? 'Sending…' : 'Send'}
-          </button>
+            Send
+          </AppButton>
         </>
       }
     >

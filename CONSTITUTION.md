@@ -32,10 +32,10 @@ These decisions are locked. Do not suggest alternatives or use different tools.
 | Tailwind CSS | Mobile-first responsive styling — all custom layout, typography, and one-off components |
 | Mantine (`@mantine/core`, `@mantine/hooks`) | Accessible form primitives (`TextInput`, `Select`, `Checkbox`, `Switch`, `NumberInput`) and overlay focus handling (`Modal`, nav `Drawer`) — kept specifically for behavior not worth re-implementing (focus trapping, keyboard nav, ARIA wiring), not for general styling. **Mantine's color palette is derived from the Tailwind DS tokens** (`client/src/App.jsx` `mantineTheme` object); if brand or status colors change, both `index.css @theme` and `mantineTheme.colors` must be updated in sync to prevent palette drift. |
 | Workbox | PWA service worker caching |
-| Radix (`@radix-ui/react-dialog`) + Framer Motion | **Internal-only.** May be used solely inside the shared `ResponsiveSheet` component (see `docs/UI_ARCHITECTURE.md`) that replaces `BottomDrawer`/`SheetModal`. Feature pages must not import Radix or Framer Motion directly. |
-| Vaul | **Deprecated.** Superseded by `ResponsiveSheet`. Do not add new usages; scheduled for removal once all `BottomDrawer`/`SheetModal` consumers migrate (see `specs/025-ui-architecture-consolidation/`). |
+| Radix (`@radix-ui/react-dialog`) + Framer Motion | **Internal shared-overlay infrastructure.** Used by `ResponsiveSheet` and the current `StudentSearchOverlay` nested-dialog exception (see `docs/UI_ARCHITECTURE.md`). Feature pages must not import Radix or Framer Motion directly; do not copy or broaden the exception without an approved architecture decision. |
+| Vaul | **Historical/deprecated.** It was not installed or directly imported at the 030 audited baseline. Do not add it; older migration records that mention it remain historical context. |
 | Tabler Icons (`@tabler/icons-react`) | **Default icon library.** All new icon usage must import from Tabler. |
-| Lucide (`lucide-react`) | **Deprecated.** Do not add new usages; existing usages migrate to Tabler incrementally as screens are touched. |
+| Lucide (`lucide-react`) | **Deprecated.** Do not add it. The 030 audited baseline found no direct production Lucide imports; Tabler is the current established third-party icon library. |
 
 > **Evaluated and rejected (2026-07-01): Server-Driven UI (SDUI) for the Admin desktop panel.** SDUI earns its complexity when UI needs to change without a redeploy (native apps gated by app-store review) or one backend serves many heterogeneous clients. Neither applies — this is a single web admin panel for one college's admin team, redeploys are a `git push` to Railway, and scale is ~20-30 faculty. Stick with React + Tailwind + TanStack Query above; do not revisit without a changed scale/deploy constraint.
 
@@ -659,5 +659,7 @@ Live Attendance) — see `specs/001-auth-user-accounts/handoff.md` (2026-07-14) 
 *Constitution version: 3.7 — Updated: July 2026 (dropped the unused `Student.section` column entirely — Year/Semester were already independent fields everywhere in the UI; removed the not-checked-in cutoff concept from Duty Timing Settings — §3, §4, §5 — a not-yet-checked-in faculty member now always shows "Not checked in" from session start to auto clock-out, no separate time-gated stage)*
 *Constitution version: 3.6 — Updated: July 2026 (§6 Analytics module grew 5→10 endpoints as P24 Phases 2–3 were built — trend/course/year charts, faculty analysis, calendar heatmap, counselling-list Excel export; total 100→105)*
 *Constitution version: 3.5 — Updated: July 2026 (added Faculty-Requested Reassignment as Method 2 alongside Admin Duty Reassignment — §3, §4, §5, §6; added `duty_reassignment_requests` table; added the Analytics module to §6, previously undocumented)*
+*Constitution version: 3.22 — Updated: September 2026 (030 documentation-truth reconciliation — §2 now records the existing `StudentSearchOverlay` Radix/Framer nested-overlay exception. This is a documentation correction only; it does not change overlay architecture or authorize broader direct use.)*
+
 *All decisions in this file were confirmed by the project owner across planning sessions.*
 *Do not modify this file without project owner approval.*

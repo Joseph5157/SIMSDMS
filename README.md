@@ -1,5 +1,16 @@
 # SIMS Discipline Management System (SIMS DMS) — Project Overview
 
+> **Current implementation summary — reconciled against the 030 audit (September 2026).** For operating frontend guidance, read `CONSTITUTION.md`, `CLAUDE.md`, `docs/UI_ARCHITECTURE.md`, and `docs/MOBILE_PATTERNS.md`. The detailed diagrams and workflow narrative below are retained as a historical project snapshot and must not be treated as current auth, schema, UI, or workflow guidance.
+
+## Current facts
+
+- SIMS DMS is a React/Vite PWA for college discipline operations. The client uses Tailwind, Mantine, TanStack Query, and current shared UI components as described in the active architecture guides.
+- Authentication is email and password with an httpOnly-cookie session and CSRF protection. Telegram is used for notifications, not OTP login.
+- The current UI uses Public Sans with DM Mono for mono treatments and Tabler as its established third-party icon library.
+- The current mobile shell is the 768px sidebar/bottom-navigation model described in `docs/MOBILE_PATTERNS.md`; individual overlays and reports have additional documented boundaries and limitations.
+
+## Historical snapshot below
+
 The SIMS Discipline Management System (SIMS DMS) is a web-based mobile-first PWA application built for the **SIMS College of Pharmacy** (managing ~20–30 faculty members) to replace a manual, paper-based system. It digitizes scheduling discipline duties, monitoring attendance (In/Out checks), and logging/auditing student violations on campus.
 
 This overview provides a thorough analysis of the repository from three key perspectives: **Software Architect**, **Software Developer**, and **Product Manager**.

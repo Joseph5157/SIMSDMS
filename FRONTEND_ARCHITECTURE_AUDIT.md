@@ -1,4 +1,6 @@
 # SIMS DMS — Frontend Architecture Audit
+
+> **Historical implementation record — obsolete as current UI guidance.** This pre-030 audit describes a prior shadcn/Geist/component state and includes executable fix instructions that do not match the audited September 2026 baseline. Do not follow it for production work; use `CONSTITUTION.md`, `CLAUDE.md`, `docs/UI_ARCHITECTURE.md`, and `docs/MOBILE_PATTERNS.md` instead. It is retained to preserve implementation history.
 ## Why Fixes Don't Stick & How to Fix It Permanently
 
 ---

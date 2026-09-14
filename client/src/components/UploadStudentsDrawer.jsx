@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IconFileText, IconDownload } from '@tabler/icons-react';
-import ResponsiveSheet, { DrawerSpinner, cancelBtnStyle, primaryBtnStyle } from './ui/ResponsiveSheet';
+import ResponsiveSheet from './ui/ResponsiveSheet';
+import AppButton from './ui/AppButton';
 import { useUploadStudents } from '../hooks/useStudents';
 import { useToast } from './ui/Toast';
 import { Checkbox } from '@mantine/core';
@@ -80,16 +81,16 @@ export default function UploadStudentsDrawer({ open, onClose }) {
       subtitle="Excel .xlsx — upserts matching registration numbers, optionally deactivates missing students"
       footer={
         <>
-          <button type="button" onClick={handleClose} style={cancelBtnStyle}>Close</button>
-          <button
+          <AppButton variant="secondary" type="button" onClick={handleClose} style={{ flex: 1 }}>Close</AppButton>
+          <AppButton
             disabled={upload.isPending || !file}
+            loading={upload.isPending}
             onClick={handleUpload}
             data-primary=""
-            style={primaryBtnStyle(upload.isPending || !file)}
+            style={{ flex: 2 }}
           >
-            {upload.isPending && <DrawerSpinner />}
-            {upload.isPending ? (dryRun ? 'Previewing…' : 'Uploading…') : (dryRun ? 'Preview' : 'Upload')}
-          </button>
+            {dryRun ? 'Preview' : 'Upload'}
+          </AppButton>
         </>
       }
     >
@@ -132,22 +133,15 @@ export default function UploadStudentsDrawer({ open, onClose }) {
         </div>
 
         {/* Download template */}
-        <button
+        <AppButton
+          variant="secondary"
           onClick={handleDownloadTemplate}
           disabled={downloading}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 7, padding: '10px 16px', marginBottom: 16,
-            border: '1.5px dashed var(--color-blue-200)', borderRadius: 'var(--radius-lg)',
-            backgroundColor: 'var(--color-blue-50)', cursor: downloading ? 'not-allowed' : 'pointer',
-            fontSize: 'var(--text-card)', fontWeight: 700,
-            color: downloading ? 'var(--color-blue-300)' : 'var(--brand)',
-            transition: 'all 0.15s', fontFamily: 'inherit',
-          }}
+          style={{ width: '100%', marginBottom: 16 }}
         >
-          <IconDownload size={15} strokeWidth={2} />
+          <IconDownload size={15} strokeWidth={2} style={{ marginRight: 7 }} />
           {downloading ? 'Downloading…' : 'Download sample template (.xlsx)'}
-        </button>
+        </AppButton>
 
         {/* File picker */}
         <p style={{

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
+import { IconWifi, IconWifiOff, IconX } from '@tabler/icons-react';
 import { useOnline } from '../hooks/useOnline';
+import Alert from './ui/Alert';
+import AppButton from './ui/AppButton';
 
 export default function OfflineBanner() {
   const { isOnline } = useOnline();
@@ -21,62 +24,31 @@ export default function OfflineBanner() {
   if (!showBanner) return null;
 
   return (
-    <div
-      className="md:hidden"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 70,
-        padding: '12px 16px',
-        backgroundColor: 'var(--color-amber-bg)',
-        borderBottom: '1px solid var(--color-amber-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-      }}
-      role="status"
-      aria-live="polite"
-      aria-label={isOnline ? 'Back online' : 'You are offline'}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 18 }}>📡</span>
-        <span
-          style={{
-            fontSize: 'var(--text-card)',
-            fontWeight: 'var(--weight-semibold)',
-            color: 'var(--color-amber-text)',
-          }}
-        >
-          {isOnline
-            ? 'Back online — syncing changes'
-            : "You're offline — changes will sync when connection returns"}
-        </span>
-      </div>
-      <button
-        onClick={() => setShowBanner(false)}
-        aria-label="Dismiss offline banner"
-        style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--color-amber-text)',
-          cursor: 'pointer',
-          padding: '4px 8px',
-          fontSize: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: 0.6,
-          transition: 'opacity 150ms',
-          flexShrink: 0,
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+    <div className="md:hidden fixed inset-x-0 top-0 z-[70]">
+      <Alert
+        tone="warning"
+        icon={
+          isOnline
+            ? <IconWifi size={18} stroke={1.9} color="var(--color-amber-solid)" />
+            : <IconWifiOff size={18} stroke={1.9} color="var(--color-amber-solid)" />
+        }
+        role="status"
+        aria-live="polite"
+        aria-label={isOnline ? 'Back online' : 'You are offline'}
+        className="rounded-none border-x-0 border-t-0"
+        action={
+          <AppButton
+            variant="icon"
+            aria-label="Dismiss offline banner"
+            icon={<IconX size={16} />}
+            onClick={() => setShowBanner(false)}
+          />
+        }
       >
-        ✕
-      </button>
+        {isOnline
+          ? 'Back online — syncing changes'
+          : "You're offline — changes will sync when connection returns"}
+      </Alert>
     </div>
   );
 }

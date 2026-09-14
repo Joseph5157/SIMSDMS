@@ -6,7 +6,7 @@ const TONES = {
   telegram: { bg: 'var(--color-cyan-bg)',     border: 'var(--color-cyan-border)',    accent: 'var(--color-cyan-solid)',   title: 'var(--color-cyan-text)',    body: 'var(--color-cyan-600)' },
 };
 
-export default function Alert({ tone = 'info', icon, title, children, action, onClick, className = '' }) {
+export default function Alert({ tone = 'info', icon, title, children, action, onClick, className = '', ...rest }) {
   const t = TONES[tone] ?? TONES.info;
   return (
     <div
@@ -18,6 +18,7 @@ export default function Alert({ tone = 'info', icon, title, children, action, on
         borderLeft: `3px solid ${t.accent}`,
         cursor: onClick ? 'pointer' : 'default',
       }}
+      {...rest}
     >
       {icon && <span className="text-[17px] shrink-0 leading-[1.2]">{icon}</span>}
       <div className="flex-1 min-w-0">
