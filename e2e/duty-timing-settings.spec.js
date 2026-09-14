@@ -1,6 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD } from './fixtures.mjs';
 
+// Milestone 7 (Spec 032) investigation: this spec was failing on every run
+// because Duty Timing Settings moved into the 3-tab Settings hub
+// (client/src/pages/admin/SettingsPage.jsx) well before Spec 032 began —
+// `/admin/duty-timing-settings` is no longer a route (App.jsx's catch-all
+// `*` redirects it to `/`), and the feature now lives at `/admin/settings`,
+// whose default tab is already 'duty-timing'. The feature/labels/behavior
+// this test exercises are otherwise fully intact and correct (verified by
+// reading SettingsPage.jsx and DutyTimingSettingsModal.jsx) — this was a
+// stale test URL, not a broken or removed feature. Fixed at the test layer.
+
 async function loginAsAdmin(page) {
   await page.goto('/login');
   await page.locator('#login-email').fill(E2E_ADMIN_EMAIL);
@@ -12,7 +22,7 @@ async function loginAsAdmin(page) {
 test.describe('Duty Timing Settings', () => {
   test('shows times in 12-hour language and edits via the modal', async ({ page }) => {
     await loginAsAdmin(page);
-    await page.goto('/admin/duty-timing-settings');
+    await page.goto('/admin/settings');
 
     // Read-only summary renders in plain 12-hour format (not a bare hour number).
     await expect(page.getByText('Afternoon session')).toBeVisible();
