@@ -356,7 +356,7 @@ function computeViolationSummary(violations) {
 }
 
 const STUDENT_VIOLATION_PDF_COLUMNS = [
-  { header: 'S.No',           key: 'sno',        width: 26 },
+  { header: 'S.No',           key: 'sno',        width: 40 },
   { header: 'Student',        key: 'name',      width: 95 },
   { header: 'Reg No',         key: 'reg_no',     width: 80 },
   { header: 'Course',         key: 'course',     width: 50 },
