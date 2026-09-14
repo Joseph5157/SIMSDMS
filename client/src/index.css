@@ -188,36 +188,6 @@
 
 /* ── Semantic aliases + non-Tailwind DS tokens ── */
 :root {
-  /* ── DS raw ramp aliases — match the design system token names exactly so
-     var(--blue-500), var(--slate-400), var(--emerald-bg) etc. all resolve ── */
-  --blue-50:  #eff6ff; --blue-100: #dbeafe; --blue-200: #bfdbfe;
-  --blue-300: #93c5fd; --blue-400: #60a5fa; --blue-500: #3b82f6;
-  --blue-600: #2563eb; --blue-700: #1d4ed8; --blue-800: #1e40af;
-  --indigo-500: #6366f1; --indigo-600: #4f46e5;
-
-  --slate-50: #f8fafc; --slate-100: #f1f5f9; --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1; --slate-400: #94a3b8; --slate-500: #64748b;
-  --slate-600: #475569; --slate-700: #334155; --slate-800: #1e293b;
-  --slate-900: #0f172a;
-
-  --emerald-bg: #f0fdf4; --emerald-tint: #d1fae5; --emerald-text: #065f46;
-  --emerald-solid: #10b981; --emerald-border: #bbf7d0;
-
-  --amber-bg: #fffbeb; --amber-tint: #fde68a; --amber-text: #92400e;
-  --amber-solid: #f59e0b; --amber-border: #fde68a;
-
-  --red-bg: #fef2f2; --red-tint: #fecaca; --red-text: #991b1b;
-  --red-solid: #ef4444; --red-border: #fecaca;
-
-  --cyan-bg: #ecfeff; --cyan-tint: #a5f3fc; --cyan-text: #0e7490;
-  --cyan-solid: #06b6d4; --cyan-border: #a5f3fc;
-
-  --purple-bg: #f5f3ff; --purple-tint: #ddd6fe; --purple-text: #5b21b6;
-  --purple-solid: #8b5cf6; --purple-border: #ddd6fe;
-
-  --orange-bg: #fff7ed; --orange-tint: #fed7aa; --orange-text: #c2410c;
-  --orange-solid: #f97316; --orange-border: #fed7aa;
-
   /* Surfaces */
   --surface-page:          #f8fafc;
   --surface-card:          #ffffff;
@@ -436,10 +406,6 @@ html.dark {
   --color-blue-200: #1d4a8a;
   --color-blue-700: #93c5fd;
   --color-blue-800: #bfdbfe;
-
-  --blue-50:  #1e3a5f;
-  --blue-100: #1e3a6e;
-  --blue-200: #1d4a8a;
 
   /* Brands */
   --brand:               #3b82f6;
