@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 /**
- * Seeds one known-credential faculty user for e2e login. Idempotent (upsert).
- * Run against a disposable/dedicated test database — never against a real
- * dev/staging/production DB, since the password below is public in this repo.
+ * Seeds one known-credential faculty user for e2e login. Idempotent (upsert
+ * for users; delete-then-recreate for the date-scoped duty-slot family — see
+ * `resetDutyFixtures` below). Run against a disposable/dedicated test
+ * database — never against a real dev/staging/production DB, since the
+ * password below is public in this repo.
  *
  * Usage: DATABASE_URL=... node e2e/seed.mjs
+ *
+ * Safe by construction, not just by convention: `assertSafeDatabaseUrl`
+ * below refuses to run against any DATABASE_URL whose host isn't
+ * localhost/127.0.0.1 — every real deployment (Railway staging/production)
+ * is a remote host, so this is a hard stop, not a naming convention.
  */
 
 import { createRequire } from 'module';
@@ -19,7 +26,61 @@ const { PrismaClient } = require('../server/node_modules/@prisma/client');
 
 const prisma = new PrismaClient();
 
+// Milestone 7 (Spec 032): the shared dev Postgres container previously
+// accumulated a fresh set of "today"-relative duty-slot/attendance/
+// reassignment rows every time this script ran on a new real calendar day
+// (their identity keys include `duty_date`, which shifts forward each day),
+// alongside every prior day's rows — never cleaned up. Several
+// e2e/reports-*.spec.js files that filter by a fixed text fragment then
+// matched 2+ rows instead of the expected 1. Documented in the Milestone 4/5
+// handoffs; fixed here at the root rather than by recreating the container
+// every session.
+function assertSafeDatabaseUrl() {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error('DATABASE_URL is not set. Refusing to run without an explicit target database.');
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`DATABASE_URL is not a valid connection URL: ${raw}`);
+  }
+  const SAFE_HOSTS = new Set(['localhost', '127.0.0.1']);
+  if (!SAFE_HOSTS.has(url.hostname)) {
+    throw new Error(
+      `Refusing to run e2e/seed.mjs against host "${url.hostname}". ` +
+      'This script deletes and recreates fixture data and must only target a local, ' +
+      'disposable test database (DATABASE_URL host must be localhost or 127.0.0.1). ' +
+      'Every real deployment (Railway staging/production) is a remote host.',
+    );
+  }
+}
+
+// Deletes every previously-seeded duty-slot/attendance/reassignment/audit-log
+// row owned by the given e2e faculty ids, in FK-safe child-to-parent order,
+// before this script recreates today's fixtures. These are the only fixture
+// rows in this file keyed by a rolling `duty_date` rather than a fixed
+// identity (email, registration number, filename, ...), so they are the only
+// ones that need an explicit reset to stay day-independent.
+async function resetDutyFixtures(facultyIds) {
+  const slots = await prisma.dutySlot.findMany({ where: { faculty_id: { in: facultyIds } }, select: { id: true } });
+  const slotIds = slots.map((s) => s.id);
+  if (!slotIds.length) return;
+
+  const attendances = await prisma.dutyAttendance.findMany({ where: { duty_slot_id: { in: slotIds } }, select: { id: true } });
+  const attendanceIds = attendances.map((a) => a.id);
+  if (attendanceIds.length) {
+    await prisma.attendanceAuditLog.deleteMany({ where: { duty_attendance_id: { in: attendanceIds } } });
+  }
+  await prisma.dutyReassignmentRequest.deleteMany({ where: { duty_slot_id: { in: slotIds } } });
+  await prisma.dutyReassignment.deleteMany({ where: { duty_slot_id: { in: slotIds } } });
+  await prisma.dutyAttendance.deleteMany({ where: { duty_slot_id: { in: slotIds } } });
+  await prisma.dutySlot.deleteMany({ where: { id: { in: slotIds } } });
+  console.log(`Reset ${slotIds.length} previously-seeded e2e duty slot(s) (and their attendance/reassignment/audit-log rows) before reseeding.`);
+}
+
 async function main() {
+  assertSafeDatabaseUrl();
+
   const facultyHash = await bcrypt.hash(E2E_FACULTY_PASSWORD, 10);
   const faculty = await prisma.user.upsert({
     where: { email: E2E_FACULTY_EMAIL },
@@ -76,6 +137,13 @@ async function main() {
     },
   });
   console.log(`Seeded e2e admin user: ${E2E_ADMIN_EMAIL}`);
+
+  // Wipe any duty-slot-family fixtures from a previous run (possibly a
+  // different real calendar day) before recreating them below, so this
+  // script always converges on exactly one deterministic set of rows dated
+  // relative to today's run, regardless of how long the target database has
+  // been reused for.
+  await resetDutyFixtures([faculty.id, faculty2.id]);
 
   // One fixed student + violation type + violation, for Reports tests (e.g.
   // e2e/reports-student-violations.spec.js) that need a known, non-empty
@@ -217,14 +285,11 @@ async function main() {
   console.log('Seeded e2e absent duty slot (3 days ago, morning)');
 
   // Attendance-override fixture — another different day, its own attendance
-  // + audit log entry. NOTE: client/src/pages/admin/ReportsPage.jsx's
-  // 'attendance-overrides' case reads r.faculty/r.dutySlot/r.overriddenBy,
-  // but attendanceOverrideLog (server/controllers/reports.controller.js)
-  // returns nested attendance.faculty/attendance.dutySlot/changedBy instead
-  // — a pre-existing field-name mismatch, not introduced or fixed by this
-  // batch. This fixture still seeds correctly; the report will display
-  // blank name/"Invalid Date" for every row (already true before this
-  // batch) until that mismatch is fixed separately.
+  // + audit log entry. Milestone 7 fixed the field-name mismatch this
+  // fixture originally documented: ReportsPage.jsx's 'attendance-overrides'
+  // case now reads r.attendance?.faculty/r.attendance?.dutySlot/r.changedBy,
+  // matching attendanceOverrideLog's actual nested response shape
+  // (server/controllers/reports.controller.js).
   const overrideDate = new Date(dutyDate);
   overrideDate.setUTCDate(overrideDate.getUTCDate() - 2);
   let overrideSlot = await prisma.dutySlot.findFirst({ where: { duty_date: overrideDate, session_type: 'morning' } });
