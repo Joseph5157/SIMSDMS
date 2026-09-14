@@ -418,7 +418,11 @@ locating it (e.g., via console stack trace or source search) before changing any
 - **Regression risks**: Must not disturb the Faculty duty hero's check-in action, a real operational
   path.
 - **Accessibility considerations**: Duty hero action button remains keyboard/touch operable after
-  restyle; resolve the Super Admin "Most Common" category truncation (030-D-05) as part of this batch.
+  restyle; resolve the Faculty "Most Common" category truncation (030-D-05) as part of this batch.
+  (Corrected from an earlier "Super Admin" attribution in this plan — verified against 030-E's own
+  evidence and current source during Milestone 6 execution; `SuperAdminDashboardPage.jsx` has no
+  Most Common card at all. See `specs/032-ui-system-implementation-migration/handoff.md`'s Milestone
+  6 section.)
 - **Mobile verification**: 360, 390 for both dashboards.
 - **Dark-mode verification**: Verify, especially the duty hero gradient.
 - **Tests required**: None new.
