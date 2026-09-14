@@ -12,6 +12,7 @@ import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/use
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
 import { useSentReassignmentRequests, useCancelReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
 import { formatHourMin, getGreeting } from '../../utils/time';
+import { isActivelyCheckedIn } from '../../utils/dutyEligibility';
 import Skeleton from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import RecordViolationModal from '../../components/faculty/RecordViolationModal';
@@ -237,7 +238,17 @@ export default function DashboardPage({ user }) {
     }
   }
 
-  const canDoViolation = todaySessions.some((s) => s.slot_status === 'scheduled');
+  // Spec 034-B: the quick-action must not invite recording unless the faculty
+  // member is actually eligible to record — mirrors RecordViolationModal's
+  // own gate (server/controllers/violations.controller.js createViolation),
+  // via the same shared `isActivelyCheckedIn` predicate rather than a
+  // separately-maintained rule. `slot_status === 'scheduled'` (the prior
+  // check) could both under- and over-show relative to that real gate: a
+  // slot already flipped to `completed`/`absent` server-side while still
+  // actively checked in would hide the button, and a merely scheduled,
+  // not-yet-checked-in slot would show it for an action that would then be
+  // refused. Admin authorization is untouched — this page has no adminMode.
+  const canDoViolation = todaySessions.some(isActivelyCheckedIn);
 
   // ── Single, priority-ordered, dismissible alert (never stack banners) ──
   const alertCandidates = [

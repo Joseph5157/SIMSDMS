@@ -5,9 +5,12 @@ const { buildReportPdf, sendPdf } = require('../lib/pdf');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Immutable audit entry for every violation change
-async function auditViolation({ violationId, changedBy, changeType, oldData, newData, reason }) {
-  await prisma.violationAuditLog.create({
+// Immutable audit entry for every violation change. Accepts an optional `client`
+// (a `tx` from prisma.$transaction) so callers that must keep the audit write
+// atomic with the row it describes can route it through the same transaction
+// instead of the bare `prisma` singleton.
+async function auditViolation({ client = prisma, violationId, changedBy, changeType, oldData, newData, reason }) {
+  await client.violationAuditLog.create({
     data: {
       violation_id: violationId,
       changed_by:   changedBy,
@@ -106,25 +109,33 @@ async function createViolation(req, res) {
     resolvedFine = Number(violationType.default_fine);
   }
 
-  const violation = await prisma.violation.create({
-    data: {
-      student_id,
-      faculty_id:        req.user.id,
-      duty_slot_id:      resolvedDutySlotId,
-      violation_type_id,
-      custom_violation:  custom_violation ?? null,
-      fine_amount:       resolvedFine,
-      is_warning_only:   is_warning_only ?? false,
-      remarks:           remarks ?? null,
-    },
-    include: VIOLATION_INCLUDE,
-  });
+  // Atomic with its audit-log entry: a failed audit write must never leave a
+  // violation row committed that the UI is simultaneously told failed (the
+  // caller would see a network/500 error, retry, and silently double-record).
+  const violation = await prisma.$transaction(async (tx) => {
+    const created = await tx.violation.create({
+      data: {
+        student_id,
+        faculty_id:        req.user.id,
+        duty_slot_id:      resolvedDutySlotId,
+        violation_type_id,
+        custom_violation:  custom_violation ?? null,
+        fine_amount:       resolvedFine,
+        is_warning_only:   is_warning_only ?? false,
+        remarks:           remarks ?? null,
+      },
+      include: VIOLATION_INCLUDE,
+    });
 
-  await auditViolation({
-    violationId: violation.id,
-    changedBy:   req.user.id,
-    changeType:  'created',
-    newData:     snapshotViolation(violation),
+    await auditViolation({
+      client:      tx,
+      violationId: created.id,
+      changedBy:   req.user.id,
+      changeType:  'created',
+      newData:     snapshotViolation(created),
+    });
+
+    return created;
   });
 
   res.status(201).json(violation);

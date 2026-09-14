@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput, Checkbox, Switch } from '@mantine/core';
 import { IconChevronRight } from '@tabler/icons-react';
 import ResponsiveSheet from '../ui/ResponsiveSheet';
@@ -10,6 +10,7 @@ import { useToast } from '../ui/Toast';
 import { useCreateViolation } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
 import { useMonthSlots } from '../../hooks/useDutySlots';
+import { isActivelyCheckedIn } from '../../utils/dutyEligibility';
 
 function SectionLabel({ children }) {
   // --color-blue-700 is theme-aware (dark navy on light cards, light blue on dark
@@ -21,6 +22,13 @@ function SectionLabel({ children }) {
     </p>
   );
 }
+
+const VALIDATION_SUMMARY = 'Complete the highlighted fields before submitting.';
+
+const INITIAL_FORM = {
+  student_id: '', violation_type_id: '',
+  custom_violation: '', fine_amount: '', is_warning_only: false, remarks: '',
+};
 
 export default function RecordViolationModal({ open, onClose, adminMode = false }) {
   const toast = useToast();
@@ -34,10 +42,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   const { data: typesData }  = useViolationTypes();
   const { data: slotsData }  = useMonthSlots(now.getUTCFullYear(), now.getUTCMonth() + 1);
 
-  const [form, setForm] = useState({
-    student_id: '', duty_slot_id: '', violation_type_id: '',
-    custom_violation: '', fine_amount: '', is_warning_only: false, remarks: '',
-  });
+  const [form, setForm] = useState(INITIAL_FORM);
   // studentQ holds the selected student's display label ("Name (REG)"); the actual
   // id lives in form.student_id. Search itself now happens in StudentSearchOverlay.
   const [studentQ, setStudentQ]   = useState('');
@@ -47,6 +52,75 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState('');
   const create = useCreateViolation();
+
+  // Synchronous in-flight guard — `create.isPending` only flips true after a
+  // render commits, which leaves a window for a double click/tap to fire
+  // mutateAsync twice before the button's `disabled` prop ever updates.
+  const submittingRef = useRef(false);
+  // Explicit focus management, contained to this component (see
+  // docs/UI_ARCHITECTURE.md — ResponsiveSheet/StudentSearchOverlay are not
+  // rewritten here): restores focus to whatever opened this sheet, and
+  // separately to the student-search trigger when the nested overlay closes.
+  const studentTriggerRef = useRef(null);
+  const openerElRef = useRef(null);
+  const prevOpenRef = useRef(false);
+  const prevSearchOpenRef = useRef(false);
+  const errorAlertRef = useRef(null);
+
+  function resetDraft() {
+    setForm(INITIAL_FORM);
+    setStudentQ('');
+    setFieldErrors({});
+    setFormError('');
+    setShowRemarks(false);
+    setQuickAdd(false);
+    create.reset();
+  }
+
+  // Lifecycle: a fresh open always starts from a clean form, and every close
+  // path (Cancel, backdrop, Esc, successful submit) clears the abandoned draft
+  // and any mutation/server error state — no automatic draft persistence.
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
+      openerElRef.current = document.activeElement;
+      resetDraft();
+    } else if (!open && prevOpenRef.current) {
+      resetDraft();
+      if (openerElRef.current && typeof openerElRef.current.focus === 'function') {
+        openerElRef.current.focus();
+      }
+    }
+    prevOpenRef.current = open;
+    // resetDraft/create.reset intentionally excluded — its identity comes from
+    // useMutation and re-running this effect for that would defeat the point.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // StudentSearchOverlay is its own independent Radix Dialog.Root (see its file
+  // header for why), so its focus-return timing isn't guaranteed to land back on
+  // this sheet's trigger button by default — do it explicitly instead.
+  useEffect(() => {
+    if (!searchOpen && prevSearchOpenRef.current) {
+      studentTriggerRef.current?.focus();
+    }
+    prevSearchOpenRef.current = searchOpen;
+  }, [searchOpen]);
+
+  // The client-side "complete the highlighted fields" banner is only ever
+  // correct while at least one of those fields is still invalid — once every
+  // field clears (student picked, type picked, ...) it should disappear
+  // instead of leaving a stale message up. Derived at render time rather
+  // than cleared via a setState-in-effect: the banner is stale exactly when
+  // formError still equals this literal string (server error text never
+  // does) but every fieldError has since been resolved.
+  const formErrorStale = formError === VALIDATION_SUMMARY && Object.values(fieldErrors).every((v) => !v);
+  const visibleFormError = formErrorStale ? '' : formError;
+
+  // Bring a submission error into view/focus rather than leaving it to be
+  // discovered only if the faculty happens to scroll up.
+  useEffect(() => {
+    if (visibleFormError) errorAlertRef.current?.focus();
+  }, [visibleFormError]);
 
   function selectStudent(s) {
     setForm(f => ({ ...f, student_id: s.id }));
@@ -64,31 +138,27 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   const selectedType = typesData?.data?.find(t => String(t.id) === form.violation_type_id);
   const isOthers     = selectedType?.name?.toLowerCase() === 'others';
 
-  // Auto-select today's duty slot when data loads
-  const mySlots = (slotsData?.data ?? []).filter(s => s.status === 'scheduled' || s.status === 'completed');
+  // Eligibility must mirror the backend exactly (server/controllers/violations
+  // .controller.js createViolation): a today's duty slot with an OPEN attendance
+  // record (checked in, not yet checked out) — never merely a scheduled or
+  // completed slot id from anywhere in the month. A slot existing is not enough.
+  const mySlots  = slotsData?.data ?? [];
   const todayStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')}`;
-  const todaySlots = mySlots.filter(s => String(s.duty_date).slice(0, 10) === todayStr);
-  // Prefer whichever of today's slots is actively checked in right now. Fall back to a
-  // time-of-day guess (IST) only when nothing is actively checked in, so the field still
-  // pre-fills something reasonable before check-in / after check-out.
-  const activeSlot = todaySlots.find(s => s.attendance?.in_time && !s.attendance?.out_time);
-  const currentSession = now.getUTCHours() < 12 ? 'morning' : 'afternoon';
-  const fallbackSlot = todaySlots.find(s => s.session_type === currentSession) ?? todaySlots[0] ?? null;
-  const autoSlot = activeSlot ?? fallbackSlot;
-  const sessionActive = Boolean(activeSlot);
+  const todaySlots  = mySlots.filter(s => String(s.duty_date).slice(0, 10) === todayStr);
+  const activeSlots = todaySlots.filter(s => isActivelyCheckedIn(s.attendance));
+  const activeSlot  = activeSlots[0] ?? null;
+  const effectiveDutySlotId = activeSlot ? String(activeSlot.id) : '';
+  // Admin's recording authority is unrestricted (no duty session required) —
+  // this attendance gate applies to faculty only, never to adminMode.
+  const offDuty = !adminMode && !activeSlot;
 
-  // Pre-fill duty slot if not yet set and auto-slot available
-  const effectiveDutySlotId = form.duty_slot_id || (autoSlot ? String(autoSlot.id) : '');
-
-  // Gate submission on the fields the server actually requires, so faculty don't burn a
-  // round trip on a 422 the client could have caught for free. Admins record with no
-  // duty slot, so the slot is not required in admin mode.
-  const canSubmit = Boolean(
-    form.student_id &&
-    (adminMode || effectiveDutySlotId) &&
-    form.violation_type_id &&
-    (!isOthers || form.custom_violation.trim())
-  );
+  function validate() {
+    const fe = {};
+    if (!form.student_id) fe.student_id = 'Select a student to continue.';
+    if (!form.violation_type_id) fe.violation_type_id = 'Select a student violation type.';
+    if (isOthers && !form.custom_violation.trim()) fe.custom_violation = 'Describe the violation.';
+    return fe;
+  }
 
   // Auto-fill fine when type changes
   function handleTypeChange(value) {
@@ -102,7 +172,18 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
   }
 
   async function submitViolation() {
-    if (!canSubmit) return;
+    if (submittingRef.current || offDuty) return;
+
+    const fe = validate();
+    if (Object.keys(fe).length) {
+      // Never rely solely on a disabled button — clicking with missing fields
+      // still gets a concise, field-associated explanation, brought into view.
+      setFieldErrors(fe);
+      setFormError(VALIDATION_SUMMARY);
+      return;
+    }
+
+    submittingRef.current = true;
     setFormError('');
     setFieldErrors({});
     const payload = {
@@ -120,100 +201,89 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       await create.mutateAsync(payload);
       if (quickAdd) {
         toast({ message: `Recorded for ${studentName}. Add next.` });
+        // Active duty context + Quick Add stay put; only the student and
+        // violation-specific fields clear for the next record.
+        setForm(INITIAL_FORM);
         setStudentQ('');
-        setForm(f => ({ ...f, student_id: '', fine_amount: '', violation_type_id: '', custom_violation: '', remarks: '' }));
+        setFieldErrors({});
+        setFormError('');
         setShowRemarks(false);
         // Re-open the search surface for the next student.
         setTimeout(() => setSearchOpen(true), 50);
       } else {
         toast({ message: 'Student violation recorded.' });
+        resetDraft();
         onClose();
       }
     } catch (err) {
       const data = err.response?.data;
+      // Shown once, inline (see the Alert below) — not duplicated in a toast.
       if (data?.errors?.length) {
-        // Server-side Zod validation — field names match this form's keys 1:1.
-        const fe = {};
-        data.errors.forEach((e) => { fe[e.field] = e.message; });
-        setFieldErrors(fe);
+        const fe2 = {};
+        data.errors.forEach((e) => { fe2[e.field] = e.message; });
+        setFieldErrors(fe2);
         setFormError(data.message);
-        toast({ message: data.message, type: 'error' });
       } else if (data?.message) {
         setFormError(data.message);
-        toast({ message: data.message, type: 'error' });
       } else {
-        const msg = 'Network error — check your connection and try again.';
-        setFormError(msg);
-        toast({ message: msg, type: 'error' });
+        setFormError('Network error — check your connection and try again.');
       }
+    } finally {
+      submittingRef.current = false;
     }
   }
+
+  function handleClose() {
+    if (submittingRef.current) {
+      // Prevent confusing close/cancel behavior while a submission commits —
+      // ResponsiveSheet's dismiss gestures already route here via confirmClose
+      // below; this covers the Cancel button itself.
+      toast({ message: 'Still saving — please wait.', type: 'warning' });
+      return;
+    }
+    resetDraft();
+    onClose();
+  }
+
+  const pending = create.isPending;
+
+  const offDutyBody = (
+    <div className="px-1 py-2">
+      <Alert tone="warning" icon="🔒" title="You're not checked in">
+        Student violations can only be recorded while you're actively checked in to
+        today's duty session. Check in from your dashboard, then come back to record here.
+      </Alert>
+    </div>
+  );
 
   const formBody = (
     <div className="flex flex-col">
 
       {/* ── Submit error ── */}
-      {formError && (
+      {visibleFormError && (
         <div style={{ marginBottom: 16 }}>
-          <Alert tone="danger" icon="⚠️">{formError}</Alert>
+          <Alert tone="danger" icon="⚠️">
+            <span ref={errorAlertRef} tabIndex={-1} className="outline-none">{visibleFormError}</span>
+          </Alert>
         </div>
       )}
 
-      {/* ── Session status (faculty) / admin authority note (admin) ── */}
+      {/* ── Active-duty context (faculty) / admin authority note (admin) —
+             a single compact strip, not a duty-slot picker: eligibility is
+             gated entirely on the one active session, so there is nothing to
+             pick from. ── */}
       <div style={{ marginBottom: 16 }}>
         {adminMode ? (
           <Alert tone="info" icon="🛡️">Recording as Admin — no duty session required.</Alert>
-        ) : sessionActive ? (
+        ) : (
+          // formBody is always constructed even when offDuty is what actually
+          // renders (see the ternary below) — guard against a null activeSlot
+          // rather than relying on evaluation order to skip this branch.
           <Alert tone="success" icon="✓">
-            {`Recording for ${activeSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+            {`${activeSlot?.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
           </Alert>
-        ) : (
-          <Alert tone="warning" icon="⚠️">Student violations can only be recorded during an active duty session.</Alert>
         )}
       </div>
-
-      {/* ── Quick-add toggle ── */}
-      <div className="flex items-center justify-between pb-4">
-        <div>
-          <p style={{ fontSize: 'var(--text-card)', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>Quick-add mode</p>
-          <p style={{ fontSize: 'var(--text-micro)', color: 'var(--text-muted)', marginTop: 1 }}>Stay open to record multiple violations</p>
-        </div>
-        <Switch checked={quickAdd} onChange={(e) => setQuickAdd(e.currentTarget.checked)} size="md" />
-      </div>
-
-      <div className="border-t border-[var(--divider)] mb-6" />
-
-      {/* ── Duty slot (auto-selected label or dropdown) — faculty only. Admins
-             record with no duty slot, so this whole section is hidden. ── */}
-      {!adminMode && (
-      <div className="flex flex-col gap-3 pb-6">
-        <SectionLabel>Duty slot</SectionLabel>
-        {autoSlot && todaySlots.length === 1 ? (
-          <div style={{
-            padding: '10px 14px', background: 'var(--color-blue-50)',
-            border: '1px solid var(--color-blue-200)',
-            borderRadius: 'var(--radius-lg)',
-            fontSize: 'var(--text-card)', color: 'var(--color-blue-700)',
-            fontWeight: 600,
-          }}>
-            Recording for: {autoSlot.session_type === 'morning' ? 'Morning' : 'Afternoon'} session ·{' '}
-            {new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-          </div>
-        ) : (
-          <AppSelect
-            placeholder="Select duty slot…"
-            value={effectiveDutySlotId || null}
-            onChange={(value) => { setForm(f => ({ ...f, duty_slot_id: value ?? '' })); clearFieldError('duty_slot_id'); }}
-            required
-            error={fieldErrors.duty_slot_id}
-            data={mySlots.map(s => ({
-              value: String(s.id),
-              label: `${new Date(s.duty_date).toLocaleDateString('en-IN')} · ${s.session_type}`,
-            }))}
-          />
-        )}
-      </div>
-      )}
 
       <div className="border-t border-[var(--divider)]" />
 
@@ -221,6 +291,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       <div className="flex flex-col gap-3 py-6">
         <SectionLabel>Student</SectionLabel>
         <button
+          ref={studentTriggerRef}
           type="button"
           onClick={() => setSearchOpen(true)}
           className="h-12 w-full rounded-xl border bg-[var(--surface-page)] px-4 flex items-center justify-between gap-2 text-left transition-all duration-150 focus:ring-2 focus:ring-[var(--brand)]/20 outline-none"
@@ -323,6 +394,21 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
         )}
       </div>
 
+      <div className="border-t border-[var(--divider)] mt-6" />
+
+      {/* ── Quick-add toggle — completion control, last in the flow ── */}
+      <div className="pt-4">
+        <Switch
+          checked={quickAdd}
+          onChange={(e) => setQuickAdd(e.currentTarget.checked)}
+          size="md"
+          label="Quick-add mode"
+          description="Stay open to record multiple violations"
+          labelPosition="left"
+          styles={{ body: { justifyContent: 'space-between' }, labelWrapper: { flex: 1 } }}
+        />
+      </div>
+
     </div>
   );
 
@@ -338,25 +424,34 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     <>
       <ResponsiveSheet
         open={open}
-        onClose={onClose}
+        onClose={handleClose}
         title="Record Student Violation"
         size="xl"
+        mobileMode="fullscreen"
+        confirmClose={pending}
+        onDismissAttempt={() => toast({ message: 'Still saving — please wait.', type: 'warning' })}
         footer={
-          <>
-            <AppButton variant="secondary" type="button" onClick={onClose} style={{ flex: 1 }}>Cancel</AppButton>
-            <AppButton
-              disabled={create.isPending || !canSubmit}
-              loading={create.isPending}
-              onClick={submitViolation}
-              style={{ flex: 2 }}
-            >
-              Record Student Violation
+          offDuty ? (
+            <AppButton variant="secondary" type="button" onClick={handleClose} style={{ flex: 1 }}>
+              Close
             </AppButton>
-          </>
+          ) : (
+            <>
+              <AppButton variant="secondary" type="button" onClick={handleClose} disabled={pending} style={{ flex: 1 }}>Cancel</AppButton>
+              <AppButton
+                disabled={pending}
+                loading={pending}
+                onClick={submitViolation}
+                style={{ flex: 2 }}
+              >
+                Record Student Violation
+              </AppButton>
+            </>
+          )
         }
       >
         <div style={{ padding: '16px 20px 8px' }}>
-          {formBody}
+          {offDuty ? offDutyBody : formBody}
         </div>
       </ResponsiveSheet>
       {searchOverlay}

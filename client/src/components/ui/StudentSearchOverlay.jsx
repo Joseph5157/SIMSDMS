@@ -44,15 +44,29 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
   const kbInset = useKeyboardInset();
   const inputRef = useRef(null);
   const [q, setQ] = useState('');
-  // Debounce so we don't fire a request on every keystroke; the endpoint already
-  // matches name OR reg (partials, ≥2 chars) via useStudentSearch.
-  const [debounced] = useDebouncedValue(q.trim(), 250);
-  const { data, isFetching } = useStudentSearch(debounced);
-  const results = data?.data ?? [];
+  const trimmedQ = q.trim();
+  // Only the network request is debounced — every derived display state below
+  // reacts to `trimmedQ` (the live keystroke), not `debounced`, so a result set
+  // belonging to the previous query is hidden the instant the input changes,
+  // not 250ms later when the debounce timer finally catches up.
+  const [debounced] = useDebouncedValue(trimmedQ, 250);
+  const { data, isFetching, isError, refetch } = useStudentSearch(debounced);
 
-  const tooShort = debounced.length < 2;
-  const loading = !tooShort && isFetching && results.length === 0;
-  const empty = !tooShort && !isFetching && results.length === 0;
+  const searchReady = trimmedQ.length >= 2;
+  // True once the debounced value (what was actually fetched) matches what's
+  // currently typed — until then, `data` still describes the prior query, so
+  // it must not be shown as if it answers the current one. Query keys are
+  // already per-value in TanStack Query (a slower in-flight request for an
+  // older key can never overwrite a newer key's cache entry), so this also
+  // means stale responses can never render as if they were the newer query.
+  const debounceSettled = debounced === trimmedQ;
+  const rawResults = data?.data ?? [];
+  const results = debounceSettled ? rawResults : [];
+
+  const tooShort = !searchReady;
+  const loading  = searchReady && (!debounceSettled || isFetching);
+  const failed   = searchReady && debounceSettled && isError;
+  const empty    = searchReady && debounceSettled && !isFetching && !isError && rawResults.length === 0;
 
   // Always clear the query on close so the next open starts empty (no stale
   // results flashing). Covers Cancel, Esc, backdrop, and selecting a student.
@@ -159,10 +173,11 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
                 <div
                   className="overflow-y-auto flex-1 min-h-0"
                   style={{ WebkitOverflowScrolling: 'touch', padding: '8px 12px 12px' }}
+                  aria-live="polite"
                 >
                   {tooShort ? (
                     <StateRow>
-                      {q.trim().length === 0
+                      {trimmedQ.length === 0
                         ? 'Start typing a name or registration number.'
                         : 'Keep typing — at least 2 characters.'}
                     </StateRow>
@@ -174,8 +189,22 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
                       />
                       Searching…
                     </StateRow>
+                  ) : failed ? (
+                    <StateRow>
+                      <div className="flex flex-col items-center gap-2">
+                        <span>Couldn't load results — check your connection.</span>
+                        <button
+                          type="button"
+                          onClick={() => refetch()}
+                          className="font-semibold text-[var(--color-blue-600)]"
+                          style={{ minHeight: 'var(--control-min)', padding: '0 8px' }}
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    </StateRow>
                   ) : empty ? (
-                    <StateRow>No students match “{debounced}”.</StateRow>
+                    <StateRow>No students match “{trimmedQ}”.</StateRow>
                   ) : (
                     <ul className="flex flex-col gap-2 list-none m-0 p-0">
                       {results.map((s) => (
