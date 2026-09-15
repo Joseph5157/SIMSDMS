@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { APP_SHORT_NAME } from '../../utils/branding';
 import Badge from '../../components/ui/Badge';
 import Alert from '../../components/ui/Alert';
+import StatCard from '../../components/ui/StatCard';
 import { Button } from '@mantine/core';
 import { useMonthSlots, useReassignedAway } from '../../hooks/useDutySlots';
 import { useMyViolations } from '../../hooks/useViolations';
 import { useInbox } from '../../hooks/useMessages';
 import { useMyAttendanceSummary, useCheckIn, useCheckOut } from '../../hooks/useAttendance';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
-import { useSentReassignmentRequests, useCancelReassignmentRequest } from '../../hooks/useDutyReassignmentRequests';
+import { useSentReassignmentRequests, useCancelReassignmentRequest, usePendingReassignmentRequests } from '../../hooks/useDutyReassignmentRequests';
 import { formatHourMin, getGreeting } from '../../utils/time';
 import { isActivelyCheckedIn } from '../../utils/dutyEligibility';
 import Skeleton from '../../components/ui/Skeleton';
@@ -20,7 +21,7 @@ import MyViolationsSummary from '../../components/faculty/MyViolationsSummary';
 import RequestReassignmentModal from '../../components/faculty/RequestReassignmentModal';
 import PendingReassignmentRequests from '../../components/faculty/PendingReassignmentRequests';
 import { ROUTES } from '../../utils/constants';
-import { IconRefresh, IconAlertTriangle, IconMail } from '@tabler/icons-react';
+import { IconRefresh, IconAlertTriangle, IconMail, IconChevronRight } from '@tabler/icons-react';
 import { MobileList, MobileListItem } from '../../components/ui/MobileList';
 
 function todayIST() {
@@ -138,9 +139,22 @@ export default function DashboardPage({ user }) {
 
   const { data: slotsData, isLoading: slotsLoading, isError: slotsError } = useMonthSlots(year, month);
   const { data: violationsData, isLoading: violationsLoading } = useMyViolations({ limit: 5 });
+  const { data: myViolationsAllData }                           = useMyViolations({ limit: 100 });
   const { data: inboxData, isLoading: inboxLoading }            = useInbox({ limit: 5 });
   const { data: reassignedAwayData, isLoading: reassignLoading } = useReassignedAway(year, month);
   const { data: timingSettings } = useDutyTimingSettings();
+  const { data: pendingRequestsData } = usePendingReassignmentRequests();
+  const pendingSectionRef = useRef(null);
+
+  // At-a-glance stat row (Batch 6.3): this month's violation count previously
+  // only surfaced inside MyViolationsSummary near the bottom of the page —
+  // pulled up here so it's visible without scrolling, same StatCard used there.
+  const thisMonthViolations = (myViolationsAllData?.data ?? [])
+    .filter((v) => {
+      const d = new Date(v.created_at);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    }).length;
+  const pendingRequestsCount = (pendingRequestsData?.data ?? []).length;
 
   const slots    = slotsData?.data ?? [];
   const today    = todayIST();
@@ -281,15 +295,18 @@ export default function DashboardPage({ user }) {
     ...(violationsData?.data ?? []).map((v) => ({
       id: `v-${v.id}`, Icon: IconAlertTriangle, timestamp: v.created_at,
       title: 'Student violation recorded', detail: v.student?.student_name ?? 'Student',
+      route: ROUTES.FACULTY_VIOLATIONS,
     })),
     ...(inboxData?.data ?? []).map((m) => ({
       id: `m-${m.id}`, Icon: IconMail, timestamp: m.created_at, unread: !m.is_read,
       title: 'New message', detail: m.subject,
+      route: ROUTES.FACULTY_MESSAGES,
     })),
     ...reassignedAway.map((r) => ({
       id: `ra-${r.id}`, Icon: IconRefresh, timestamp: r.created_at,
       title: 'Duty reassigned', detail: `to ${r.toFaculty?.name ?? 'another faculty'}`,
       status: 'reassigned',
+      route: ROUTES.FACULTY_SLOTS,
     })),
   ]
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
@@ -349,6 +366,30 @@ export default function DashboardPage({ user }) {
           </div>
         )}
       </section>
+
+      {/* ── 1b. At-a-glance stats — this month's violations + pending requests ── */}
+      {!summaryLoading && (
+        <section className="mb-4 grid grid-cols-2 gap-3">
+          <StatCard
+            tonal compact
+            label="This month"
+            sub="Violations logged"
+            value={thisMonthViolations}
+            accent="red"
+            icon={<IconAlertTriangle size={14} stroke={1.75} />}
+            onClick={() => navigate(ROUTES.FACULTY_VIOLATIONS)}
+          />
+          <StatCard
+            tonal compact
+            label="Requests"
+            sub="Awaiting your response"
+            value={pendingRequestsCount}
+            accent="yellow"
+            icon={<IconRefresh size={14} stroke={1.75} />}
+            onClick={pendingRequestsCount ? () => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
+          />
+        </section>
+      )}
 
       {/* ── 2. Quick actions ── */}
       {!slotsLoading && !slotsError && canDoViolation && (
@@ -430,7 +471,9 @@ export default function DashboardPage({ user }) {
       )}
 
       {/* ── 4b. Incoming reassignment requests — need this faculty's accept/reject ── */}
-      <PendingReassignmentRequests />
+      <div ref={pendingSectionRef}>
+        <PendingReassignmentRequests />
+      </div>
 
       {/* ── 5. Upcoming duties (beyond the 7-day strip — duty cadence is sparse) ── */}
       {upcoming.length > 0 && (
@@ -561,7 +604,8 @@ export default function DashboardPage({ user }) {
         ) : (
           <MobileList>
             {activityItems.map((item, i) => (
-              <MobileListItem key={item.id} isLast={i === activityItems.length - 1}>
+              <MobileListItem key={item.id} isLast={i === activityItems.length - 1}
+                onClick={item.route ? () => navigate(item.route) : undefined}>
                 <div className="flex items-center gap-[10px] flex-1 min-w-0">
                   <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                     style={{ background: ACTIVITY_CHIP_BG }}>
@@ -586,6 +630,9 @@ export default function DashboardPage({ user }) {
                     )}
                   </div>
                 </div>
+                {item.route && (
+                  <IconChevronRight size={16} stroke={1.75} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
+                )}
               </MobileListItem>
             ))}
           </MobileList>
