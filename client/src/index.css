@@ -199,7 +199,7 @@
      cards separate from the background instead of blending into a near-white page.
      Applied only to the app-shell main (not --surface-page, which stays #f8fafc for
      within-card headers / sunken tiles that must read against white cards). */
-  --page-canvas: radial-gradient(120% 70% at 50% -10%, #cfd9ec 0%, rgba(207,217,236,0) 60%) #d8e2f0;
+  --page-canvas: radial-gradient(120% 70% at 50% -10%, #d6dde8 0%, rgba(214,221,232,0) 60%) #dce3ec;
 
   /* Surface elevation tiers (M3-style) now live in @theme as --color-surface-container-*
      so they generate bg-surface-container-* utilities. See the @theme block above. */
