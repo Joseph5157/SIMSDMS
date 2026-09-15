@@ -131,14 +131,16 @@ export default function MyViolationsTable() {
           searchable
           className="w-full sm:w-80"
         />
-        <Button
-          variant="light"
-          disabled={!dutySlotId || downloading}
-          loading={downloading}
-          onClick={handleDownloadPdf}
-        >
-          Download PDF Report
-        </Button>
+        {dutySlotId && (
+          <Button
+            variant="light"
+            disabled={downloading}
+            loading={downloading}
+            onClick={handleDownloadPdf}
+          >
+            Download PDF Report
+          </Button>
+        )}
       </div>
       <ResponsiveDataView
         mobile={
