@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '../../hooks/useAuth';
 import api from '../../utils/api';
 import Alert from '../../components/ui/Alert';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import AppButton from '../../components/ui/AppButton';
 import { INSTITUTION_NAME, APP_SHORT_NAME } from '../../utils/branding';
 
@@ -149,7 +150,7 @@ export default function ChangePasswordPage() {
 
         {/* Mandatory change banner */}
         {isMandatory && (
-          <Alert tone="warning" icon="⚠️" className="mb-5">
+          <Alert tone="warning" icon={<IconAlertTriangle size={17} stroke={2} />} className="mb-5">
             You must set a new password before continuing to access the system.
           </Alert>
         )}

@@ -10,6 +10,7 @@
  * Exports: Table, Th, Td, Tr, EmptyRow  (same names as before)
  */
 import { Table as MTable, Paper, Text, Center, Stack, Button } from '@mantine/core';
+import { IconInbox, IconAlertTriangle } from '@tabler/icons-react';
 
 /** Outer card shell + horizontal scroll container.
  *
@@ -78,14 +79,14 @@ export function Tr({ children, onClick, className }) {
   );
 }
 
-/** Empty / loading row — centred 📭 + message, spans all columns. */
+/** Empty / loading row — centred icon + message, spans all columns. */
 export function EmptyRow({ cols, message = 'No records found.' }) {
   return (
     <MTable.Tr>
       <MTable.Td colSpan={cols} className="p-0 border-b-0">
         <Center py="xl">
           <Stack align="center" gap="xs">
-            <Text className="text-[32px] opacity-40 leading-none">📭</Text>
+            <IconInbox size={32} stroke={1.5} className="opacity-40" />
             <Text size="sm" c="dimmed">{message}</Text>
           </Stack>
         </Center>
@@ -98,7 +99,7 @@ export function EmptyRow({ cols, message = 'No records found.' }) {
 function ErrorContent({ message = "Couldn't load this data.", onRetry }) {
   return (
     <Stack align="center" gap="xs">
-      <Text className="text-[32px] opacity-40 leading-none">⚠️</Text>
+      <IconAlertTriangle size={32} stroke={1.5} className="opacity-40" />
       <Text size="sm" c="dimmed">{message}</Text>
       {onRetry && (
         <Button size="xs" variant="light" color="red" onClick={onRetry}>

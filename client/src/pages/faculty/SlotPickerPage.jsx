@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import Layout from '../../components/Layout';
 import Badge from '../../components/ui/Badge';
 import Skeleton from '../../components/ui/Skeleton';
+import ResponsiveSheet from '../../components/ui/ResponsiveSheet';
 import { Button } from '@mantine/core';
+import { IconAlertTriangle, IconCheck } from '@tabler/icons-react';
 import { useToast } from '../../components/ui/Toast';
 import { useAvailableSlots, useMonthSlots, usePickSlot } from '../../hooks/useDutySlots';
 import { useDutyTimingSettings } from '../../hooks/useDutyTimingSettings';
@@ -19,6 +21,15 @@ function localDateStr(date) {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
 
+// Build the Date from local components (not new Date(dateStr), which parses
+// "YYYY-MM-DD" as UTC midnight and would roll back a day on any browser whose
+// local timezone sits west of UTC).
+function selectedDateLabel(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return `${DAY_LABELS_FULL[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+}
+
 export default function SlotPickerPage({ user }) {
   const toast = useToast();
   const now   = new Date();
@@ -28,15 +39,6 @@ export default function SlotPickerPage({ user }) {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selected, setSelected] = useState(null); // dateStr of tapped cell
   const [pickingId, setPickingId] = useState(null);
-  const panelRef = useRef(null);
-
-  // When a date is selected, scroll its session panel into view so the
-  // Pick buttons clear the fixed bottom nav bar.
-  useEffect(() => {
-    if (selected && panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [selected]);
 
   const { data: available, isLoading: loadingAvail } = useAvailableSlots(year, month);
   const { data: mySlots,   isLoading: loadingMine }  = useMonthSlots(year, month);
@@ -56,7 +58,7 @@ export default function SlotPickerPage({ user }) {
     setPickingId(key);
     try {
       await pick.mutateAsync({ duty_date: dateStr, session_type: session });
-      toast({ message: `✅ ${session === 'morning' ? 'Morning' : 'Afternoon'} on ${dateStr} picked!` });
+      toast({ message: `${session === 'morning' ? 'Morning' : 'Afternoon'} on ${dateStr} picked!` });
       setSelected(null);
     } catch (err) {
       toast({ message: err.response?.data?.message ?? 'Failed.', type: 'error' });
@@ -259,77 +261,12 @@ export default function SlotPickerPage({ user }) {
           </div>
         )}
 
-        {/* ── Selected-date session picker panel ── */}
-        {selected && (() => {
-          const avail        = availMap[selected] ?? [];
-          const picked       = pickedMap[selected] ?? {};
-          const hasMorn      = avail.includes('morning');
-          const hasAftern    = avail.includes('afternoon');
-          const pickedMorn   = !!picked.morning;
-          const pickedAftern = !!picked.afternoon;
-          // Build the Date from local components (not new Date(selected), which parses
-          // "YYYY-MM-DD" as UTC midnight and would roll back a day on any browser whose
-          // local timezone sits west of UTC).
-          const [selYear, selMonth, selDay] = selected.split('-').map(Number);
-          const d = new Date(selYear, selMonth - 1, selDay);
-
-          return (
-            <div ref={panelRef} className="mt-3.5 p-3.5 bg-[var(--surface-page)] border border-[var(--border)] rounded-[var(--radius-lg)] scroll-mt-20 scroll-mb-20">
-              <p className="text-[13px] font-[var(--weight-bold)] text-[var(--text-primary)] mt-0 mb-2.5">
-                {DAY_LABELS_FULL[d.getDay()]}, {d.getDate()} {MONTH_NAMES[d.getMonth()]}
-              </p>
-
-              <div className="flex flex-col gap-2">
-                {/* Morning */}
-                {pickedMorn ? (
-                  <div className="flex items-center justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
-                    <span className="text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">✅ Morning picked</span>
-                  </div>
-                ) : hasMorn ? (
-                  <Button
-                    size="md" fullWidth
-                    loading={pickingId === `${selected}|morning`}
-                    disabled={!!pickingId && pickingId !== `${selected}|morning`}
-                    onClick={() => handlePick(selected, 'morning')}
-                    leftSection={<span className="text-[11px] bg-[rgba(255,255,255,0.25)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">AM</span>}
-                  >
-                    Pick Morning ({morningStartLabel})
-                  </Button>
-                ) : null}
-
-                {/* Afternoon */}
-                {pickedAftern ? (
-                  <div className="flex items-center justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
-                    <span className="text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">✅ Afternoon picked</span>
-                  </div>
-                ) : hasAftern ? (
-                  <Button
-                    size="md" fullWidth variant="default"
-                    loading={pickingId === `${selected}|afternoon`}
-                    disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
-                    onClick={() => handlePick(selected, 'afternoon')}
-                    style={{ background: 'var(--color-orange-bg)', color: 'var(--color-orange-solid)', border: '1px solid var(--color-orange-border)' }}
-                    leftSection={<span className="text-[11px] bg-[var(--color-orange-border)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">PM</span>}
-                  >
-                    Pick Afternoon ({afternoonStartLabel})
-                  </Button>
-                ) : null}
-
-                {remainingSlots <= 0 && !pickedMorn && !pickedAftern && (
-                  <p className="text-[12px] text-[var(--color-amber-text)] m-0 text-center">
-                    You've reached your {requiredSlots}-slot limit. To change a picked slot, ask your Admin to reassign it, or request a reassignment from a colleague.
-                  </p>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
         {/* No slots message when window is open but empty */}
         {windowOpen && !loadingAvail && (available?.data ?? []).length === 0 && (
-          <div className="mt-4 px-3.5 py-3 bg-[var(--color-amber-bg)] border border-[var(--color-amber-border)] rounded-[var(--radius-lg)]">
+          <div className="mt-4 px-3.5 py-3 bg-[var(--color-amber-bg)] border border-[var(--color-amber-border)] rounded-[var(--radius-lg)] flex items-start gap-1.5">
+            <IconAlertTriangle size={14} stroke={2} className="shrink-0 mt-0.5" style={{ color: 'var(--color-amber-text)' }} />
             <p className="text-[12px] text-[var(--color-amber-text)] m-0">
-              ⚠️ No slots set up for this month yet. Ask your Admin to configure working days on the Duty Calendar page.
+              No slots set up for this month yet. Ask your Admin to configure working days on the Duty Calendar page.
             </p>
           </div>
         )}
@@ -371,6 +308,72 @@ export default function SlotPickerPage({ user }) {
           </div>
         )}
       </div>
+
+      {/* ── Selected-date session picker sheet ── */}
+      <ResponsiveSheet
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected ? selectedDateLabel(selected) : ''}
+        size="sm"
+      >
+        {selected && (() => {
+          const avail        = availMap[selected] ?? [];
+          const picked       = pickedMap[selected] ?? {};
+          const hasMorn      = avail.includes('morning');
+          const hasAftern    = avail.includes('afternoon');
+          const pickedMorn   = !!picked.morning;
+          const pickedAftern = !!picked.afternoon;
+
+          return (
+            <div className="p-4 flex flex-col gap-2">
+              {/* Morning */}
+              {pickedMorn ? (
+                <div className="flex items-center gap-1.5 justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
+                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">
+                    <IconCheck size={15} stroke={2.5} /> Morning picked
+                  </span>
+                </div>
+              ) : hasMorn ? (
+                <Button
+                  size="md" fullWidth
+                  loading={pickingId === `${selected}|morning`}
+                  disabled={!!pickingId && pickingId !== `${selected}|morning`}
+                  onClick={() => handlePick(selected, 'morning')}
+                  leftSection={<span className="text-[11px] bg-[rgba(255,255,255,0.25)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">AM</span>}
+                >
+                  Pick Morning ({morningStartLabel})
+                </Button>
+              ) : null}
+
+              {/* Afternoon */}
+              {pickedAftern ? (
+                <div className="flex items-center gap-1.5 justify-between bg-[var(--color-emerald-bg)] border border-[var(--color-emerald-border)] rounded-[var(--radius-lg)] px-3.5 py-2.5">
+                  <span className="flex items-center gap-1.5 text-[13px] text-[var(--color-emerald-text)] font-[var(--weight-semibold)]">
+                    <IconCheck size={15} stroke={2.5} /> Afternoon picked
+                  </span>
+                </div>
+              ) : hasAftern ? (
+                <Button
+                  size="md" fullWidth variant="default"
+                  loading={pickingId === `${selected}|afternoon`}
+                  disabled={!!pickingId && pickingId !== `${selected}|afternoon`}
+                  onClick={() => handlePick(selected, 'afternoon')}
+                  style={{ background: 'var(--color-orange-bg)', color: 'var(--color-orange-solid)', border: '1px solid var(--color-orange-border)' }}
+                  leftSection={<span className="text-[11px] bg-[var(--color-orange-border)] px-1.5 py-0.5 rounded-[var(--radius-sm)] font-[var(--weight-bold)]">PM</span>}
+                >
+                  Pick Afternoon ({afternoonStartLabel})
+                </Button>
+              ) : null}
+
+              {remainingSlots <= 0 && !pickedMorn && !pickedAftern && (
+                <p className="text-[12px] text-[var(--color-amber-text)] m-0 text-center">
+                  You've reached your {requiredSlots}-slot limit. To change a picked slot, ask your Admin to reassign it, or request a reassignment from a colleague.
+                </p>
+              )}
+            </div>
+          );
+        })()}
+      </ResponsiveSheet>
     </Layout>
   );
 }

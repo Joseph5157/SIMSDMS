@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import Layout, { PageHeader } from '../components/Layout';
 import Breadcrumb from '../components/Breadcrumb';
 import { Button } from '@mantine/core';
+import { IconBell } from '@tabler/icons-react';
 import { Table, Th, Td, EmptyRow } from '../components/ui/Table';
 import Pagination from '../components/ui/Pagination';
 import { useToast } from '../components/ui/Toast';
@@ -76,7 +77,7 @@ export default function NotificationsPage({ user }) {
         ]} />
         <PageHeader title="Notifications" subtitle="View and manage your notifications" />
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4 px-6 py-12 text-center">
-          <div className="text-[48px]">🔔</div>
+          <IconBell size={48} stroke={1.5} style={{ color: 'var(--text-muted)' }} />
           <h2 className="text-[length:var(--text-h2)] font-[var(--weight-bold)] text-[var(--text-primary)] m-0">
             Notifications Not Yet Available
           </h2>

@@ -21,7 +21,7 @@ import MyViolationsSummary from '../../components/faculty/MyViolationsSummary';
 import RequestReassignmentModal from '../../components/faculty/RequestReassignmentModal';
 import PendingReassignmentRequests from '../../components/faculty/PendingReassignmentRequests';
 import { ROUTES } from '../../utils/constants';
-import { IconRefresh, IconAlertTriangle, IconMail, IconChevronRight } from '@tabler/icons-react';
+import { IconRefresh, IconAlertTriangle, IconMail, IconChevronRight, IconClipboardList, IconCheck, IconClock, IconBell, IconX } from '@tabler/icons-react';
 import { MobileList, MobileListItem } from '../../components/ui/MobileList';
 
 function todayIST() {
@@ -72,8 +72,8 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
       <div className="relative">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[rgba(255,255,255,0.7)] uppercase tracking-[var(--tracking-wide)] mb-1.5">
-              📋 Today's duty
+            <p className="flex items-center gap-1.5 text-[length:var(--text-micro)] font-[var(--weight-bold)] text-[rgba(255,255,255,0.7)] uppercase tracking-[var(--tracking-wide)] mb-1.5">
+              <IconClipboardList size={13} stroke={2.5} /> Today's duty
             </p>
             <p className="text-[length:var(--text-h2)] font-[var(--weight-extra)] text-[var(--text-on-dark)] leading-[1.1] capitalize">
               {session.session_type} session
@@ -91,8 +91,9 @@ function TodaySessionCard({ session, timingSettings, checkInPending, checkOutPen
         </div>
 
         {session.in_time && session.out_time ? (
-          <p className="text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-on-dark)]">
-            ✓ Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          <p className="flex items-center gap-1.5 text-[length:var(--text-card)] font-[var(--weight-semibold)] text-[var(--text-on-dark)]">
+            <IconCheck size={15} stroke={2.5} className="shrink-0" />
+            Checked in {new Date(session.in_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             {' · '}out {new Date(session.out_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
           </p>
         ) : session.in_time ? (
@@ -267,11 +268,11 @@ export default function DashboardPage({ user }) {
   // ── Single, priority-ordered, dismissible alert (never stack banners) ──
   const alertCandidates = [
     clockoutSession && {
-      key: 'clockout', tone: 'warning', icon: '⏰', title: 'Remember to clock out',
+      key: 'clockout', tone: 'warning', icon: <IconClock size={17} stroke={2} />, title: 'Remember to clock out',
       body: `Your ${clockoutSession.session_type} session ends in ${minsUntilSessionEnd(clockoutSession.session_type)} min. Clock out before auto-out kicks in.`,
     },
     autoClockedSession && {
-      key: 'autoclock', tone: 'info', icon: '🔔', title: 'You were auto clocked out',
+      key: 'autoclock', tone: 'info', icon: <IconBell size={17} stroke={2} />, title: 'You were auto clocked out',
       body: `The system recorded your ${autoClockedSession.session_type} check-out automatically at session end.`,
     },
   ].filter(Boolean);
@@ -334,7 +335,7 @@ export default function DashboardPage({ user }) {
             <Skeleton height="120px" className="rounded-xl" />
           </>
         ) : summaryError ? (
-          <Alert tone="danger" icon="⚠️" title="Couldn't load today's duty"
+          <Alert tone="danger" icon={<IconAlertTriangle size={17} stroke={2} />} title="Couldn't load today's duty"
             action={<Button variant="outline" size="sm" onClick={() => refetchSummary()}>Retry</Button>}>
             Check your connection and try again.
           </Alert>
@@ -394,7 +395,7 @@ export default function DashboardPage({ user }) {
       {/* ── 2. Quick actions ── */}
       {!slotsLoading && !slotsError && canDoViolation && (
         <section className="mb-4 flex gap-2 flex-wrap">
-          <Button size="md" variant="light" leftSection={<span>⚠️</span>} onClick={() => setShowRecordViolation(true)}>
+          <Button size="md" variant="light" leftSection={<IconAlertTriangle size={16} stroke={2} />} onClick={() => setShowRecordViolation(true)}>
             Record Student Violation
           </Button>
         </section>
@@ -410,8 +411,8 @@ export default function DashboardPage({ user }) {
                 <button
                   onClick={() => setDismissedAlerts((prev) => new Set(prev).add(activeAlert.key))}
                   aria-label="Dismiss"
-                  className="bg-transparent border-0 cursor-pointer p-0.5 opacity-60 text-[14px] leading-none">
-                  ✕
+                  className="bg-transparent border-0 cursor-pointer p-0.5 opacity-60 flex items-center">
+                  <IconX size={14} stroke={2} />
                 </button>
               </div>
             }>
