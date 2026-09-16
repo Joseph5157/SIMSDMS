@@ -5,6 +5,7 @@ import { IconSearch, IconX } from '@tabler/icons-react';
 import { useMediaQuery, useDebouncedValue } from '@mantine/hooks';
 import { useStudentSearch } from '../../hooks/useStudents';
 import useKeyboardInset from '../../hooks/useKeyboardInset';
+import UserAvatar from './UserAvatar';
 
 // The /students/search response carries the raw course code + numeric year (not a
 // display label), so build a readable meta line here.
@@ -212,14 +213,19 @@ export default function StudentSearchOverlay({ open, onClose, onSelect }) {
                           <button
                             type="button"
                             onClick={() => choose(s)}
-                            className="w-full text-left rounded-[var(--radius-lg)] border px-4 py-3 transition-colors hover:bg-[var(--color-blue-50)] active:bg-[var(--color-blue-50)]"
+                            className="w-full flex items-center gap-3 text-left rounded-[var(--radius-lg)] border px-4 py-3 transition-colors hover:bg-[var(--color-blue-50)] active:bg-[var(--color-blue-50)]"
                             style={{ borderColor: 'var(--border)', background: 'var(--surface-card)', minHeight: 'var(--control-min)' }}
                           >
-                            <span className="block font-semibold text-[length:var(--text-body)] text-[var(--text-primary)]">
-                              {s.student_name}
+                            <span aria-hidden="true" className="shrink-0">
+                              <UserAvatar user={{ name: s.student_name }} size={36} />
                             </span>
-                            <span className="block text-[length:var(--text-small)] text-[var(--text-muted)] mt-0.5">
-                              {studentMeta(s)}
+                            <span className="min-w-0">
+                              <span className="block font-semibold text-[length:var(--text-body)] text-[var(--text-primary)]">
+                                {s.student_name}
+                              </span>
+                              <span className="block text-[length:var(--text-small)] text-[var(--text-muted)] mt-0.5">
+                                {studentMeta(s)}
+                              </span>
                             </span>
                           </button>
                         </li>

@@ -601,6 +601,15 @@ textarea:not([class*="transition"]) {
   animation: spin 0.7s linear infinite;
 }
 
+/* Mantine's Select/Combobox dropdown ships with no box-shadow by default, so its
+   floating options panel has no visual separation from content underneath it —
+   most visible when it opens directly over a white card (e.g. MyViolationsTable).
+   Every hand-built dropdown in this app already uses --shadow-dropdown
+   (NotificationBell, ReportsPage); apply the same token here for consistency. */
+.mantine-Select-dropdown {
+  box-shadow: var(--shadow-dropdown);
+}
+
 /* ── Mantine dark mode overrides — sync with our design system ── */
 html.dark .mantine-Paper-root {
   background-color: var(--surface-card);
