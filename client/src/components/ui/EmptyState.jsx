@@ -2,7 +2,7 @@ import { Stack, Text, Center } from '@mantine/core';
 
 /**
  * EmptyState — "no data" placeholder. icon/emoji + title + message + optional action.
- * Pass `icon` (a Lucide icon component) for a polished look, or `emoji` for backward compat.
+ * Pass `icon` (a @tabler/icons-react component) for a polished look, or `emoji` for backward compat.
  */
 export default function EmptyState({ icon: Icon, emoji = '📭', title, subtitle, message, action }) {
   const body = message ?? subtitle;

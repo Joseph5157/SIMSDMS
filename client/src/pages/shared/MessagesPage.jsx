@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Layout, { PageHeader } from '../../components/Layout';
 import { Button } from '@mantine/core';
+import { IconX, IconMail } from '@tabler/icons-react';
 import Pagination from '../../components/ui/Pagination';
 import { useToast } from '../../components/ui/Toast';
 import ComposeDrawer from '../../components/ComposeDrawer';
@@ -68,8 +69,8 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
         </div>
 
         {/* Desktop close */}
-        <button onClick={onClose} className="hidden sm:block text-[var(--text-muted)] hover:text-[var(--text-secondary)] text-[length:18px] leading-none flex-shrink-0">
-          ✕
+        <button onClick={onClose} aria-label="Close" className="hidden sm:flex items-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] flex-shrink-0">
+          <IconX size={16} stroke={2} />
         </button>
       </div>
 
@@ -241,7 +242,7 @@ export default function MessagesPage({ user }) {
         ) : (
           // Empty state: hidden on mobile (list is shown instead), visible on desktop
           <div className="hidden sm:flex flex-1 flex-col items-center justify-center text-[var(--text-muted)] gap-2">
-            <p className="text-[length:28px]">✉️</p>
+            <IconMail size={28} stroke={1.5} />
             <p className="text-[length:13px]">Select a message to read it</p>
           </div>
         )}

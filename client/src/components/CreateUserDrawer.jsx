@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TextInput } from '@mantine/core';
+import { IconClipboardList, IconCopy } from '@tabler/icons-react';
 import ResponsiveSheet from './ui/ResponsiveSheet';
 import AppButton from './ui/AppButton';
 
@@ -110,7 +111,7 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
         // ── INVITE LINK PANEL ──
         <div className="p-5 flex flex-col gap-3.5">
           <div className="bg-[var(--color-blue-50)] border-[1.5px] border-[var(--color-blue-200)] rounded-xl p-3 text-xs text-[var(--color-blue-800)] leading-relaxed">
-            <p className="font-bold mb-2">📋 Instructions:</p>
+            <p className="font-bold mb-2 flex items-center gap-1.5"><IconClipboardList size={15} stroke={2} /> Instructions:</p>
             <ol className="m-0 pl-[18px]">
               <li>Open Telegram and search for <strong>@{extractBotUsername()}</strong></li>
               <li>Tap "Start" when you open the bot</li>
@@ -132,9 +133,9 @@ export default function CreateUserDrawer({ open, onClose, onSubmit, loading, act
           <div className="flex flex-col gap-2">
             <button
               onClick={copyCommand}
-              className="w-full h-11 rounded-lg font-bold text-sm text-[var(--brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-blue-100)] border-[1.5px] border-[var(--brand)] bg-[var(--color-blue-50)]"
+              className="w-full h-11 rounded-lg font-bold text-sm text-[var(--brand)] cursor-pointer transition-all duration-150 hover:bg-[var(--color-blue-100)] border-[1.5px] border-[var(--brand)] bg-[var(--color-blue-50)] flex items-center justify-center gap-1.5"
             >
-              📋 Copy command
+              <IconCopy size={15} stroke={2} /> Copy command
             </button>
             <a
               href={inviteLink}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { TextInput, Checkbox, Switch } from '@mantine/core';
-import { IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight, IconLock, IconAlertTriangle, IconCheck, IconShieldCheck } from '@tabler/icons-react';
 import ResponsiveSheet from '../ui/ResponsiveSheet';
 import AppButton from '../ui/AppButton';
 import { AppSelect } from '../ui/AppField';
@@ -249,7 +249,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
 
   const offDutyBody = (
     <div className="px-1 py-2">
-      <Alert tone="warning" icon="🔒" title="You're not checked in">
+      <Alert tone="warning" icon={<IconLock size={17} stroke={2} />} title="You're not checked in">
         Student violations can only be recorded while you're actively checked in to
         today's duty session. Check in from your dashboard, then come back to record here.
       </Alert>
@@ -262,7 +262,7 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       {/* ── Submit error ── */}
       {visibleFormError && (
         <div style={{ marginBottom: 16 }}>
-          <Alert tone="danger" icon="⚠️">
+          <Alert tone="danger" icon={<IconAlertTriangle size={17} stroke={2} />}>
             <span ref={errorAlertRef} tabIndex={-1} className="outline-none">{visibleFormError}</span>
           </Alert>
         </div>
@@ -274,12 +274,12 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
              pick from. ── */}
       <div style={{ marginBottom: 16 }}>
         {adminMode ? (
-          <Alert tone="info" icon="🛡️">Recording as Admin — no duty session required.</Alert>
+          <Alert tone="info" icon={<IconShieldCheck size={17} stroke={2} />}>Recording as Admin — no duty session required.</Alert>
         ) : (
           // formBody is always constructed even when offDuty is what actually
           // renders (see the ternary below) — guard against a null activeSlot
           // rather than relying on evaluation order to skip this branch.
-          <Alert tone="success" icon="✓">
+          <Alert tone="success" icon={<IconCheck size={17} stroke={2.5} />}>
             {`${activeSlot?.session_type === 'morning' ? 'Morning' : 'Afternoon'} session · ${new Date(todayStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
           </Alert>
         )}

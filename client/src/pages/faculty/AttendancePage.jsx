@@ -6,7 +6,7 @@ import Badge from '../../components/ui/Badge';
 import StatCard from '../../components/ui/StatCard';
 import EmptyState from '../../components/ui/EmptyState';
 import Skeleton from '../../components/ui/Skeleton';
-import { IconClipboardList } from '@tabler/icons-react';
+import { IconClipboardList, IconCheck, IconClock, IconAlertTriangle, IconBell } from '@tabler/icons-react';
 import { useMyAttendanceSummary } from '../../hooks/useAttendance';
 import { ROUTES } from '../../utils/constants';
 
@@ -140,11 +140,11 @@ export default function AttendancePage({ user }) {
         <>
           {/* ── Monthly summary ── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-4">
-            <StatCard compact label="Checked in"     value={summary?.checked_in ?? 0}     accent="blue"   icon="✓" />
-            <StatCard compact label="Checked out"    value={summary?.checked_out ?? 0}    accent="green"  icon="✔" />
-            <StatCard compact label="Late arrivals"  value={summary?.late ?? 0}           accent="yellow" icon="⏰" />
-            <StatCard compact label="Absent"         value={summary?.not_checked_in ?? 0} accent="red"    icon="⚠" />
-            <StatCard compact label="Auto clock-out" value={summary?.auto_out ?? 0}       accent="indigo" icon="🔔" />
+            <StatCard compact label="Checked in"     value={summary?.checked_in ?? 0}     accent="blue"   icon={<IconCheck size={13} stroke={2.5} />} />
+            <StatCard compact label="Checked out"    value={summary?.checked_out ?? 0}    accent="green"  icon={<IconCheck size={13} stroke={2.5} />} />
+            <StatCard compact label="Late arrivals"  value={summary?.late ?? 0}           accent="yellow" icon={<IconClock size={13} stroke={2.5} />} />
+            <StatCard compact label="Absent"         value={summary?.not_checked_in ?? 0} accent="red"    icon={<IconAlertTriangle size={13} stroke={2.5} />} />
+            <StatCard compact label="Auto clock-out" value={summary?.auto_out ?? 0}       accent="indigo" icon={<IconBell size={13} stroke={2.5} />} />
           </div>
 
           {/* ── Morning / afternoon breakdown ── */}
