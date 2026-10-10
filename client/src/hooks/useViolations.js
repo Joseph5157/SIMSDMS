@@ -12,13 +12,14 @@ export function useViolations(filters = {}, options = {}) {
   });
 }
 
-export function useMyViolations(filters = {}) {
+export function useMyViolations(filters = {}, options = {}) {
   return useQuery({
     queryKey: ['myViolations', filters],
     queryFn: async () => {
       const res = await api.get('/violations/my', { params: filters });
       return res.data;
     },
+    ...options,
   });
 }
 

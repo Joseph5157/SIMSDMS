@@ -368,6 +368,16 @@ export default function DashboardPage({ user }) {
         )}
       </section>
 
+      {/* ── 1a. Quick action — directly under the hero check-in card so a
+          checked-in faculty member can record a violation without scrolling ── */}
+      {!slotsLoading && !slotsError && canDoViolation && (
+        <section className="mb-4 flex gap-2 flex-wrap">
+          <Button size="md" variant="light" fullWidth leftSection={<IconAlertTriangle size={16} stroke={2} />} onClick={() => setShowRecordViolation(true)}>
+            Record Student Violation
+          </Button>
+        </section>
+      )}
+
       {/* ── 1b. At-a-glance stats — this month's violations + pending requests ── */}
       {!summaryLoading && (
         <section className="mb-4 grid grid-cols-2 gap-3">
@@ -389,15 +399,6 @@ export default function DashboardPage({ user }) {
             icon={<IconRefresh size={14} stroke={1.75} />}
             onClick={pendingRequestsCount ? () => pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) : undefined}
           />
-        </section>
-      )}
-
-      {/* ── 2. Quick actions ── */}
-      {!slotsLoading && !slotsError && canDoViolation && (
-        <section className="mb-4 flex gap-2 flex-wrap">
-          <Button size="md" variant="light" leftSection={<IconAlertTriangle size={16} stroke={2} />} onClick={() => setShowRecordViolation(true)}>
-            Record Student Violation
-          </Button>
         </section>
       )}
 

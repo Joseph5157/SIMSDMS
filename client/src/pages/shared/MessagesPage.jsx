@@ -15,7 +15,7 @@ function fmtDate(iso) {
 }
 
 // ── Thread panel ──────────────────────────────────────────────────────────────
-function ThreadPanel({ messageId, currentUser, onClose }) {
+function ThreadPanel({ messageId, currentUser, onClose, onReply }) {
   const { data, isError, refetch } = useMessage(messageId);
   const deleteMsg = useDeleteMessage();
   const toast     = useToast();
@@ -100,7 +100,20 @@ function ThreadPanel({ messageId, currentUser, onClose }) {
       </div>
 
       {/* Footer */}
-      <div className="px-4 sm:px-5 py-3 border-t border-[var(--border)] flex justify-end">
+      <div className="px-4 sm:px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2">
+        {!isSent && data.sender?.id && (
+          <Button
+            size="sm"
+            variant="light"
+            onClick={() => onReply({
+              to_user_id: data.sender.id,
+              subject: /^re:/i.test(data.subject ?? '') ? data.subject : `Re: ${data.subject ?? ''}`.trim(),
+              body: '',
+            })}
+          >
+            Reply
+          </Button>
+        )}
         <Button color="red" size="sm" onClick={handleDelete} loading={deleteMsg.isPending}>
           Delete
         </Button>
@@ -140,6 +153,8 @@ export default function MessagesPage({ user }) {
   const [tab,     setTab]     = useState('inbox');
   const [page,    setPage]    = useState(1);
   const [compose, setCompose] = useState(false);
+  // Pre-filled compose (Reply) — null for a plain new message.
+  const [composePrefill, setComposePrefill] = useState(null);
   const [viewing, setViewing] = useState(null);
 
   const inbox = useInbox({ page, limit: 20 });
@@ -154,13 +169,7 @@ export default function MessagesPage({ user }) {
       <PageHeader
         title="Messages"
         action={
-          <div className="flex flex-col items-center gap-2">
-            {/* Same bg-blue-50/text-blue-700 pill treatment as the "upcoming" status badge (see STATUS_COLORS) */}
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-[length:11px] font-semibold bg-blue-50 text-blue-700">
-              New chat-style experience coming soon
-            </span>
-            <Button onClick={() => setCompose(true)} size="sm">+ Compose</Button>
-          </div>
+          <Button onClick={() => { setComposePrefill(null); setCompose(true); }} size="sm">+ Compose</Button>
         }
       />
 
@@ -238,6 +247,7 @@ export default function MessagesPage({ user }) {
             messageId={viewing}
             currentUser={user}
             onClose={() => setViewing(null)}
+            onReply={(prefill) => { setComposePrefill(prefill); setCompose(true); }}
           />
         ) : (
           // Empty state: hidden on mobile (list is shown instead), visible on desktop
@@ -248,7 +258,7 @@ export default function MessagesPage({ user }) {
         )}
       </div>
 
-      <ComposeDrawer open={compose} onClose={() => setCompose(false)} />
+      <ComposeDrawer open={compose} onClose={() => setCompose(false)} prefill={composePrefill} />
     </Layout>
   );
 }

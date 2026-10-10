@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { TextInput, Checkbox, Switch } from '@mantine/core';
+import { TextInput, Checkbox, Switch, Chip } from '@mantine/core';
 import { IconChevronRight, IconLock, IconAlertTriangle, IconCheck, IconShieldCheck } from '@tabler/icons-react';
 import ResponsiveSheet from '../ui/ResponsiveSheet';
 import AppButton from '../ui/AppButton';
@@ -7,7 +7,7 @@ import { AppSelect } from '../ui/AppField';
 import Alert from '../ui/Alert';
 import StudentSearchOverlay from '../ui/StudentSearchOverlay';
 import { useToast } from '../ui/Toast';
-import { useCreateViolation } from '../../hooks/useViolations';
+import { useCreateViolation, useMyViolations } from '../../hooks/useViolations';
 import { useViolationTypes } from '../../hooks/useViolationTypes';
 import { useMonthSlots } from '../../hooks/useDutySlots';
 import { isActivelyCheckedIn } from '../../utils/dutyEligibility';
@@ -41,6 +41,11 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
 
   const { data: typesData }  = useViolationTypes();
   const { data: slotsData }  = useMonthSlots(now.getUTCFullYear(), now.getUTCMonth() + 1);
+  // Faculty's own recent records, used only to rank "frequently used" type
+  // chips. Same query key as the dashboard's limit-100 call, so it normally
+  // dedupes to a cache hit. /violations/my is faculty-only, so never call it
+  // in admin mode.
+  const { data: myRecentData } = useMyViolations({ limit: 100 }, { enabled: open && !adminMode });
 
   const [form, setForm] = useState(INITIAL_FORM);
   // studentQ holds the selected student's display label ("Name (REG)"); the actual
@@ -134,6 +139,21 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
     setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
     clearFieldError(k);
   };
+
+  // Top 4 violation types this faculty member records most, restricted to
+  // types still offered (active) — one-tap shortcuts above the full select.
+  const frequentTypes = (() => {
+    if (adminMode) return [];
+    const activeTypes = typesData?.data ?? [];
+    const counts = new Map();
+    (myRecentData?.data ?? []).forEach((v) => {
+      counts.set(String(v.violation_type_id), (counts.get(String(v.violation_type_id)) ?? 0) + 1);
+    });
+    return activeTypes
+      .filter((t) => counts.has(String(t.id)))
+      .sort((a, b) => counts.get(String(b.id)) - counts.get(String(a.id)))
+      .slice(0, 4);
+  })();
 
   const selectedType = typesData?.data?.find(t => String(t.id) === form.violation_type_id);
   const isOthers     = selectedType?.name?.toLowerCase() === 'others';
@@ -319,6 +339,22 @@ export default function RecordViolationModal({ open, onClose, adminMode = false 
       {/* ── Violation type + Fine ── */}
       <div className="flex flex-col gap-4 py-6">
         <SectionLabel>Student Violation</SectionLabel>
+        {frequentTypes.length > 0 && (
+          <div>
+            <p style={{ fontSize: 'var(--text-micro)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+              Frequently used
+            </p>
+            <Chip.Group multiple={false} value={form.violation_type_id || null} onChange={handleTypeChange}>
+              <div className="flex flex-wrap gap-2">
+                {frequentTypes.map((t) => (
+                  <Chip key={t.id} value={String(t.id)} size="md" variant="outline">
+                    {t.name}
+                  </Chip>
+                ))}
+              </div>
+            </Chip.Group>
+          </div>
+        )}
         <AppSelect
           label="Student violation type"
           placeholder="Select type…"
